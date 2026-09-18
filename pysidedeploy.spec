@@ -6,7 +6,6 @@ exec_directory = .
 
 [python]
 python_path = .
-android_packages = buildozer,cython
 
 [qt]
 modules = Core,Gui,Qml,Quick,QuickControls2
