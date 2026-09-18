@@ -1,0 +1,40 @@
+name: Build Malino Android
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install build tools
+        run: python -m pip install -U buildozer cython qtpip PySide6==6.8.* GitPython
+      - name: Prepare Qt Android SDK/NDK
+        run: |
+          git clone --depth 1 --branch 6.8 https://code.qt.io/pyside/pyside-setup "$HOME/pyside-setup"
+
+      - name: Install Qt Android cross-compile dependencies
+        run: |
+          python -m pip install -r "$HOME/pyside-setup/tools/cross_compile_android/requirements.txt"
+          python "$HOME/pyside-setup/tools/cross_compile_android/main.py" --download-only --skip-update --auto-accept-license
+      - name: Download Android wheels
+        run: |
+          mkdir -p android-wheels
+          qtpip download PySide6 --android --arch aarch64 -d android-wheels
+      - name: Build APK
+        run: |
+          PSWHEEL=$(ls android-wheels/PySide6-*.whl | head -n1)
+          SWWHEEL=$(ls android-wheels/shiboken6-*.whl | head -n1)
+          pyside6-android-deploy --name Malino --wheel-pyside="$PSWHEEL" --wheel-shiboken="$SWWHEEL" --config-file pysidedeploy.spec --force
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: malino-android
+          path: |
+            **/*.apk
+            **/*.aab
+          if-no-files-found: error
