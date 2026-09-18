@@ -3,6 +3,7 @@ title = Malino
 project_dir = .
 input_file = main.py
 exec_directory = .
+icon = assets/malino_icon.svg
 
 [python]
 python_path = .
@@ -10,6 +11,7 @@ android_packages = buildozer,cpython
 
 [qt]
 modules = Core,Gui,Qml,Quick,QuickControls2
+qml_files = qml
 
 [android]
 wheel_pyside =

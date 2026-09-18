@@ -4,43 +4,25 @@ on:
   push:
     branches:
       - main
-
   workflow_dispatch:
 
 jobs:
-
   android:
-
     runs-on: ubuntu-22.04
 
     steps:
 
-      # ---------------------------------------------------
-      # Checkout
-      # ---------------------------------------------------
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------
-      # Python
-      # ---------------------------------------------------
-
       - name: Setup Python
         uses: actions/setup-python@v5
-
         with:
           python-version: "3.11"
 
-      # ---------------------------------------------------
-      # System packages
-      # ---------------------------------------------------
-
       - name: Install system dependencies
         run: |
-
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             wget \
@@ -49,13 +31,8 @@ jobs:
             zip \
             openjdk-17-jdk
 
-      # ---------------------------------------------------
-      # Python dependencies
-      # ---------------------------------------------------
-
       - name: Install PySide6 deployment tools
         run: |
-
           python -m pip install --upgrade pip
 
           python -m pip install \
@@ -66,24 +43,15 @@ jobs:
             qtpip \
             GitPython
 
-          echo ""
-          echo "Installed packages:"
-          python -m pip list
-
-          echo ""
-          echo "Checking deployment command:"
+          echo "=============================================="
+          echo "PySide6 deployment executable"
+          echo "=============================================="
 
           which pyside6-android-deploy
-
           pyside6-android-deploy --help
-
-      # ---------------------------------------------------
-      # Clone Qt for Python setup
-      # ---------------------------------------------------
 
       - name: Clone PySide setup
         run: |
-
           rm -rf "$HOME/pyside-setup"
 
           git clone \
@@ -92,65 +60,123 @@ jobs:
             https://code.qt.io/pyside/pyside-setup \
             "$HOME/pyside-setup"
 
-      # ---------------------------------------------------
-      # Install cross compile dependencies
-      # ---------------------------------------------------
-
-      - name: Install Qt Android build dependencies
+      - name: Install PySide Android build dependencies
         run: |
-
           python -m pip install \
             -r "$HOME/pyside-setup/requirements.txt"
 
           python -m pip install \
             -r "$HOME/pyside-setup/tools/cross_compile_android/requirements.txt"
 
-      # ---------------------------------------------------
-      # Download Android SDK / NDK
-      # ---------------------------------------------------
-
       - name: Download Android SDK and NDK
         run: |
-
-          python \
-            "$HOME/pyside-setup/tools/cross_compile_android/main.py" \
+          python "$HOME/pyside-setup/tools/cross_compile_android/main.py" \
             --download-only \
             --skip-update \
             --auto-accept-license
 
-      # ---------------------------------------------------
-      # Download Android PySide6 wheel
-      # ---------------------------------------------------
+      - name: Detect Android SDK and NDK
+        shell: bash
+        run: |
+
+          echo "=============================================="
+          echo "SEARCHING FOR ANDROID SDK"
+          echo "=============================================="
+
+          SDK_ROOT="$HOME/.pyside6_android_deploy/android-sdk"
+
+          if [ ! -d "$SDK_ROOT" ]; then
+            echo "ERROR: Android SDK was not found:"
+            echo "$SDK_ROOT"
+            exit 1
+          fi
+
+          echo "SDK_ROOT=$SDK_ROOT"
+
+          echo
+          echo "Installed SDK packages:"
+          find "$SDK_ROOT" -maxdepth 3 -type d | sort | head -200 || true
+
+          echo
+          echo "=============================================="
+          echo "SEARCHING FOR NDK"
+          echo "=============================================="
+
+          NDK_ROOT=""
+
+          if [ -d "$SDK_ROOT/ndk" ]; then
+            for d in "$SDK_ROOT"/ndk/*; do
+              if [ -d "$d" ]; then
+                if [ -f "$d/source.properties" ]; then
+                  NDK_ROOT="$d"
+                fi
+              fi
+            done
+          fi
+
+          if [ -z "$NDK_ROOT" ]; then
+            NDK_ROOT=$(find "$SDK_ROOT/ndk" \
+              -mindepth 1 \
+              -maxdepth 1 \
+              -type d \
+              | sort -V \
+              | tail -1 || true)
+          fi
+
+          if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+            echo
+            echo "ERROR: Android NDK was not found."
+            echo
+            find "$SDK_ROOT" \
+              -type d \
+              -name "llvm" \
+              -o \
+              -type d \
+              -name "ndk*" \
+              | sort || true
+            exit 1
+          fi
+
+          echo
+          echo "FOUND NDK:"
+          echo "$NDK_ROOT"
+
+          if [ ! -f "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj" ]; then
+            echo
+            echo "ERROR: llvm-readobj was not found."
+            echo
+            find "$NDK_ROOT" \
+              -type f \
+              -name "llvm-readobj*" \
+              -print || true
+            exit 1
+          fi
+
+          echo
+          echo "llvm-readobj:"
+          "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj" --version
+
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$NDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$NDK_ROOT" >> "$GITHUB_ENV"
 
       - name: Download Android PySide6 wheels
         run: |
-
           mkdir -p "$GITHUB_WORKSPACE/android-wheels"
 
           cd "$GITHUB_WORKSPACE/android-wheels"
 
-          echo "Downloading PySide6 Android wheel..."
-
           wget -nv \
             "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
-            -O \
-            "PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
-
-          echo ""
-          echo "Downloading Shiboken6 Android wheel..."
+            -O "PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
 
           wget -nv \
             "https://download.qt.io/official_releases/QtForPython/shiboken6/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
-            -O \
-            "shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
+            -O "shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
 
-          echo ""
-          echo "Downloaded Android wheels:"
+          echo
+          echo "Android wheels:"
           ls -lh
-
-      # ---------------------------------------------------
-      # Verify wheels
-      # ---------------------------------------------------
 
       - name: Verify Android wheels
         run: |
@@ -159,120 +185,93 @@ jobs:
 
           SWWHEEL="$GITHUB_WORKSPACE/android-wheels/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
 
-          echo "PySide6:"
-          echo "$PSWHEEL"
-
-          echo ""
-
-          echo "Shiboken6:"
-          echo "$SWWHEEL"
-
-          echo ""
-
           test -f "$PSWHEEL"
           test -f "$SWWHEEL"
-
-          echo "✅ Android wheels verified."
 
           echo "PSWHEEL=$PSWHEEL" >> "$GITHUB_ENV"
           echo "SWWHEEL=$SWWHEEL" >> "$GITHUB_ENV"
 
-      # ---------------------------------------------------
-      # Validate project
-      # ---------------------------------------------------
-
       - name: Validate project
         run: |
 
-          echo "Checking main.py..."
+          echo "=============================================="
+          echo "VALIDATING MALINO PROJECT"
+          echo "=============================================="
 
           test -f main.py
-
-          echo "Checking controller..."
-
           test -f core/controller.py
-
-          echo "Checking database..."
-
           test -f core/db.py
-
-          echo "Checking parser..."
-
           test -f core/parser.py
-
-          echo "Checking QML..."
-
-          find qml \
-            -type f \
-            -name "*.qml" \
-            -print
-
-          echo ""
-
-          echo "Checking deployment configuration..."
-
           test -f pysidedeploy.spec
 
-          echo ""
-          echo "✅ Project validation passed."
+          echo
+          echo "QML files:"
+          find qml -type f -name "*.qml" -print
 
-      # ---------------------------------------------------
-      # Deploy
-      # ---------------------------------------------------
+          echo
+          echo "Checking QML syntax files for semicolon problems..."
+
+          if grep -RInE '(^|[^"]) ;|;[[:space:]]*(//|$)' qml --include='*.qml'; then
+            echo
+            echo "WARNING: Possible QML semicolon detected."
+          fi
 
       - name: Build Malino Android
+        shell: bash
         run: |
 
+          echo
           echo "=============================================="
           echo "       STARTING ANDROID DEPLOYMENT"
           echo "=============================================="
 
-          echo ""
-
+          echo
           echo "Deployment executable:"
-
           which pyside6-android-deploy
 
-          echo ""
+          echo
+          echo "Android SDK:"
+          echo "$ANDROID_SDK_ROOT"
+
+          echo
+          echo "Android NDK:"
+          echo "$ANDROID_NDK_ROOT"
+
+          echo
+          echo "Checking llvm-readobj:"
+          "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj" --version
+
+          echo
+          echo "=============================================="
+          echo "RUNNING PYSIDE6 ANDROID DEPLOY"
+          echo "=============================================="
 
           pyside6-android-deploy \
             --name "Malino" \
             --wheel-pyside="$PSWHEEL" \
             --wheel-shiboken="$SWWHEEL" \
+            --ndk-path="$ANDROID_NDK_ROOT" \
+            --sdk-path="$ANDROID_SDK_ROOT" \
             --config-file="$GITHUB_WORKSPACE/pysidedeploy.spec" \
             --force
-
-      # ---------------------------------------------------
-      # Find APK
-      # ---------------------------------------------------
 
       - name: Find Android artifacts
         run: |
 
-          echo "Searching for APK/AAB..."
+          echo "=============================================="
+          echo "SEARCHING FOR APK / AAB"
+          echo "=============================================="
 
           find "$GITHUB_WORKSPACE" \
             -type f \
-            \( \
-              -name "*.apk" \
-              -o \
-              -name "*.aab" \
-            \) \
+            \( -name "*.apk" -o -name "*.aab" \) \
             -print
-
-      # ---------------------------------------------------
-      # Upload APK
-      # ---------------------------------------------------
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
-
         with:
-
           name: Malino-Android
-
           path: |
             **/*.apk
             **/*.aab
-
           if-no-files-found: error
