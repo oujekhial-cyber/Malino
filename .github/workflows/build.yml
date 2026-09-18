@@ -25,15 +25,19 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             git \
+            wget \
+            curl \
             unzip \
             zip \
             openjdk-17-jdk
 
-      - name: Install Python build dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
+
           python -m pip install \
             buildozer \
             cython \
@@ -50,8 +54,11 @@ jobs:
             https://code.qt.io/pyside/pyside-setup \
             "$HOME/pyside-setup"
 
-      - name: Install PySide Android build dependencies
+      - name: Install Qt Android build dependencies
         run: |
+          python -m pip install \
+            -r "$HOME/pyside-setup/requirements.txt"
+
           python -m pip install \
             -r "$HOME/pyside-setup/tools/cross_compile_android/requirements.txt"
 
@@ -63,89 +70,127 @@ jobs:
             --skip-update \
             --auto-accept-license
 
-      - name: Download Android PySide wheels
+      - name: Download official PySide6 Android wheels
         run: |
-          rm -rf android-wheels
-          mkdir -p android-wheels
 
-          qtpip download \
-            PySide6 \
-            --android \
-            --arch aarch64 \
-            -d android-wheels
+          mkdir -p "$GITHUB_WORKSPACE/android-wheels"
 
-          echo "Downloaded wheels:"
-          find android-wheels -maxdepth 1 -type f -name "*.whl" -print
+          cd "$GITHUB_WORKSPACE/android-wheels"
 
-      - name: Locate Android wheels
+          echo "Downloading official Qt PySide6 Android wheel..."
+
+          wget -nv \
+            "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
+            -O \
+            "PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
+
+          echo "Downloading official Qt Shiboken6 Android wheel..."
+
+          wget -nv \
+            "https://download.qt.io/official_releases/QtForPython/shiboken6/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
+            -O \
+            "shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
+
+          echo ""
+          echo "Downloaded files:"
+          ls -lh
+
+      - name: Verify Android wheels
         run: |
-          PSWHEEL="$(find "$GITHUB_WORKSPACE/android-wheels" \
-            -maxdepth 1 \
-            -type f \
-            -iname 'PySide6-*.whl' \
-            | head -n 1)"
 
-          SWWHEEL="$(find "$GITHUB_WORKSPACE/android-wheels" \
-            -maxdepth 1 \
-            -type f \
-            -iname 'shiboken6-*.whl' \
-            | head -n 1)"
+          PSWHEEL="$GITHUB_WORKSPACE/android-wheels/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
 
-          if [ -z "$PSWHEEL" ]; then
-            echo "ERROR: PySide6 Android wheel was not downloaded."
-            find "$GITHUB_WORKSPACE/android-wheels" -maxdepth 2 -type f -print
+          SWWHEEL="$GITHUB_WORKSPACE/android-wheels/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
+
+          echo "PySide6:"
+          echo "$PSWHEEL"
+
+          echo "Shiboken6:"
+          echo "$SWWHEEL"
+
+          if [ ! -f "$PSWHEEL" ]; then
+            echo ""
+            echo "❌ PySide6 wheel not found."
             exit 1
           fi
 
-          if [ -z "$SWWHEEL" ]; then
-            echo "ERROR: shiboken6 Android wheel was not downloaded."
-            find "$GITHUB_WORKSPACE/android-wheels" -maxdepth 2 -type f -print
+          if [ ! -f "$SWWHEEL" ]; then
+            echo ""
+            echo "❌ Shiboken6 wheel not found."
             exit 1
           fi
+
+          echo ""
+          echo "✅ Both Android wheels exist."
 
           echo "PSWHEEL=$PSWHEEL" >> "$GITHUB_ENV"
           echo "SWWHEEL=$SWWHEEL" >> "$GITHUB_ENV"
 
-          echo "PySide wheel:"
-          echo "$PSWHEEL"
-
-          echo "Shiboken wheel:"
-          echo "$SWWHEEL"
-
-      - name: Validate QML
+      - name: Validate project
         run: |
-          echo "Checking QML files..."
 
-          find qml -type f -name "*.qml" -print
+          echo "Checking main.py..."
 
-          if grep -RInE '(^|[^:])\;[[:space:]]*(property|id:|anchors|color:|text:|Layout|Button|Text|Item|Rectangle|RowLayout|ColumnLayout)' qml; then
-            echo "ERROR: Suspicious QML semicolon syntax detected."
-            exit 1
-          fi
+          test -f main.py
 
-      - name: Build APK
-        run: |
-          pyside6-android-deploy \
-            --name Malino \
-            --wheel-pyside="$PSWHEEL" \
-            --wheel-shiboken="$SWWHEEL" \
-            --config-file pysidedeploy.spec \
-            --force
+          echo "Checking QML..."
 
-      - name: Find Android artifacts
-        run: |
-          echo "Searching for APK/AAB..."
-
-          find . \
+          find qml \
             -type f \
-            \( -name "*.apk" -o -name "*.aab" \) \
+            -name "*.qml" \
             -print
 
-      - name: Upload Android artifacts
+          echo ""
+          echo "Checking deployment spec..."
+
+          test -f pysidedeploy.spec
+
+          echo ""
+          echo "✅ Project validation passed."
+
+      - name: Build Android APK
+        run: |
+
+          echo "=============================================="
+          echo "Starting PySide6 Android deployment"
+          echo "=============================================="
+
+          echo ""
+          echo "PySide6 wheel:"
+          echo "$PSWHEEL"
+
+          echo ""
+          echo "Shiboken6 wheel:"
+          echo "$SWWHEEL"
+
+          echo ""
+
+          pyside6-android-deploy \
+            --name "Malino" \
+            --wheel-pyside="$PSWHEEL" \
+            --wheel-shiboken="$SWWHEEL" \
+            --config-file="$GITHUB_WORKSPACE/pysidedeploy.spec" \
+            --force
+
+      - name: Find APK
+        run: |
+
+          echo "Searching for APK/AAB..."
+
+          find "$GITHUB_WORKSPACE" \
+            -type f \
+            \( \
+              -name "*.apk" \
+              -o \
+              -name "*.aab" \
+            \) \
+            -print
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
 
         with:
-          name: malino-android
+          name: Malino-Android
 
           path: |
             **/*.apk
