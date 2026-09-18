@@ -8,22 +8,37 @@ on:
   workflow_dispatch:
 
 jobs:
+
   android:
 
     runs-on: ubuntu-22.04
 
     steps:
 
+      # ---------------------------------------------------
+      # Checkout
+      # ---------------------------------------------------
+
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ---------------------------------------------------
+      # Python
+      # ---------------------------------------------------
+
       - name: Setup Python
         uses: actions/setup-python@v5
+
         with:
           python-version: "3.11"
 
+      # ---------------------------------------------------
+      # System packages
+      # ---------------------------------------------------
+
       - name: Install system dependencies
         run: |
+
           sudo apt-get update
 
           sudo apt-get install -y \
@@ -34,18 +49,41 @@ jobs:
             zip \
             openjdk-17-jdk
 
-      - name: Install Python dependencies
+      # ---------------------------------------------------
+      # Python dependencies
+      # ---------------------------------------------------
+
+      - name: Install PySide6 deployment tools
         run: |
+
           python -m pip install --upgrade pip
 
           python -m pip install \
+            "PySide6==6.8.2" \
+            "shiboken6==6.8.2" \
             buildozer \
             cython \
             qtpip \
             GitPython
 
+          echo ""
+          echo "Installed packages:"
+          python -m pip list
+
+          echo ""
+          echo "Checking deployment command:"
+
+          which pyside6-android-deploy
+
+          pyside6-android-deploy --help
+
+      # ---------------------------------------------------
+      # Clone Qt for Python setup
+      # ---------------------------------------------------
+
       - name: Clone PySide setup
         run: |
+
           rm -rf "$HOME/pyside-setup"
 
           git clone \
@@ -54,37 +92,52 @@ jobs:
             https://code.qt.io/pyside/pyside-setup \
             "$HOME/pyside-setup"
 
+      # ---------------------------------------------------
+      # Install cross compile dependencies
+      # ---------------------------------------------------
+
       - name: Install Qt Android build dependencies
         run: |
+
           python -m pip install \
             -r "$HOME/pyside-setup/requirements.txt"
 
           python -m pip install \
             -r "$HOME/pyside-setup/tools/cross_compile_android/requirements.txt"
 
+      # ---------------------------------------------------
+      # Download Android SDK / NDK
+      # ---------------------------------------------------
+
       - name: Download Android SDK and NDK
         run: |
+
           python \
             "$HOME/pyside-setup/tools/cross_compile_android/main.py" \
             --download-only \
             --skip-update \
             --auto-accept-license
 
-      - name: Download official PySide6 Android wheels
+      # ---------------------------------------------------
+      # Download Android PySide6 wheel
+      # ---------------------------------------------------
+
+      - name: Download Android PySide6 wheels
         run: |
 
           mkdir -p "$GITHUB_WORKSPACE/android-wheels"
 
           cd "$GITHUB_WORKSPACE/android-wheels"
 
-          echo "Downloading official Qt PySide6 Android wheel..."
+          echo "Downloading PySide6 Android wheel..."
 
           wget -nv \
             "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
             -O \
             "PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
 
-          echo "Downloading official Qt Shiboken6 Android wheel..."
+          echo ""
+          echo "Downloading Shiboken6 Android wheel..."
 
           wget -nv \
             "https://download.qt.io/official_releases/QtForPython/shiboken6/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
@@ -92,8 +145,12 @@ jobs:
             "shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
 
           echo ""
-          echo "Downloaded files:"
+          echo "Downloaded Android wheels:"
           ls -lh
+
+      # ---------------------------------------------------
+      # Verify wheels
+      # ---------------------------------------------------
 
       - name: Verify Android wheels
         run: |
@@ -105,26 +162,24 @@ jobs:
           echo "PySide6:"
           echo "$PSWHEEL"
 
+          echo ""
+
           echo "Shiboken6:"
           echo "$SWWHEEL"
 
-          if [ ! -f "$PSWHEEL" ]; then
-            echo ""
-            echo "❌ PySide6 wheel not found."
-            exit 1
-          fi
-
-          if [ ! -f "$SWWHEEL" ]; then
-            echo ""
-            echo "❌ Shiboken6 wheel not found."
-            exit 1
-          fi
-
           echo ""
-          echo "✅ Both Android wheels exist."
+
+          test -f "$PSWHEEL"
+          test -f "$SWWHEEL"
+
+          echo "✅ Android wheels verified."
 
           echo "PSWHEEL=$PSWHEEL" >> "$GITHUB_ENV"
           echo "SWWHEEL=$SWWHEEL" >> "$GITHUB_ENV"
+
+      # ---------------------------------------------------
+      # Validate project
+      # ---------------------------------------------------
 
       - name: Validate project
         run: |
@@ -132,6 +187,18 @@ jobs:
           echo "Checking main.py..."
 
           test -f main.py
+
+          echo "Checking controller..."
+
+          test -f core/controller.py
+
+          echo "Checking database..."
+
+          test -f core/db.py
+
+          echo "Checking parser..."
+
+          test -f core/parser.py
 
           echo "Checking QML..."
 
@@ -141,27 +208,30 @@ jobs:
             -print
 
           echo ""
-          echo "Checking deployment spec..."
+
+          echo "Checking deployment configuration..."
 
           test -f pysidedeploy.spec
 
           echo ""
           echo "✅ Project validation passed."
 
-      - name: Build Android APK
+      # ---------------------------------------------------
+      # Deploy
+      # ---------------------------------------------------
+
+      - name: Build Malino Android
         run: |
 
           echo "=============================================="
-          echo "Starting PySide6 Android deployment"
+          echo "       STARTING ANDROID DEPLOYMENT"
           echo "=============================================="
 
           echo ""
-          echo "PySide6 wheel:"
-          echo "$PSWHEEL"
 
-          echo ""
-          echo "Shiboken6 wheel:"
-          echo "$SWWHEEL"
+          echo "Deployment executable:"
+
+          which pyside6-android-deploy
 
           echo ""
 
@@ -172,7 +242,11 @@ jobs:
             --config-file="$GITHUB_WORKSPACE/pysidedeploy.spec" \
             --force
 
-      - name: Find APK
+      # ---------------------------------------------------
+      # Find APK
+      # ---------------------------------------------------
+
+      - name: Find Android artifacts
         run: |
 
           echo "Searching for APK/AAB..."
@@ -186,10 +260,15 @@ jobs:
             \) \
             -print
 
-      - name: Upload APK
+      # ---------------------------------------------------
+      # Upload APK
+      # ---------------------------------------------------
+
+      - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
 
         with:
+
           name: Malino-Android
 
           path: |
