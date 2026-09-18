@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -22,6 +23,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             git \
             wget \
@@ -30,7 +32,7 @@ jobs:
             zip \
             openjdk-17-jdk
 
-      - name: Install PySide6 deployment tools
+      - name: Install PySide6 tools
         run: |
           python -m pip install --upgrade pip
 
@@ -42,6 +44,8 @@ jobs:
             qtpip \
             GitPython
 
+          echo
+          echo "PySide6 deploy:"
           which pyside6-android-deploy
 
       - name: Clone PySide setup
@@ -54,7 +58,7 @@ jobs:
             https://code.qt.io/pyside/pyside-setup \
             "$HOME/pyside-setup"
 
-      - name: Install Python build requirements
+      - name: Install Python requirements
         run: |
           python -m pip install \
             -r "$HOME/pyside-setup/requirements.txt"
@@ -62,96 +66,147 @@ jobs:
           python -m pip install \
             -r "$HOME/pyside-setup/tools/cross_compile_android/requirements.txt"
 
-      - name: Download Android SDK
+      - name: Download PySide Android SDK base
         run: |
           python "$HOME/pyside-setup/tools/cross_compile_android/main.py" \
             --download-only \
             --skip-update \
             --auto-accept-license
 
-      - name: Install Android NDK explicitly
+      - name: Install official Android command line tools
         shell: bash
         run: |
 
           echo "=============================================="
-          echo "       INSTALLING ANDROID NDK"
+          echo " INSTALLING OFFICIAL ANDROID COMMAND LINE TOOLS"
           echo "=============================================="
 
           SDK="$HOME/.pyside6_android_deploy/android-sdk"
 
-          echo "SDK:"
-          echo "$SDK"
+          mkdir -p "$SDK"
 
-          if [ ! -d "$SDK" ]; then
-            echo "ERROR: Android SDK does not exist."
-            exit 1
-          fi
+          CMD_DIR="$SDK/cmdline-tools"
+
+          rm -rf "$CMD_DIR"
+
+          mkdir -p "$CMD_DIR"
+
+          cd /tmp
+
+          wget -q \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+            -O android-cmdline-tools.zip
+
+          unzip -q android-cmdline-tools.zip
+
+          mkdir -p "$CMD_DIR/latest"
+
+          cp -R cmdline-tools/* "$CMD_DIR/latest/"
+
+          rm -rf cmdline-tools
+          rm -f android-cmdline-tools.zip
+
+          echo
+          echo "sdkmanager:"
+          ls -lh "$CMD_DIR/latest/bin/sdkmanager"
+
+          chmod +x "$CMD_DIR/latest/bin/sdkmanager"
+
+          echo
+          echo "sdkmanager version:"
+
+          "$CMD_DIR/latest/bin/sdkmanager" \
+            --version
+
+      - name: Install Android SDK and NDK
+        shell: bash
+        run: |
+
+          echo "=============================================="
+          echo "       INSTALLING ANDROID SDK + NDK"
+          echo "=============================================="
+
+          SDK="$HOME/.pyside6_android_deploy/android-sdk"
+
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
 
           export ANDROID_HOME="$SDK"
           export ANDROID_SDK_ROOT="$SDK"
 
-          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          chmod +x "$SDKMANAGER"
 
-          if [ ! -x "$SDKMANAGER" ]; then
-            SDKMANAGER=$(find "$SDK" \
-              -type f \
-              -name sdkmanager \
-              | head -1)
-          fi
+          echo
+          echo "SDK:"
+          echo "$SDK"
 
-          if [ -z "$SDKMANAGER" ]; then
-            echo "ERROR: sdkmanager not found."
-
-            find "$SDK" \
-              -type f \
-              -name sdkmanager \
-              -print || true
-
-            exit 1
-          fi
-
-          echo "sdkmanager:"
+          echo
+          echo "SDKMANAGER:"
           echo "$SDKMANAGER"
 
-          chmod +x "$SDKMANAGER" || true
+          echo
+          echo "Accepting Android licenses..."
+
+          yes | "$SDKMANAGER" \
+            --sdk_root="$SDK" \
+            --licenses \
+            >/dev/null 2>&1 || true
 
           echo
-          echo "Accepting licenses..."
-
-          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
-
-          echo
-          echo "Installing required Android packages..."
+          echo "Installing platform tools..."
 
           "$SDKMANAGER" \
-            "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;35.0.0" \
+            --sdk_root="$SDK" \
+            "platform-tools"
+
+          echo
+          echo "Installing Android platform..."
+
+          "$SDKMANAGER" \
+            --sdk_root="$SDK" \
+            "platforms;android-34"
+
+          echo
+          echo "Installing build tools..."
+
+          "$SDKMANAGER" \
+            --sdk_root="$SDK" \
+            "build-tools;35.0.0"
+
+          echo
+          echo "Installing NDK..."
+
+          "$SDKMANAGER" \
+            --sdk_root="$SDK" \
             "ndk;26.1.10909125"
 
           echo
           echo "=============================================="
-          echo "       INSTALLED NDK DIRECTORIES"
+          echo "       VERIFYING NDK"
           echo "=============================================="
-
-          find "$SDK/ndk" \
-            -mindepth 1 \
-            -maxdepth 1 \
-            -type d \
-            -print \
-            2>/dev/null || true
 
           NDK="$SDK/ndk/26.1.10909125"
 
           if [ ! -d "$NDK" ]; then
-            echo "ERROR: NDK installation failed."
+            echo
+            echo "ERROR:"
+            echo "NDK directory does not exist:"
+            echo "$NDK"
+            echo
+            echo "Installed NDK directories:"
+            find "$SDK" \
+              -type d \
+              -path "*/ndk/*" \
+              -maxdepth 5 \
+              -print || true
             exit 1
           fi
 
           LLVM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj"
 
           if [ ! -f "$LLVM" ]; then
-            echo "ERROR: llvm-readobj not found."
+            echo
+            echo "ERROR:"
+            echo "llvm-readobj not found."
 
             find "$NDK" \
               -type f \
@@ -162,20 +217,26 @@ jobs:
           fi
 
           echo
-          echo "NDK:"
+          echo "NDK FOUND:"
           echo "$NDK"
 
           echo
           echo "llvm-readobj:"
           "$LLVM" --version
 
+          echo
+          echo "NDK contents:"
+          ls -lah "$NDK" | head -50
+
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
 
-      - name: Download Android PySide6 wheels
+      - name: Download PySide6 Android wheels
+        shell: bash
         run: |
+
           mkdir -p "$GITHUB_WORKSPACE/android-wheels"
 
           cd "$GITHUB_WORKSPACE/android-wheels"
@@ -190,7 +251,7 @@ jobs:
 
           ls -lh
 
-      - name: Verify wheels
+      - name: Verify PySide wheels
         run: |
 
           PSWHEEL="$GITHUB_WORKSPACE/android-wheels/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
@@ -203,27 +264,38 @@ jobs:
           echo "PSWHEEL=$PSWHEEL" >> "$GITHUB_ENV"
           echo "SWWHEEL=$SWWHEEL" >> "$GITHUB_ENV"
 
-      - name: Validate project
+      - name: Validate Malino
+        shell: bash
         run: |
 
           echo "=============================================="
-          echo "       VALIDATING MALINO"
+          echo "          VALIDATING MALINO"
           echo "=============================================="
 
           test -f main.py
           test -f pysidedeploy.spec
 
-          echo "QML files:"
-          find qml -type f -name "*.qml" -print
+          echo
+          echo "Project files:"
+          find . \
+            -maxdepth 3 \
+            -type f \
+            | sort
 
-      - name: Build Malino Android
+      - name: Build Malino
         shell: bash
         run: |
 
+          echo
           echo "=============================================="
           echo "       STARTING ANDROID DEPLOYMENT"
           echo "=============================================="
 
+          echo
+          echo "Deployment executable:"
+          which pyside6-android-deploy
+
+          echo
           echo "SDK:"
           echo "$ANDROID_SDK_ROOT"
 
@@ -232,16 +304,15 @@ jobs:
           echo "$ANDROID_NDK_ROOT"
 
           echo
-          echo "Checking NDK..."
-
-          test -f \
-            "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj"
+          echo "Checking llvm-readobj..."
 
           "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj" \
             --version
 
           echo
-          echo "Running PySide6 Android deploy..."
+          echo "=============================================="
+          echo "       RUNNING PYSIDE6 DEPLOY"
+          echo "=============================================="
 
           pyside6-android-deploy \
             --name "Malino" \
@@ -252,11 +323,12 @@ jobs:
             --config-file="$GITHUB_WORKSPACE/pysidedeploy.spec" \
             --force
 
-      - name: Find APK
+      - name: Search APK
+        shell: bash
         run: |
 
           echo "=============================================="
-          echo "       SEARCHING FOR APK"
+          echo "             APK SEARCH"
           echo "=============================================="
 
           find "$GITHUB_WORKSPACE" \
