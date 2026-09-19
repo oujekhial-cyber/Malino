@@ -3,17 +3,45 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Item {
-    property var s: appController.stats()
+    id: root
+
+    property string theme: appController.theme
+    property string currency: appController.currency
+    property color card: theme === "light" ? "#FFFFFF" : theme === "midnight" ? "#182335" : "#101D31"
+    property color fg: theme === "light" ? "#102A43" : "#F5F8FF"
+    property color muted: "#718096"
+    property color green: "#16A884"
+    property color red: "#E55368"
+    property var s: ({})
+    property var recentTxs: []
+
+    function money(n) {
+        var v = Math.round(Number(n) || 0)
+        var sign = v < 0 ? "−" : ""
+        var s = String(Math.abs(v))
+        var o = ""
+
+        while (s.length > 3) {
+            o = "٬" + s.slice(-3) + o
+            s = s.slice(0, -3)
+        }
+
+        return sign + s + o + " " + root.currency
+    }
 
     function refresh() {
         s = appController.stats()
+        var all = appController.transactions()
+        recentTxs = all.slice(0, Math.min(5, all.length))
     }
+
+    Component.onCompleted: refresh()
 
     Connections {
         target: appController
 
         function onChanged() {
-            refresh()
+            root.refresh()
         }
     }
 
@@ -62,16 +90,16 @@ Item {
                     }
 
                     Text {
-                        text: root.money(s.net)
+                        text: root.money(root.s.net)
                         font.pixelSize: 32
                         font.bold: true
-                        color: s.net >= 0 ? root.green : root.red
+                        color: root.s.net >= 0 ? root.green : root.red
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
                     }
 
                     Text {
-                        text: s.count + " تراکنش ثبت شده"
+                        text: root.s.count + " تراکنش ثبت شده"
                         color: root.muted
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
@@ -84,12 +112,14 @@ Item {
                 spacing: 10
 
                 Metric {
-                    title: "واریزی کل\n" + root.money(s.totalIn)
+                    Layout.fillWidth: true
+                    title: "واریزی کل\n" + root.money(root.s.totalIn)
                     accent: root.green
                 }
 
                 Metric {
-                    title: "برداشت کل\n" + root.money(s.totalOut)
+                    Layout.fillWidth: true
+                    title: "برداشت کل\n" + root.money(root.s.totalOut)
                     accent: root.red
                 }
             }
@@ -115,21 +145,21 @@ Item {
                     }
 
                     Text {
-                        text: "ورودی: " + root.money(s.monthIn)
+                        text: "ورودی: " + root.money(root.s.monthIn)
                         color: root.green
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
                     }
 
                     Text {
-                        text: "خروجی: " + root.money(s.monthOut)
+                        text: "خروجی: " + root.money(root.s.monthOut)
                         color: root.red
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
                     }
 
                     Text {
-                        text: "خالص ماه: " + root.money(s.monthNet)
+                        text: "خالص ماه: " + root.money(root.s.monthNet)
                         font.bold: true
                         color: root.fg
                         Layout.fillWidth: true
@@ -148,11 +178,11 @@ Item {
             }
 
             Repeater {
-                model: Math.min(5, appController.transactions().length)
+                model: root.recentTxs.length
 
                 delegate: TxCard {
                     width: col.width
-                    tx: appController.transactions()[index]
+                    tx: root.recentTxs[index]
                 }
             }
         }

@@ -4,11 +4,16 @@ on:
   push:
     branches:
       - main
+      - 'arena/**'
   workflow_dispatch:
 
 jobs:
   android:
     runs-on: ubuntu-22.04
+
+    permissions:
+      contents: write
+      issues: write
 
     steps:
 
@@ -32,21 +37,46 @@ jobs:
             zip \
             openjdk-17-jdk
 
-      - name: Install PySide6 tools
+      - name: Select Java 17
+        run: |
+          JAVA17="/usr/lib/jvm/java-17-openjdk-amd64"
+          test -x "$JAVA17/bin/java"
+          echo "JAVA_HOME=$JAVA17" >> "$GITHUB_ENV"
+          echo "$JAVA17/bin" >> "$GITHUB_PATH"
+
+      - name: Install build tools (pinned versions)
         run: |
           python -m pip install --upgrade pip
 
+          # buildozer 1.5.0 + cython<3 match python-for-android v2024.01.21,
+          # which is pinned inside build_android.sh.
+          # packaging/tqdm/jinja2/pkginfo are imported by the Qt deploy tool
+          # (android_utilities.py, android_helper.py, android_config.py) but
+          # declared by no package; appdirs/colorama/sh<2/toml/build are the
+          # requirements of python-for-android v2024.01.21 itself.
           python -m pip install \
             "PySide6==6.8.2" \
             "shiboken6==6.8.2" \
-            buildozer \
-            cython \
-            qtpip \
-            GitPython
+            "buildozer==1.5.0" \
+            "cython<3" \
+            "packaging" \
+            "tqdm" \
+            "jinja2" \
+            "pkginfo" \
+            "appdirs" \
+            "colorama>=0.3.3" \
+            "toml" \
+            "build" \
+            "sh>=1.10,<2.0" \
+            "setuptools" \
+            "GitPython"
 
-          echo
-          echo "PySide6 deploy:"
+          # Fail fast with a clear message if any of the undeclared deploy
+          # tool dependencies is still missing.
+          python -c "import packaging, tqdm, jinja2, pkginfo; print('deploy deps OK')"
+
           which pyside6-android-deploy
+          pyside6-android-deploy --help >/dev/null
 
       - name: Clone PySide setup
         run: |
@@ -73,219 +103,53 @@ jobs:
             --skip-update \
             --auto-accept-license
 
-      - name: Install official Android command line tools
-        shell: bash
-        run: |
-
-          echo "=============================================="
-          echo " INSTALLING OFFICIAL ANDROID COMMAND LINE TOOLS"
-          echo "=============================================="
-
-          SDK="$HOME/.pyside6_android_deploy/android-sdk"
-
-          echo
-          echo "Selecting Java 17..."
-
-          JAVA17=""
-
-          for J in \
-            /usr/lib/jvm/java-17-openjdk-amd64 \
-            /usr/lib/jvm/java-17-openjdk; do
-
-            if [ -x "$J/bin/java" ]; then
-              JAVA17="$J"
-              break
-            fi
-
-          done
-
-          if [ -z "$JAVA17" ]; then
-            echo "ERROR: Java 17 was not found."
-            ls -la /usr/lib/jvm/ || true
-            exit 1
-          fi
-
-          export JAVA_HOME="$JAVA17"
-          export PATH="$JAVA_HOME/bin:$PATH"
-
-          echo
-          echo "JAVA_HOME:"
-          echo "$JAVA_HOME"
-
-          echo
-          echo "Java version:"
-          java -version
-
-          echo
-          echo "Downloading official command line tools..."
-
-          mkdir -p "$SDK"
-
-          CMD_DIR="$SDK/cmdline-tools"
-
-          rm -rf "$CMD_DIR"
-
-          mkdir -p "$CMD_DIR"
-
-          cd /tmp
-
-          rm -rf cmdline-tools android-cmdline-tools.zip
-
-          wget -q \
-            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
-            -O android-cmdline-tools.zip
-
-          unzip -q android-cmdline-tools.zip
-
-          mkdir -p "$CMD_DIR/latest"
-
-          cp -R cmdline-tools/* "$CMD_DIR/latest/"
-
-          rm -rf cmdline-tools
-          rm -f android-cmdline-tools.zip
-
-          chmod +x "$CMD_DIR/latest/bin/sdkmanager"
-
-          echo
-          echo "sdkmanager:"
-          ls -lh "$CMD_DIR/latest/bin/sdkmanager"
-
-          echo
-          echo "sdkmanager version:"
-
-          "$CMD_DIR/latest/bin/sdkmanager" \
-            --version
-
-          echo
-          echo "Java 17 confirmed."
-
-          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "$JAVA_HOME/bin" >> "$GITHUB_PATH"
-
       - name: Install Android SDK and NDK
         shell: bash
         run: |
-
-          export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
-          export PATH="$JAVA_HOME/bin:$PATH"
-
-          echo "=============================================="
-          echo "       INSTALLING ANDROID SDK + NDK"
-          echo "=============================================="
-
           SDK="$HOME/.pyside6_android_deploy/android-sdk"
 
+          mkdir -p "$SDK"
           SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+
+          if [ ! -x "$SDKMANAGER" ]; then
+            cd /tmp
+            rm -rf cmdline-tools android-cmdline-tools.zip
+
+            wget -q \
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+              -O android-cmdline-tools.zip
+
+            unzip -q android-cmdline-tools.zip
+            mkdir -p "$SDK/cmdline-tools/latest"
+            cp -R cmdline-tools/* "$SDK/cmdline-tools/latest/"
+            rm -rf cmdline-tools android-cmdline-tools.zip
+          fi
+
+          chmod +x "$SDKMANAGER"
+          "$SDKMANAGER" --version
 
           export ANDROID_HOME="$SDK"
           export ANDROID_SDK_ROOT="$SDK"
 
-          chmod +x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses >/dev/null 2>&1 || true
 
-          echo
-          echo "SDK:"
-          echo "$SDK"
-
-          echo
-          echo "SDKMANAGER:"
-          echo "$SDKMANAGER"
-
-          echo
-          echo "Accepting Android licenses..."
-
-          yes | "$SDKMANAGER" \
-            --sdk_root="$SDK" \
-            --licenses \
-            >/dev/null 2>&1 || true
-
-          echo
-          echo "Installing platform tools..."
-
-          "$SDKMANAGER" \
-            --sdk_root="$SDK" \
-            "platform-tools"
-
-          echo
-          echo "Installing Android platform..."
-
-          "$SDKMANAGER" \
-            --sdk_root="$SDK" \
-            "platforms;android-34"
-
-          echo
-          echo "Installing build tools..."
-
-          "$SDKMANAGER" \
-            --sdk_root="$SDK" \
-            "build-tools;35.0.0"
-
-          echo
-          echo "Installing NDK..."
-
-          "$SDKMANAGER" \
-            --sdk_root="$SDK" \
-            "ndk;26.1.10909125"
-
-          echo
-          echo "=============================================="
-          echo "       VERIFYING NDK"
-          echo "=============================================="
+          "$SDKMANAGER" --sdk_root="$SDK" "platform-tools"
+          "$SDKMANAGER" --sdk_root="$SDK" "platforms;android-34"
+          "$SDKMANAGER" --sdk_root="$SDK" "build-tools;35.0.0"
+          "$SDKMANAGER" --sdk_root="$SDK" "ndk;26.1.10909125"
 
           NDK="$SDK/ndk/26.1.10909125"
-
-          if [ ! -d "$NDK" ]; then
-            echo
-            echo "ERROR:"
-            echo "NDK directory does not exist:"
-            echo "$NDK"
-            echo
-            echo "Installed NDK directories:"
-            find "$SDK" \
-              -type d \
-              -path "*/ndk/*" \
-              -maxdepth 5 \
-              -print || true
-            exit 1
-          fi
-
-          LLVM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj"
-
-          if [ ! -f "$LLVM" ]; then
-            echo
-            echo "ERROR:"
-            echo "llvm-readobj not found."
-
-            find "$NDK" \
-              -type f \
-              -name "llvm-readobj*" \
-              -print || true
-
-            exit 1
-          fi
-
-          echo
-          echo "NDK FOUND:"
-          echo "$NDK"
-
-          echo
-          echo "llvm-readobj:"
-          "$LLVM" --version
-
-          echo
-          echo "NDK contents:"
-          ls -lah "$NDK" | head -50
+          test -d "$NDK"
+          test -f "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj"
 
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
 
       - name: Download PySide6 Android wheels
         shell: bash
         run: |
-
           mkdir -p "$GITHUB_WORKSPACE/android-wheels"
-
           cd "$GITHUB_WORKSPACE/android-wheels"
 
           wget -nv \
@@ -298,90 +162,82 @@ jobs:
 
           ls -lh
 
-      - name: Verify PySide wheels
-        run: |
-
-          PSWHEEL="$GITHUB_WORKSPACE/android-wheels/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
-
-          SWWHEEL="$GITHUB_WORKSPACE/android-wheels/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
-
-          test -f "$PSWHEEL"
-          test -f "$SWWHEEL"
-
-          echo "PSWHEEL=$PSWHEEL" >> "$GITHUB_ENV"
-          echo "SWWHEEL=$SWWHEEL" >> "$GITHUB_ENV"
-
-      - name: Validate Malino
-        shell: bash
-        run: |
-
-          echo "=============================================="
-          echo "          VALIDATING MALINO"
-          echo "=============================================="
-
-          test -f main.py
-          test -f pysidedeploy.spec
-
-          echo
-          echo "Project files:"
-          find . \
-            -maxdepth 3 \
-            -type f \
-            | sort
-
       - name: Build Malino
         shell: bash
+        env:
+          PSWHEEL: ${{ github.workspace }}/android-wheels/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl
+          SWWHEEL: ${{ github.workspace }}/android-wheels/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl
         run: |
+          set -o pipefail
+          bash build_android.sh 2>&1 | tee build_log.txt
 
-          echo
-          echo "=============================================="
-          echo "       STARTING ANDROID DEPLOYMENT"
-          echo "=============================================="
-
-          echo
-          echo "Deployment executable:"
-          which pyside6-android-deploy
-
-          echo
-          echo "SDK:"
-          echo "$ANDROID_SDK_ROOT"
-
-          echo
-          echo "NDK:"
-          echo "$ANDROID_NDK_ROOT"
-
-          echo
-          echo "Checking llvm-readobj..."
-
-          "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj" \
-            --version
-
-          echo
-          echo "=============================================="
-          echo "       RUNNING PYSIDE6 DEPLOY"
-          echo "=============================================="
-
-          pyside6-android-deploy \
-            --name "Malino" \
-            --wheel-pyside="$PSWHEEL" \
-            --wheel-shiboken="$SWWHEEL" \
-            --ndk-path="$ANDROID_NDK_ROOT" \
-            --sdk-path="$ANDROID_SDK_ROOT" \
-            --config-file="$GITHUB_WORKSPACE/pysidedeploy.spec" \
-            --force
-
-      - name: Search APK
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUNID: ${{ github.run_id }}
         shell: bash
         run: |
+          {
+            echo "Build Malino failed — run $RUNID (attempt ${{ github.run_attempt }})"
+            echo "Commit: $SHA"
+            echo
+            echo "== phase/step summary (whole log) =="
+            grep -nE "^==>|patch-p4a|Cloning into|Detected old|Task :.*FAILED|BUILD (SUCCESSFUL|FAILED)" \
+              build_log.txt 2>/dev/null | tail -80 || true
+            echo
+            echo "== log tail (last 30k) =="
+            echo '```'
+            tail -c 30000 build_log.txt 2>/dev/null || echo "(no build_log.txt)"
+            echo '```'
+          } > failure_body.md
 
-          echo "=============================================="
-          echo "             APK SEARCH"
-          echo "=============================================="
+          # full log in <=30k chunks as commit comments (readable via
+          # api.github.com even where the log endpoints are not)
+          rm -f logchunk-*
+          split -b 30000 -d -a 2 build_log.txt logchunk- 2>/dev/null || true
+          i=0
+          for f in logchunk-*; do
+            [ -f "$f" ] || continue
+            {
+              echo "Build log part $i — run $RUNID (commit $SHA)"
+              echo '```'
+              cat "$f"
+              echo '```'
+            } > chunkbody.md
+            gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+              -F body=@"chunkbody.md" >/dev/null 2>&1 || true
+            i=$((i+1))
+            [ "$i" -ge 6 ] && break
+          done
 
-          find "$GITHUB_WORKSPACE" \
-            -type f \
-            \( -name "*.apk" -o -name "*.aab" \) \
-            -print
+          gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+            -F body=@"failure_body.md" > comment_result.json 2>&1 || true
+          head -c 400 comment_result.json || true
+
+          gh issue create \
+            --repo "$REPO" \
+            --title "CI build log (run $RUNID)" \
+            --body-file failure_body.md > issue_result.txt 2>&1 || true
+          head -c 400 issue_result.txt || true
+
+      - name: Verify APK contents
+        shell: bash
+        run: |
+          set -e
+
+          APK="$(find "$GITHUB_WORKSPACE" -type f -name '*.apk' | head -n 1)"
+          if [ -z "$APK" ]; then
+            echo "ERROR: no APK produced"
+            exit 1
+          fi
+          echo "Verifying $APK"
+
+          python3 scripts_verify_apk.py \
+            "$APK" \
+            "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

@@ -168,21 +168,45 @@ ApplicationWindow {
                 Nav {
                     text: "داشبورد"
                     target: "dashboard"
+                    current: root.page
+
+                    onNavigate: (target) => {
+                        root.page = target
+                        root.drawerOpen = false
+                    }
                 }
 
                 Nav {
                     text: "تراکنش‌ها"
                     target: "transactions"
+                    current: root.page
+
+                    onNavigate: (target) => {
+                        root.page = target
+                        root.drawerOpen = false
+                    }
                 }
 
                 Nav {
                     text: "بانک‌ها و پیامک"
                     target: "banks"
+                    current: root.page
+
+                    onNavigate: (target) => {
+                        root.page = target
+                        root.drawerOpen = false
+                    }
                 }
 
                 Nav {
                     text: "تنظیمات"
                     target: "settings"
+                    current: root.page
+
+                    onNavigate: (target) => {
+                        root.page = target
+                        root.drawerOpen = false
+                    }
                 }
 
                 Item {

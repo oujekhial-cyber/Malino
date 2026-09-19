@@ -3,7 +3,13 @@ __pycache__/
 .venv/
 build/
 dist/
+bin/
 *.apk
 *.aab
 *.db
 .pyside6-android-deploy/
+.pyside6_android_deploy/
+.buildozer/
+android-wheels/
+deployment/
+data/

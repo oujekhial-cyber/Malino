@@ -3,8 +3,14 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 ColumnLayout {
+    id: root
+
     signal saved()
     property var editing: null
+
+    property string theme: appController.theme
+    property string currency: appController.currency
+    property color fg: theme === "light" ? "#102A43" : "#F5F8FF"
 
     spacing: 10
     layoutDirection: Qt.RightToLeft
@@ -77,7 +83,7 @@ ColumnLayout {
         Button {
             text: "انصراف"
 
-            onClicked: saved()
+            onClicked: root.saved()
         }
 
         Button {
@@ -88,9 +94,9 @@ ColumnLayout {
                 var n = parseInt(amount.text.replace(/[^0-9]/g, "")) || 0
                 var t = typ.currentIndex === 0 ? "IN" : "OUT"
 
-                if (editing) {
+                if (root.editing) {
                     appController.updateTransaction(
-                        editing.id,
+                        root.editing.id,
                         n,
                         t,
                         bank.currentText,
@@ -105,24 +111,24 @@ ColumnLayout {
                     )
                 }
 
-                saved()
+                root.saved()
             }
         }
     }
 
-    Component.onCompleted: loadEdit()
+    Component.onCompleted: root.loadEdit()
 
-    onEditingChanged: loadEdit()
+    onEditingChanged: root.loadEdit()
 
     function loadEdit() {
-        if (!editing)
+        if (!root.editing)
             return
 
-        amount.text = String(editing.amount)
-        typ.currentIndex = editing.tx_type === "IN" ? 0 : 1
-        desc.text = editing.description || ""
+        amount.text = String(root.editing.amount)
+        typ.currentIndex = root.editing.tx_type === "IN" ? 0 : 1
+        desc.text = root.editing.description || ""
 
-        var i = bank.model.indexOf(editing.bank)
+        var i = bank.model.indexOf(root.editing.bank)
 
         if (i >= 0)
             bank.currentIndex = i

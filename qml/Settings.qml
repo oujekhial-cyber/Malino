@@ -3,6 +3,14 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Item {
+    id: root
+
+    property string theme: appController.theme
+    property string currency: appController.currency
+    property color card: theme === "light" ? "#FFFFFF" : theme === "midnight" ? "#182335" : "#101D31"
+    property color fg: theme === "light" ? "#102A43" : "#F5F8FF"
+    property color muted: "#718096"
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 18

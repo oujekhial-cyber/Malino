@@ -13,14 +13,49 @@
 - SQLite محلی
 
 ## ساخت APK
-ساخت PySide6 اندروید روی میزبان Unix انجام می‌شود و ابزار رسمی Qt برای این کار `pyside6-android-deploy` است. برای APK، حالت debug استفاده می‌شود؛ برای AAB حالت release را تنظیم کنید.
 
-فایل `build_android.sh` آماده‌سازی SDK/NDK و wheelهای Android را انجام می‌دهد و سپس deployment را اجرا می‌کند.
+ابزار رسمی Qt برای ساخت اندروید `pyside6-android-deploy` است. برای APK از حالت
+debug و برای AAB از حالت release استفاده می‌شود.
 
-## نکته مهم SMS
-گیرنده SMS با `android.add_src` و یک `p4a/hook.py` به template مانیفست تزریق می‌شود. این بخش باید روی GitHub Actions/Ubuntu یا Linux واقعی build شود تا ادغام Android و Gradle در محیط واقعی تأیید شود.
+```bash
+./build_android.sh
+```
+
+این اسکریپت سه مرحله دارد و همه نسخه‌ها را قفل (pin) می‌کند:
+
+1. **تولید buildozer.spec** — `pyside6-android-deploy` فایل buildozer.spec
+   مخصوص Qt (بوت‌استرپ qt، jarها، recipeهای PySide6/shiboken6) را می‌سازد.
+2. **پچ buildozer.spec** — اسکریپت `scripts_patch_buildozer.py` نسخه
+   python-for-android را به `v2024.01.21` قفل می‌کند (آخرین نسخه‌ای که هم
+   بوت‌استرپ qt را دارد و هم پایتون 3.11 می‌سازد؛ شاخه develop فعلی p4a پایتون
+   3.14 می‌سازد و با wheelهای cp311 ناسازگار است) و مجوزها و
+   `MalinoSmsReceiver` را دوباره اضافه می‌کند، چون spec تولیدی آن‌ها را حمل
+   نمی‌کند.
+3. **ساخت نهایی** — `buildozer android debug` با spec پچ‌شده.
+
+## چرا برنامه قبلی بعد از ساخت اجرا نمی‌شد؟
+
+- ابزار Qt شاخه `develop` کتابخانه python-for-android را hardcode کرده است.
+  CI این شاخه را «امروز» کلون می‌کند و پایتون 3.14 می‌سازد، در حالی که
+  wheelهای اندروید PySide6 6.8 از نوع cp311 هستند؛ نتیجه: APK بدون اجرا بسته
+  می‌شود.
+- ابزار Qt در پایان اجرا، `buildozer.spec` و پوشه `deployment/` را پاک می‌کند و
+  خطاهای build را هم بلعیده و با کد خروج 0 خارج می‌شود؛ برای همین CI «سبز» می‌ماند.
+- `android.add_src` و `p4a.hook` (دریافت SMS) فقط در spec دستی پروژه بودند و در
+  spec تولیدی ابزار از دست می‌رفتند.
+- چند فایل QML به `root` ارجاع می‌دادند در حالی که `id: root` در همان فایل
+  تعریف نشده بود؛ رنگ/تم/مبلغ‌ها در همه صفحات از کار می‌افتاد.
+- `main.py` در صورت شکست بارگذاری QML بدون هیچ پیامی `return 1` می‌کرد.
+
+## نکته SMS
+
+گیرنده SMS در `android/src/com/malino/app/MalinoSmsReceiver.java` است؛ با
+`android.add_src` کامپایل و با `p4a/hook.py` به مانیفست تزریق می‌شود. مجوزهای
+`RECEIVE_SMS`، `READ_SMS` و `POST_NOTIFICATIONS` توسط `scripts_patch_buildozer.py`
+اضافه می‌شوند.
 
 ## GitHub
+
 نام پیشنهادی مخزن: `Malino`
 
 ```bash
@@ -32,12 +67,13 @@ git commit -m "Malino 1.1 PySide6 Android"
 git push -u origin main
 ```
 
+GitHub Actions روی push به `main` APK می‌سازد و به‌عنوان artifact
+(`Malino-Android`) آپلود می‌کند. مرحله «Verify APK contents» بررسی می‌کند که
+APK واقعاً شامل Qt، پایتون 3.11 و گیرنده SMS باشد.
+
 ## اجرای محلی دسکتاپ
-برای تست UI روی Linux/Windows با PySide6 دسکتاپ:
 
 ```bash
 pip install -r requirements.txt
 python main.py
 ```
-
-نسخه Android باید با wheel مخصوص Android و ابزار `pyside6-android-deploy` ساخته شود.
