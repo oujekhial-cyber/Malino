@@ -72,6 +72,9 @@ if [ ! -d "$ANDROID_SDK_ROOT" ] || [ ! -d "$ANDROID_NDK_ROOT" ]; then
     if [ ! -d "${HOME}/pyside-setup" ]; then
         git clone --depth 1 --branch 6.8 https://code.qt.io/pyside/pyside-setup "${HOME}/pyside-setup"
     fi
+    # the helper imports git (GitPython), jinja2, packaging, tqdm
+    python3 -m pip install -r "${HOME}/pyside-setup/requirements.txt"
+    python3 -m pip install -r "${HOME}/pyside-setup/tools/cross_compile_android/requirements.txt"
     python3 "${HOME}/pyside-setup/tools/cross_compile_android/main.py" \
         --download-only --skip-update --auto-accept-license
 fi
