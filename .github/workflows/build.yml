@@ -184,25 +184,37 @@ jobs:
             echo "Build Malino failed — run $RUNID (attempt ${{ github.run_attempt }})"
             echo "Commit: $SHA"
             echo
-            echo '```'
-            tail -c 40000 build_log.txt 2>/dev/null || echo "(no build_log.txt)"
-            echo '```'
+            echo "== phase/step summary (whole log) =="
+            grep -nE "^==>|patch-p4a|Cloning into|Detected old|Task :.*FAILED|BUILD (SUCCESSFUL|FAILED)" \
+              build_log.txt 2>/dev/null | tail -80 || true
             echo
+            echo "== log tail (last 30k) =="
             echo '```'
-            echo "--- deployment dir ---"
-            find deployment -maxdepth 3 -type f 2>/dev/null | head -30 || true
-            echo "--- buildozer.spec head ---"
-            head -60 buildozer.spec 2>/dev/null || true
+            tail -c 30000 build_log.txt 2>/dev/null || echo "(no build_log.txt)"
             echo '```'
           } > failure_body.md
 
-          # commit comments are readable via api.github.com even where the
-          # log endpoints are not; issue creation is attempted as well
-          gh api \
-            --method POST \
-            "repos/$REPO/commits/$SHA/comments" \
-            -F body=@"failure_body.md" \
-            > comment_result.json 2>&1 || true
+          # full log in <=30k chunks as commit comments (readable via
+          # api.github.com even where the log endpoints are not)
+          rm -f logchunk-*
+          split -b 30000 -d -a 2 build_log.txt logchunk- 2>/dev/null || true
+          i=0
+          for f in logchunk-*; do
+            [ -f "$f" ] || continue
+            {
+              echo "Build log part $i — run $RUNID (commit $SHA)"
+              echo '```'
+              cat "$f"
+              echo '```'
+            } > chunkbody.md
+            gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+              -F body=@"chunkbody.md" >/dev/null 2>&1 || true
+            i=$((i+1))
+            [ "$i" -ge 6 ] && break
+          done
+
+          gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+            -F body=@"failure_body.md" > comment_result.json 2>&1 || true
           head -c 400 comment_result.json || true
 
           gh issue create \

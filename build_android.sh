@@ -166,7 +166,16 @@ git -C "$P4A_DIR" checkout -q -B "$P4A_REF" 2>/dev/null || true
 git -C "$P4A_DIR" clean -qfd || true
 python3 scripts_patch_p4a.py "$P4A_DIR"
 
-python3 -m buildozer -v android debug
+python3 -m buildozer -v android debug || {
+    # If buildozer replaced our patched clone with a fresh one (or the patch
+    # raced with its clone), patch again and retry exactly once.
+    echo "==> first buildozer attempt failed; re-applying the p4a patch and retrying"
+    if [ -d "$P4A_DIR/.git" ]; then
+        git -C "$P4A_DIR" checkout -q -B "$P4A_REF" 2>/dev/null || true
+        python3 scripts_patch_p4a.py "$P4A_DIR"
+    fi
+    python3 -m buildozer -v android debug
+}
 
 echo "==> Artifacts:"
 find . -maxdepth 3 -type f \( -name '*.apk' -o -name '*.aab' \) -print
