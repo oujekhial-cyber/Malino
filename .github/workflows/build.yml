@@ -443,7 +443,8 @@ jobs:
             -gpu swiftshader_indirect -no-snapshot -no-metrics -no-splash \
             -memory 3072 -camera-back none -camera-front none \
             > emulator_boot.log 2>&1 &
-          adb wait-for-device
+          # Never let a broken emulator process hold the workflow forever.
+          timeout 180 adb wait-for-device || { cat emulator_boot.log; exit 1; }
           timeout 600 bash -c 'while [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" != "1" ]; do sleep 5; done'
           adb shell getprop ro.build.version.release
           adb shell getprop ro.product.cpu.abilist
