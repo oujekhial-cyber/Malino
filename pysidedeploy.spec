@@ -3,11 +3,15 @@ title = Malino
 project_dir = .
 input_file = main.py
 exec_directory = .
-icon = assets/malino_icon.svg
+icon = assets/malino_icon.png
 
 [python]
 python_path = .
-android_packages = buildozer==1.5.0,cython==0.29.33
+# left empty on purpose: the deploy tool would run `pip install --force <pkg>`
+# (an invalid flag) whenever the installed version differs from the pin, which
+# kills the whole deployment. Everything needed (buildozer, cython<3, ...) is
+# installed explicitly by build_android.sh / the CI workflow instead.
+android_packages =
 
 [qt]
 modules = Core,Gui,Qml,Quick,QuickControls2
