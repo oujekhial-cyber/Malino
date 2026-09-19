@@ -149,6 +149,8 @@ jobs:
       - name: Download PySide6 Android wheels
         shell: bash
         run: |
+          # aarch64 = the APK for real phones; x86_64 = the APK that runs
+          # natively on the CI emulator used by the emulator-test job.
           mkdir -p "$GITHUB_WORKSPACE/android-wheels"
           cd "$GITHUB_WORKSPACE/android-wheels"
 
@@ -160,6 +162,14 @@ jobs:
             "https://download.qt.io/official_releases/QtForPython/shiboken6/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
             -O "shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
 
+          wget -nv \
+            "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_x86_64.whl" \
+            -O "PySide6-6.8.2.1-6.8.2-cp311-cp311-android_x86_64.whl"
+
+          wget -nv \
+            "https://download.qt.io/official_releases/QtForPython/shiboken6/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_x86_64.whl" \
+            -O "shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_x86_64.whl"
+
           ls -lh
 
       - name: Build Malino
@@ -170,6 +180,19 @@ jobs:
         run: |
           set -o pipefail
           bash build_android.sh 2>&1 | tee build_log.txt
+
+      - name: Build Malino (x86_64, for the emulator test)
+        # Best effort: if the x86_64 build fails the emulator-test job falls
+        # back to the arm64 APK (the API 34 x86_64 image can translate ARM).
+        continue-on-error: true
+        shell: bash
+        env:
+          ARCH: x86_64
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
+        run: |
+          set -o pipefail
+          bash build_android.sh 2>&1 | tee build_x86_64.log
 
       - name: Report failure
         if: failure()
@@ -232,45 +255,47 @@ jobs:
           RUNID: ${{ github.run_id }}
         shell: bash
         run: |
-          APK="$(find "$GITHUB_WORKSPACE" -type f -name '*.apk' | head -n 1)"
-          if [ -z "$APK" ]; then
+          APKS="$(find "$GITHUB_WORKSPACE" -type f -name '*.apk')"
+          if [ -z "$APKS" ]; then
             echo "ERROR: no APK produced"
             exit 1
           fi
-          echo "Verifying $APK"
-          echo
-          echo "== APK contents (lib/ and assets/) =="
-          unzip -l "$APK" | grep -E "lib/|assets/" | head -120 || true
+          echo "$APKS"
+          rc_total=0
+          for APK in $APKS; do
+            echo
+            echo "Verifying $APK"
+            echo "== APK contents (lib/ and assets/) =="
+            unzip -l "$APK" | grep -E "lib/|assets/" | head -120 || true
 
-          set -o pipefail
-          python3 scripts_verify_apk.py \
-            "$APK" \
-            "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" | tee verify_result.txt
-          rc=${PIPESTATUS[0]}
-
-          if [ "$rc" -ne 0 ]; then
-            {
-              echo "Verify APK contents failed — run $RUNID (commit $SHA)"
-              echo
-              echo "== verifier output =="
-              echo '```'
-              cat verify_result.txt
-              echo '```'
-              echo
-              echo "== APK listing (lib/ + assets/) =="
-              echo '```'
-              unzip -l "$APK" | grep -E "lib/|assets/" | head -120 || true
-              echo '```'
-              echo
-              echo "== manifest (aapt dump) =="
-              echo '```'
-              "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml | head -80 || true
-              echo '```'
-            } > verify_body.md
-            gh api --method POST "repos/$REPO/commits/$SHA/comments" \
-              -F body=@"verify_body.md" >/dev/null 2>&1 || true
-          fi
-          exit "$rc"
+            python3 scripts_verify_apk.py "$APK" \
+              "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" | tee verify_result.txt
+            rc=${PIPESTATUS[0]}
+            if [ "$rc" -ne 0 ]; then
+              rc_total=1
+              {
+                echo "Verify APK contents failed for $APK — run $RUNID (commit $SHA)"
+                echo
+                echo "== verifier output =="
+                echo '```'
+                cat verify_result.txt
+                echo '```'
+                echo
+                echo "== APK listing (lib/ + assets/) =="
+                echo '```'
+                unzip -l "$APK" | grep -E "lib/|assets/" | head -120 || true
+                echo '```'
+                echo
+                echo "== manifest (aapt dump) =="
+                echo '```'
+                "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml | head -80 || true
+                echo '```'
+              } > verify_body.md
+              gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+                -F body=@"verify_body.md" >/dev/null 2>&1 || true
+            fi
+          done
+          exit "$rc_total"
 
       - name: Upload APK
         if: always()
@@ -327,3 +352,195 @@ jobs:
           gh api --method POST "repos/$REPO/commits/$SHA/comments" \
             -F body=@"failure_body.md" > comment_result.json 2>&1 || true
           head -c 400 comment_result.json || true
+
+  # ---------------------------------------------------------------------------
+  # Boot an Android 14 (API 34) emulator on the runner, install the built APK,
+  # launch Malino and keep watching its process.  If the app dies instantly
+  # (the exact bug reported from a real Android 14/15 phone) this job goes red
+  # and posts the logcat crash section as a commit comment - so we get the real
+  # crash stack without needing adb on the user's computer.
+  # ---------------------------------------------------------------------------
+  emulator-test:
+    runs-on: ubuntu-22.04
+    needs: android
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Java 17
+        run: |
+          JAVA17="/usr/lib/jvm/java-17-openjdk-amd64"
+          test -x "$JAVA17/bin/java"
+          echo "JAVA_HOME=$JAVA17" >> "$GITHUB_ENV"
+          echo "$JAVA17/bin" >> "$GITHUB_PATH"
+
+      - name: Install Android SDK (emulator)
+        shell: bash
+        run: |
+          SDK="$HOME/.android-sdk"
+          mkdir -p "$SDK/cmdline-tools"
+          cd /tmp
+          rm -rf cmdline-tools clt.zip
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -O clt.zip
+          unzip -q clt.zip
+          mkdir -p "$SDK/cmdline-tools/latest"
+          cp -R cmdline-tools/* "$SDK/cmdline-tools/latest/"
+          rm -rf cmdline-tools clt.zip
+
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          chmod +x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" --sdk_root="$SDK" \
+            "platform-tools" \
+            "emulator" \
+            "build-tools;35.0.0" \
+            "system-images;android-34;google_apis;x86_64" >/dev/null
+
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+          ls /dev/kvm
+
+      - name: Download built APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: Malino-Android
+          path: apks
+
+      - name: Select test APK
+        shell: bash
+        run: |
+          find apks -type f -name '*.apk' -printf '%p (%s bytes)\n'
+          APK="$(find apks -type f -name '*.apk' | grep -E 'x86_64' | head -n 1)"
+          if [ -z "$APK" ]; then
+            APK="$(find apks -type f -name '*.apk' | head -n 1)"
+          fi
+          test -n "$APK"
+          echo "TEST_APK=$APK" >> "$GITHUB_ENV"
+          echo "Testing $APK"
+
+      - name: Read package name from APK
+        shell: bash
+        run: |
+          AAPT="$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$TEST_APK" | tee badging.txt
+          PACKAGE="$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" badging.txt | head -n 1)"
+          test -n "$PACKAGE"
+          echo "PACKAGE=$PACKAGE" >> "$GITHUB_ENV"
+          echo "Package: $PACKAGE"
+
+      - name: Create and boot emulator (API 34 = Android 14)
+        shell: bash
+        run: |
+          AVDMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager"
+          EMULATOR="$ANDROID_SDK_ROOT/emulator/emulator"
+          "$AVDMANAGER" create avd -n malino -k "system-images;android-34;google_apis;x86_64" -d pixel_5 --force
+          "$EMULATOR" -avd malino -no-window -no-audio -no-boot-anim \
+            -gpu swiftshader_indirect -no-snapshot -no-metrics -no-splash \
+            -memory 3072 -camera-back none -camera-front none \
+            > emulator_boot.log 2>&1 &
+          adb wait-for-device
+          timeout 600 bash -c 'while [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" != "1" ]; do sleep 5; done'
+          adb shell getprop ro.build.version.release
+          adb shell getprop ro.product.cpu.abilist
+
+      - name: Install APK
+        run: adb install -r -g "$TEST_APK"
+
+      - name: Launch Malino and watch the process
+        id: watch
+        shell: bash
+        run: |
+          set +e
+          adb logcat -c
+          adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1
+
+          # Wait for the app process to appear (Qt + Python startup takes a while)
+          PID1=""
+          for i in $(seq 1 30); do
+            sleep 3
+            PID1="$(adb shell pidof "$PACKAGE" | tr -d '\r' | awk '{print $1}')"
+            [ -n "$PID1" ] && break
+          done
+
+          # Then check it is STILL alive 30 seconds later (instant crashes
+          # sometimes leave a process up for a couple of seconds)
+          sleep 30
+          PID2="$(adb shell pidof "$PACKAGE" | tr -d '\r' | awk '{print $1}')"
+
+          adb exec-out screencap -p > emulator_screen.png || true
+          adb logcat -d > logcat_full.txt
+          adb logcat -d -b crash > logcat_crash.txt
+          adb shell "dumpsys window | grep -E 'mCurrentFocus|mFocusedApp'" > window_focus.txt || true
+
+          echo "pid_start=$PID1 pid_after_30s=$PID2"
+          cat window_focus.txt || true
+          echo "--- crash buffer ---"
+          cat logcat_crash.txt || true
+
+          DEAD=0
+          [ -z "$PID2" ] && DEAD=1
+          grep -qF "$PACKAGE" logcat_crash.txt && DEAD=1
+
+          echo "PACKAGE=$PACKAGE" >> "$GITHUB_ENV"
+          echo "DEAD=$DEAD" >> "$GITHUB_ENV"
+
+      - name: Test result
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUNID: ${{ github.run_id }}
+        run: |
+          PID_FINAL="$(adb shell pidof "$PACKAGE" | tr -d '\r' || true)"
+          FOCUS="$(tr -d '\r' < window_focus.txt 2>/dev/null | head -2 || true)"
+          CRASH_LINES="$(wc -l < logcat_crash.txt 2>/dev/null || echo '?')"
+          APK_NAME="$(basename "$TEST_APK" 2>/dev/null || echo '?')"
+
+          {
+            echo "## Emulator test (Android 14 / API 34, x86_64)"
+            echo
+            echo "- APK: $APK_NAME"
+            echo "- package: $PACKAGE"
+            echo "- pid after 30s: ${PID_FINAL:-(empty)}"
+            echo "- focus: ${FOCUS:-(empty)}"
+            echo "- crash buffer lines: $CRASH_LINES"
+            echo
+            if [ "${DEAD:-1}" = "0" ]; then
+              echo "RESULT: PASSED - app started and stayed alive for 30+ seconds"
+            else
+              echo "RESULT: FAILED - app died"
+              echo
+              echo "## crash buffer"
+              echo '```'
+              head -c 20000 logcat_crash.txt 2>/dev/null
+              echo '```'
+              echo
+              echo "## logcat excerpts (Malino / AndroidRuntime / python)"
+              echo '```'
+              grep -E "AndroidRuntime|FATAL|SIGSEGV|SIGABRT|has died|Force finishing|python|Malino|Qt" logcat_full.txt 2>/dev/null | tail -n 400 | head -c 20000
+              echo '```'
+            fi
+          } > emulator_body.md
+          gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+            -F body=@"emulator_body.md" >/dev/null 2>&1 || true
+          head -c 400 emulator_body.md || true
+          if [ "${DEAD:-1}" != "0" ]; then exit 1; fi
+
+      - name: Upload emulator artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Malino-Emulator-Test
+          path: |
+            logcat_full.txt
+            logcat_crash.txt
+            emulator_screen.png
+            window_focus.txt
+            emulator_boot.log
+            badging.txt
+          if-no-files-found: warn

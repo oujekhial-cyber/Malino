@@ -17,12 +17,26 @@ RECEIVER = '''
         </receiver>
 '''
 
+PROVIDER = '''
+        <provider
+            android:name="com.malino.app.MalinoCrashReporter"
+            android:authorities="com.malino.app.crashreporter"
+            android:exported="false"
+            android:initOrder="500" />
+'''
+
 
 def before_apk_build(toolchain: ToolchainCL):
-    """Inject the Malino SMS receiver into the Qt bootstrap manifest template.
+    """Inject Malino components into the Qt bootstrap manifest template.
 
-    The receiver itself is compiled from android/src (buildozer
-    ``android.add_src``); its permissions come from ``android.permissions``.
+    The receiver / provider classes themselves are compiled from
+    android/src (buildozer ``android.add_src``); the SMS permissions come
+    from ``android.permissions``.
+
+    * MalinoSmsReceiver - receives bank SMS and hands them to the app.
+    * MalinoCrashReporter - ContentProvider created before the Qt activity;
+      installs the uncaught-exception handler that writes
+      Download/malino_crash.txt so crashes are readable without adb.
     """
     try:
         template = Path(toolchain._dist.dist_dir) / "templates" / "AndroidManifest.tmpl.xml"
@@ -37,15 +51,27 @@ def before_apk_build(toolchain: ToolchainCL):
         return
 
     text = template.read_text(encoding="utf-8")
-    if "com.malino.app.MalinoSmsReceiver" in text:
-        return
+    changed = False
 
-    marker = "</application>"
-    if marker not in text:
-        logging.warning("Malino hook: AndroidManifest template changed; SMS "
-                        "receiver not injected (no </application> marker)")
-        return
+    if "com.malino.app.MalinoSmsReceiver" not in text:
+        marker = "</application>"
+        if marker in text:
+            text = text.replace(marker, RECEIVER + "\n    " + marker, 1)
+            logging.info("Malino hook: SMS receiver injected into %s", template)
+            changed = True
+        else:
+            logging.warning("Malino hook: AndroidManifest template changed; SMS "
+                            "receiver not injected (no </application> marker)")
 
-    text = text.replace(marker, RECEIVER + "\n    " + marker, 1)
-    template.write_text(text, encoding="utf-8")
-    logging.info("Malino hook: SMS receiver injected into %s", template)
+    if "com.malino.app.MalinoCrashReporter" not in text:
+        marker = "</application>"
+        if marker in text:
+            text = text.replace(marker, PROVIDER + "\n    " + marker, 1)
+            logging.info("Malino hook: crash reporter provider injected into %s", template)
+            changed = True
+        else:
+            logging.warning("Malino hook: AndroidManifest template changed; crash "
+                            "reporter not injected (no </application> marker)")
+
+    if changed:
+        template.write_text(text, encoding="utf-8")

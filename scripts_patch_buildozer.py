@@ -69,12 +69,22 @@ def main() -> None:
     parser.add_argument("spec", type=Path)
     parser.add_argument("--p4a-ref", default="v2024.01.21",
                         help="python-for-android branch/tag to pin")
+    parser.add_argument("--arch", default="",
+                        help="override the buildozer arch (aarch64 / x86_64 / ...) "
+                             "so the same pipeline can build a second, "
+                             "emulator-testable APK")
     args = parser.parse_args()
 
     text = args.spec.read_text(encoding="utf-8")
 
     # 1. Pin python-for-android to a python-3.11 release with the qt bootstrap.
     text = set_value(text, "app", "p4a.branch", args.p4a_ref)
+
+    # 1b. Optionally build for a different ABI (used by CI to also produce an
+    # x86_64 APK that runs natively on the GitHub Actions emulator).
+    if args.arch:
+        text = set_value(text, "buildozer", "arch", args.arch)
+
 
     # 2. SMS permissions (the generated spec only carries wheel-derived ones).
     current = [p.strip() for p in read_value(text, "android.permissions").split(",") if p.strip()]

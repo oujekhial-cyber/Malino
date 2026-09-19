@@ -24,6 +24,10 @@ PYSIDE_VERSION="6.8.2"
 PYSIDE_WHEEL_VERSION="6.8.2.1-6.8.2"
 P4A_REF="v2024.01.21"   # last p4a release line with the qt bootstrap + python 3.11
 
+# Target ABI: aarch64 (real phones) or x86_64 (GitHub Actions emulator test).
+ARCH="${ARCH:-aarch64}"
+echo "==> Building for ABI: $ARCH"
+
 echo "==> Installing build dependencies"
 python3 -m pip install -U "PySide6==${PYSIDE_VERSION}" "shiboken6==${PYSIDE_VERSION}"
 # The Qt deploy tool imports these without declaring them anywhere
@@ -43,8 +47,8 @@ python3 -m pip install -U "buildozer==1.5.0" "cython<3" \
 # PySide6 Android wheels (aarch64) - pinned versions
 # ---------------------------------------------------------------------------
 WHEEL_BASE="https://download.qt.io/official_releases/QtForPython"
-PSWHEEL_NAME="PySide6-${PYSIDE_WHEEL_VERSION}-cp311-cp311-android_aarch64.whl"
-SWWHEEL_NAME="shiboken6-${PYSIDE_WHEEL_VERSION}-cp311-cp311-android_aarch64.whl"
+PSWHEEL_NAME="PySide6-${PYSIDE_WHEEL_VERSION}-cp311-cp311-android_${ARCH}.whl"
+SWWHEEL_NAME="shiboken6-${PYSIDE_WHEEL_VERSION}-cp311-cp311-android_${ARCH}.whl"
 mkdir -p android-wheels
 if [ -z "${PSWHEEL:-}" ] || [ -z "${SWWHEEL:-}" ]; then
     echo "==> Downloading PySide6 Android wheels (${PYSIDE_WHEEL_VERSION})"
@@ -144,7 +148,7 @@ echo "==> فاز 1 کامل و سالم است"
 # Phase 2: patch the generated spec
 # ---------------------------------------------------------------------------
 echo "==> Phase 2: patching buildozer.spec"
-python3 scripts_patch_buildozer.py buildozer.spec --p4a-ref "$P4A_REF"
+python3 scripts_patch_buildozer.py buildozer.spec --p4a-ref "$P4A_REF" --arch "$ARCH"
 
 # ---------------------------------------------------------------------------
 # Phase 3: build the APK directly with buildozer + the patched spec
