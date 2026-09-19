@@ -7,7 +7,7 @@ icon = assets/malino_icon.svg
 
 [python]
 python_path = .
-android_packages = buildozer,cpython
+android_packages =
 
 [qt]
 modules = Core,Gui,Qml,Quick,QuickControls2
