@@ -83,6 +83,42 @@ jobs:
 
           SDK="$HOME/.pyside6_android_deploy/android-sdk"
 
+          echo
+          echo "Selecting Java 17..."
+
+          JAVA17=""
+
+          for J in \
+            /usr/lib/jvm/java-17-openjdk-amd64 \
+            /usr/lib/jvm/java-17-openjdk; do
+
+            if [ -x "$J/bin/java" ]; then
+              JAVA17="$J"
+              break
+            fi
+
+          done
+
+          if [ -z "$JAVA17" ]; then
+            echo "ERROR: Java 17 was not found."
+            ls -la /usr/lib/jvm/ || true
+            exit 1
+          fi
+
+          export JAVA_HOME="$JAVA17"
+          export PATH="$JAVA_HOME/bin:$PATH"
+
+          echo
+          echo "JAVA_HOME:"
+          echo "$JAVA_HOME"
+
+          echo
+          echo "Java version:"
+          java -version
+
+          echo
+          echo "Downloading official command line tools..."
+
           mkdir -p "$SDK"
 
           CMD_DIR="$SDK/cmdline-tools"
@@ -92,6 +128,8 @@ jobs:
           mkdir -p "$CMD_DIR"
 
           cd /tmp
+
+          rm -rf cmdline-tools android-cmdline-tools.zip
 
           wget -q \
             "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
@@ -106,11 +144,11 @@ jobs:
           rm -rf cmdline-tools
           rm -f android-cmdline-tools.zip
 
+          chmod +x "$CMD_DIR/latest/bin/sdkmanager"
+
           echo
           echo "sdkmanager:"
           ls -lh "$CMD_DIR/latest/bin/sdkmanager"
-
-          chmod +x "$CMD_DIR/latest/bin/sdkmanager"
 
           echo
           echo "sdkmanager version:"
@@ -118,9 +156,18 @@ jobs:
           "$CMD_DIR/latest/bin/sdkmanager" \
             --version
 
+          echo
+          echo "Java 17 confirmed."
+
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME/bin" >> "$GITHUB_PATH"
+
       - name: Install Android SDK and NDK
         shell: bash
         run: |
+
+          export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+          export PATH="$JAVA_HOME/bin:$PATH"
 
           echo "=============================================="
           echo "       INSTALLING ANDROID SDK + NDK"
