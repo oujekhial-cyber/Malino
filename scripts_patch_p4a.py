@@ -3,7 +3,7 @@
 
 python-for-android v2024.01.21 (the release pinned by build_android.sh,
 the last one that still builds CPython 3.11 required by the PySide6 6.8
-cp311 Android wheels) ships a qt bootstrap with two startup problems:
+cp311 Android wheels) ships a qt bootstrap with three startup problems:
 
 1. PythonActivity.java calls ``org.qtproject.qt.android.QtNative
    .setEnvironmentVariable(String, String)``. That static method was
@@ -17,7 +17,26 @@ cp311 Android wheels) ships a qt bootstrap with two startup problems:
    same operation via android.system.Os.setenv (which is all the Qt
    wrapper ever did).
 
-2. The ``libs.xml`` resource rendered by ``bootstraps/common/build/build.py``
+2. The app crashes on device at startup (before Python starts) with
+
+       android.content.res.Resources$NotFoundException:
+       String array resource ID #0x0
+           at org.qtproject.qt.android.QtLoader.getBundledLibs
+           at org.qtproject.qt.android.QtLoader.loadQtLibraries
+           at org.qtproject.qt.android.QtActivityBase.onCreate
+
+   ``QtLoader.getBundledLibs`` (Qt 6.8, qtbase QtLoader.java) does
+   ``resources.getIdentifier("bundled_libs", "array", packageName)`` and
+   in 6.8 does NOT catch the resulting ``Resources$NotFoundException``.
+   The ``bundled_libs`` array is rendered into the APK from the qt
+   bootstrap template ``build/templates/libs.tmpl.xml`` - but the
+   v2024.01.21 template predates that resource, so it never exists and
+   ``getIdentifier`` returns 0.  Newer p4a (develop) ships the fix: an
+   empty placeholder array with the comment "The bundled_libs placeholder
+   is needed for QtLoader.java. Otherwise the application will crash."
+   This script backports that placeholder into the template.
+
+3. The ``libs.xml`` resource rendered by ``bootstraps/common/build/build.py``
    (arrays ``qt_libs`` / ``load_local_libs``) is the list of "bundled
    libraries" that ``QtLoader.java`` in Qt6AndroidBindings.jar calls
    ``System.load()`` on from the APK's native library directory at app
@@ -32,7 +51,11 @@ cp311 Android wheels) ships a qt bootstrap with two startup problems:
    (gradle packages ``libs/<arch>`` into the APK ``lib/`` dir) and drops
    the entries whose files are absent.
 
-Both patches are idempotent: running the script twice changes nothing.
+Additionally, PythonActivity logs the actually-bundled native libraries at
+startup (``bundled_libs (N): [...]``) so such crashes are debuggable from
+logcat.
+
+All patches are idempotent: running the script twice changes nothing.
 """
 
 import re
@@ -138,6 +161,61 @@ def patch_python_activity(activity: Path) -> None:
     text = _patch_java_setenv(activity, text)
     text = _patch_java_bundled_libs_log(activity, text)
     activity.write_text(text, encoding="utf-8")
+
+
+def patch_libs_tmpl_bundled_libs(template: Path) -> None:
+    """Backport the bundled_libs placeholder required by Qt 6.8 QtLoader.
+
+    QtLoader.getBundledLibs (qtbase 6.8) reads the ``bundled_libs`` string
+    array from the app resources without catching Resources$NotFoundException
+    (the catch was only added in newer Qt). The v2024.01.21 qt bootstrap
+    template never defines that array, so getIdentifier() returns 0 and the
+    app crashes at startup with:
+
+        android.content.res.Resources$NotFoundException:
+        String array resource ID #0x0
+            at org.qtproject.qt.android.QtLoader.getBundledLibs
+
+    Newer p4a (develop) defines an empty placeholder for exactly this
+    reason ("Otherwise the application will crash."). Extra bundled
+    libraries can be added to the array via buildozer android.add_libs_*.
+    """
+    if not template.exists():
+        print(f"[patch-p4a] WARNING: {template} not found; "
+              "skipping the bundled_libs placeholder patch")
+        return
+
+    text = template.read_text(encoding="utf-8")
+
+    if 'name="bundled_libs"' in text:
+        print("[patch-p4a] libs.tmpl.xml: bundled_libs placeholder already present")
+        return
+
+    anchor = "<resources>"
+    if anchor not in text:
+        print("[patch-p4a] ERROR: <resources> anchor not found in "
+              f"{template} (p4a version changed?); aborting without changes")
+        sys.exit(1)
+
+    placeholder = (
+        "<resources>\n"
+        "\n"
+        "    <!--\n"
+        "    The bundled_libs placeholder is needed for QtLoader.java. "
+        "Otherwise the\n"
+        "    application will crash (Resources$NotFoundException: String\n"
+        "    array resource ID #0x0, Qt 6.8 does not catch the missing\n"
+        "    resource). Adding extra libraries can be done through\n"
+        "    buildozer directly with the android.add_libs_* options.\n"
+        "    -->\n"
+        '    <array name="bundled_libs">\n'
+        "    </array>\n"
+    )
+    text = text.replace(anchor, placeholder, 1)
+
+    template.write_text(text, encoding="utf-8")
+    print(f"[patch-p4a] {template.name}: bundled_libs placeholder added "
+          "(crash fix for QtLoader.getBundledLibs)")
 
 
 def patch_build_py_bundled_libs(build_py: Path) -> None:
@@ -247,10 +325,13 @@ def main() -> None:
     activity = (p4a_dir / "pythonforandroid" / "bootstraps" / "qt" / "build" /
                 "src" / "main" / "java" / "org" / "kivy" / "android" /
                 "PythonActivity.java")
+    libs_tmpl = (p4a_dir / "pythonforandroid" / "bootstraps" / "qt" / "build" /
+                 "templates" / "libs.tmpl.xml")
     build_py = (p4a_dir / "pythonforandroid" / "bootstraps" / "common" /
                 "build" / "build.py")
 
     patch_python_activity(activity)
+    patch_libs_tmpl_bundled_libs(libs_tmpl)
     patch_build_py_bundled_libs(build_py)
 
 

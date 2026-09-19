@@ -48,18 +48,27 @@ debug و برای AAB از حالت release استفاده می‌شود.
 - چند فایل QML به `root` ارجاع می‌دادند در حالی که `id: root` در همان فایل
   تعریف نشده بود؛ رنگ/تم/مبلغ‌ها در همه صفحات از کار می‌افتاد.
 - `main.py` در صورت شکست بارگذاری QML بدون هیچ پیامی `return 1` می‌کرد.
-- بعد از ساخت، `QtLoader.java` (داخل jar خود Qt) هر کتابخانه‌ای را که در
-  `res/values/libs.xml` آمده باشد از `lib/` دایرکتوری APK با `System.load`
-  بارگذاری می‌کند. اما این لیست از `[qt] modules` در `pysidedeploy.spec`
-  می‌آید، در حالی که recipe PySide6 فقط کتابخانه‌هایی را در APK قرار می‌دهد
-  که واقعاً در wheel وجود دارند. هر module‌ای که `libQt6<Module>_<arch>.so`-اش
-  در wheel نباشد (مثلاً `QmlModels` و `QuickTemplates2`) در لیست می‌ماند ولی
-  فایلش در APK نیست؛ نتیجه: APK ساخته می‌شود، CI سبز است، ولی برنامه هنگام
-  استارتاپ — پیش از شروع Python — با `java.lang.UnsatisfiedLinkError` کرش
-  می‌کند. `scripts_patch_p4a.py` حالا این لیست را با کتابخانه‌های واقعاً
-  bundled (فیکس `bundled_libs`) تطبیق می‌دهد و ورودی‌های فاقد فایل را حذف
-  می‌کند؛ برای تشخیص مشکل‌های بعدی، لیست واقعی کتابخانه‌های bundled هم هنگام
-  استارت در logcat چاپ می‌شود (`bundled_libs (N): [...]`).
+- برنامه روی دستگاه هنگام استارتاپ (پیش از شروع Python) با خطای
+  `Resources$NotFoundException: String array resource ID #0x0` از
+  `QtLoader.getBundledLibs` داخل `QtActivityBase.onCreate` کرش می‌کرد.
+  علت: jar خود Qt در نسخه 6.8 (QtLoader) آرایه‌ی `bundled_libs` را از
+  ریسورس‌های APK می‌خواند؛ وقتی ریسورس وجود نداشته باشد `getIdentifier`
+  مقدار 0 برمی‌گرداند و Qt 6.8 این استثنا را catch نمی‌کند. اما
+  template `libs.tmpl.xml` در p4a نسخه‌ی v2024.01.21 (ژانویه 2024) این
+  ریسورس را اصلاً تعریف نمی‌کرد — نسخه‌های جدیدتر p4a (develop) دقیقاً
+  به همین دلیل یک آرایه‌ی placeholder خالی با این توضیح اضافه کرده‌اند:
+  «The bundled_libs placeholder is needed for QtLoader.java. Otherwise the
+  application will crash.» اسکریپت `scripts_patch_p4a.py` این placeholder
+  را به template برمی‌گرداند.
+- (لایه‌ی دوم حفاظت) آرایه‌های `qt_libs` و `load_local_libs` در همان فایل
+  از `[qt] modules` در `pysidedeploy.spec` می‌آیند، در حالی که recipe
+  PySide6 فقط کتابخانه‌هایی را در APK قرار می‌دهد که واقعاً در wheel
+  وجود دارند؛ هر module‌ای که در لیست باشد ولی فایلش در wheel نباشد
+  (مثلاً `libQt6<Module>_<arch>.so`) باعث کرش `UnsatisfiedLinkError`
+  هنگام استارتاپ می‌شد. `scripts_patch_p4a.py` حالا این لیست را با
+  کتابخانه‌های واقعاً bundled تطبیق می‌دهد و ورودی‌های فاقد فایل را حذف
+  می‌کند؛ برای تشخیص مشکل‌های بعدی، لیست واقعی کتابخانه‌های bundled هم
+  هنگام استارت در logcat چاپ می‌شود (`bundled_libs (N): [...]`).
 
 ## نکته SMS
 
