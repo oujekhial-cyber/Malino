@@ -413,7 +413,9 @@ jobs:
         shell: bash
         run: |
           find apks -type f -name '*.apk' -printf '%p (%s bytes)\n'
-          APK="$(find apks -type f -name '*.apk' | grep -E 'x86_64' | head -n 1)"
+          # GitHub runs bash with `-e -o pipefail`; grep returning 1 when no
+          # filename contains the architecture must not abort before fallback.
+          APK="$(find apks -type f -name '*.apk' | grep -E 'x86_64' | head -n 1 || true)"
           if [ -z "$APK" ]; then
             APK="$(find apks -type f -name '*.apk' | head -n 1)"
           fi
