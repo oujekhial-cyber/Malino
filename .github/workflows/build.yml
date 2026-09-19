@@ -46,12 +46,29 @@ jobs:
 
           # buildozer 1.5.0 + cython<3 match python-for-android v2024.01.21,
           # which is pinned inside build_android.sh.
+          # packaging/tqdm/jinja2/pkginfo are imported by the Qt deploy tool
+          # (android_utilities.py, android_helper.py, android_config.py) but
+          # declared by no package; appdirs/colorama/sh<2/toml/build are the
+          # requirements of python-for-android v2024.01.21 itself.
           python -m pip install \
             "PySide6==6.8.2" \
             "shiboken6==6.8.2" \
             "buildozer==1.5.0" \
             "cython<3" \
-            GitPython
+            "packaging" \
+            "tqdm" \
+            "jinja2" \
+            "pkginfo" \
+            "appdirs" \
+            "colorama>=0.3.3" \
+            "toml" \
+            "build" \
+            "sh>=1.10,<2.0" \
+            "setuptools"
+
+          # Fail fast with a clear message if any of the undeclared deploy
+          # tool dependencies is still missing.
+          python -c "import packaging, tqdm, jinja2, pkginfo; print('deploy deps OK')"
 
           which pyside6-android-deploy
           pyside6-android-deploy --help >/dev/null

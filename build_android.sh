@@ -26,7 +26,18 @@ P4A_REF="v2024.01.21"   # last p4a release line with the qt bootstrap + python 3
 
 echo "==> Installing build dependencies"
 python3 -m pip install -U "PySide6==${PYSIDE_VERSION}" "shiboken6==${PYSIDE_VERSION}"
-python3 -m pip install -U "buildozer==1.5.0" "cython<3" "GitPython" "pkginfo"
+# The Qt deploy tool imports these without declaring them anywhere
+# (PySide6 wheel metadata only declares shiboken6/Essentials/Addons):
+#   android_utilities.py -> packaging, tqdm
+#   android_helper.py    -> jinja2
+#   android_config.py    -> pkginfo
+# python-for-android v2024.01.21 (pinned below) additionally needs
+# appdirs, colorama, jinja2, sh<2, build, toml, packaging, setuptools,
+# and buildozer 1.5.0 uses packaging without declaring it.
+python3 -m pip install -U "buildozer==1.5.0" "cython<3" \
+    "packaging" "tqdm" "jinja2" "pkginfo" \
+    "appdirs" "colorama>=0.3.3" "toml" "build" \
+    "sh>=1.10,<2.0" "setuptools"
 
 # ---------------------------------------------------------------------------
 # PySide6 Android wheels (aarch64) - pinned versions
@@ -94,6 +105,7 @@ for i in $(seq 1 240); do
     if ! kill -0 "$DEPLOY_PID" 2>/dev/null; then break; fi
     if [ -f buildozer.spec ] && grep -q "p4a.local_recipes" buildozer.spec 2>/dev/null; then
         echo "==> buildozer.spec generated; stopping phase 1"
+        sleep 3
         kill "$DEPLOY_PID" 2>/dev/null || true
         sleep 2
         kill -9 "$DEPLOY_PID" 2>/dev/null || true
@@ -103,7 +115,23 @@ for i in $(seq 1 240); do
 done
 wait "$DEPLOY_PID" 2>/dev/null || true
 
-[ -f buildozer.spec ] || { echo "buildozer.spec ساخته نشد"; exit 2; }
+# The deploy tool swallows errors (prints them, then exits 0) and the build
+# loop below would silently produce a broken APK if phase 1 was incomplete.
+# Verify the generated spec is really the Qt-specific one before continuing.
+if [ ! -f buildozer.spec ]; then
+    echo "خطا: buildozer.spec ساخته نشد — خروجی فاز 1 را بالا ببینید"; exit 2
+fi
+grep -Eq "^p4a\.bootstrap[[:space:]]*=[[:space:]]*qt" buildozer.spec \
+    || { echo "خطا: p4a.bootstrap=qt در buildozer.spec نیست (spec پیش‌فرض است)"; exit 2; }
+grep -Eq "^p4a\.local_recipes[[:space:]]*=[[:space:]]*\S+" buildozer.spec \
+    || { echo "خطا: p4a.local_recipes خالی است — recipeهای Qt ساخته نشده‌اند"; exit 2; }
+grep -q "Qt6AndroidBindings" buildozer.spec \
+    || { echo "خطا: android.add_jars شامل Qt6AndroidBindings نیست — استخراج jar شکست خورده"; exit 2; }
+grep -Eq "^android\.add_jars[[:space:]]*=[[:space:]]*\S+" buildozer.spec \
+    || { echo "خطا: android.add_jars خالی است"; exit 2; }
+[ -f deployment/recipes/PySide6/__init__.py ] \
+    || { echo "خطا: recipe PySide6 در deployment/recipes نیست"; exit 2; }
+echo "==> فاز 1 کامل و سالم است"
 
 # ---------------------------------------------------------------------------
 # Phase 2: patch the generated spec
