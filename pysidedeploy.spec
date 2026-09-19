@@ -7,11 +7,10 @@ icon = assets/malino_icon.svg
 
 [python]
 python_path = .
-android_packages =
+android_packages = buildozer==1.5.0,cython==0.29.33
 
 [qt]
 modules = Core,Gui,Qml,Quick,QuickControls2
-qml_files = qml
 
 [android]
 wheel_pyside =
