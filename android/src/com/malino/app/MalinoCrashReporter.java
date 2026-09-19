@@ -33,6 +33,7 @@ public class MalinoCrashReporter extends ContentProvider {
 
     @Override
     public boolean onCreate() {
+        final Context appContext = getContext();
         final Thread.UncaughtExceptionHandler previous =
                 Thread.getDefaultUncaughtExceptionHandler();
 
@@ -40,7 +41,7 @@ public class MalinoCrashReporter extends ContentProvider {
             @Override
             public void uncaughtException(Thread thread, Throwable throwable) {
                 try {
-                    save(throwable);
+                    save(appContext, throwable);
                 } catch (Throwable ignored) {
                 }
                 if (previous != null) {
@@ -51,7 +52,7 @@ public class MalinoCrashReporter extends ContentProvider {
         return true;
     }
 
-    private static void save(Throwable t) {
+    private static void save(Context c, Throwable t) {
         StringBuilder sb = new StringBuilder();
         sb.append("Malino crash report\n");
         sb.append("time_ms: ").append(System.currentTimeMillis()).append('\n');
@@ -74,7 +75,6 @@ public class MalinoCrashReporter extends ContentProvider {
         }
         String text = sb.toString();
 
-        Context c = getContext();
         if (c == null) {
             return;
         }
