@@ -59,12 +59,14 @@ def main():
 
     engine.warnings.connect(on_warnings)
 
-    def on_creation_failed(errors):
-        for error in errors:
-            try:
-                qWarning("[Malino] QML error: " + error.toString())
-            except Exception:
-                qWarning("[Malino] QML error: " + str(error))
+    # NOTE: on Qt 6 this signal emits a single QUrl (not a list) - iterating
+    # over it raises TypeError and hides the real QML error (the very error
+    # this handler exists to surface on a black screen).
+    def on_creation_failed(url):
+        try:
+            qWarning("[Malino] QML object creation failed at: " + url.toString())
+        except Exception:
+            qWarning("[Malino] QML object creation failed")
 
     try:
         engine.objectCreationFailed.connect(on_creation_failed)
