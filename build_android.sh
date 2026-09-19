@@ -101,7 +101,10 @@ DEPLOY_ARGS=(--name Malino
 # ---------------------------------------------------------------------------
 echo "==> Phase 1: generating buildozer.spec via pyside6-android-deploy"
 rm -f buildozer.spec
-pyside6-android-deploy "${DEPLOY_ARGS[@]}" --keep-deployment-files --force &
+# own process group so we can kill the tool AND any buildozer child it may
+# already have spawned when we stop it (otherwise the orphaned buildozer
+# keeps running and races against our own phase-3 buildozer)
+setsid pyside6-android-deploy "${DEPLOY_ARGS[@]}" --keep-deployment-files --force &
 DEPLOY_PID=$!
 
 for i in $(seq 1 240); do
@@ -109,13 +112,14 @@ for i in $(seq 1 240); do
     if [ -f buildozer.spec ] && grep -q "p4a.local_recipes" buildozer.spec 2>/dev/null; then
         echo "==> buildozer.spec generated; stopping phase 1"
         sleep 3
-        kill "$DEPLOY_PID" 2>/dev/null || true
+        kill -TERM -- -"$DEPLOY_PID" 2>/dev/null || true
         sleep 2
-        kill -9 "$DEPLOY_PID" 2>/dev/null || true
+        kill -KILL -- -"$DEPLOY_PID" 2>/dev/null || true
         break
     fi
     sleep 2
 done
+pkill -9 -f "python.* -m buildozer" 2>/dev/null || true
 wait "$DEPLOY_PID" 2>/dev/null || true
 
 # The deploy tool swallows errors (prints them, then exits 0) and the build

@@ -164,7 +164,34 @@ jobs:
           PSWHEEL: ${{ github.workspace }}/android-wheels/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl
           SWWHEEL: ${{ github.workspace }}/android-wheels/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl
         run: |
-          bash build_android.sh
+          set -o pipefail
+          bash build_android.sh 2>&1 | tee build_log.txt
+
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          {
+            echo "Build Malino failed — run ${{ github.run_id }} (attempt ${{ github.run_attempt }})"
+            echo "Commit: ${{ github.sha }}"
+            echo
+            echo '```'
+            tail -c 40000 build_log.txt 2>/dev/null || echo "(no build_log.txt)"
+            echo '```'
+            echo
+            echo '```'
+            echo "--- deployment dir ---"
+            find deployment -maxdepth 3 -type f 2>/dev/null | head -30 || true
+            echo "--- buildozer.spec head ---"
+            head -60 buildozer.spec 2>/dev/null || true
+            echo '```'
+          } > failure_body.md
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "CI build log (run ${{ github.run_id }})" \
+            --body-file failure_body.md || true
 
       - name: Verify APK contents
         shell: bash
