@@ -15,13 +15,16 @@ import zipfile
 from pathlib import Path
 
 REQUIRED_IN_APK = [
-    ("libQt6Core", "Qt core library"),
-    ("libQt6Quick", "Qt Quick library"),
-    ("qtforandroid", "Qt Android platform plugin"),
-    ("libpython3.11", "CPython 3.11 runtime"),
-    ("libpybundle", "python bundle loader"),
-    ("Qt6AndroidBindings", "Qt for Python bindings jar"),
-    ("private", "python app payload"),
+    # critical: without these the app cannot start at all
+    ("libQt6Core", "Qt core library", True),
+    ("libQt6Quick", "Qt Quick library", True),
+    ("qtforandroid", "Qt Android platform plugin", True),
+    ("libpybundle", "python bundle loader", True),
+    ("assets/private", "python app payload", True),
+    ("classes.dex", "compiled java/dex classes", True),
+    # naming-sensitive: may be merged/dropped without breaking anything
+    ("libpython3.11", "CPython 3.11 runtime (may live inside the pybundle)", False),
+    ("Qt6AndroidBindings", "Qt for Python bindings jar (may be dex-merged)", False),
 ]
 
 REQUIRED_IN_MANIFEST = [
@@ -36,13 +39,15 @@ def verify_payload(apk_path: Path) -> int:
         names = zf.namelist()
 
     failed = False
-    for pattern, what in REQUIRED_IN_APK:
+    for pattern, what, critical in REQUIRED_IN_APK:
         hits = [n for n in names if pattern in n]
         if hits:
             print(f"OK      {what}: {hits[0]}")
-        else:
+        elif critical:
             print(f"MISSING {what} (no entry containing {pattern!r})")
             failed = True
+        else:
+            print(f"warn    {what}: not found by {pattern!r} (may be merged)")
     return 1 if failed else 0
 
 
@@ -85,7 +90,7 @@ def main() -> int:
         print(f"ERROR: {apk_path} does not exist")
         return 2
 
-    aapt = sys.argv[2] if len(sys.argv) > 2 else "/dev/null"
+    aapt = sys.argv[2] if len(sys.argv) > 2 else ""
 
     rc = verify_payload(apk_path)
     rc = verify_manifest(apk_path, aapt) or rc

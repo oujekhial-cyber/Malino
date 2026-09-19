@@ -224,26 +224,106 @@ jobs:
           head -c 400 issue_result.txt || true
 
       - name: Verify APK contents
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUNID: ${{ github.run_id }}
         shell: bash
         run: |
-          set -e
-
           APK="$(find "$GITHUB_WORKSPACE" -type f -name '*.apk' | head -n 1)"
           if [ -z "$APK" ]; then
             echo "ERROR: no APK produced"
             exit 1
           fi
           echo "Verifying $APK"
+          echo
+          echo "== APK contents (lib/ and assets/) =="
+          unzip -l "$APK" | grep -E "lib/|assets/" | head -120 || true
 
+          set -o pipefail
           python3 scripts_verify_apk.py \
             "$APK" \
-            "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt"
+            "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" | tee verify_result.txt
+          rc=${PIPESTATUS[0]}
+
+          if [ "$rc" -ne 0 ]; then
+            {
+              echo "Verify APK contents failed — run $RUNID (commit $SHA)"
+              echo
+              echo "== verifier output =="
+              echo '```'
+              cat verify_result.txt
+              echo '```'
+              echo
+              echo "== APK listing (lib/ + assets/) =="
+              echo '```'
+              unzip -l "$APK" | grep -E "lib/|assets/" | head -120 || true
+              echo '```'
+              echo
+              echo "== manifest (aapt dump) =="
+              echo '```'
+              "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml | head -80 || true
+              echo '```'
+            } > verify_body.md
+            gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+              -F body=@"verify_body.md" >/dev/null 2>&1 || true
+          fi
+          exit "$rc"
 
       - name: Upload APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Malino-Android
           path: |
             **/*.apk
             **/*.aab
-          if-no-files-found: error
+          if-no-files-found: warn
+
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUNID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          {
+            echo "Build failed — run $RUNID (attempt ${{ github.run_attempt }})"
+            echo "Commit: $SHA"
+            echo
+            echo "== phase/step summary (whole log) =="
+            grep -nE "^==>|patch-p4a|Cloning into|Detected old|Task :.*FAILED|BUILD (SUCCESSFUL|FAILED)" \
+              build_log.txt 2>/dev/null | tail -80 || true
+            echo
+            echo "== log tail (last 30k) =="
+            echo '```'
+            tail -c 30000 build_log.txt 2>/dev/null || echo "(no build_log.txt)"
+            echo '```'
+          } > failure_body.md
+
+          # full log in <=30k chunks as commit comments (readable via
+          # api.github.com even where the log endpoints are not)
+          rm -f logchunk-*
+          split -b 30000 -d -a 2 build_log.txt logchunk- 2>/dev/null || true
+          i=0
+          for f in logchunk-*; do
+            [ -f "$f" ] || continue
+            {
+              echo "Build log part $i — run $RUNID (commit $SHA)"
+              echo '```'
+              cat "$f"
+              echo '```'
+            } > chunkbody.md
+            gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+              -F body=@"chunkbody.md" >/dev/null 2>&1 || true
+            i=$((i+1))
+            [ "$i" -ge 6 ] && break
+          done
+
+          gh api --method POST "repos/$REPO/commits/$SHA/comments" \
+            -F body=@"failure_body.md" > comment_result.json 2>&1 || true
+          head -c 400 comment_result.json || true
