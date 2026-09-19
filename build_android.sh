@@ -150,6 +150,22 @@ python3 scripts_patch_buildozer.py buildozer.spec --p4a-ref "$P4A_REF"
 # Phase 3: build the APK directly with buildozer + the patched spec
 # ---------------------------------------------------------------------------
 echo "==> Phase 3: building APK with buildozer (p4a ${P4A_REF})"
+
+# Pre-clone python-for-android at the pinned ref and patch it for Qt 6.8:
+# buildozer skips its own clone when the url+branch already match, so our
+# patched copy wins. (The qt bootstrap of p4a v2024.01.21 still calls
+# QtNative.setEnvironmentVariable, which was removed in Qt 6.8 -> gradle
+# compile error.)
+P4A_DIR=".buildozer/android/platform/python-for-android"
+if [ ! -d "$P4A_DIR/.git" ]; then
+    mkdir -p "$(dirname "$P4A_DIR")"
+    git clone -q -b "$P4A_REF" --single-branch \
+        https://github.com/kivy/python-for-android "$P4A_DIR"
+fi
+git -C "$P4A_DIR" checkout -q -B "$P4A_REF" 2>/dev/null || true
+git -C "$P4A_DIR" clean -qfd || true
+python3 scripts_patch_p4a.py "$P4A_DIR"
+
 python3 -m buildozer -v android debug
 
 echo "==> Artifacts:"
