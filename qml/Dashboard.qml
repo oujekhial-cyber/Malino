@@ -5,14 +5,26 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    property string theme: appController.theme
-    property string currency: appController.currency
+    property string theme: appController ? appController.theme : "light"
+    property string currency: appController ? appController.currency : "تومان"
     property color card: theme === "light" ? "#FFFFFF" : theme === "midnight" ? "#182335" : "#101D31"
     property color fg: theme === "light" ? "#102A43" : "#F5F8FF"
     property color muted: "#718096"
     property color green: "#16A884"
     property color red: "#E55368"
-    property var s: ({})
+
+    // Default stats to avoid undefined -> black screen / NaN
+    property var s: ({
+        "net": 0,
+        "count": 0,
+        "totalIn": 0,
+        "totalOut": 0,
+        "monthIn": 0,
+        "monthOut": 0,
+        "monthNet": 0,
+        "todayIn": 0,
+        "todayOut": 0
+    })
     property var recentTxs: []
 
     function money(n) {
@@ -30,17 +42,31 @@ Item {
     }
 
     function refresh() {
-        s = appController.stats()
-        var all = appController.transactions()
-        recentTxs = all.slice(0, Math.min(5, all.length))
+        try {
+            var stats = appController ? appController.stats() : null
+            if (stats) {
+                s = stats
+            }
+            var all = appController ? appController.transactions() : []
+            recentTxs = all.slice(0, Math.min(5, all.length))
+        } catch (e) {
+            console.warn("[Malino] Dashboard refresh error: " + e)
+        }
     }
 
-    Component.onCompleted: refresh()
+    Component.onCompleted: {
+        console.log("[Malino] Dashboard loaded")
+        refresh()
+    }
 
     Connections {
         target: appController
 
         function onChanged() {
+            root.refresh()
+        }
+
+        function onStatsChanged() {
             root.refresh()
         }
     }
@@ -76,6 +102,8 @@ Item {
                 height: 178
                 radius: 28
                 color: root.card
+                border.color: root.theme === "light" ? "#E2E8F0" : "#2D3748"
+                border.width: 1
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -93,13 +121,13 @@ Item {
                         text: root.money(root.s.net)
                         font.pixelSize: 32
                         font.bold: true
-                        color: root.s.net >= 0 ? root.green : root.red
+                        color: (root.s.net || 0) >= 0 ? root.green : root.red
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
                     }
 
                     Text {
-                        text: root.s.count + " تراکنش ثبت شده"
+                        text: (root.s.count || 0) + " تراکنش ثبت شده"
                         color: root.muted
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
@@ -129,6 +157,8 @@ Item {
                 height: 142
                 radius: 22
                 color: root.card
+                border.color: root.theme === "light" ? "#E2E8F0" : "#2D3748"
+                border.width: 1
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -184,6 +214,10 @@ Item {
                     width: col.width
                     tx: root.recentTxs[index]
                 }
+            }
+
+            Item {
+                Layout.preferredHeight: 20
             }
         }
     }

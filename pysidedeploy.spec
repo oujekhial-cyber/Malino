@@ -14,7 +14,9 @@ python_path = .
 android_packages =
 
 [qt]
-modules = Core,Gui,Qml,Quick,QuickControls2
+# Added QmlModels and QuickTemplates2 which are required by QuickControls2
+# to avoid black screen due to missing QML types on Android
+modules = Core,Gui,Qml,QmlModels,Quick,QuickControls2,QuickTemplates2
 
 [android]
 wheel_pyside =

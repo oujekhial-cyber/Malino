@@ -5,8 +5,8 @@ Rectangle {
     id: root
 
     property var tx: null
-    property string theme: appController.theme
-    property string currency: appController.currency
+    property string theme: appController ? appController.theme : "light"
+    property string currency: appController ? appController.currency : "تومان"
     property color card: theme === "light" ? "#FFFFFF" : theme === "midnight" ? "#182335" : "#101D31"
     property color fg: theme === "light" ? "#102A43" : "#F5F8FF"
     property color muted: "#718096"
@@ -31,6 +31,8 @@ Rectangle {
     height: 88
     radius: 20
     color: root.card
+    border.color: theme === "light" ? "#E2E8F0" : "#2D3748"
+    border.width: 1
     visible: root.tx !== null
 
     RowLayout {
@@ -40,6 +42,7 @@ Rectangle {
 
         ColumnLayout {
             Layout.fillWidth: true
+            spacing: 2
 
             Text {
                 text: root.tx ? (root.tx.bank || "بانک دیگر") : ""
@@ -54,6 +57,7 @@ Rectangle {
                 color: root.muted
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignRight
+                elide: Text.ElideRight
             }
         }
 

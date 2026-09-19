@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -7,12 +8,18 @@ ApplicationWindow {
     visible: true
     width: 430
     height: 900
+    minimumWidth: 360
+    minimumHeight: 640
     title: "مالینو"
+    // On Android, ensure window is visible and not hidden behind splash
+    visibility: Window.AutomaticVisibility
+    color: bg
 
     property string page: "dashboard"
     property bool drawerOpen: false
-    property string currency: appController.currency
-    property string theme: appController.theme
+    // Fallback to defaults if controller not yet ready (prevents black screen from undefined bindings)
+    property string currency: appController ? appController.currency : "تومان"
+    property string theme: appController ? appController.theme : "light"
 
     property color bg: theme === "light" ? "#F4F8FC" : theme === "midnight" ? "#0D1117" : "#09111F"
     property color card: theme === "light" ? "#FFFFFF" : theme === "midnight" ? "#182335" : "#101D31"
@@ -36,6 +43,10 @@ ApplicationWindow {
         return sign + s + o + " " + currency
     }
 
+    Component.onCompleted: {
+        console.log("[Malino] Main.qml completed, theme=" + theme + " currency=" + currency)
+    }
+
     Connections {
         target: appController
 
@@ -53,6 +64,7 @@ ApplicationWindow {
         }
     }
 
+    // Main content with solid background to avoid black screen
     Rectangle {
         anchors.fill: parent
         color: root.bg
@@ -108,8 +120,11 @@ ApplicationWindow {
             }
 
             Loader {
+                id: pageLoader
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                clip: true
+                asynchronous: false
 
                 source: root.page === "dashboard"
                         ? "Dashboard.qml"
@@ -118,6 +133,12 @@ ApplicationWindow {
                         : root.page === "banks"
                         ? "Banks.qml"
                         : "Settings.qml"
+
+                onStatusChanged: {
+                    if (status === Loader.Error) {
+                        console.warn("[Malino] Loader error loading " + source)
+                    }
+                }
             }
         }
     }
@@ -233,8 +254,10 @@ ApplicationWindow {
         radius: 26
 
         color: root.card
-        visible: appController.hasPending
+        visible: appController ? appController.hasPending : false
         z: 30
+        border.color: root.theme === "light" ? "#E2E8F0" : "#2D3748"
+        border.width: 1
 
         ColumnLayout {
             anchors.fill: parent
