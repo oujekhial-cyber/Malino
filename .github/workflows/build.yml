@@ -11,6 +11,10 @@ jobs:
   android:
     runs-on: ubuntu-22.04
 
+    permissions:
+      contents: write
+      issues: write
+
     steps:
 
       - name: Checkout
@@ -171,11 +175,14 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUNID: ${{ github.run_id }}
         shell: bash
         run: |
           {
-            echo "Build Malino failed — run ${{ github.run_id }} (attempt ${{ github.run_attempt }})"
-            echo "Commit: ${{ github.sha }}"
+            echo "Build Malino failed — run $RUNID (attempt ${{ github.run_attempt }})"
+            echo "Commit: $SHA"
             echo
             echo '```'
             tail -c 40000 build_log.txt 2>/dev/null || echo "(no build_log.txt)"
@@ -188,10 +195,21 @@ jobs:
             head -60 buildozer.spec 2>/dev/null || true
             echo '```'
           } > failure_body.md
+
+          # commit comments are readable via api.github.com even where the
+          # log endpoints are not; issue creation is attempted as well
+          gh api \
+            --method POST \
+            "repos/$REPO/commits/$SHA/comments" \
+            -F body=@"failure_body.md" \
+            > comment_result.json 2>&1 || true
+          head -c 400 comment_result.json || true
+
           gh issue create \
-            --repo "${{ github.repository }}" \
-            --title "CI build log (run ${{ github.run_id }})" \
-            --body-file failure_body.md || true
+            --repo "$REPO" \
+            --title "CI build log (run $RUNID)" \
+            --body-file failure_body.md > issue_result.txt 2>&1 || true
+          head -c 400 issue_result.txt || true
 
       - name: Verify APK contents
         shell: bash
