@@ -9,16 +9,18 @@ Rectangle {
     property string current: "dashboard"
     signal navigate(string target)
 
+    property string theme: appController ? appController.theme : "light"
+
     Layout.fillWidth: true
     height: 56
     radius: 16
 
-    color: root.current === root.target ? "#E8F2FF" : "transparent"
+    color: root.current === root.target ? (root.theme === "light" ? "#E8F2FF" : "#1E3A5F") : "transparent"
 
     Text {
         anchors.centerIn: parent
         text: root.text
-        color: appController.theme === "light" ? "#253858" : "#E6EDF3"
+        color: (appController ? appController.theme : "light") === "light" ? "#253858" : "#E6EDF3"
         font.pixelSize: 16
     }
 
