@@ -447,12 +447,27 @@ jobs:
           AVDMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager"
           EMULATOR="$ANDROID_SDK_ROOT/emulator/emulator"
           "$AVDMANAGER" create avd -n malino -k "system-images;android-34;google_apis;x86_64" -d pixel_5 --force
-          "$EMULATOR" -avd malino -no-window -no-audio -no-boot-anim \
-            -gpu swiftshader_indirect -no-snapshot -no-metrics -no-splash \
-            -memory 3072 -camera-back none -camera-front none \
-            > emulator_boot.log 2>&1 &
-          # Never let a broken emulator process hold the workflow forever.
-          timeout 180 adb wait-for-device || { cat emulator_boot.log; exit 1; }
+          start_emulator() {
+            "$EMULATOR" -avd malino -no-window -no-audio -no-boot-anim \
+              -gpu swiftshader_indirect -no-snapshot -no-metrics -no-splash \
+              -memory 2048 -camera-back none -camera-front none "$@" \
+              >> emulator_boot.log 2>&1 &
+            EMULATOR_PID=$!
+          }
+
+          # Prefer KVM, then fall back to software acceleration. Some hosted
+          # runner pools expose /dev/kvm but cannot actually initialize it.
+          start_emulator -accel auto
+          if ! timeout 120 adb wait-for-device; then
+            echo "KVM emulator did not register with adb; retrying without KVM" | tee -a emulator_boot.log
+            kill "$EMULATOR_PID" 2>/dev/null || true
+            adb kill-server || true
+            start_emulator -accel off
+            timeout 300 adb wait-for-device || {
+              cat emulator_boot.log
+              exit 1
+            }
+          fi
           timeout 600 bash -c 'while [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" != "1" ]; do sleep 5; done'
           adb shell getprop ro.build.version.release
           adb shell getprop ro.product.cpu.abilist
