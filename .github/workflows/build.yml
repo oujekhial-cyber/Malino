@@ -405,10 +405,9 @@ jobs:
           # Hosted runners expose /dev/kvm but the current user may not have
           # permission to open it. Without this rule the emulator process exits
           # before adb can ever see a device.
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
-            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+          # chmod is immediate and reliable on the ephemeral runner; no udev
+          # event needs to be retriggered after /dev/kvm already exists.
+          sudo chmod 666 /dev/kvm
           ls -l /dev/kvm
           test -r /dev/kvm && test -w /dev/kvm
 
