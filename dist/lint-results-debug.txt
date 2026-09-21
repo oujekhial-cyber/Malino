@@ -53,9 +53,6 @@ of the library. [ObsoleteLintCustomCheck]
    meaning that you need to use a newer version of lint (or Android Studio or
    Gradle plugin etc) to work with these checks.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/notify/Notifier.kt:95: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
-        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:126: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
                     onClick = { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) },
                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -397,4 +394,4 @@ espresso = "3.6.1"
    lint.unused-resources.exclude-tests =true.
    ,
 
-1 errors, 68 warnings
+1 errors, 67 warnings

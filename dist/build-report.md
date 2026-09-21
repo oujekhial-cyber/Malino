@@ -1,13 +1,12 @@
 # گزارش Build و تست (CI)
 
-- commit: a69e23c0ede4a02e2a13beb3ed763177e2f21c81
-- تاریخ: 2026-09-21 21:13 UTC
-- unit tests: failure
+- commit: 35239abc3d4d279f775845c46ad4757f60125f3d
+- تاریخ: 2026-09-21 23:44 UTC
+- unit tests: success
 - assembleDebug: success
 - lintDebug: success
 
 ## خلاصه تست‌های واحد
 ```
-tests=86 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.MoneyTest.round toman displays without remainder: java.lang.AssertionError
+tests=86 failures=0 errors=0 skipped=0
 ```
