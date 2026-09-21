@@ -31,7 +31,7 @@ class MoneyTest {
     fun `round toman displays without remainder`() {
         val formatted = Money.format(150_000L, MoneyUnit.TOMAN)
         assertTrue(formatted.contains("تومان"))
-        assertTrue(!formatted.contains("و"))
+        assertTrue(!formatted.contains("ریال"))
     }
 
     @Test

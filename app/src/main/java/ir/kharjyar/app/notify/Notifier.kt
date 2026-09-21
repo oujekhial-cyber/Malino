@@ -92,8 +92,13 @@ object Notifier {
     }
 
     private fun canNotify(context: Context): Boolean =
-        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            // در Android 12 مجوز POST_NOTIFICATIONS وجود ندارد
+            androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()
+        }
 
     private fun manager(context: Context) =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

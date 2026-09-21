@@ -87,6 +87,7 @@ fun TemplateTrainScreen(viewModel: AppViewModel, nav: NavHostController, smsId: 
         )
 
         // متن پیامک با هایلایت اعداد
+        val highlightColor = MaterialTheme.colorScheme.primary
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Text(
                 buildAnnotatedString {
@@ -95,7 +96,7 @@ fun TemplateTrainScreen(viewModel: AppViewModel, nav: NavHostController, smsId: 
                         val m = Regex("\\d{1,3}(?:[,،٬]\\d{3})+|\\d+").find(rest)
                         if (m == null) { append(rest); break }
                         append(rest.substring(0, m.range.first))
-                        pushStyle(SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary))
+                        pushStyle(SpanStyle(fontWeight = FontWeight.Bold, color = highlightColor))
                         append(m.value)
                         pop()
                         rest = rest.substring(m.range.last + 1)
