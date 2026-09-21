@@ -1,4 +1,4 @@
-name: Build Malino Android
+name: Build KharjYar Android
 
 on:
   push:
@@ -7,323 +7,110 @@ on:
       - 'arena/**'
   workflow_dispatch:
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   android:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     permissions:
       contents: write
-      issues: write
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
         with:
-          python-version: "3.11"
+          distribution: temurin
+          java-version: '17'
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-          sudo apt-get install -y \
-            git \
-            wget \
-            curl \
-            unzip \
-            zip \
-            openjdk-17-jdk
-
-      - name: Select Java 17
-        run: |
-          JAVA17="/usr/lib/jvm/java-17-openjdk-amd64"
-          test -x "$JAVA17/bin/java"
-          echo "JAVA_HOME=$JAVA17" >> "$GITHUB_ENV"
-          echo "$JAVA17/bin" >> "$GITHUB_PATH"
-
-      - name: Install build tools (pinned versions)
-        run: |
-          python -m pip install --upgrade pip
-
-          # buildozer 1.5.0 + cython<3 match python-for-android v2024.01.21,
-          # which is pinned inside build_android.sh.
-          # packaging/tqdm/jinja2/pkginfo are imported by the Qt deploy tool
-          # (android_utilities.py, android_helper.py, android_config.py) but
-          # declared by no package; appdirs/colorama/sh<2/toml/build are the
-          # requirements of python-for-android v2024.01.21 itself.
-          python -m pip install \
-            "PySide6==6.8.2" \
-            "shiboken6==6.8.2" \
-            "buildozer==1.5.0" \
-            "cython<3" \
-            "packaging" \
-            "tqdm" \
-            "jinja2" \
-            "pkginfo" \
-            "appdirs" \
-            "colorama>=0.3.3" \
-            "toml" \
-            "build" \
-            "sh>=1.10,<2.0" \
-            "setuptools" \
-            "GitPython"
-
-          # Fail fast with a clear message if any of the undeclared deploy
-          # tool dependencies is still missing.
-          python -c "import packaging, tqdm, jinja2, pkginfo; print('deploy deps OK')"
-
-          which pyside6-android-deploy
-          pyside6-android-deploy --help >/dev/null
-
-      - name: Clone PySide setup
-        run: |
-          rm -rf "$HOME/pyside-setup"
-
-          git clone \
-            --depth 1 \
-            --branch 6.8 \
-            https://code.qt.io/pyside/pyside-setup \
-            "$HOME/pyside-setup"
-
-      - name: Install Python requirements
-        run: |
-          python -m pip install \
-            -r "$HOME/pyside-setup/requirements.txt"
-
-          python -m pip install \
-            -r "$HOME/pyside-setup/tools/cross_compile_android/requirements.txt"
-
-      - name: Download PySide Android SDK base
-        run: |
-          python "$HOME/pyside-setup/tools/cross_compile_android/main.py" \
-            --download-only \
-            --skip-update \
-            --auto-accept-license
-
-      - name: Install Android SDK and NDK
-        shell: bash
-        run: |
-          SDK="$HOME/.pyside6_android_deploy/android-sdk"
-
-          mkdir -p "$SDK"
-          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
-
-          if [ ! -x "$SDKMANAGER" ]; then
-            cd /tmp
-            rm -rf cmdline-tools android-cmdline-tools.zip
-
-            wget -q \
-              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
-              -O android-cmdline-tools.zip
-
-            unzip -q android-cmdline-tools.zip
-            mkdir -p "$SDK/cmdline-tools/latest"
-            cp -R cmdline-tools/* "$SDK/cmdline-tools/latest/"
-            rm -rf cmdline-tools android-cmdline-tools.zip
-          fi
-
-          chmod +x "$SDKMANAGER"
-          "$SDKMANAGER" --version
-
-          export ANDROID_HOME="$SDK"
-          export ANDROID_SDK_ROOT="$SDK"
-
-          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses >/dev/null 2>&1 || true
-
-          "$SDKMANAGER" --sdk_root="$SDK" "platform-tools"
-          "$SDKMANAGER" --sdk_root="$SDK" "platforms;android-34"
-          "$SDKMANAGER" --sdk_root="$SDK" "build-tools;35.0.0"
-          "$SDKMANAGER" --sdk_root="$SDK" "ndk;26.1.10909125"
-
-          NDK="$SDK/ndk/26.1.10909125"
-          test -d "$NDK"
-          test -f "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj"
-
-          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
-
-      - name: Download PySide6 Android wheels
-        shell: bash
-        run: |
-          mkdir -p "$GITHUB_WORKSPACE/android-wheels"
-          cd "$GITHUB_WORKSPACE/android-wheels"
-
-          wget -nv \
-            "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
-            -O "PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
-
-          wget -nv \
-            "https://download.qt.io/official_releases/QtForPython/shiboken6/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl" \
-            -O "shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl"
-
-          ls -lh
-
-      - name: Build Malino
-        shell: bash
-        env:
-          PSWHEEL: ${{ github.workspace }}/android-wheels/PySide6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl
-          SWWHEEL: ${{ github.workspace }}/android-wheels/shiboken6-6.8.2.1-6.8.2-cp311-cp311-android_aarch64.whl
+      - name: Unit tests
+        id: unittests
+        continue-on-error: true
         run: |
           set -o pipefail
-          bash build_android.sh 2>&1 | tee build_log.txt
+          ./gradlew :app:testDebugUnitTest --stacktrace --console=plain 2>&1 | tee unittest.log
 
-      - name: Report failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-          RUNID: ${{ github.run_id }}
-        shell: bash
+      - name: Assemble debug APK
+        id: assemble
+        continue-on-error: true
         run: |
-          {
-            echo "Build Malino failed — run $RUNID (attempt ${{ github.run_attempt }})"
-            echo "Commit: $SHA"
-            echo
-            echo "== phase/step summary (whole log) =="
-            grep -nE "^==>|patch-p4a|Cloning into|Detected old|Task :.*FAILED|BUILD (SUCCESSFUL|FAILED)" \
-              build_log.txt 2>/dev/null | tail -80 || true
-            echo
-            echo "== log tail (last 30k) =="
-            echo '```'
-            tail -c 30000 build_log.txt 2>/dev/null || echo "(no build_log.txt)"
-            echo '```'
-          } > failure_body.md
+          set -o pipefail
+          ./gradlew :app:assembleDebug --stacktrace --console=plain 2>&1 | tee assemble.log
 
-          # full log in <=30k chunks as commit comments (readable via
-          # api.github.com even where the log endpoints are not)
-          rm -f logchunk-*
-          split -b 30000 -d -a 2 build_log.txt logchunk- 2>/dev/null || true
-          i=0
-          for f in logchunk-*; do
-            [ -f "$f" ] || continue
-            {
-              echo "Build log part $i — run $RUNID (commit $SHA)"
-              echo '```'
-              cat "$f"
-              echo '```'
-            } > chunkbody.md
-            gh api --method POST "repos/$REPO/commits/$SHA/comments" \
-              -F body=@"chunkbody.md" >/dev/null 2>&1 || true
-            i=$((i+1))
-            [ "$i" -ge 6 ] && break
-          done
+      - name: Lint debug
+        id: lint
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ./gradlew :app:lintDebug --console=plain 2>&1 | tee lint.log
 
-          gh api --method POST "repos/$REPO/commits/$SHA/comments" \
-            -F body=@"failure_body.md" > comment_result.json 2>&1 || true
-          head -c 400 comment_result.json || true
-
-          gh issue create \
-            --repo "$REPO" \
-            --title "CI build log (run $RUNID)" \
-            --body-file failure_body.md > issue_result.txt 2>&1 || true
-          head -c 400 issue_result.txt || true
-
-      - name: Verify APK contents
+      - name: Collect outputs
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-          RUNID: ${{ github.run_id }}
-        shell: bash
         run: |
-          APK="$(find "$GITHUB_WORKSPACE" -type f -name '*.apk' | head -n 1)"
-          if [ -z "$APK" ]; then
-            echo "ERROR: no APK produced"
-            exit 1
+          mkdir -p dist
+          rm -rf dist/*
+          {
+            echo "# گزارش Build و تست (CI)"
+            echo ""
+            echo "- commit: ${GITHUB_SHA}"
+            echo "- تاریخ: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "- unit tests: ${{ steps.unittests.outcome }}"
+            echo "- assembleDebug: ${{ steps.assemble.outcome }}"
+            echo "- lintDebug: ${{ steps.lint.outcome }}"
+            echo ""
+            echo '## خلاصه تست‌های واحد'
+            echo '```'
+            python3 scripts/test_summary.py
+            echo '```'
+          } > dist/build-report.md
+          tail -n 120 unittest.log > dist/unittest-tail.log || true
+          tail -n 120 assemble.log > dist/assemble-tail.log || true
+          tail -n 60 lint.log > dist/lint-tail.log || true
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk dist/KharjYar-debug.apk
+            (cd dist && sha256sum KharjYar-debug.apk > KharjYar-debug.apk.sha256)
           fi
-          echo "Verifying $APK"
-          echo
-          echo "== APK contents (lib/ and assets/) =="
-          unzip -l "$APK" | grep -E "lib/|assets/" | head -120 || true
-
-          set -o pipefail
-          python3 scripts_verify_apk.py \
-            "$APK" \
-            "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" | tee verify_result.txt
-          rc=${PIPESTATUS[0]}
-
-          if [ "$rc" -ne 0 ]; then
-            {
-              echo "Verify APK contents failed — run $RUNID (commit $SHA)"
-              echo
-              echo "== verifier output =="
-              echo '```'
-              cat verify_result.txt
-              echo '```'
-              echo
-              echo "== APK listing (lib/ + assets/) =="
-              echo '```'
-              unzip -l "$APK" | grep -E "lib/|assets/" | head -120 || true
-              echo '```'
-              echo
-              echo "== manifest (aapt dump) =="
-              echo '```'
-              "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml | head -80 || true
-              echo '```'
-            } > verify_body.md
-            gh api --method POST "repos/$REPO/commits/$SHA/comments" \
-              -F body=@"verify_body.md" >/dev/null 2>&1 || true
+          if [ -d app/build/reports/lint-results-debug.txt ] || [ -f app/build/reports/lint-results-debug.txt ]; then
+            cp app/build/reports/lint-results-debug.txt dist/ || true
           fi
-          exit "$rc"
+          if [ -d app/schemas ]; then
+            mkdir -p dist/schemas && cp -r app/schemas/. dist/schemas/ || true
+          fi
 
-      - name: Upload APK
+      - name: Commit outputs back to branch
+        if: always()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A dist app/schemas || true
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+          else
+            git commit -m "ci: build outputs (${GITHUB_RUN_NUMBER}) [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin HEAD:"${GITHUB_REF_NAME}"
+          fi
+
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Malino-Android
+          name: kharjyar-outputs
           path: |
-            **/*.apk
-            **/*.aab
+            dist/
+            app/build/reports/
           if-no-files-found: warn
 
-      - name: Report failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-          RUNID: ${{ github.run_id }}
-        shell: bash
+      - name: Fail job if build failed
+        if: steps.assemble.outcome != 'success' || steps.unittests.outcome != 'success'
         run: |
-          {
-            echo "Build failed — run $RUNID (attempt ${{ github.run_attempt }})"
-            echo "Commit: $SHA"
-            echo
-            echo "== phase/step summary (whole log) =="
-            grep -nE "^==>|patch-p4a|Cloning into|Detected old|Task :.*FAILED|BUILD (SUCCESSFUL|FAILED)" \
-              build_log.txt 2>/dev/null | tail -80 || true
-            echo
-            echo "== log tail (last 30k) =="
-            echo '```'
-            tail -c 30000 build_log.txt 2>/dev/null || echo "(no build_log.txt)"
-            echo '```'
-          } > failure_body.md
-
-          # full log in <=30k chunks as commit comments (readable via
-          # api.github.com even where the log endpoints are not)
-          rm -f logchunk-*
-          split -b 30000 -d -a 2 build_log.txt logchunk- 2>/dev/null || true
-          i=0
-          for f in logchunk-*; do
-            [ -f "$f" ] || continue
-            {
-              echo "Build log part $i — run $RUNID (commit $SHA)"
-              echo '```'
-              cat "$f"
-              echo '```'
-            } > chunkbody.md
-            gh api --method POST "repos/$REPO/commits/$SHA/comments" \
-              -F body=@"chunkbody.md" >/dev/null 2>&1 || true
-            i=$((i+1))
-            [ "$i" -ge 6 ] && break
-          done
-
-          gh api --method POST "repos/$REPO/commits/$SHA/comments" \
-            -F body=@"failure_body.md" > comment_result.json 2>&1 || true
-          head -c 400 comment_result.json || true
+          echo "build or tests failed"; exit 1
