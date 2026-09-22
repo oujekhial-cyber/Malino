@@ -388,7 +388,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     }
 }
 
-@Composable
 /** دکمه میانبر مربعی زیر کارت موجودی (مطابق طرح‌های تم). */
 @Composable
 private fun QuickAction(
