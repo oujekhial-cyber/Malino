@@ -4,28 +4,28 @@
 > Task :app:buildKotlinToolingMetadata
 > Task :app:mergeReleaseNativeLibs
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :app:generateReleaseResValues
 > Task :app:checkReleaseAarMetadata
+> Task :app:generateReleaseResValues
 > Task :app:checkReleaseDuplicateClasses
 > Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
 
 > Task :app:stripReleaseDebugSymbols
 Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libsqlcipher.so.
 
-> Task :app:generateReleaseResources
-> Task :app:extractReleaseNativeSymbolTables
-> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:packageReleaseResources
 > Task :app:parseReleaseLocalResources FROM-CACHE
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
-> Task :app:processReleaseManifestForPackage
+> Task :app:extractReleaseNativeSymbolTables
 > Task :app:javaPreCompileRelease FROM-CACHE
-> Task :app:mergeReleaseArtProfile
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:processReleaseManifestForPackage
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseStartupProfile
+> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseShaders
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
@@ -63,5 +63,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/c
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 2m 2s
+BUILD SUCCESSFUL in 1m 37s
 48 actionable tasks: 45 executed, 3 from cache

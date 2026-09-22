@@ -457,6 +457,11 @@ espresso = "3.6.1"
    with non-zero weights is nested inside another LinearLayout with non-zero
    weights, then the number of measurements increase exponentially.
 
+/home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/bg_ocean.webp: Warning: The resource R.drawable.bg_ocean appears to be unused [UnusedResources]
+/home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/bg_sakura.webp: Warning: The resource R.drawable.bg_sakura appears to be unused [UnusedResources]
+/home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_gold.webp: Warning: The resource R.drawable.hero_gold appears to be unused [UnusedResources]
+/home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_ocean.webp: Warning: The resource R.drawable.hero_ocean appears to be unused [UnusedResources]
+/home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_sakura.webp: Warning: The resource R.drawable.hero_sakura appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/mipmap-hdpi/ic_launcher_fg.png: Warning: The resource R.mipmap.ic_launcher_fg appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/values/strings.xml:3: Warning: The resource R.string.widget_name appears to be unused [UnusedResources]
     <string name="widget_name">ویجت خرج‌یار</string>
@@ -519,4 +524,4 @@ espresso = "3.6.1"
    There are quickfixes to automatically extract this hardcoded string into a
    resource lookup.
 
-1 errors, 85 warnings
+1 errors, 90 warnings
