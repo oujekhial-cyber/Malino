@@ -89,7 +89,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             // ---------- کارت خلاصه ماه (hero) ----------
             item {
                 EnterCard(0) {
-                    HeroCard(modifier = Modifier.fillMaxWidth().shine(settings.cardShine, skin.cardCorner)) {
+                    HeroCard(
+                        modifier = Modifier.fillMaxWidth().shine(settings.cardShine, skin.cardCorner),
+                        orbit = settings.cardShine
+                    ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

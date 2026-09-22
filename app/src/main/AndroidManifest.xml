@@ -68,6 +68,8 @@
                 <action android:name="android.intent.action.DATE_CHANGED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <!-- زنگ داخلی تغییر روز، برای تازه‌کردن تاریخ شمسی ویجت -->
+                <action android:name="ir.kharjyar.app.widget.MIDNIGHT" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

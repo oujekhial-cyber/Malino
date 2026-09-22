@@ -29,6 +29,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -105,6 +107,8 @@ private fun DrawScope.drawBlobs(skin: AppSkin) {
 fun SkinCard(
     modifier: Modifier = Modifier,
     tonal: Boolean = false,
+    /** هاله ملایم پیرامون کارت با رنگ خود کارت. */
+    glow: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
     val skin = LocalAppSkin.current
@@ -115,6 +119,12 @@ fun SkinCard(
     )
     Box(
         modifier = modifier
+            .then(
+                if (glow) Modifier.softGlow(
+                    color = if (tonal) skin.heroGradient.first() else skin.cardColor,
+                    shape = shape
+                ) else Modifier
+            )
             .clip(shape)
             .background(
                 if (tonal) Brush.linearGradient(skin.heroGradient)
@@ -136,12 +146,15 @@ fun SkinCard(
 @Composable
 fun HeroCard(
     modifier: Modifier = Modifier,
+    /** نور نقطه‌ای که آرام دور کادر می‌چرخد. */
+    orbit: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
     val skin = LocalAppSkin.current
     val shape = RoundedCornerShape(skin.cardCorner)
     Box(
         modifier = modifier
+            .softGlow(skin.heroGradient.first(), shape, radius = 22.dp, intensity = 0.75f)
             .clip(shape)
             .background(Brush.linearGradient(skin.heroGradient))
             .border(
@@ -180,6 +193,18 @@ fun HeroCard(
                             0.45f to Color.Transparent,
                             1f to Color.Black.copy(alpha = 0.22f)
                         )
+                    )
+            )
+        }
+        // نور نقطه‌ای چرخان: روی تصویر می‌نشیند ولی زیر متن‌ها می‌ماند
+        if (orbit) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .orbitGlow(
+                        enabled = true,
+                        color = Color.White,
+                        cornerRadius = skin.cardCorner
                     )
             )
         }
@@ -233,6 +258,114 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
                     start = Offset(x, 0f),
                     end = Offset(x + bandWidth, size.height)
                 )
+            )
+        }
+    }
+}
+
+/**
+ * هاله نرم پیرامون یک سطح، هم‌رنگ خودش.
+ *
+ * از سایه سخت استفاده نمی‌شود؛ shadow با رنگ روشن روی پس‌زمینه تیره لبه کثیف
+ * می‌سازد. در عوض چند لایه کم‌رنگ با شعاع فزاینده پشت کارت کشیده می‌شود که
+ * نتیجه‌اش پخش نرم نور است.
+ */
+fun Modifier.softGlow(
+    color: Color,
+    shape: androidx.compose.ui.graphics.Shape,
+    radius: Dp = 18.dp,
+    intensity: Float = 0.5f
+): Modifier = this.drawBehind {
+    val r = radius.toPx()
+    val corner = ((shape as? RoundedCornerShape)
+        ?.topStart?.toPx(size, this) ?: 0f)
+    // سه لایه از بیرون به داخل، هر کدام کمی پررنگ‌تر
+    val layers = listOf(1f to 0.05f, 0.62f to 0.09f, 0.3f to 0.14f)
+    layers.forEach { (spread, alpha) ->
+        val grow = r * spread
+        drawRoundRect(
+            color = color.copy(alpha = alpha * intensity),
+            topLeft = Offset(-grow, -grow * 0.6f),
+            size = Size(size.width + grow * 2, size.height + grow * 1.2f),
+            cornerRadius = CornerRadius(corner + grow)
+        )
+    }
+}
+
+/**
+ * نور نقطه‌ای که آرام دور محیط کارت می‌چرخد.
+ *
+ * نقطه روی دور مستطیل گرد حرکت می‌کند و یک هاله شعاعی نرم با خود می‌برد؛
+ * شبیه بازتاب نوری که لبه شیشه را دور می‌زند.
+ *
+ * @param enabled خاموش/روشن از تنظیمات.
+ * @param periodMillis زمان یک دور کامل. عدد بزرگ‌تر یعنی حرکت آرام‌تر.
+ */
+@Composable
+fun Modifier.orbitGlow(
+    enabled: Boolean,
+    color: Color,
+    cornerRadius: Dp,
+    periodMillis: Int = 9000
+): Modifier {
+    if (!enabled) return this
+    val transition = rememberInfiniteTransition(label = "orbit")
+    val t by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(periodMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "orbitProgress"
+    )
+    return this.drawWithContent {
+        drawContent()
+        val w = size.width
+        val h = size.height
+        val perimeter = 2 * (w + h)
+        val d = t * perimeter
+        // تبدیل فاصله طی‌شده روی محیط به مختصات نقطه
+        val p = when {
+            d < w -> Offset(d, 0f)
+            d < w + h -> Offset(w, d - w)
+            d < 2 * w + h -> Offset(w - (d - w - h), h)
+            else -> Offset(0f, h - (d - 2 * w - h))
+        }
+        val glowRadius = minOf(w, h) * 0.42f
+        clipPath(
+            Path().apply {
+                addRoundRect(
+                    RoundRect(
+                        rect = Rect(Offset.Zero, size),
+                        cornerRadius = CornerRadius(cornerRadius.toPx())
+                    )
+                )
+            }
+        ) {
+            // هاله نرم دور نقطه
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        color.copy(alpha = 0.30f),
+                        color.copy(alpha = 0.10f),
+                        Color.Transparent
+                    ),
+                    center = p,
+                    radius = glowRadius
+                ),
+                radius = glowRadius,
+                center = p
+            )
+            // مغز روشن نقطه
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(color.copy(alpha = 0.55f), Color.Transparent),
+                    center = p,
+                    radius = glowRadius * 0.22f
+                ),
+                radius = glowRadius * 0.22f,
+                center = p
             )
         }
     }

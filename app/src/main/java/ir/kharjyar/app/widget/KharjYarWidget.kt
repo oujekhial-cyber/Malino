@@ -294,6 +294,9 @@ object WidgetRenderer {
 }
 
 /** گیرنده ویجت: رسم اولیه و به‌روزرسانی با تغییر روز/ساعت. */
+/** اکشن داخلی زنگ نیمه‌شب. */
+internal const val ACTION_MIDNIGHT = "ir.kharjyar.app.widget.MIDNIGHT"
+
 class KharjYarWidgetReceiver : AppWidgetProvider() {
 
     override fun onUpdate(
@@ -322,8 +325,21 @@ class KharjYarWidgetReceiver : AppWidgetProvider() {
         when (intent.action) {
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
-            Intent.ACTION_TIMEZONE_CHANGED -> WidgetUpdater.requestUpdate(context)
+            Intent.ACTION_TIMEZONE_CHANGED -> {
+                WidgetUpdater.requestUpdate(context)
+                WidgetUpdater.scheduleMidnight(context)
+            }
+            ACTION_MIDNIGHT -> {
+                // روز عوض شد: تاریخ تازه رسم و زنگ شب بعد چیده می‌شود
+                WidgetUpdater.requestUpdate(context)
+                WidgetUpdater.scheduleMidnight(context)
+            }
         }
+    }
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        WidgetUpdater.scheduleMidnight(context)
     }
 
     private fun render(
@@ -346,6 +362,41 @@ class KharjYarWidgetReceiver : AppWidgetProvider() {
 }
 
 object WidgetUpdater {
+
+    private const val REQ_MIDNIGHT = 2001
+
+    /**
+     * زنگ نیمه‌شب: تاریخ شمسی متن ثابت است و برخلاف ساعت خودش تیک نمی‌زند.
+     * سیستم‌عامل ویجت را حداکثر هر نیم‌ساعت به‌روز می‌کند، پس بدون این زنگ ممکن
+     * بود تاریخ تا دقایقی بعد از نیمه‌شب کهنه بماند. اینجا دقیقاً لحظه تغییر روز
+     * یک بیدارباش می‌گیریم و بعد از هر اجرا، زنگ روز بعد را دوباره می‌چینیم.
+     */
+    fun scheduleMidnight(context: Context) {
+        val appContext = context.applicationContext
+        runCatching {
+            val am = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            val intent = Intent(appContext, KharjYarWidgetReceiver::class.java)
+                .setAction(ACTION_MIDNIGHT)
+            val pending = PendingIntent.getBroadcast(
+                appContext,
+                REQ_MIDNIGHT,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            // اولین ثانیه روز بعد به وقت تهران
+            val next = java.time.ZonedDateTime.now(PersianDate.TEHRAN)
+                .toLocalDate().plusDays(1).atStartOfDay(PersianDate.TEHRAN)
+                .toInstant().toEpochMilli()
+            // زنگ غیردقیق کافی است و مصرف باتری کمتری دارد
+            am.setWindow(
+                android.app.AlarmManager.RTC,
+                next,
+                60_000L,
+                pending
+            )
+        }
+    }
+
     /** به‌روزرسانی همه نمونه‌های ویجت پس از تغییر داده یا تنظیمات. */
     fun requestUpdate(context: Context) {
         val appContext = context.applicationContext
