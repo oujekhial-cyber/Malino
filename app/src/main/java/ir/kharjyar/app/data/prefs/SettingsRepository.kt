@@ -50,7 +50,13 @@ data class AppSettings(
     /** اندازه فونت برچسب‌های ویجت بر حسب sp. */
     val widgetLabelSize: Int = 10,
     /** نوع پس‌زمینه ویجت. */
-    val widgetBackground: WidgetBackground = WidgetBackground.THEME
+    val widgetBackground: WidgetBackground = WidgetBackground.THEME,
+    /** نمایش تاریخ شمسی و میلادی زیر ساعت ویجت. */
+    val widgetShowDates: Boolean = true,
+    /** نمایش تصویر پس‌زمینه تم پشت ویجت. */
+    val widgetShowImage: Boolean = true,
+    /** جلوگیری از اسکرین‌شات و ضبط صفحه (FLAG_SECURE). */
+    val secureScreen: Boolean = true
 )
 
 class SettingsRepository(private val context: Context) {
@@ -73,6 +79,9 @@ class SettingsRepository(private val context: Context) {
         val WIDGET_VALUE_SIZE = intPreferencesKey("widget_value_size")
         val WIDGET_LABEL_SIZE = intPreferencesKey("widget_label_size")
         val WIDGET_BG = stringPreferencesKey("widget_background")
+        val WIDGET_DATES = booleanPreferencesKey("widget_dates")
+        val WIDGET_IMAGE = booleanPreferencesKey("widget_image")
+        val SECURE_SCREEN = booleanPreferencesKey("secure_screen")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -93,7 +102,10 @@ class SettingsRepository(private val context: Context) {
             widgetDateSize = (p[Keys.WIDGET_DATE_SIZE] ?: 13).coerceIn(8, 28),
             widgetValueSize = (p[Keys.WIDGET_VALUE_SIZE] ?: 14).coerceIn(9, 30),
             widgetLabelSize = (p[Keys.WIDGET_LABEL_SIZE] ?: 10).coerceIn(7, 22),
-            widgetBackground = enumOf(p[Keys.WIDGET_BG], WidgetBackground.THEME)
+            widgetBackground = enumOf(p[Keys.WIDGET_BG], WidgetBackground.THEME),
+            widgetShowDates = p[Keys.WIDGET_DATES] ?: true,
+            widgetShowImage = p[Keys.WIDGET_IMAGE] ?: true,
+            secureScreen = p[Keys.SECURE_SCREEN] ?: true
         )
     }
 
@@ -116,6 +128,9 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetValueSize(v: Int) = edit { it[Keys.WIDGET_VALUE_SIZE] = v.coerceIn(9, 30) }
     suspend fun setWidgetLabelSize(v: Int) = edit { it[Keys.WIDGET_LABEL_SIZE] = v.coerceIn(7, 22) }
     suspend fun setWidgetBackground(v: WidgetBackground) = edit { it[Keys.WIDGET_BG] = v.name }
+    suspend fun setWidgetShowDates(v: Boolean) = edit { it[Keys.WIDGET_DATES] = v }
+    suspend fun setWidgetShowImage(v: Boolean) = edit { it[Keys.WIDGET_IMAGE] = v }
+    suspend fun setSecureScreen(v: Boolean) = edit { it[Keys.SECURE_SCREEN] = v }
 
     /** تنظیمات غیرحساس برای بکاپ. */
     suspend fun exportForBackup(): Map<String, String> {
@@ -132,7 +147,10 @@ class SettingsRepository(private val context: Context) {
             "widget_date_size" to s.widgetDateSize.toString(),
             "widget_value_size" to s.widgetValueSize.toString(),
             "widget_label_size" to s.widgetLabelSize.toString(),
-            "widget_background" to s.widgetBackground.name
+            "widget_background" to s.widgetBackground.name,
+            "widget_dates" to s.widgetShowDates.toString(),
+            "widget_image" to s.widgetShowImage.toString(),
+            "secure_screen" to s.secureScreen.toString()
         )
     }
 
@@ -150,6 +168,9 @@ class SettingsRepository(private val context: Context) {
             map["widget_value_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_VALUE_SIZE] = it.coerceIn(9, 30) }
             map["widget_label_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_LABEL_SIZE] = it.coerceIn(7, 22) }
             map["widget_background"]?.let { v -> runCatching { WidgetBackground.valueOf(v) }.getOrNull()?.let { p[Keys.WIDGET_BG] = it.name } }
+            map["widget_dates"]?.let { p[Keys.WIDGET_DATES] = it.toBoolean() }
+            map["widget_image"]?.let { p[Keys.WIDGET_IMAGE] = it.toBoolean() }
+            map["secure_screen"]?.let { p[Keys.SECURE_SCREEN] = it.toBoolean() }
         }
     }
 

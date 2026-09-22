@@ -113,7 +113,8 @@ class KharjYarWidget : GlanceAppWidget() {
         val onBg = ColorProvider(skin.onBackdrop)
         val big = ColorProvider(skin.bigNumberColor)
         val showClock = settings.widgetShowClock
-        val useSakuraBg = settings.widgetBackground == WidgetBackground.SAKURA
+        val useSakuraBg = settings.widgetShowImage &&
+            settings.widgetBackground == WidgetBackground.SAKURA
         val dateSize = settings.widgetDateSize.sp
         val valueSize = settings.widgetValueSize.sp
         val labelSize = settings.widgetLabelSize.sp
@@ -138,7 +139,10 @@ class KharjYarWidget : GlanceAppWidget() {
             setString(R.id.widget_hour, "setTimeZone", tz)
             setString(R.id.widget_minute, "setTimeZone", tz)
 
-            // تاریخ شمسی (از کد) و تاریخ میلادی (زنده)
+            // تاریخ شمسی (از کد) و تاریخ میلادی (زنده) — قابل خاموش کردن
+            val datesVisibility = if (settings.widgetShowDates) android.view.View.VISIBLE else android.view.View.GONE
+            setViewVisibility(R.id.widget_jalali, datesVisibility)
+            setViewVisibility(R.id.widget_gregorian, datesVisibility)
             setTextViewText(R.id.widget_jalali, persianDate)
             setTextViewTextSize(R.id.widget_jalali, TypedValue.COMPLEX_UNIT_SP, datePx)
             setTextColor(R.id.widget_jalali, onArgb)
