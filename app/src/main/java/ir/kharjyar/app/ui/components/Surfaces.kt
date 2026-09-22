@@ -165,8 +165,8 @@ fun HeroCard(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                skin.heroGradient.first().copy(alpha = 0.72f),
-                                skin.heroGradient.last().copy(alpha = 0.88f)
+                                skin.heroGradient.first().copy(alpha = 0.84f),
+                                skin.heroGradient.last().copy(alpha = 0.95f)
                             )
                         )
                     )
@@ -189,7 +189,7 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 14000, easing = LinearEasing),
+            animation = tween(durationMillis = 26000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shineProgress"

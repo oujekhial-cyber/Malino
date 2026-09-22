@@ -54,6 +54,7 @@ import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.prefs.WidgetBackground
 import ir.kharjyar.app.data.prefs.DigitStyle
 import ir.kharjyar.app.data.prefs.WidgetAlign
+import ir.kharjyar.app.data.prefs.WidgetVAlign
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
@@ -444,8 +445,20 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                 }
             )
+            ComboBox(
+                label = "جای عمودی خرج‌یار و مبالغ",
+                options = listOf(WidgetVAlign.TOP, WidgetVAlign.CENTER, WidgetVAlign.BOTTOM),
+                selected = settings.widgetTitleVAlign,
+                labelOf = { vAlignLabel(it) },
+                onSelect = { v ->
+                    scope.launch {
+                        viewModel.settingsRepo.setWidgetTitleVAlign(v)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
             LabeledSlider(
-                label = "جابه‌جایی عمودی خرج‌یار و مبالغ",
+                label = "تنظیم دقیق عمودی خرج‌یار و مبالغ",
                 value = settings.widgetTitleOffsetY,
                 range = -40..40,
                 onValueChange = { v ->
@@ -468,8 +481,20 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                         }
                     }
                 )
+                ComboBox(
+                    label = "جای عمودی ساعت و تاریخ",
+                    options = listOf(WidgetVAlign.TOP, WidgetVAlign.CENTER, WidgetVAlign.BOTTOM),
+                    selected = settings.widgetClockVAlign,
+                    labelOf = { vAlignLabel(it) },
+                    onSelect = { v ->
+                        scope.launch {
+                            viewModel.settingsRepo.setWidgetClockVAlign(v)
+                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                        }
+                    }
+                )
                 LabeledSlider(
-                    label = "جابه‌جایی عمودی ساعت و تاریخ",
+                    label = "تنظیم دقیق عمودی ساعت و تاریخ",
                     value = settings.widgetClockOffsetY,
                     range = -40..40,
                     onValueChange = { v ->
@@ -496,6 +521,8 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                         viewModel.settingsRepo.setWidgetLabelSize(10)
                         viewModel.settingsRepo.setWidgetTitleAlign(WidgetAlign.START)
                         viewModel.settingsRepo.setWidgetClockAlign(WidgetAlign.CENTER)
+                        viewModel.settingsRepo.setWidgetTitleVAlign(WidgetVAlign.CENTER)
+                        viewModel.settingsRepo.setWidgetClockVAlign(WidgetVAlign.CENTER)
                         viewModel.settingsRepo.setWidgetTitleOffsetY(0)
                         viewModel.settingsRepo.setWidgetClockOffsetY(0)
                         ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
@@ -665,6 +692,12 @@ private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit
 }
 
 /** برچسب فارسی تراز افقی. */
+private fun vAlignLabel(a: WidgetVAlign): String = when (a) {
+    WidgetVAlign.TOP -> "بالا"
+    WidgetVAlign.CENTER -> "وسط"
+    WidgetVAlign.BOTTOM -> "پایین"
+}
+
 private fun alignLabel(a: WidgetAlign): String = when (a) {
     WidgetAlign.START -> "راست"
     WidgetAlign.CENTER -> "وسط"

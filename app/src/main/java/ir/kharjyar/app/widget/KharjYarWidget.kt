@@ -52,6 +52,7 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.prefs.WidgetBackground
 import ir.kharjyar.app.data.prefs.WidgetAlign
+import ir.kharjyar.app.data.prefs.WidgetVAlign
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.theme.skinOf
 import kotlinx.coroutines.CoroutineScope
@@ -137,8 +138,15 @@ class KharjYarWidget : GlanceAppWidget() {
         val titleShiftBottom = (if (titleOff < 0) -titleOff else 0).dp
         val clockShiftTop = (if (clockOff > 0) clockOff else 0).dp
         val clockShiftBottom = (if (clockOff < 0) -clockOff else 0).dp
+        fun vertOf(a: WidgetVAlign) = when (a) {
+            WidgetVAlign.TOP -> Alignment.Top
+            WidgetVAlign.CENTER -> Alignment.CenterVertically
+            WidgetVAlign.BOTTOM -> Alignment.Bottom
+        }
         val titleAlign = horizOf(settings.widgetTitleAlign)
         val clockAlign = horizOf(settings.widgetClockAlign)
+        val titleVAlign = vertOf(settings.widgetTitleVAlign)
+        val clockVAlign = vertOf(settings.widgetClockVAlign)
         // gravity متناظر برای چیدمان XML پنل ساعت
         val clockGravity = when (settings.widgetClockAlign) {
             WidgetAlign.START -> android.view.Gravity.START
@@ -252,7 +260,7 @@ class KharjYarWidget : GlanceAppWidget() {
                                 top = titleShiftTop,
                                 bottom = titleShiftBottom
                             ),
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = titleVAlign,
                         horizontalAlignment = titleAlign
                     ) {
                         Text(
@@ -295,7 +303,7 @@ class KharjYarWidget : GlanceAppWidget() {
                                     top = clockShiftTop,
                                     bottom = clockShiftBottom
                                 ),
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalAlignment = clockVAlign,
                             horizontalAlignment = clockAlign
                         ) {
                             // ساعت/دقیقه/تاریخ‌ها همگی زنده‌اند و توسط سیستم به‌روز می‌شوند

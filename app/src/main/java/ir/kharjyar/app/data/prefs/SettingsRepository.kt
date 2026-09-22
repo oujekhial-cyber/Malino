@@ -30,6 +30,9 @@ enum class DigitStyle { PERSIAN, LATIN }
 /** تراز افقی متن‌ها در ویجت. */
 enum class WidgetAlign { START, CENTER, END }
 
+/** جای عمودی متن‌های ویجت: بالا، وسط یا پایین. */
+enum class WidgetVAlign { TOP, CENTER, BOTTOM }
+
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val palette: Palette = Palette.SAKURA,
@@ -72,6 +75,10 @@ data class AppSettings(
     /** چیدمان متن‌های ویجت. */
     val widgetTitleAlign: WidgetAlign = WidgetAlign.START,
     val widgetClockAlign: WidgetAlign = WidgetAlign.CENTER,
+    /** جای عمودی ستون مقادیر مالی. */
+    val widgetTitleVAlign: WidgetVAlign = WidgetVAlign.CENTER,
+    /** جای عمودی ستون ساعت و تاریخ. */
+    val widgetClockVAlign: WidgetVAlign = WidgetVAlign.CENTER,
     /** ترتیب عمودی پنل ساعت نسبت به تاریخ‌ها. */
     val widgetDatesBelowClock: Boolean = true,
     /** فاصله عمودی پنل ساعت از بالای ویجت (۰=وسط، منفی=بالاتر، مثبت=پایین‌تر) بر حسب dp. */
@@ -108,6 +115,8 @@ class SettingsRepository(private val context: Context) {
         val AMOUNTS_VISIBLE = booleanPreferencesKey("amounts_visible")
         val W_TITLE_ALIGN = stringPreferencesKey("w_title_align")
         val W_CLOCK_ALIGN = stringPreferencesKey("w_clock_align")
+        val W_TITLE_VALIGN = stringPreferencesKey("w_title_valign")
+        val W_CLOCK_VALIGN = stringPreferencesKey("w_clock_valign")
         val W_DATES_BELOW = booleanPreferencesKey("w_dates_below")
         val W_CLOCK_OFFSET_Y = intPreferencesKey("w_clock_offset_y")
         val W_TITLE_OFFSET_Y = intPreferencesKey("w_title_offset_y")
@@ -143,6 +152,8 @@ class SettingsRepository(private val context: Context) {
             amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
             widgetTitleAlign = enumOf(p[Keys.W_TITLE_ALIGN], WidgetAlign.START),
             widgetClockAlign = enumOf(p[Keys.W_CLOCK_ALIGN], WidgetAlign.CENTER),
+            widgetTitleVAlign = enumOf(p[Keys.W_TITLE_VALIGN], WidgetVAlign.CENTER),
+            widgetClockVAlign = enumOf(p[Keys.W_CLOCK_VALIGN], WidgetVAlign.CENTER),
             widgetDatesBelowClock = p[Keys.W_DATES_BELOW] ?: true,
             widgetClockOffsetY = (p[Keys.W_CLOCK_OFFSET_Y] ?: 0).coerceIn(-40, 40),
             widgetTitleOffsetY = (p[Keys.W_TITLE_OFFSET_Y] ?: 0).coerceIn(-40, 40)
@@ -176,6 +187,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAmountsVisible(v: Boolean) = edit { it[Keys.AMOUNTS_VISIBLE] = v }
     suspend fun setWidgetTitleAlign(v: WidgetAlign) = edit { it[Keys.W_TITLE_ALIGN] = v.name }
     suspend fun setWidgetClockAlign(v: WidgetAlign) = edit { it[Keys.W_CLOCK_ALIGN] = v.name }
+    suspend fun setWidgetTitleVAlign(v: WidgetVAlign) = edit { it[Keys.W_TITLE_VALIGN] = v.name }
+    suspend fun setWidgetClockVAlign(v: WidgetVAlign) = edit { it[Keys.W_CLOCK_VALIGN] = v.name }
     suspend fun setWidgetDatesBelowClock(v: Boolean) = edit { it[Keys.W_DATES_BELOW] = v }
     suspend fun setWidgetClockOffsetY(v: Int) = edit { it[Keys.W_CLOCK_OFFSET_Y] = v.coerceIn(-40, 40) }
     suspend fun setWidgetTitleOffsetY(v: Int) = edit { it[Keys.W_TITLE_OFFSET_Y] = v.coerceIn(-40, 40) }
