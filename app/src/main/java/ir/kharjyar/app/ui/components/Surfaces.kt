@@ -109,8 +109,8 @@ private fun DrawScope.drawBlobs(skin: AppSkin) {
 fun SkinCard(
     modifier: Modifier = Modifier,
     tonal: Boolean = false,
-    /** هاله ملایم پیرامون کارت با رنگ خود کارت. */
-    glow: Boolean = true,
+    /** هاله ملایم پیرامون کارت. پیش‌فرض خاموش است؛ نور فقط برای کارت اصلی است. */
+    glow: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
     val skin = LocalAppSkin.current
@@ -148,19 +148,20 @@ fun SkinCard(
 @Composable
 fun HeroCard(
     modifier: Modifier = Modifier,
-    /** نور نقطه‌ای که آرام روی لبه کادر می‌چرخد و به بیرون می‌تابد. */
-    orbit: Boolean = false,
+    /** قاب نئونی دور کارت. رنگش از تم فعال می‌آید. */
+    neon: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
     val skin = LocalAppSkin.current
     val shape = RoundedCornerShape(skin.cardCorner)
-    val rim = skin.accent
 
-    // لایه بیرونی بریده نمی‌شود تا هاله و نور بتوانند از کادر بزنند بیرون.
+    // لایه بیرونی بریده نمی‌شود تا هاله نئون بتواند از کادر بزند بیرون
     Box(
-        modifier = modifier
-            // پخش نرم رنگ تم + خط روشن روی لبه (پشت کارت رسم می‌شود)
-            .rimGlow(rim, skin.cardCorner, spread = 30.dp)
+        modifier = modifier.then(
+            if (neon && skin.neonColors.isNotEmpty()) {
+                Modifier.neonFrame(skin.neonColors, skin.cardCorner)
+            } else Modifier
+        )
     ) {
         // بدنه کارت: این یکی clip می‌شود تا تصویر و محتوا داخل کادر بمانند
         Box(
@@ -175,46 +176,19 @@ fun HeroCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.matchParentSize()
                 )
-                // لایه هم‌رنگ‌سازی سبک: فقط آن‌قدر که متن خوانا بماند.
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    skin.heroGradient.first().copy(alpha = 0.14f),
-                                    skin.heroGradient.last().copy(alpha = 0.26f)
-                                )
-                            )
-                        )
-                )
                 // سایه ملایم از پایین، تا اعداد بزرگ روی نقش تصویر گم نشوند
                 Box(
                     modifier = Modifier
                         .matchParentSize()
                         .background(
                             Brush.verticalGradient(
-                                0.45f to Color.Transparent,
-                                1f to Color.Black.copy(alpha = 0.22f)
+                                0.35f to Color.Transparent,
+                                1f to Color.Black.copy(alpha = 0.34f)
                             )
                         )
                 )
             }
             content()
-        }
-
-        // نور نقطه‌ای روی خط لبه؛ چون بیرون clip رسم می‌شود، به بیرون هم می‌تابد.
-        // لمس را نمی‌گیرد چون فقط یک لایه ترسیمی است.
-        if (orbit) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .orbitGlow(
-                        enabled = true,
-                        color = rim,
-                        cornerRadius = skin.cardCorner
-                    )
-            )
         }
     }
 }
@@ -300,127 +274,70 @@ fun Modifier.softGlow(
 }
 
 /**
- * نور نقطه‌ای که آرام روی لبه کارت می‌چرخد و نورش به بیرون هم می‌پاشد.
+ * قاب نئونی دور کارت اصلی.
  *
- * نکته کلیدی: این مودیفایر باید **پیش از** clip روی کارت بیاید تا هاله بتواند از
- * کادر بزند بیرون؛ اگر بعد از clip بیاید، نور داخل کارت حبس می‌شود.
+ * مثل یک لوله نئون واقعی ساخته می‌شود: چند دور خطِ هم‌مرکز با ضخامت فزاینده و
+ * شفافیت کاهشی، به‌علاوه یک مغز روشن باریک روی خود لبه. چون همه دورها با
+ * drawRoundRect و همان شعاع گوشه رسم می‌شوند، منحنی گوشه‌ها کاملاً نرم می‌ماند و
+ * هیچ گوشه تیز یا پله‌ای دیده نمی‌شود.
  *
- * مسیر حرکت با PathMeasure روی همان مستطیلِ گردِ کارت محاسبه می‌شود، پس نقطه
- * دقیقاً قوس گوشه‌ها را دنبال می‌کند و در گوشه‌ها پرش ندارد.
+ * رنگ‌ها از خود تم می‌آیند، پس هر تم نئون مخصوص خودش را دارد.
  *
- * @param periodMillis زمان یک دور کامل؛ عدد بزرگ‌تر یعنی آرام‌تر.
+ * @param colors دو رنگ گرادیان نئون؛ اگر خالی باشد چیزی رسم نمی‌شود.
+ * @param spread پهنای پخش نور به بیرون.
  */
-@Composable
-fun Modifier.orbitGlow(
-    enabled: Boolean,
-    color: Color,
+fun Modifier.neonFrame(
+    colors: List<Color>,
     cornerRadius: Dp,
-    periodMillis: Int = 45000
-): Modifier {
-    if (!enabled) return this
-    val transition = rememberInfiniteTransition(label = "orbit")
-    val t by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(periodMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "orbitProgress"
-    )
-    // نبض ملایم شدت نور، تا حرکت زنده‌تر دیده شود
-    val pulse by transition.animateFloat(
-        initialValue = 0.82f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "orbitPulse"
-    )
-
-    val measure = remember { PathMeasure() }
-    val path = remember { Path() }
-
-    return this.drawWithContent {
-        drawContent()
-
-        val corner = cornerRadius.toPx()
-        path.reset()
-        path.addRoundRect(
-            RoundRect(
-                rect = Rect(Offset.Zero, size),
-                cornerRadius = CornerRadius(corner)
-            )
-        )
-        measure.setPath(path, true)
-        val len = measure.length
-        if (len <= 0f) return@drawWithContent
-
-        val p = measure.getPosition((t * len) % len)
-        val bloom = minOf(size.width, size.height) * 0.55f
-
-        // هاله بیرونی: بدون clip کشیده می‌شود تا نور از لبه کارت بیرون بزند
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    color.copy(alpha = 0.55f * pulse),
-                    color.copy(alpha = 0.22f * pulse),
-                    color.copy(alpha = 0.07f * pulse),
-                    Color.Transparent
-                ),
-                center = p,
-                radius = bloom
-            ),
-            radius = bloom,
-            center = p
-        )
-        // مغز روشن نقطه، درست روی خط لبه
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.95f * pulse),
-                    color.copy(alpha = 0.7f * pulse),
-                    Color.Transparent
-                ),
-                center = p,
-                radius = bloom * 0.14f
-            ),
-            radius = bloom * 0.14f,
-            center = p
-        )
-    }
-}
-
-/**
- * قاب نورانی پیرامون کارت: یک خط باریک روشن روی لبه به‌علاوه پخش نرم رنگ تم
- * به بیرون — همان حاشیه درخشانی که در طرح دیده می‌شود.
- */
-fun Modifier.rimGlow(
-    color: Color,
-    cornerRadius: Dp,
-    width: Dp = 1.2.dp,
-    spread: Dp = 26.dp
+    spread: Dp = 22.dp,
+    coreWidth: Dp = 1.6.dp
 ): Modifier = this.drawBehind {
+    if (colors.isEmpty()) return@drawBehind
     val corner = cornerRadius.toPx()
     val s = spread.toPx()
-    // چند لایه از بیرون به داخل: هرچه نزدیک‌تر، پررنگ‌تر
-    listOf(1f to 0.06f, 0.66f to 0.10f, 0.36f to 0.16f, 0.15f to 0.24f).forEach { (k, a) ->
+    val brush = Brush.linearGradient(
+        colors = if (colors.size >= 2) colors else colors + colors,
+        start = Offset(0f, 0f),
+        end = Offset(size.width, size.height)
+    )
+
+    // هاله: از بیرون به داخل، هر لایه باریک‌تر و پررنگ‌تر
+    val halo = listOf(
+        1.00f to 0.05f,
+        0.74f to 0.08f,
+        0.52f to 0.12f,
+        0.34f to 0.17f,
+        0.20f to 0.24f,
+        0.10f to 0.34f
+    )
+    halo.forEach { (k, alpha) ->
         val g = s * k
         drawRoundRect(
-            color = color.copy(alpha = a),
+            brush = brush,
             topLeft = Offset(-g, -g),
             size = Size(size.width + g * 2, size.height + g * 2),
-            cornerRadius = CornerRadius(corner + g)
+            cornerRadius = CornerRadius(corner + g),
+            alpha = alpha,
+            style = Stroke(width = g * 1.5f)
         )
     }
-    // خط لبه
+
+    // مغز روشن نئون، دقیقاً روی لبه
     drawRoundRect(
-        color = color.copy(alpha = 0.75f),
+        brush = brush,
         topLeft = Offset.Zero,
         size = size,
         cornerRadius = CornerRadius(corner),
-        style = Stroke(width = width.toPx())
+        style = Stroke(width = coreWidth.toPx())
+    )
+    // رگه سفید نازک داخل مغز، همان برق لوله نئون
+    drawRoundRect(
+        color = Color.White,
+        topLeft = Offset.Zero,
+        size = size,
+        cornerRadius = CornerRadius(corner),
+        alpha = 0.55f,
+        style = Stroke(width = coreWidth.toPx() * 0.4f)
     )
 }
 

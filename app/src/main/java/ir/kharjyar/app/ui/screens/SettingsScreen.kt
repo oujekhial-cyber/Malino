@@ -131,9 +131,9 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("هاله نور روی کارت‌ها", style = MaterialTheme.typography.bodyLarge)
+                    Text("قاب نئونی کارت اصلی", style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "حرکت آرام یک بازتاب شیشه‌ای روی کارت‌های صفحه خانه",
+                        "نور نئونی دور کارت موجودی در صفحه خانه، با رنگ تم فعال",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

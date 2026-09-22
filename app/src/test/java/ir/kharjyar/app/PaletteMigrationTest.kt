@@ -13,7 +13,7 @@ class PaletteMigrationTest {
     @Test
     fun `all eight palettes are available`() {
         assertEquals(
-            listOf("AURORA", "EMERALD", "PAPER", "PLUM", "SLATE", "GOLD", "SAKURA", "OCEAN"),
+            listOf("SAKURA", "INDIGO", "VIOLET", "LOTUS", "MIDNIGHT", "SUNSET", "OCEAN", "GOLD"),
             Palette.entries.map { it.name }
         )
     }
@@ -31,7 +31,10 @@ class PaletteMigrationTest {
     }
 
     @Test
-    fun `only paper skin is light`() {
-        assertTrue(AllSkins.filter { !it.dark }.map { it.id } == listOf(Palette.PAPER))
+    fun `all skins are dark and carry neon colors`() {
+        // هر هشت تم تیره‌اند و قاب نئونی مخصوص خودشان را دارند
+        assertTrue(AllSkins.all { it.dark })
+        assertTrue(AllSkins.all { it.neonColors.size >= 2 })
+        assertTrue(AllSkins.all { it.heroImage != null })
     }
 }

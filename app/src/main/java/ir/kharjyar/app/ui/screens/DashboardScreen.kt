@@ -59,7 +59,6 @@ import ir.kharjyar.app.ui.components.EnterCard
 import ir.kharjyar.app.ui.components.HeroCard
 import ir.kharjyar.app.ui.components.LineChart
 import ir.kharjyar.app.ui.components.SkinCard
-import ir.kharjyar.app.ui.components.shine
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 @Composable
@@ -91,7 +90,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 EnterCard(0) {
                     HeroCard(
                         modifier = Modifier.fillMaxWidth(),
-                        orbit = settings.cardShine
+                        neon = settings.cardShine
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                             Row(
@@ -235,7 +234,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     SkinCard(
                                         modifier = Modifier
                                             .width(230.dp)
-                                            .shine(settings.cardShine, skin.cardCorner)
                                             .clickable { nav.navigate("accountEdit/${account.id}") }
                                     ) {
                                         Column(modifier = Modifier.padding(14.dp)) {
