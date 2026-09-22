@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
@@ -46,6 +47,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +59,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -212,6 +221,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     // کشو در سمت راست: در RTL پیش‌فرض ModalNavigationDrawer از راست باز می‌شود.
     ModalNavigationDrawer(
         drawerState = drawerState,
+        scrimColor = Color.Black.copy(alpha = 0.55f),
         drawerContent = {
             ModalDrawerSheet(
                 // پهنای جمع‌وجور به‌جای پهنای پیش‌فرض ۳۶۰dp
@@ -223,6 +233,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
             ) {
                 DrawerBody(
                     skin = skin,
+                    opened = drawerState.isOpen,
                     currentRoute = currentRoute,
                     reviewCount = reviewCount,
                     accountCount = accounts.count { !it.archived },
@@ -243,8 +254,21 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                     title = { Text(titleOf(currentRoute)) },
                     // منوی همبرگری سمت راست: در RTL، navigationIcon سمت راست قرار می‌گیرد.
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Filled.Menu, contentDescription = "منو")
+                        val menuRotation by animateFloatAsState(
+                            targetValue = if (drawerState.isOpen) 90f else 0f,
+                            animationSpec = tween(300),
+                            label = "menuRotation"
+                        )
+                        IconButton(onClick = {
+                            scope.launch {
+                                if (drawerState.isOpen) drawerState.close() else drawerState.open()
+                            }
+                        }) {
+                            Icon(
+                                if (drawerState.isOpen) Icons.Filled.Close else Icons.Filled.Menu,
+                                contentDescription = if (drawerState.isOpen) "بستن منو" else "منو",
+                                modifier = Modifier.graphicsLayer { rotationZ = menuRotation }
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -305,6 +329,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
 @Composable
 private fun DrawerBody(
     skin: ir.kharjyar.app.ui.theme.AppSkin,
+    opened: Boolean,
     currentRoute: String?,
     reviewCount: Int,
     accountCount: Int,
@@ -317,14 +342,37 @@ private fun DrawerBody(
             .background(Brush.verticalGradient(skin.backgroundColors + skin.backgroundColors.last()))
     ) {
         // ---------- هدر ----------
+        val headerAlpha by animateFloatAsState(
+            targetValue = if (opened) 1f else 0f,
+            animationSpec = tween(320),
+            label = "drawerHeaderAlpha"
+        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))
                 .background(Brush.linearGradient(skin.heroGradient))
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            Column {
+            // تصویر اختصاصی تم پشت هدر (طلایی/شکوفه/اقیانوس)
+            skin.heroImage?.let { res ->
+                Image(
+                    painter = painterResource(res),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Black.copy(alpha = if (skin.onHero.luminance() > 0.5f) 0.22f else 0.06f))
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .graphicsLayer { alpha = headerAlpha }
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -377,12 +425,30 @@ private fun DrawerBody(
                 .padding(horizontal = 10.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            drawerEntries.forEach { entry ->
+            drawerEntries.forEachIndexed { index, entry ->
+                // ورود پلکانی آیتم‌ها هنگام باز شدن کشو
+                val delay = 40 + index * 35
+                val alpha by animateFloatAsState(
+                    targetValue = if (opened) 1f else 0f,
+                    animationSpec = tween(260, delayMillis = if (opened) delay else 0),
+                    label = "drawerItemAlpha"
+                )
+                val offsetX by animateDpAsState(
+                    targetValue = if (opened) 0.dp else 26.dp,
+                    animationSpec = tween(300, delayMillis = if (opened) delay else 0),
+                    label = "drawerItemOffset"
+                )
                 DrawerRow(
                     entry = entry,
                     selected = currentRoute == entry.route,
                     badgeCount = if (entry.badge) reviewCount else 0,
                     skin = skin,
+                    modifier = Modifier
+                        .graphicsLayer {
+                            this.alpha = alpha
+                            // در RTL آیتم‌ها از سمت راست وارد می‌شوند
+                            translationX = offsetX.toPx()
+                        },
                     onClick = { onNavigate(entry.route) }
                 )
             }
@@ -428,11 +494,12 @@ private fun DrawerRow(
     selected: Boolean,
     badgeCount: Int,
     skin: ir.kharjyar.app.ui.theme.AppSkin,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(16.dp)
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(shape)
             .background(
