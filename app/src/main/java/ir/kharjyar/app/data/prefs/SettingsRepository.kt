@@ -17,8 +17,8 @@ import kotlinx.coroutines.flow.map
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
-/** تم بصری برنامه. فعلاً تنها تم: شفق قطبی. */
-enum class Palette { AURORA, EMERALD, PAPER, PLUM, SLATE }
+/** تم بصری برنامه. */
+enum class Palette { AURORA, EMERALD, PAPER, PLUM, SLATE, GOLD, SAKURA, OCEAN }
 enum class WidgetContent { TODAY_EXPENSE, MONTH_EXPENSE, SUMMARY, RECENT }
 
 data class AppSettings(
@@ -35,7 +35,17 @@ data class AppSettings(
     /** حساب پیش‌فرض داشبورد و ویجت. null یعنی «همه حساب‌ها». */
     val defaultAccountId: Long? = null,
     /** نمایش ساعت و تاریخ در سمت راست ویجت. */
-    val widgetShowClock: Boolean = true
+    val widgetShowClock: Boolean = true,
+    /** میزان شیشه‌ای/شفاف بودن پس‌زمینه ویجت: ۰ کاملاً شفاف تا ۱۰۰ کاملاً مات. */
+    val widgetOpacity: Int = 92,
+    /** اندازه فونت ساعت ویجت بر حسب sp. */
+    val widgetClockSize: Int = 40,
+    /** اندازه فونت تاریخ‌های ویجت بر حسب sp. */
+    val widgetDateSize: Int = 13,
+    /** اندازه فونت اعداد مالی ویجت بر حسب sp. */
+    val widgetValueSize: Int = 14,
+    /** اندازه فونت برچسب‌های ویجت بر حسب sp. */
+    val widgetLabelSize: Int = 10
 )
 
 class SettingsRepository(private val context: Context) {
@@ -52,6 +62,11 @@ class SettingsRepository(private val context: Context) {
         val WIDGET_NUMBERS_LOCKED = booleanPreferencesKey("widget_numbers_locked")
         val DEFAULT_ACCOUNT = longPreferencesKey("default_account_id")
         val WIDGET_CLOCK = booleanPreferencesKey("widget_clock")
+        val WIDGET_OPACITY = intPreferencesKey("widget_opacity")
+        val WIDGET_CLOCK_SIZE = intPreferencesKey("widget_clock_size")
+        val WIDGET_DATE_SIZE = intPreferencesKey("widget_date_size")
+        val WIDGET_VALUE_SIZE = intPreferencesKey("widget_value_size")
+        val WIDGET_LABEL_SIZE = intPreferencesKey("widget_label_size")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -66,7 +81,12 @@ class SettingsRepository(private val context: Context) {
             widgetShowNumbers = p[Keys.WIDGET_NUMBERS] ?: true,
             widgetShowNumbersWhenLocked = p[Keys.WIDGET_NUMBERS_LOCKED] ?: false,
             defaultAccountId = p[Keys.DEFAULT_ACCOUNT]?.takeIf { it > 0 },
-            widgetShowClock = p[Keys.WIDGET_CLOCK] ?: true
+            widgetShowClock = p[Keys.WIDGET_CLOCK] ?: true,
+            widgetOpacity = (p[Keys.WIDGET_OPACITY] ?: 92).coerceIn(0, 100),
+            widgetClockSize = (p[Keys.WIDGET_CLOCK_SIZE] ?: 40).coerceIn(18, 72),
+            widgetDateSize = (p[Keys.WIDGET_DATE_SIZE] ?: 13).coerceIn(8, 28),
+            widgetValueSize = (p[Keys.WIDGET_VALUE_SIZE] ?: 14).coerceIn(9, 30),
+            widgetLabelSize = (p[Keys.WIDGET_LABEL_SIZE] ?: 10).coerceIn(7, 22)
         )
     }
 
@@ -83,6 +103,11 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetShowNumbersWhenLocked(v: Boolean) = edit { it[Keys.WIDGET_NUMBERS_LOCKED] = v }
     suspend fun setDefaultAccount(v: Long?) = edit { it[Keys.DEFAULT_ACCOUNT] = v ?: 0L }
     suspend fun setWidgetShowClock(v: Boolean) = edit { it[Keys.WIDGET_CLOCK] = v }
+    suspend fun setWidgetOpacity(v: Int) = edit { it[Keys.WIDGET_OPACITY] = v.coerceIn(0, 100) }
+    suspend fun setWidgetClockSize(v: Int) = edit { it[Keys.WIDGET_CLOCK_SIZE] = v.coerceIn(18, 72) }
+    suspend fun setWidgetDateSize(v: Int) = edit { it[Keys.WIDGET_DATE_SIZE] = v.coerceIn(8, 28) }
+    suspend fun setWidgetValueSize(v: Int) = edit { it[Keys.WIDGET_VALUE_SIZE] = v.coerceIn(9, 30) }
+    suspend fun setWidgetLabelSize(v: Int) = edit { it[Keys.WIDGET_LABEL_SIZE] = v.coerceIn(7, 22) }
 
     /** تنظیمات غیرحساس برای بکاپ. */
     suspend fun exportForBackup(): Map<String, String> {
@@ -93,7 +118,12 @@ class SettingsRepository(private val context: Context) {
             "money_unit" to s.moneyUnit.name,
             "widget_content" to s.widgetContent.name,
             "widget_numbers" to s.widgetShowNumbers.toString(),
-            "widget_clock" to s.widgetShowClock.toString()
+            "widget_clock" to s.widgetShowClock.toString(),
+            "widget_opacity" to s.widgetOpacity.toString(),
+            "widget_clock_size" to s.widgetClockSize.toString(),
+            "widget_date_size" to s.widgetDateSize.toString(),
+            "widget_value_size" to s.widgetValueSize.toString(),
+            "widget_label_size" to s.widgetLabelSize.toString()
         )
     }
 
@@ -105,6 +135,11 @@ class SettingsRepository(private val context: Context) {
             map["widget_content"]?.let { v -> runCatching { WidgetContent.valueOf(v) }.getOrNull()?.let { p[Keys.WIDGET_CONTENT] = it.name } }
             map["widget_numbers"]?.let { p[Keys.WIDGET_NUMBERS] = it.toBoolean() }
             map["widget_clock"]?.let { p[Keys.WIDGET_CLOCK] = it.toBoolean() }
+            map["widget_opacity"]?.toIntOrNull()?.let { p[Keys.WIDGET_OPACITY] = it.coerceIn(0, 100) }
+            map["widget_clock_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_CLOCK_SIZE] = it.coerceIn(18, 72) }
+            map["widget_date_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_DATE_SIZE] = it.coerceIn(8, 28) }
+            map["widget_value_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_VALUE_SIZE] = it.coerceIn(9, 30) }
+            map["widget_label_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_LABEL_SIZE] = it.coerceIn(7, 22) }
         }
     }
 

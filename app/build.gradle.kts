@@ -23,7 +23,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            resValue("string", "app_label", "خرج‌یار (نسخه آزمایشی)")
+            resValue("string", "app_label", "خرج‌یار")
         }
         release {
             isMinifyEnabled = true

@@ -11,3 +11,4 @@ captures/
 *.apk.idsig
 .DS_Store
 theme-concepts/
+gen/

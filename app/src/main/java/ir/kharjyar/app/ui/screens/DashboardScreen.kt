@@ -1,6 +1,7 @@
 package ir.kharjyar.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +21,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material3.Icon
@@ -30,6 +36,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +57,7 @@ import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
 import ir.kharjyar.app.ui.components.EnterCard
+import ir.kharjyar.app.ui.components.HeroCard
 import ir.kharjyar.app.ui.components.LineChart
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.theme.LocalAppSkin
@@ -63,6 +73,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val scopedTx by viewModel.scopedTransactions.collectAsState()
     val defaultAccount by viewModel.defaultAccount.collectAsState()
     val skin = LocalAppSkin.current
+    var amountVisible by remember { mutableStateOf(true) }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -76,7 +87,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             // ---------- کارت خلاصه ماه (hero) ----------
             item {
                 EnterCard(0) {
-                    SkinCard(modifier = Modifier.fillMaxWidth(), tonal = true) {
+                    HeroCard(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -99,28 +110,51 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
                             }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                Money.format(summary.incomeRial - summary.expenseRial, settings.moneyUnit),
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = skin.onHero
-                            )
-                            Text(
-                                "خالص این ماه",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = skin.onHero.copy(alpha = 0.75f)
-                            )
+                            Spacer(Modifier.height(10.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                // دکمه چشم برای پنهان/نمایش مبلغ
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.18f))
+                                        .clickable { amountVisible = !amountVisible },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        if (amountVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                        contentDescription = if (amountVisible) "پنهان کردن مبلغ" else "نمایش مبلغ",
+                                        tint = skin.onHero,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        if (amountVisible)
+                                            Money.format(summary.incomeRial - summary.expenseRial, settings.moneyUnit)
+                                        else "••••••••",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = skin.onHero
+                                    )
+                                    Text(
+                                        "خالص این ماه",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = skin.onHero.copy(alpha = 0.75f)
+                                    )
+                                }
+                            }
                             Spacer(Modifier.height(14.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 SummaryChip(
                                     "درآمد",
-                                    Money.format(summary.incomeRial, settings.moneyUnit),
+                                    if (amountVisible) Money.format(summary.incomeRial, settings.moneyUnit) else "••••",
                                     skin.incomeColor,
                                     Modifier.weight(1f)
                                 )
                                 SummaryChip(
                                     "هزینه",
-                                    Money.format(summary.expenseRial, settings.moneyUnit),
+                                    if (amountVisible) Money.format(summary.expenseRial, settings.moneyUnit) else "••••",
                                     skin.expenseColor,
                                     Modifier.weight(1f)
                                 )
@@ -134,6 +168,21 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            // ---------- میانبرهای سریع ----------
+            item {
+                EnterCard(1) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        QuickAction("تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong, Modifier.weight(1f)) { nav.navigate("transactions") }
+                        QuickAction("ثبت جدید", Icons.Filled.Add, Modifier.weight(1f)) { nav.navigate("manual") }
+                        QuickAction("گزارش‌ها", Icons.Filled.PieChart, Modifier.weight(1f)) { nav.navigate("reports") }
+                        QuickAction("حساب‌ها", Icons.Filled.CreditCard, Modifier.weight(1f)) { nav.navigate("accounts") }
                     }
                 }
             }
@@ -336,6 +385,37 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             }
             item { Spacer(Modifier.height(110.dp)) }
         }
+    }
+}
+
+@Composable
+/** دکمه میانبر مربعی زیر کارت موجودی (مطابق طرح‌های تم). */
+@Composable
+private fun QuickAction(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val skin = LocalAppSkin.current
+    val shape = RoundedCornerShape(skin.cardCorner * 0.7f)
+    Column(
+        modifier = modifier
+            .clip(shape)
+            .background(skin.cardColor.copy(alpha = skin.cardAlpha))
+            .border(skin.cardBorderWidth, Brush.linearGradient(skin.cardBorderColors), shape)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(icon, contentDescription = label, tint = skin.accent, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = skin.onBackdrop.copy(alpha = 0.9f),
+            maxLines = 1
+        )
     }
 }
 

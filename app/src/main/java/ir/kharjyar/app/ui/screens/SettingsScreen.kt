@@ -51,6 +51,8 @@ import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.ComboBox
+import ir.kharjyar.app.ui.components.LabeledSlider
+import ir.kharjyar.app.ui.components.WidgetPreview
 import ir.kharjyar.app.ui.theme.AllSkins
 import ir.kharjyar.app.ui.theme.AppSkin
 import ir.kharjyar.app.widget.KharjYarWidgetReceiver
@@ -232,6 +234,104 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     Switch(checked = settings.widgetShowNumbersWhenLocked, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowNumbersWhenLocked(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
                 }
             }
+            // ---------- پیش‌نمایش زنده ویجت ----------
+            Text("پیش‌نمایش", style = MaterialTheme.typography.labelLarge)
+            WidgetPreview(
+                opacity = settings.widgetOpacity,
+                clockSize = settings.widgetClockSize,
+                dateSize = settings.widgetDateSize,
+                valueSize = settings.widgetValueSize,
+                labelSize = settings.widgetLabelSize,
+                showClock = settings.widgetShowClock,
+                showNumbers = settings.widgetShowNumbers,
+                lines = when (settings.widgetContent) {
+                    WidgetContent.TODAY_EXPENSE -> listOf("هزینه امروز" to "۳,۲۵۰,۰۰۰")
+                    WidgetContent.MONTH_EXPENSE -> listOf("هزینه این ماه" to "۱۸,۴۰۰,۰۰۰")
+                    WidgetContent.RECENT -> listOf("واریز" to "۵,۸۷۰,۰۰۰", "برداشت" to "۱,۲۸۰,۰۰۰")
+                    WidgetContent.SUMMARY -> listOf("درآمد" to "۵,۸۷۰,۰۰۰", "هزینه" to "۳,۲۵۰,۰۰۰")
+                }
+            )
+
+            // ---------- شیشه‌ای بودن و اندازه‌ها ----------
+            LabeledSlider(
+                label = "میزان شیشه‌ای بودن پس‌زمینه",
+                value = settings.widgetOpacity,
+                range = 0..100,
+                valueSuffix = "٪",
+                onValueChange = { v ->
+                    scope.launch {
+                        viewModel.settingsRepo.setWidgetOpacity(v)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
+            Text(
+                "عدد کمتر یعنی شیشه‌ای‌تر (تصویر زمینه گوشی بیشتر دیده می‌شود).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text("اندازه اجزای ویجت", style = MaterialTheme.typography.labelLarge)
+            if (settings.widgetShowClock) {
+                LabeledSlider(
+                    label = "اندازه ساعت",
+                    value = settings.widgetClockSize,
+                    range = 18..72,
+                    onValueChange = { v ->
+                        scope.launch {
+                            viewModel.settingsRepo.setWidgetClockSize(v)
+                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                        }
+                    }
+                )
+                LabeledSlider(
+                    label = "اندازه تاریخ‌ها",
+                    value = settings.widgetDateSize,
+                    range = 8..28,
+                    onValueChange = { v ->
+                        scope.launch {
+                            viewModel.settingsRepo.setWidgetDateSize(v)
+                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                        }
+                    }
+                )
+            }
+            LabeledSlider(
+                label = "اندازه اعداد مالی",
+                value = settings.widgetValueSize,
+                range = 9..30,
+                onValueChange = { v ->
+                    scope.launch {
+                        viewModel.settingsRepo.setWidgetValueSize(v)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
+            LabeledSlider(
+                label = "اندازه برچسب‌ها",
+                value = settings.widgetLabelSize,
+                range = 7..22,
+                onValueChange = { v ->
+                    scope.launch {
+                        viewModel.settingsRepo.setWidgetLabelSize(v)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        viewModel.settingsRepo.setWidgetOpacity(92)
+                        viewModel.settingsRepo.setWidgetClockSize(40)
+                        viewModel.settingsRepo.setWidgetDateSize(13)
+                        viewModel.settingsRepo.setWidgetValueSize(14)
+                        viewModel.settingsRepo.setWidgetLabelSize(10)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("بازگرداندن اندازه‌های پیش‌فرض") }
+
             OutlinedButton(onClick = {
                 val mgr = AppWidgetManager.getInstance(context)
                 val component = ComponentName(context, KharjYarWidgetReceiver::class.java)

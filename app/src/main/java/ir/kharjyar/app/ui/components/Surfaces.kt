@@ -28,6 +28,10 @@ import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.ui.theme.AppSkin
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 
 /**
  * پس‌زمینه تم‌پذیر برنامه: گرادیان + لکه‌های نوری/موج‌های محو.
@@ -35,15 +39,31 @@ import androidx.compose.foundation.Canvas
 @Composable
 fun AppBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
     val skin = LocalAppSkin.current
-    Box(modifier = modifier.fillMaxSize()) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(
-                brush = Brush.linearGradient(
-                    colors = skin.backgroundColors.ifEmpty { listOf(Color.Black, Color.Black) },
-                    start = Offset(0f, 0f),
-                    end = Offset(size.width, size.height)
-                )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(skin.backgroundColors.firstOrNull() ?: Color.Black)
+    ) {
+        // تصویر پس‌زمینه اختصاصی تم (در صورت وجود)
+        skin.backdropImage?.let { res ->
+            Image(
+                painter = painterResource(res),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alpha = skin.backdropImageAlpha,
+                modifier = Modifier.fillMaxSize()
             )
+        }
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (skin.backdropImage == null) {
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = skin.backgroundColors.ifEmpty { listOf(Color.Black, Color.Black) },
+                        start = Offset(0f, 0f),
+                        end = Offset(size.width, size.height)
+                    )
+                )
+            }
             drawBlobs(skin)
         }
         content()
@@ -96,6 +116,52 @@ fun SkinCard(
             .border(skin.cardBorderWidth, border, shape),
         content = content
     )
+}
+
+/**
+ * کارت شاخص (موجودی کل): گرادیان تم به‌علاوه تصویر پس‌زمینه اختصاصی تم در صورت وجود.
+ */
+@Composable
+fun HeroCard(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val skin = LocalAppSkin.current
+    val shape = RoundedCornerShape(skin.cardCorner)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Brush.linearGradient(skin.heroGradient))
+            .border(
+                skin.cardBorderWidth,
+                Brush.linearGradient(skin.cardBorderColors.ifEmpty { listOf(Color.Transparent, Color.Transparent) }),
+                shape
+            )
+    ) {
+        skin.heroImage?.let { res ->
+            Image(
+                painter = painterResource(res),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
+            )
+            // لایه تیره/روشن ملایم تا متن روی تصویر خوانا بماند
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                (if (skin.onHero.luminance() > 0.5f) Color.Black else Color.White)
+                                    .copy(alpha = 0.10f)
+                            )
+                        )
+                    )
+            )
+        }
+        content()
+    }
 }
 
 /** انیمیشن ورود کارت‌ها: محو‌شدن + لغزش ملایم از پایین، با تأخیر ترتیبی. */

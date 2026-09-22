@@ -35,6 +35,14 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.ui.theme.LocalAppSkin
@@ -63,12 +71,13 @@ fun BottomNavBar(
     require(items.size == 4) { "نوار پایین برای دقیقاً چهار آیتم طراحی شده است" }
 
     Box(modifier = modifier.fillMaxWidth()) {
-        // بدنه نوار
+        // بدنه نوار با قوس (بریدگی) دور دکمه مرکزی
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
+                .padding(top = 31.dp)
+                .clip(NotchedBarShape(fabRadius = 33.dp, gap = 7.dp, corner = 26.dp))
                 .background(skin.navBarColor)
                 .navigationBarsPadding()
                 .padding(top = 12.dp, bottom = 10.dp),
@@ -85,11 +94,11 @@ fun BottomNavBar(
             }
         }
 
-        // دکمه گرد مرکزی «تراکنش جدید»
+        // دکمه گرد مرکزی «تراکنش جدید» که داخل قوس می‌نشیند
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .size(64.dp)
+                .size(62.dp)
                 .clip(CircleShape)
                 .background(Brush.linearGradient(skin.fabGradient))
                 .clickable(onClick = onFabClick),
@@ -106,6 +115,66 @@ fun BottomNavBar(
 }
 
 private fun Color.luminance(): Float = 0.299f * red + 0.587f * green + 0.114f * blue
+
+/**
+ * شکل نوار پایین با گوشه‌های گرد بالا و یک قوس نیم‌دایره‌ای در وسط
+ * که دکمه شناور دقیقاً داخل آن می‌نشیند.
+ *
+ * @param fabRadius شعاع دکمه شناور.
+ * @param gap فاصله هوایی بین دکمه و لبه قوس.
+ * @param corner شعاع گوشه‌های بالای نوار.
+ */
+private class NotchedBarShape(
+    private val fabRadius: Dp,
+    private val gap: Dp,
+    private val corner: Dp
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val r = with(density) { (fabRadius + gap).toPx() }
+        val c = with(density) { corner.toPx() }
+        val cx = size.width / 2f
+        // شعاع منحنی‌های کوچکِ وصل‌کننده در دو طرف قوس (برای گذار نرم)
+        val ease = r * 0.55f
+
+        val path = Path().apply {
+            moveTo(0f, c)
+            // گوشه گرد بالا-چپ
+            quadraticBezierTo(0f, 0f, c, 0f)
+            // خط تا شروع گذار قوس
+            lineTo(cx - r - ease, 0f)
+            // گذار نرم از خط افقی به لبه قوس
+            cubicTo(
+                cx - r - ease * 0.4f, 0f,
+                cx - r - ease * 0.1f, 0f,
+                cx - r, 0f
+            )
+            // قوس نیم‌دایره‌ای رو به پایین (۱۸۰° → ۰° از مسیر پایین)
+            arcTo(
+                rect = Rect(cx - r, -r, cx + r, r),
+                startAngleDegrees = 180f,
+                sweepAngleDegrees = -180f,
+                forceMoveTo = false
+            )
+            // گذار نرم از لبه قوس به خط افقی
+            cubicTo(
+                cx + r + ease * 0.1f, 0f,
+                cx + r + ease * 0.4f, 0f,
+                cx + r + ease, 0f
+            )
+            lineTo(size.width - c, 0f)
+            // گوشه گرد بالا-راست
+            quadraticBezierTo(size.width, 0f, size.width, c)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
 
 @Composable
 private fun NavCell(

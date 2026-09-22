@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -213,9 +214,12 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
+                // پهنای جمع‌وجور به‌جای پهنای پیش‌فرض ۳۶۰dp
+                modifier = Modifier.width(270.dp),
                 drawerContainerColor = Color.Transparent,
                 drawerContentColor = skin.onBackdrop,
-                drawerShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
+                drawerShape = RoundedCornerShape(topStart = 26.dp, bottomStart = 26.dp),
+                windowInsets = WindowInsets(0)
             ) {
                 DrawerBody(
                     skin = skin,
@@ -318,27 +322,27 @@ private fun DrawerBody(
                 .fillMaxWidth()
                 .background(Brush.linearGradient(skin.heroGradient))
                 .statusBarsPadding()
-                .padding(20.dp)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(54.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color.White.copy(alpha = 0.2f)),
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = 0.22f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.AccountBalance,
                             contentDescription = null,
                             tint = skin.onHero,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
-                    Spacer(Modifier.width(14.dp))
+                    Spacer(Modifier.width(10.dp))
                     Column {
-                        Text("خرج‌یار", style = MaterialTheme.typography.titleLarge, color = skin.onHero)
+                        Text("خرج‌یار", style = MaterialTheme.typography.titleMedium, color = skin.onHero)
                         Text(
                             "دستیار خرج و دخل شما",
                             style = MaterialTheme.typography.bodySmall,
@@ -346,10 +350,13 @@ private fun DrawerBody(
                         )
                     }
                 }
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DrawerStat("حساب‌ها", Digits.toPersian(accountCount.toString()), skin)
-                    DrawerStat("بررسی", Digits.toPersian(reviewCount.toString()), skin)
+                Spacer(Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DrawerStat("حساب‌ها", Digits.toPersian(accountCount.toString()), skin, Modifier.weight(1f))
+                    DrawerStat("بررسی", Digits.toPersian(reviewCount.toString()), skin, Modifier.weight(1f))
                 }
                 defaultAccountName?.let {
                     Spacer(Modifier.height(10.dp))
@@ -367,8 +374,8 @@ private fun DrawerBody(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 10.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             drawerEntries.forEach { entry ->
                 DrawerRow(
@@ -382,7 +389,7 @@ private fun DrawerBody(
         }
 
         // ---------- پانویس ----------
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Text(
                 "نسخه ۱.۰.۰",
                 style = MaterialTheme.typography.labelSmall,
@@ -398,12 +405,17 @@ private fun DrawerBody(
 }
 
 @Composable
-private fun DrawerStat(label: String, value: String, skin: ir.kharjyar.app.ui.theme.AppSkin) {
+private fun DrawerStat(
+    label: String,
+    value: String,
+    skin: ir.kharjyar.app.ui.theme.AppSkin,
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.16f))
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.18f))
+            .padding(horizontal = 10.dp, vertical = 7.dp)
     ) {
         Text(value, style = MaterialTheme.typography.titleMedium, color = skin.onHero)
         Text(label, style = MaterialTheme.typography.labelSmall, color = skin.onHero.copy(alpha = 0.85f))
@@ -429,27 +441,27 @@ private fun DrawerRow(
                 ) else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 13.dp),
+            .padding(horizontal = 11.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // نوار نشانگر انتخاب
         Box(
             modifier = Modifier
-                .size(width = 3.dp, height = 20.dp)
+                .size(width = 3.dp, height = 18.dp)
                 .clip(CircleShape)
                 .background(if (selected) skin.accent else Color.Transparent)
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(10.dp))
         Icon(
             entry.icon,
             contentDescription = entry.label,
             tint = if (selected) skin.accent else skin.onBackdrop.copy(alpha = 0.75f),
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(12.dp))
         Text(
             entry.label,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = if (selected) skin.accent else skin.onBackdrop,
             modifier = Modifier.weight(1f)
         )

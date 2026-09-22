@@ -96,11 +96,16 @@ class KharjYarWidget : GlanceAppWidget() {
         val gregorian = zoned.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH))
 
         val skin = skinOf(settings.palette)
-        val bg = ColorProvider(skin.cardColor.copy(alpha = if (skin.cardAlpha < 0.8f) 0.92f else skin.cardAlpha))
+        // میزان شیشه‌ای بودن از تنظیمات کاربر (۰ = کاملاً شفاف، ۱۰۰ = مات)
+        val bg = ColorProvider(skin.cardColor.copy(alpha = settings.widgetOpacity / 100f))
         val accent = ColorProvider(skin.accent)
         val onBg = ColorProvider(skin.onBackdrop)
         val big = ColorProvider(skin.bigNumberColor)
         val showClock = settings.widgetShowClock
+        val clockSize = settings.widgetClockSize.sp
+        val dateSize = settings.widgetDateSize.sp
+        val valueSize = settings.widgetValueSize.sp
+        val labelSize = settings.widgetLabelSize.sp
 
         provideContent {
             GlanceTheme {
@@ -121,18 +126,18 @@ class KharjYarWidget : GlanceAppWidget() {
                     ) {
                         Text(
                             "خرج‌یار",
-                            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp, color = accent)
+                            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = labelSize * 1.3f, color = accent)
                         )
                         Spacer(GlanceModifier.height(6.dp))
                         lines.forEach { (label, value) ->
                             Text(
                                 label,
-                                style = TextStyle(fontSize = 10.sp, color = onBg)
+                                style = TextStyle(fontSize = labelSize, color = onBg)
                             )
                             Text(
                                 if (showNumbers) value else "••••",
                                 style = TextStyle(
-                                    fontSize = 14.sp,
+                                    fontSize = valueSize,
                                     fontWeight = FontWeight.Bold,
                                     color = if (showNumbers) big else onBg
                                 )
@@ -142,7 +147,7 @@ class KharjYarWidget : GlanceAppWidget() {
                         if (hideNumbers) {
                             Text(
                                 "اعداد به دلیل قفل مخفی‌اند",
-                                style = TextStyle(fontSize = 9.sp, color = onBg)
+                                style = TextStyle(fontSize = labelSize * 0.9f, color = onBg)
                             )
                         }
                     }
@@ -158,7 +163,7 @@ class KharjYarWidget : GlanceAppWidget() {
                             Text(
                                 clock,
                                 style = TextStyle(
-                                    fontSize = 40.sp,
+                                    fontSize = clockSize,
                                     fontWeight = FontWeight.Bold,
                                     color = big
                                 )
@@ -166,11 +171,11 @@ class KharjYarWidget : GlanceAppWidget() {
                             Spacer(GlanceModifier.height(2.dp))
                             Text(
                                 persianDate,
-                                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = onBg)
+                                style = TextStyle(fontSize = dateSize, fontWeight = FontWeight.Medium, color = onBg)
                             )
                             Text(
                                 gregorian,
-                                style = TextStyle(fontSize = 11.sp, color = onBg)
+                                style = TextStyle(fontSize = dateSize * 0.85f, color = onBg)
                             )
                         }
                     }

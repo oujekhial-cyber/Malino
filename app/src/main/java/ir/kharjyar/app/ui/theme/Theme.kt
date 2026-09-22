@@ -78,7 +78,13 @@ data class AppSkin(
     /** رنگ پس‌زمینه نوار پایین. */
     val navBarColor: Color,
     val navSelected: Color,
-    val navUnselected: Color
+    val navUnselected: Color,
+    /** تصویر پس‌زمینه کارت hero (drawable) — اگر null باشد فقط گرادیان رسم می‌شود. */
+    val heroImage: Int? = null,
+    /** تصویر پس‌زمینه کل صفحه — اگر null باشد فقط گرادیان و blobها رسم می‌شوند. */
+    val backdropImage: Int? = null,
+    /** شفافیت تصویر پس‌زمینه صفحه. */
+    val backdropImageAlpha: Float = 1f
 ) {
     data class Blob(val color: Color, val radius: Float, val cx: Float, val cy: Float)
 }
@@ -321,8 +327,156 @@ private val SlateSkin = AppSkin(
     navUnselected = Color(0xFF8A99A3)
 )
 
+
+// ================================================================ تم ۶: طلای شاهانه
+private val GoldScheme = darkColorScheme(
+    primary = Color(0xFFE8C570), onPrimary = Color(0xFF2A1F00),
+    primaryContainer = Color(0xFF4A3A0C), onPrimaryContainer = Color(0xFFFFEDBD),
+    secondary = Color(0xFFD9A441), onSecondary = Color(0xFF2B1C00),
+    secondaryContainer = Color(0xFF43320A), onSecondaryContainer = Color(0xFFFFE6B5),
+    tertiary = Color(0xFF5BC9A0), onTertiary = Color(0xFF00281A),
+    tertiaryContainer = Color(0xFF0D4632), onTertiaryContainer = Color(0xFFBFF2DD),
+    background = Color(0xFF0B0B0D), onBackground = Color(0xFFF2EADA),
+    surface = Color(0xFF141416), onSurface = Color(0xFFF2EADA),
+    surfaceVariant = Color(0xFF1E1E21), onSurfaceVariant = Color(0xFFC3B89F),
+    outline = Color(0x66E8C570), outlineVariant = Color(0x33E8C570),
+    error = Color(0xFFF07A6E), onError = Color(0xFF3B0A05),
+    errorContainer = Color(0xFF5C170F), onErrorContainer = Color(0xFFFFDAD4)
+)
+
+private val GoldSkin = AppSkin(
+    id = Palette.GOLD,
+    title = "طلای شاهانه",
+    subtitle = "مشکی مات با کارت طلایی و نقش اسلیمی",
+    dark = true,
+    backgroundColors = listOf(Color(0xFF0B0B0D), Color(0xFF09090B)),
+    backdropBlobs = listOf(
+        AppSkin.Blob(Color(0x1FE8C570), 0.7f, 0.12f, 0.06f),
+        AppSkin.Blob(Color(0x14D9A441), 0.8f, 0.92f, 0.6f)
+    ),
+    cardColor = Color(0xFF141416),
+    cardAlpha = 1f,
+    cardBorderColors = listOf(Color(0x59E8C570), Color(0x26E8C570)),
+    cardBorderWidth = 1.dp,
+    cardCorner = 22.dp,
+    heroGradient = listOf(Color(0xFFF3D284), Color(0xFFDDA83E)),
+    onHero = Color(0xFF3A2A05),
+    fabGradient = listOf(Color(0xFFF3D284), Color(0xFFD9A441)),
+    accent = Color(0xFFE8C570),
+    incomeColor = Color(0xFF5BC9A0),
+    expenseColor = Color(0xFFF07A6E),
+    chartGlow = false,
+    bigNumberColor = Color(0xFFF7E7BF),
+    onBackdrop = Color(0xFFF2EADA),
+    dialogColor = Color(0xFF16161A),
+    navBarColor = Color(0xFF0E0E10),
+    navSelected = Color(0xFFE8C570),
+    navUnselected = Color(0xFF7A7568),
+    heroImage = R.drawable.hero_gold
+)
+
+// ================================================================ تم ۷: شکوفه شب
+private val SakuraScheme = darkColorScheme(
+    primary = Color(0xFFE86FA8), onPrimary = Color(0xFF3E0424),
+    primaryContainer = Color(0xFF5E1440), onPrimaryContainer = Color(0xFFFFD8E8),
+    secondary = Color(0xFF9B6BF0), onSecondary = Color(0xFF210A4A),
+    secondaryContainer = Color(0xFF3A1D6E), onSecondaryContainer = Color(0xFFE6D8FF),
+    tertiary = Color(0xFF6FD3B4), onTertiary = Color(0xFF00291F),
+    tertiaryContainer = Color(0xFF0C4636), onTertiaryContainer = Color(0xFFBDF3E2),
+    background = Color(0xFF150C1B), onBackground = Color(0xFFF3E6F2),
+    surface = Color(0xFF1E1226), onSurface = Color(0xFFF3E6F2),
+    surfaceVariant = Color(0xFF2A1A33), onSurfaceVariant = Color(0xFFC9B4CE),
+    outline = Color(0x4DE86FA8), outlineVariant = Color(0x269B6BF0),
+    error = Color(0xFFF2627E), onError = Color(0xFF3F0314),
+    errorContainer = Color(0xFF5E1027), onErrorContainer = Color(0xFFFFD9E0)
+)
+
+private val SakuraSkin = AppSkin(
+    id = Palette.SAKURA,
+    title = "شکوفه شب",
+    subtitle = "بنفش تاریک با کارت صورتی‌بنفش و شکوفه",
+    dark = true,
+    backgroundColors = listOf(Color(0xFF150C1B), Color(0xFF100814)),
+    backdropBlobs = listOf(
+        AppSkin.Blob(Color(0x2EE86FA8), 0.8f, 0.1f, 0.08f),
+        AppSkin.Blob(Color(0x269B6BF0), 0.9f, 0.95f, 0.55f)
+    ),
+    cardColor = Color(0xFF1E1226),
+    cardAlpha = 0.92f,
+    cardBorderColors = listOf(Color(0x40E86FA8), Color(0x339B6BF0)),
+    cardBorderWidth = 1.dp,
+    cardCorner = 24.dp,
+    heroGradient = listOf(Color(0xFFF07AAE), Color(0xFF9B6BF0)),
+    onHero = Color(0xFFFFFFFF),
+    fabGradient = listOf(Color(0xFFF07AAE), Color(0xFF9B6BF0)),
+    accent = Color(0xFFE86FA8),
+    incomeColor = Color(0xFF6FD3B4),
+    expenseColor = Color(0xFFF2627E),
+    chartGlow = true,
+    bigNumberColor = Color(0xFFFFE3F0),
+    onBackdrop = Color(0xFFF3E6F2),
+    dialogColor = Color(0xFF1E1226),
+    navBarColor = Color(0xFF150D1C),
+    navSelected = Color(0xFFE86FA8),
+    navUnselected = Color(0xFF8B7A94),
+    heroImage = R.drawable.hero_sakura,
+    backdropImage = R.drawable.bg_sakura,
+    backdropImageAlpha = 0.75f
+)
+
+// ================================================================ تم ۸: اعماق اقیانوس
+private val OceanScheme = darkColorScheme(
+    primary = Color(0xFF29B6F6), onPrimary = Color(0xFF002233),
+    primaryContainer = Color(0xFF00405C), onPrimaryContainer = Color(0xFFBFE9FF),
+    secondary = Color(0xFF26D1D1), onSecondary = Color(0xFF002B2B),
+    secondaryContainer = Color(0xFF004545), onSecondaryContainer = Color(0xFFB5F5F5),
+    tertiary = Color(0xFF7FB2E5), onTertiary = Color(0xFF032645),
+    tertiaryContainer = Color(0xFF123F66), onTertiaryContainer = Color(0xFFD3E7FF),
+    background = Color(0xFF071019), onBackground = Color(0xFFE3F1FA),
+    surface = Color(0xFF0D1B27), onSurface = Color(0xFFE3F1FA),
+    surfaceVariant = Color(0xFF16293A), onSurfaceVariant = Color(0xFFA8C2D4),
+    outline = Color(0x4D29B6F6), outlineVariant = Color(0x2629B6F6),
+    error = Color(0xFFE8614E), onError = Color(0xFF3B0A02),
+    errorContainer = Color(0xFF5C170B), onErrorContainer = Color(0xFFFFDAD2)
+)
+
+private val OceanSkin = AppSkin(
+    id = Palette.OCEAN,
+    title = "اعماق اقیانوس",
+    subtitle = "سرمه‌ای شب با کارت فیروزه‌ای و پرتو نور",
+    dark = true,
+    backgroundColors = listOf(Color(0xFF071019), Color(0xFF040A11)),
+    backdropBlobs = listOf(
+        AppSkin.Blob(Color(0x2629B6F6), 0.9f, 0.5f, 0.02f),
+        AppSkin.Blob(Color(0x1A26D1D1), 0.8f, 0.9f, 0.5f)
+    ),
+    cardColor = Color(0xFF0D1B27),
+    cardAlpha = 0.9f,
+    cardBorderColors = listOf(Color(0x4029B6F6), Color(0x2626D1D1)),
+    cardBorderWidth = 1.dp,
+    cardCorner = 22.dp,
+    heroGradient = listOf(Color(0xFF1477D6), Color(0xFF22C7E8)),
+    onHero = Color(0xFFEAFAFF),
+    fabGradient = listOf(Color(0xFF29B6F6), Color(0xFF1477D6)),
+    accent = Color(0xFF29B6F6),
+    incomeColor = Color(0xFF26D1D1),
+    expenseColor = Color(0xFFE8614E),
+    chartGlow = true,
+    bigNumberColor = Color(0xFFBFF0FF),
+    onBackdrop = Color(0xFFE3F1FA),
+    dialogColor = Color(0xFF0D1B27),
+    navBarColor = Color(0xFF060E16),
+    navSelected = Color(0xFF29B6F6),
+    navUnselected = Color(0xFF6C8698),
+    heroImage = R.drawable.hero_ocean,
+    backdropImage = R.drawable.bg_ocean,
+    backdropImageAlpha = 0.8f
+)
+
 /** همه تم‌های موجود، به ترتیب نمایش در تنظیمات. */
-val AllSkins: List<AppSkin> = listOf(AuroraSkin, EmeraldSkin, PaperSkin, PlumSkin, SlateSkin)
+val AllSkins: List<AppSkin> = listOf(
+    GoldSkin, SakuraSkin, OceanSkin, AuroraSkin, EmeraldSkin, PlumSkin, SlateSkin, PaperSkin
+)
 
 fun skinOf(palette: Palette): AppSkin = when (palette) {
     Palette.AURORA -> AuroraSkin
@@ -330,6 +484,9 @@ fun skinOf(palette: Palette): AppSkin = when (palette) {
     Palette.PAPER -> PaperSkin
     Palette.PLUM -> PlumSkin
     Palette.SLATE -> SlateSkin
+    Palette.GOLD -> GoldSkin
+    Palette.SAKURA -> SakuraSkin
+    Palette.OCEAN -> OceanSkin
 }
 
 val LocalAppSkin: ProvidableCompositionLocal<AppSkin> = compositionLocalOf { AuroraSkin }
@@ -349,6 +506,9 @@ fun KharjYarTheme(
         Palette.PAPER -> PaperScheme
         Palette.PLUM -> PlumScheme
         Palette.SLATE -> SlateScheme
+        Palette.GOLD -> GoldScheme
+        Palette.SAKURA -> SakuraScheme
+        Palette.OCEAN -> OceanScheme
     }
     CompositionLocalProvider(LocalAppSkin provides skin) {
         MaterialTheme(
