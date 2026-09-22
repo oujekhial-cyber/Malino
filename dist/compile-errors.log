@@ -1,0 +1,44 @@
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/MainActivity.kt:40:23 Unresolved reference 'secureScreen'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:4:27 Conflicting import: imported name 'PackageManager' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:5:19 Conflicting import: imported name 'Build' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:6:42 Conflicting import: imported name 'RoundedCornerShape' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:10:37 Conflicting import: imported name 'Color' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:12:30 Conflicting import: imported name 'ContextCompat' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:13:27 Conflicting import: imported name 'Lifecycle' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:14:27 Conflicting import: imported name 'LifecycleEventObserver' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:55:27 Conflicting import: imported name 'PackageManager' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:56:19 Conflicting import: imported name 'Build' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:57:42 Conflicting import: imported name 'RoundedCornerShape' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:60:37 Conflicting import: imported name 'Color' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:62:30 Conflicting import: imported name 'ContextCompat' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:63:27 Conflicting import: imported name 'Lifecycle' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:64:27 Conflicting import: imported name 'LifecycleEventObserver' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:239:29 Unresolved reference 'width'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:189:40 Unresolved reference 'secureScreen'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:190:79 Unresolved reference 'setSecureScreen'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:293:47 Unresolved reference 'widgetShowDates'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:293:122 Unresolved reference 'setWidgetShowDates'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:301:43 Unresolved reference 'widgetShowImage'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:301:118 Unresolved reference 'setWidgetShowImage'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/MainActivity.kt:40:23 Unresolved reference 'secureScreen'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:4:27 Conflicting import: imported name 'PackageManager' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:5:19 Conflicting import: imported name 'Build' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:6:42 Conflicting import: imported name 'RoundedCornerShape' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:10:37 Conflicting import: imported name 'Color' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:12:30 Conflicting import: imported name 'ContextCompat' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:13:27 Conflicting import: imported name 'Lifecycle' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:14:27 Conflicting import: imported name 'LifecycleEventObserver' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:55:27 Conflicting import: imported name 'PackageManager' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:56:19 Conflicting import: imported name 'Build' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:57:42 Conflicting import: imported name 'RoundedCornerShape' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:60:37 Conflicting import: imported name 'Color' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:62:30 Conflicting import: imported name 'ContextCompat' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:63:27 Conflicting import: imported name 'Lifecycle' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:64:27 Conflicting import: imported name 'LifecycleEventObserver' is ambiguous.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:239:29 Unresolved reference 'width'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:189:40 Unresolved reference 'secureScreen'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:190:79 Unresolved reference 'setSecureScreen'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:293:47 Unresolved reference 'widgetShowDates'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:293:122 Unresolved reference 'setWidgetShowDates'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:301:43 Unresolved reference 'widgetShowImage'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:301:118 Unresolved reference 'setWidgetShowImage'.
