@@ -46,13 +46,13 @@
             android:includeFontPadding="false"
             android:textColor="#E86FA8" />
 
-        <View
+        <ImageView
             android:id="@+id/w_title_rule"
             android:layout_width="64dp"
             android:layout_height="1dp"
             android:layout_marginTop="7dp"
             android:layout_marginBottom="11dp"
-            android:background="#33FFFFFF" />
+            android:background="#33FFFFFF" android:contentDescription="@null" />
 
         <!-- ردیف درآمد -->
         <LinearLayout
@@ -172,12 +172,12 @@
     </LinearLayout>
 
     <!-- خط جداکننده عمودی -->
-    <View
+    <ImageView
         android:id="@+id/w_divider"
         android:layout_width="1dp"
         android:layout_height="match_parent"
         android:layout_marginHorizontal="14dp"
-        android:background="#2EFFFFFF" />
+        android:background="#2EFFFFFF" android:contentDescription="@null" />
 
     <!-- ستون چپ: ساعت و تاریخ (ناحیه کلیک برنامه ساعت) -->
     <LinearLayout

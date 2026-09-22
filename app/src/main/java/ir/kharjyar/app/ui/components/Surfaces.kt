@@ -165,8 +165,8 @@ fun HeroCard(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                skin.heroGradient.first().copy(alpha = 0.30f),
-                                skin.heroGradient.last().copy(alpha = 0.48f)
+                                skin.heroGradient.first().copy(alpha = 0.14f),
+                                skin.heroGradient.last().copy(alpha = 0.26f)
                             )
                         )
                     )
@@ -225,9 +225,9 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
                 brush = Brush.linearGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = 0.02f),
-                        Color.White.copy(alpha = 0.055f),
-                        Color.White.copy(alpha = 0.02f),
+                        Color.White.copy(alpha = 0.012f),
+                        Color.White.copy(alpha = 0.032f),
+                        Color.White.copy(alpha = 0.012f),
                         Color.Transparent
                     ),
                     start = Offset(x, 0f),

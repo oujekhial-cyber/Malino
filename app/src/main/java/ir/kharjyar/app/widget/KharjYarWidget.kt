@@ -15,7 +15,6 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
-import android.provider.AlarmClock
 import android.util.TypedValue
 import android.widget.RemoteViews
 import androidx.compose.ui.graphics.toArgb
@@ -285,43 +284,13 @@ object WidgetRenderer {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             flags
         )
+        // هر دو ناحیه خرج‌یار را باز می‌کنند. باز کردن برنامه ساعت گوشی روی
+        // بعضی دستگاه‌ها کار نمی‌کرد، پس طبق خواست کاربر برداشته شد.
         views.setOnClickPendingIntent(R.id.w_app_area, appPending)
-
-        val clock = clockIntent(context)
-        val clockPending = PendingIntent.getActivity(context, REQ_CLOCK, clock, flags)
-        views.setOnClickPendingIntent(R.id.w_clock_area, clockPending)
+        views.setOnClickPendingIntent(R.id.w_clock_area, appPending)
     }
 
     private const val REQ_APP = 1001
-    private const val REQ_CLOCK = 1002
-}
-
-/**
- * اینتنت باز کردن برنامه ساعت گوشی.
- * ترتیب تلاش: اکشن استاندارد نمایش ساعت‌ها، سپس زنگ هشدار،
- * سپس بسته‌های رایج ساعت، و در نهایت خودِ خرج‌یار.
- */
-private fun clockIntent(context: Context): Intent {
-    val pm = context.packageManager
-    listOf(
-        Intent(AlarmClock.ACTION_SHOW_ALARMS),
-        Intent(AlarmClock.ACTION_SET_ALARM)
-    ).forEach { intent ->
-        if (intent.resolveActivityInfo(pm, 0) != null) {
-            return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-    }
-    val fallback = listOf(
-        "com.android.deskclock",
-        "com.google.android.deskclock",
-        "com.sec.android.app.clockpackage",
-        "com.miui.clock",
-        "com.coloros.alarmclock",
-        "com.oneplus.deskclock"
-    ).firstNotNullOfOrNull { pm.getLaunchIntentForPackage(it) }
-
-    return (fallback ?: Intent(context, MainActivity::class.java))
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
 
 /** گیرنده ویجت: رسم اولیه و به‌روزرسانی با تغییر روز/ساعت. */
