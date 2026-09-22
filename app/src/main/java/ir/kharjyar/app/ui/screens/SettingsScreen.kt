@@ -53,9 +53,8 @@ import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.prefs.WidgetBackground
 import ir.kharjyar.app.data.prefs.DigitStyle
-import ir.kharjyar.app.data.prefs.WidgetAlign
-import ir.kharjyar.app.data.prefs.WidgetVAlign
 import ir.kharjyar.app.data.prefs.WidgetContent
+import ir.kharjyar.app.data.prefs.WidgetLayout
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
 import android.content.Intent
@@ -274,100 +273,61 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
         // ---------- ویجت ----------
         SectionCard("ویجت صفحه اصلی") {
+            Text(
+                "قالب ویجت را انتخاب کنید. هر قالب با رنگ تم فعال برنامه ساخته می‌شود؛ " +
+                    "ساعت و تاریخ‌ها همیشه زنده‌اند و با ساعت گوشی هماهنگ می‌مانند.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             ComboBox(
-                label = "محتوای ویجت",
-                options = WidgetContent.entries.toList(),
-                selected = settings.widgetContent,
-                labelOf = { c ->
-                    when (c) {
-                        WidgetContent.SUMMARY -> "خلاصه ماه"
-                        WidgetContent.TODAY_EXPENSE -> "هزینه امروز"
-                        WidgetContent.MONTH_EXPENSE -> "هزینه ماه"
-                        WidgetContent.RECENT -> "آخرین تراکنش‌ها"
-                    }
-                },
-                onSelect = { c ->
+                label = "قالب ویجت",
+                options = WidgetLayout.entries.toList(),
+                selected = settings.widgetLayout,
+                labelOf = { layoutLabel(it) },
+                onSelect = { v ->
                     scope.launch {
-                        viewModel.settingsRepo.setWidgetContent(c)
+                        viewModel.settingsRepo.setWidgetLayout(v)
                         ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
                     }
-                }
-            )
-            ComboBox(
-                label = "پس‌زمینه ویجت",
-                options = WidgetBackground.entries.toList(),
-                selected = settings.widgetBackground,
-                labelOf = { b ->
-                    when (b) {
-                        WidgetBackground.THEME -> "رنگ تم"
-                        WidgetBackground.SAKURA -> "شکوفه شب (تصویر)"
-                    }
-                },
-                onSelect = { b ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetBackground(b)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("ساعت و تاریخ در ویجت", style = MaterialTheme.typography.bodyLarge)
-                    Text("ساعت بزرگ همراه تاریخ شمسی و میلادی در سمت چپ ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Switch(checked = settings.widgetShowClock, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowClock(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
-            }
-            if (settings.widgetShowClock) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("نمایش تاریخ‌ها", style = MaterialTheme.typography.bodyLarge)
-                        Text("تاریخ شمسی و میلادی زیر ساعت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Switch(checked = settings.widgetShowDates, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowDates(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
-                }
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("تصویر پس‌زمینه تم", style = MaterialTheme.typography.bodyLarge)
-                    Text("نمایش تصویر تم (مثل شکوفه شب) پشت ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Switch(checked = settings.widgetShowImage, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowImage(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("نمایش اعداد در ویجت", style = MaterialTheme.typography.bodyLarge)
-                Switch(checked = settings.widgetShowNumbers, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowNumbers(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
-            }
-            if (settings.appLockEnabled) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("نمایش اعداد با وجود قفل برنامه", style = MaterialTheme.typography.bodyLarge)
-                        Text("پیش‌فرض: با قفل فعال، اعداد ویجت مخفی‌اند", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Switch(checked = settings.widgetShowNumbersWhenLocked, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowNumbersWhenLocked(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
-                }
-            }
-            // ---------- پیش‌نمایش زنده ویجت ----------
-            Text("پیش‌نمایش", style = MaterialTheme.typography.labelLarge)
-            WidgetPreview(
-                opacity = settings.widgetOpacity,
-                clockSize = settings.widgetClockSize,
-                dateSize = settings.widgetDateSize,
-                valueSize = settings.widgetValueSize,
-                labelSize = settings.widgetLabelSize,
-                showClock = settings.widgetShowClock,
-                showNumbers = settings.widgetShowNumbers,
-                sakuraBackground = settings.widgetBackground == WidgetBackground.SAKURA,
-                lines = when (settings.widgetContent) {
-                    WidgetContent.TODAY_EXPENSE -> listOf("هزینه امروز" to "۳,۲۵۰,۰۰۰")
-                    WidgetContent.MONTH_EXPENSE -> listOf("هزینه این ماه" to "۱۸,۴۰۰,۰۰۰")
-                    WidgetContent.RECENT -> listOf("واریز" to "۵,۸۷۰,۰۰۰", "برداشت" to "۱,۲۸۰,۰۰۰")
-                    WidgetContent.SUMMARY -> listOf("درآمد" to "۵,۸۷۰,۰۰۰", "هزینه" to "۳,۲۵۰,۰۰۰")
                 }
             )
 
-            // ---------- شیشه‌ای بودن و اندازه‌ها ----------
+            ComboBox(
+                label = "محتوای ویجت",
+                options = listOf(
+                    WidgetContent.SUMMARY,
+                    WidgetContent.TODAY_EXPENSE,
+                    WidgetContent.MONTH_EXPENSE,
+                    WidgetContent.RECENT
+                ),
+                selected = settings.widgetContent,
+                labelOf = { contentLabel(it) },
+                onSelect = { v ->
+                    scope.launch {
+                        viewModel.settingsRepo.setWidgetContent(v)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
+
+            // ---------- پیش‌نمایش ----------
+            Text("پیش‌نمایش", style = MaterialTheme.typography.labelLarge)
+            WidgetPreview(
+                layout = settings.widgetLayout,
+                opacity = settings.widgetOpacity,
+                showNumbers = settings.widgetShowNumbers,
+                lines = when (settings.widgetContent) {
+                    WidgetContent.TODAY_EXPENSE -> listOf("هزینه امروز" to "۳,۲۵۰,۰۰۰")
+                    WidgetContent.MONTH_EXPENSE -> listOf("هزینه شهریور" to "۱۸,۴۰۰,۰۰۰")
+                    WidgetContent.RECENT -> listOf("واریز" to "۵,۸۷۰,۰۰۰", "برداشت" to "۱,۲۸۰,۰۰۰")
+                    WidgetContent.SUMMARY -> listOf("درآمد شهریور" to "۵,۸۷۰,۰۰۰", "هزینه شهریور" to "۳,۲۵۰,۰۰۰")
+                }
+            )
+
+            // ---------- شیشه‌ای بودن ----------
             LabeledSlider(
-                label = "میزان شیشه‌ای بودن پس‌زمینه",
+                label = "میزان شیشه‌ای بودن",
                 value = settings.widgetOpacity,
                 range = 0..100,
                 valueSuffix = "٪",
@@ -384,152 +344,39 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Text("اندازه اجزای ویجت", style = MaterialTheme.typography.labelLarge)
-            if (settings.widgetShowClock) {
-                LabeledSlider(
-                    label = "اندازه ساعت",
-                    value = settings.widgetClockSize,
-                    range = 18..72,
-                    onValueChange = { v ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("نمایش اعداد در ویجت", style = MaterialTheme.typography.bodyLarge)
+                Switch(
+                    checked = settings.widgetShowNumbers,
+                    onCheckedChange = {
                         scope.launch {
-                            viewModel.settingsRepo.setWidgetClockSize(v)
-                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                        }
-                    }
-                )
-                LabeledSlider(
-                    label = "اندازه تاریخ‌ها",
-                    value = settings.widgetDateSize,
-                    range = 8..28,
-                    onValueChange = { v ->
-                        scope.launch {
-                            viewModel.settingsRepo.setWidgetDateSize(v)
+                            viewModel.settingsRepo.setWidgetShowNumbers(it)
                             ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
                         }
                     }
                 )
             }
-            LabeledSlider(
-                label = "اندازه اعداد مالی",
-                value = settings.widgetValueSize,
-                range = 9..30,
-                onValueChange = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetValueSize(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+            if (settings.appLockEnabled) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("نمایش اعداد با وجود قفل برنامه", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "پیش‌فرض: با قفل فعال، اعداد ویجت مخفی‌اند",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                }
-            )
-            LabeledSlider(
-                label = "اندازه برچسب‌ها",
-                value = settings.widgetLabelSize,
-                range = 7..22,
-                onValueChange = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetLabelSize(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-            // ---------- چیدمان متن‌های ویجت ----------
-            Text("چیدمان متن‌ها در ویجت", style = MaterialTheme.typography.labelLarge)
-            ComboBox(
-                label = "تراز بخش خرج‌یار و مبالغ",
-                options = listOf(WidgetAlign.START, WidgetAlign.CENTER, WidgetAlign.END),
-                selected = settings.widgetTitleAlign,
-                labelOf = { alignLabel(it) },
-                onSelect = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetTitleAlign(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-            ComboBox(
-                label = "جای عمودی خرج‌یار و مبالغ",
-                options = listOf(WidgetVAlign.TOP, WidgetVAlign.CENTER, WidgetVAlign.BOTTOM),
-                selected = settings.widgetTitleVAlign,
-                labelOf = { vAlignLabel(it) },
-                onSelect = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetTitleVAlign(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-            LabeledSlider(
-                label = "تنظیم دقیق عمودی خرج‌یار و مبالغ",
-                value = settings.widgetTitleOffsetY,
-                range = -40..40,
-                onValueChange = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetTitleOffsetY(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-            if (settings.widgetShowClock) {
-                ComboBox(
-                    label = "تراز ساعت و تاریخ",
-                    options = listOf(WidgetAlign.START, WidgetAlign.CENTER, WidgetAlign.END),
-                    selected = settings.widgetClockAlign,
-                    labelOf = { alignLabel(it) },
-                    onSelect = { v ->
-                        scope.launch {
-                            viewModel.settingsRepo.setWidgetClockAlign(v)
-                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    Switch(
+                        checked = settings.widgetShowNumbersWhenLocked,
+                        onCheckedChange = {
+                            scope.launch {
+                                viewModel.settingsRepo.setWidgetShowNumbersWhenLocked(it)
+                                ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                            }
                         }
-                    }
-                )
-                ComboBox(
-                    label = "جای عمودی ساعت و تاریخ",
-                    options = listOf(WidgetVAlign.TOP, WidgetVAlign.CENTER, WidgetVAlign.BOTTOM),
-                    selected = settings.widgetClockVAlign,
-                    labelOf = { vAlignLabel(it) },
-                    onSelect = { v ->
-                        scope.launch {
-                            viewModel.settingsRepo.setWidgetClockVAlign(v)
-                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                        }
-                    }
-                )
-                LabeledSlider(
-                    label = "تنظیم دقیق عمودی ساعت و تاریخ",
-                    value = settings.widgetClockOffsetY,
-                    range = -40..40,
-                    onValueChange = { v ->
-                        scope.launch {
-                            viewModel.settingsRepo.setWidgetClockOffsetY(v)
-                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                        }
-                    }
-                )
+                    )
+                }
             }
-            Text(
-                "عدد منفی یعنی بالاتر و عدد مثبت یعنی پایین‌تر.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetOpacity(92)
-                        viewModel.settingsRepo.setWidgetClockSize(40)
-                        viewModel.settingsRepo.setWidgetDateSize(13)
-                        viewModel.settingsRepo.setWidgetValueSize(14)
-                        viewModel.settingsRepo.setWidgetLabelSize(10)
-                        viewModel.settingsRepo.setWidgetTitleAlign(WidgetAlign.START)
-                        viewModel.settingsRepo.setWidgetClockAlign(WidgetAlign.CENTER)
-                        viewModel.settingsRepo.setWidgetTitleVAlign(WidgetVAlign.CENTER)
-                        viewModel.settingsRepo.setWidgetClockVAlign(WidgetVAlign.CENTER)
-                        viewModel.settingsRepo.setWidgetTitleOffsetY(0)
-                        viewModel.settingsRepo.setWidgetClockOffsetY(0)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("بازگرداندن اندازه‌های پیش‌فرض") }
 
             OutlinedButton(onClick = {
                 val mgr = AppWidgetManager.getInstance(context)
@@ -692,16 +539,20 @@ private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit
 }
 
 /** برچسب فارسی تراز افقی. */
-private fun vAlignLabel(a: WidgetVAlign): String = when (a) {
-    WidgetVAlign.TOP -> "بالا"
-    WidgetVAlign.CENTER -> "وسط"
-    WidgetVAlign.BOTTOM -> "پایین"
+private fun layoutLabel(l: WidgetLayout): String = when (l) {
+    WidgetLayout.ROYAL -> "لوکس (قاب طلایی، ساعت خیلی بزرگ)"
+    WidgetLayout.MINIMAL -> "مینیمال (عنوان بزرگ، ساعت کنار)"
+    WidgetLayout.PANELS -> "نواری (سربرگ بالا، مقادیر در نوار)"
+    WidgetLayout.STACKED -> "نواری فشرده"
+    WidgetLayout.SPLIT -> "دوبخشی (خط وسط)"
+    WidgetLayout.GLASS -> "شیشه‌ای (با تصویر تم)"
 }
 
-private fun alignLabel(a: WidgetAlign): String = when (a) {
-    WidgetAlign.START -> "راست"
-    WidgetAlign.CENTER -> "وسط"
-    WidgetAlign.END -> "چپ"
+private fun contentLabel(c: WidgetContent): String = when (c) {
+    WidgetContent.SUMMARY -> "خلاصه ماه"
+    WidgetContent.TODAY_EXPENSE -> "هزینه امروز"
+    WidgetContent.MONTH_EXPENSE -> "هزینه ماه"
+    WidgetContent.RECENT -> "آخرین تراکنش‌ها"
 }
 
 /** یک ردیف تماس قابل لمس (ایمیل/تلفن) با آیکون. */

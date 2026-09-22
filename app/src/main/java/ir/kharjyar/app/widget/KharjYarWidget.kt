@@ -1,59 +1,35 @@
 package ir.kharjyar.app.widget
 
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
-import android.provider.AlarmClock
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Color as AColor
 import android.graphics.Paint
-import androidx.glance.Image
-import androidx.glance.ImageProvider
-import androidx.glance.layout.ContentScale
-import android.content.Intent
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.glance.GlanceId
-import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
+import android.graphics.RectF
+import android.graphics.drawable.GradientDrawable
+import android.provider.AlarmClock
 import android.util.TypedValue
 import android.widget.RemoteViews
 import androidx.compose.ui.graphics.toArgb
-import androidx.glance.appwidget.AndroidRemoteViews
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.cornerRadius
-import androidx.glance.appwidget.provideContent
-import androidx.glance.appwidget.updateAll
-import androidx.glance.background
-import androidx.glance.layout.Box
-import androidx.glance.action.actionStartActivity
-import androidx.glance.appwidget.action.actionStartActivity as actionStartActivityIntent
-import androidx.glance.action.clickable
-import androidx.glance.layout.Alignment
-import androidx.glance.layout.Column
-import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxHeight
-import androidx.glance.layout.height
-import androidx.glance.layout.padding
-import androidx.glance.layout.width
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import ir.kharjyar.app.KharjYarApp
-import ir.kharjyar.app.R
 import ir.kharjyar.app.MainActivity
+import ir.kharjyar.app.R
 import ir.kharjyar.app.core.balance.AccountBalance
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
-import ir.kharjyar.app.data.prefs.WidgetBackground
-import ir.kharjyar.app.data.prefs.WidgetAlign
-import ir.kharjyar.app.data.prefs.WidgetVAlign
 import ir.kharjyar.app.data.prefs.WidgetContent
+import ir.kharjyar.app.data.prefs.WidgetLayout
+import ir.kharjyar.app.ui.theme.AppSkin
 import ir.kharjyar.app.ui.theme.skinOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,17 +39,26 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * ویجت Glance: مقادیر مالی سمت راست، ساعت و تاریخ سمت چپ.
- * اگر قفل برنامه فعال است، اعداد به‌صورت پیش‌فرض مخفی‌اند مگر کاربر صریحاً اجازه دهد.
+ * ویجت خرج‌یار.
+ *
+ * با RemoteViews خالص ساخته می‌شود (نه Glance). دلیل: در Glance کلیک روی اجزای
+ * داخلی به بیرون نشت می‌کرد و لمس ساعت هم برنامه را باز می‌کرد. اینجا هر ناحیه
+ * PendingIntent مستقل دارد: ناحیه ساعت → برنامه ساعت گوشی، بقیه → خرج‌یار.
+ *
+ * ساعت و تاریخ میلادی TextClock هستند، پس سیستم‌عامل خودش زنده نگهشان می‌دارد.
  */
-class KharjYarWidget : GlanceAppWidget() {
+object WidgetRenderer {
 
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
+    /** ساخت نمای کامل ویجت بر اساس تنظیمات کاربر. */
+    suspend fun build(context: Context): RemoteViews {
         val app = context.applicationContext as KharjYarApp
         val settings = app.settings.current()
+        val skin = skinOf(settings.palette)
+
         val hideNumbers = settings.appLockEnabled && !settings.widgetShowNumbersWhenLocked
         val showNumbers = settings.widgetShowNumbers && !hideNumbers
 
+        // ---------- داده‌ها ----------
         val today = PersianDate.today()
         val (monthFrom, monthTo) = app.repository.currentPersianMonthRange()
         val accountId = settings.defaultAccountId
@@ -95,258 +80,248 @@ class KharjYarWidget : GlanceAppWidget() {
 
         val unit = settings.moneyUnit
         val lines: List<Pair<String, String>> = when (settings.widgetContent) {
-            WidgetContent.TODAY_EXPENSE -> listOf("هزینه امروز" to Money.format(todaySummary.expenseRial, unit))
-            WidgetContent.MONTH_EXPENSE -> listOf("هزینه ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit))
+            WidgetContent.TODAY_EXPENSE ->
+                listOf("هزینه امروز" to Money.format(todaySummary.expenseRial, unit))
+            WidgetContent.MONTH_EXPENSE ->
+                listOf("هزینه ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit))
             WidgetContent.SUMMARY -> listOfNotNull(
-                balanceLine,
                 "درآمد ${today.monthName()}" to Money.format(monthSummary.incomeRial, unit),
-                "هزینه ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit)
+                "هزینه ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit),
+                balanceLine
             )
             WidgetContent.RECENT -> recent.map { tx ->
-                (if (tx.direction == TxDirection.DEPOSIT) "واریز" else "برداشت") to Money.format(tx.amountRial, unit)
+                (if (tx.direction == TxDirection.DEPOSIT) "واریز" else "برداشت") to
+                    Money.format(tx.amountRial, unit)
             }.ifEmpty { listOf("تراکنش اخیر" to "—") }
         }
 
-        // ---------- ساعت و تاریخ‌ها ----------
-        val nowMillis = System.currentTimeMillis()
-        val zoned = Instant.ofEpochMilli(nowMillis).atZone(PersianDate.TEHRAN)
-        val persianDate = "${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}"
-        val gregorian = zoned.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH))
+        val persianDate =
+            "${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}"
 
-        val skin = skinOf(settings.palette)
-        // میزان شیشه‌ای بودن از تنظیمات کاربر (۰ = کاملاً شفاف، ۱۰۰ = مات)
-        val accent = ColorProvider(skin.accent)
-        val onBg = ColorProvider(skin.onBackdrop)
-        val big = ColorProvider(skin.bigNumberColor)
-        val showClock = settings.widgetShowClock
-        val useSakuraBg = settings.widgetShowImage &&
-            settings.widgetBackground == WidgetBackground.SAKURA
-        val dateSize = settings.widgetDateSize.sp
-        val valueSize = settings.widgetValueSize.sp
-        val labelSize = settings.widgetLabelSize.sp
-
-        // تراز افقی انتخابی کاربر برای دو پنل ویجت
-        fun horizOf(a: WidgetAlign) = when (a) {
-            WidgetAlign.START -> Alignment.Start
-            WidgetAlign.CENTER -> Alignment.CenterHorizontally
-            WidgetAlign.END -> Alignment.End
+        // ---------- ساخت نما ----------
+        val layoutRes = when (settings.widgetLayout) {
+            WidgetLayout.ROYAL -> R.layout.w_royal
+            WidgetLayout.MINIMAL -> R.layout.w_minimal
+            WidgetLayout.PANELS, WidgetLayout.STACKED -> R.layout.w_panels
+            WidgetLayout.SPLIT, WidgetLayout.GLASS -> R.layout.w_split
         }
-        // جابه‌جایی عمودی با padding نامتقارن شبیه‌سازی می‌شود
-        val titleOff = settings.widgetTitleOffsetY
-        val clockOff = settings.widgetClockOffsetY
-        val titleShiftTop = (if (titleOff > 0) titleOff else 0).dp
-        val titleShiftBottom = (if (titleOff < 0) -titleOff else 0).dp
-        val clockShiftTop = (if (clockOff > 0) clockOff else 0).dp
-        val clockShiftBottom = (if (clockOff < 0) -clockOff else 0).dp
-        fun vertOf(a: WidgetVAlign) = when (a) {
-            WidgetVAlign.TOP -> Alignment.Top
-            WidgetVAlign.CENTER -> Alignment.CenterVertically
-            WidgetVAlign.BOTTOM -> Alignment.Bottom
-        }
-        val titleAlign = horizOf(settings.widgetTitleAlign)
-        val clockAlign = horizOf(settings.widgetClockAlign)
-        val titleVAlign = vertOf(settings.widgetTitleVAlign)
-        val clockVAlign = vertOf(settings.widgetClockVAlign)
-        // gravity متناظر برای چیدمان XML پنل ساعت
-        val clockGravity = when (settings.widgetClockAlign) {
-            WidgetAlign.START -> android.view.Gravity.START
-            WidgetAlign.CENTER -> android.view.Gravity.CENTER_HORIZONTAL
-            WidgetAlign.END -> android.view.Gravity.END
-        }
+        val views = RemoteViews(context.packageName, layoutRes)
 
-        /**
-         * ساعت به‌صورت RemoteViews با TextClock ساخته می‌شود، نه متن ثابت.
-         * TextClock را خود سیستم‌عامل هر دقیقه به‌روز می‌کند، بنابراین ساعت ویجت
-         * همیشه با ساعت گوشی سینک است و به بازه به‌روزرسانی ویجت وابسته نیست.
-         */
-        val clockViews = RemoteViews(context.packageName, R.layout.widget_clock).apply {
-            val clockPx = settings.widgetClockSize.toFloat()
-            val datePx = settings.widgetDateSize.toFloat()
-            val bigArgb = skin.bigNumberColor.toArgb()
-            val onArgb = skin.onBackdrop.toArgb()
-            val tz = PersianDate.TEHRAN.id
+        applyBackground(context, views, skin, settings.widgetOpacity, settings.widgetLayout)
+        applyColors(views, skin, settings.widgetLayout)
+        applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
+        applyClickTargets(context, views)
 
-            // ساعت و دقیقه، هر دو زنده و هم‌اندازه
-            setTextViewTextSize(R.id.widget_hour, TypedValue.COMPLEX_UNIT_SP, clockPx)
-            setTextViewTextSize(R.id.widget_minute, TypedValue.COMPLEX_UNIT_SP, clockPx)
-            setTextColor(R.id.widget_hour, bigArgb)
-            setTextColor(R.id.widget_minute, bigArgb)
-            setString(R.id.widget_hour, "setTimeZone", tz)
-            setString(R.id.widget_minute, "setTimeZone", tz)
+        return views
+    }
 
-            // تاریخ شمسی (از کد) و تاریخ میلادی (زنده) — قابل خاموش کردن
-            val datesVisibility = if (settings.widgetShowDates) android.view.View.VISIBLE else android.view.View.GONE
-            setViewVisibility(R.id.widget_jalali, datesVisibility)
-            setViewVisibility(R.id.widget_gregorian, datesVisibility)
-            setTextViewText(R.id.widget_jalali, persianDate)
-            setTextViewTextSize(R.id.widget_jalali, TypedValue.COMPLEX_UNIT_SP, datePx)
-            setTextColor(R.id.widget_jalali, onArgb)
-
-            setTextViewTextSize(R.id.widget_gregorian, TypedValue.COMPLEX_UNIT_SP, datePx * 0.85f)
-            setTextColor(R.id.widget_gregorian, onArgb)
-            setString(R.id.widget_gregorian, "setTimeZone", tz)
-
-            // تراز افقی متن‌های پنل ساعت
-            setInt(R.id.widget_clock_panel, "setGravity", clockGravity)
-            setInt(R.id.widget_hour, "setGravity", clockGravity)
-            setInt(R.id.widget_minute, "setGravity", clockGravity)
-            setInt(R.id.widget_jalali, "setGravity", clockGravity)
-            setInt(R.id.widget_gregorian, "setGravity", clockGravity)
-        }
-
-        /**
-         * پس‌زمینه به‌صورت یک بیت‌مپ آماده ساخته می‌شود (نه لایه RemoteViews جداگانه).
-         * دلیل: تودرتو کردن چند AndroidRemoteViews داخل Glance باعث خطای
-         * «can't load widget» در بعضی لانچرها می‌شد. با کشیدن تصویر و رنگ روی یک
-         * بوم واحد، هم آن خطا برطرف می‌شود و هم شفافیت واقعاً اعمال می‌گردد.
-         */
-        val alphaFraction = (settings.widgetOpacity / 100f).coerceIn(0f, 1f)
-        val bgBitmap: Bitmap? = runCatching {
-            if (!useSakuraBg) return@runCatching null
-            val src = BitmapFactory.decodeResource(context.resources, R.drawable.widget_bg_sakura)
-                ?: return@runCatching null
-            val out = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+    /**
+     * پس‌زمینه: یک بیت‌مپ گرد با رنگ تم و شفافیت انتخابی کاربر.
+     * چون بیت‌مپ خودش شفاف است، تصویر زمینه گوشی از پشتش دیده می‌شود.
+     */
+    private fun applyBackground(
+        context: Context,
+        views: RemoteViews,
+        skin: AppSkin,
+        opacity: Int,
+        layout: WidgetLayout
+    ) {
+        val alpha = (opacity / 100f).coerceIn(0f, 1f)
+        val bitmap = runCatching {
+            val w = 1000
+            val h = 480
+            val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(out)
-            // تصویر با شفافیت انتخابی کاربر
-            canvas.drawBitmap(src, 0f, 0f, Paint().apply {
-                alpha = (alphaFraction * 255).toInt().coerceIn(0, 255)
-                isFilterBitmap = true
-            })
-            // لایه رنگ تم روی تصویر تا لحن تم حفظ شود
-            canvas.drawColor(skin.cardColor.copy(alpha = alphaFraction * 0.5f).toArgb())
-            if (src != out) src.recycle()
+            val radius = 54f
+            val rect = RectF(3f, 3f, w - 3f, h - 3f)
+
+            // تصویر تم (فقط در قالب‌های شیشه‌ای) زیر رنگ کشیده می‌شود
+            if (layout == WidgetLayout.GLASS || layout == WidgetLayout.ROYAL) {
+                BitmapFactory.decodeResource(context.resources, R.drawable.widget_bg_sakura)
+                    ?.let { src ->
+                        val saved = canvas.save()
+                        canvas.clipRect(rect)
+                        canvas.drawBitmap(
+                            src,
+                            null,
+                            RectF(0f, 0f, w.toFloat(), h.toFloat()),
+                            Paint().apply {
+                                this.alpha = (alpha * 210).toInt().coerceIn(0, 255)
+                                isFilterBitmap = true
+                            }
+                        )
+                        canvas.restoreToCount(saved)
+                        src.recycle()
+                    }
+            }
+
+            // بدنه کارت با رنگ تم
+            canvas.drawRoundRect(
+                rect, radius, radius,
+                Paint().apply {
+                    isAntiAlias = true
+                    color = skin.cardColor.copy(alpha = alpha).toArgb()
+                }
+            )
+            // قاب نازک نورانی به رنگ تم
+            canvas.drawRoundRect(
+                rect, radius, radius,
+                Paint().apply {
+                    isAntiAlias = true
+                    style = Paint.Style.STROKE
+                    strokeWidth = 3f
+                    color = skin.accent.copy(alpha = 0.45f * alpha + 0.12f).toArgb()
+                }
+            )
             out
         }.getOrNull()
 
-        // اگر تصویری در کار نیست، فقط رنگ تم با شفازیت انتخابی روی پس‌زمینه می‌نشیند
-        val plainBg = ColorProvider(skin.cardColor.copy(alpha = alphaFraction))
-
-        provideContent {
-            GlanceTheme {
-                Box(
-                    modifier = GlanceModifier
-                        .fillMaxSize()
-                        .cornerRadius(20.dp)
-                ) {
-                    // لایه پس‌زمینه: یا بیت‌مپ آماده (تصویر + رنگ) یا فقط رنگ تم
-                    if (bgBitmap != null) {
-                        Image(
-                            provider = ImageProvider(bgBitmap),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = GlanceModifier.fillMaxSize().cornerRadius(20.dp)
-                        )
-                    } else {
-                        Box(
-                            modifier = GlanceModifier
-                                .fillMaxSize()
-                                .background(plainBg)
-                                .cornerRadius(20.dp)
-                        ) {}
-                    }
-
-                    Row(
-                        modifier = GlanceModifier.fillMaxSize().padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                    // ---------- سمت راست (در RTL اول می‌آید): مقادیر مالی ----------
-                    Column(
-                        modifier = GlanceModifier
-                            .defaultWeight()
-                            .fillMaxHeight()
-                            // لمس این ناحیه، خودِ خرج‌یار را باز می‌کند
-                            .clickable(actionStartActivity<MainActivity>())
-                            .padding(
-                                top = titleShiftTop,
-                                bottom = titleShiftBottom
-                            ),
-                        verticalAlignment = titleVAlign,
-                        horizontalAlignment = titleAlign
-                    ) {
-                        Text(
-                            "خرج‌یار",
-                            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = labelSize * 1.3f, color = accent)
-                        )
-                        Spacer(GlanceModifier.height(6.dp))
-                        lines.forEach { (label, value) ->
-                            Text(
-                                label,
-                                style = TextStyle(fontSize = labelSize, color = onBg)
-                            )
-                            Text(
-                                if (showNumbers) value else "••••",
-                                style = TextStyle(
-                                    fontSize = valueSize,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (showNumbers) big else onBg
-                                )
-                            )
-                            Spacer(GlanceModifier.height(4.dp))
-                        }
-                        if (hideNumbers) {
-                            Text(
-                                "اعداد به دلیل قفل مخفی‌اند",
-                                style = TextStyle(fontSize = labelSize * 0.9f, color = onBg)
-                            )
-                        }
-                    }
-
-                    if (showClock) {
-                        Spacer(GlanceModifier.width(12.dp))
-                        // ---------- سمت چپ: ساعت بزرگ + تاریخ شمسی + میلادی ----------
-                        Column(
-                            modifier = GlanceModifier
-                                .fillMaxHeight()
-                                // لمس ساعت، برنامه ساعت گوشی را باز می‌کند
-                                .clickable(actionStartActivityIntent(clockIntent(context)))
-                                .padding(
-                                    top = clockShiftTop,
-                                    bottom = clockShiftBottom
-                                ),
-                            verticalAlignment = clockVAlign,
-                            horizontalAlignment = clockAlign
-                        ) {
-                            // ساعت/دقیقه/تاریخ‌ها همگی زنده‌اند و توسط سیستم به‌روز می‌شوند
-                            AndroidRemoteViews(remoteViews = clockViews)
-                        }
-                    }
-                    }
-                }
-            }
+        if (bitmap != null) {
+            views.setImageViewBitmap(R.id.w_bg_img, bitmap)
         }
     }
+
+    /** رنگ‌آمیزی متن‌ها و آیکون‌ها با رنگ‌های تم فعال. */
+    private fun applyColors(views: RemoteViews, skin: AppSkin, layout: WidgetLayout) {
+        val accent = skin.accent.toArgb()
+        val onBg = skin.onBackdrop.toArgb()
+        val big = skin.bigNumberColor.toArgb()
+        val muted = skin.onBackdrop.copy(alpha = 0.72f).toArgb()
+
+        views.setTextColor(R.id.w_title, accent)
+        views.setTextColor(R.id.w_clock, big)
+        views.setTextColor(R.id.w_jalali, onBg)
+        views.setTextColor(R.id.w_gregorian, muted)
+
+        listOf(R.id.w_label_1, R.id.w_label_2, R.id.w_label_3).forEach {
+            views.setTextColor(it, onBg)
+        }
+        listOf(R.id.w_value_1, R.id.w_value_2, R.id.w_value_3).forEach {
+            views.setTextColor(it, big)
+        }
+
+        // آیکون درآمد سبز/تم و هزینه قرمز/تم
+        views.setInt(R.id.w_icon_1, "setColorFilter", skin.incomeColor.toArgb())
+        views.setInt(R.id.w_icon_2, "setColorFilter", skin.expenseColor.toArgb())
+
+        // منطقه زمانی ساعت‌ها روی تهران تنظیم می‌شود
+        val tz = PersianDate.TEHRAN.id
+        views.setString(R.id.w_clock, "setTimeZone", tz)
+        views.setString(R.id.w_gregorian, "setTimeZone", tz)
+    }
+
+    /** پر کردن متن‌ها و پنهان/آشکار کردن ردیف‌های اضافه. */
+    private fun applyTexts(
+        views: RemoteViews,
+        lines: List<Pair<String, String>>,
+        persianDate: String,
+        showNumbers: Boolean,
+        hideNumbers: Boolean
+    ) {
+        views.setTextViewText(R.id.w_jalali, persianDate)
+
+        val labelIds = listOf(R.id.w_label_1, R.id.w_label_2, R.id.w_label_3)
+        val valueIds = listOf(R.id.w_value_1, R.id.w_value_2, R.id.w_value_3)
+        val rowIds = listOf(null, R.id.w_row_2, R.id.w_row_3)
+
+        labelIds.indices.forEach { i ->
+            val line = lines.getOrNull(i)
+            if (line == null) {
+                rowIds[i]?.let { views.setViewVisibility(it, android.view.View.GONE) }
+                views.setTextViewText(labelIds[i], "")
+                views.setTextViewText(valueIds[i], "")
+            } else {
+                rowIds[i]?.let { views.setViewVisibility(it, android.view.View.VISIBLE) }
+                views.setTextViewText(labelIds[i], line.first)
+                views.setTextViewText(
+                    valueIds[i],
+                    if (showNumbers) line.second else "••••"
+                )
+            }
+        }
+
+        if (hideNumbers) {
+            views.setTextViewText(R.id.w_label_1, "اعداد به دلیل قفل مخفی‌اند")
+        }
+    }
+
+    /**
+     * ناحیه‌های کلیک‌پذیر.
+     * چون هر ناحیه PendingIntent جداگانه دارد، لمس ساعت واقعاً برنامه ساعت را
+     * باز می‌کند و با لمس بقیه ویجت، خرج‌یار باز می‌شود.
+     */
+    private fun applyClickTargets(context: Context, views: RemoteViews) {
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+
+        val appPending = PendingIntent.getActivity(
+            context,
+            REQ_APP,
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            flags
+        )
+        views.setOnClickPendingIntent(R.id.w_app_area, appPending)
+
+        val clock = clockIntent(context)
+        val clockPending = PendingIntent.getActivity(context, REQ_CLOCK, clock, flags)
+        views.setOnClickPendingIntent(R.id.w_clock_area, clockPending)
+    }
+
+    private const val REQ_APP = 1001
+    private const val REQ_CLOCK = 1002
 }
 
 /**
  * اینتنت باز کردن برنامه ساعت گوشی.
- * اول اکشن استاندارد «نمایش ساعت‌ها» امتحان می‌شود؛ اگر روی دستگاه پشتیبانی
- * نشود، سراغ زنگ هشدار و در نهایت برنامه پیش‌فرض ساعت می‌رویم.
+ * ترتیب تلاش: اکشن استاندارد نمایش ساعت‌ها، سپس زنگ هشدار،
+ * سپس بسته‌های رایج ساعت، و در نهایت خودِ خرج‌یار.
  */
 private fun clockIntent(context: Context): Intent {
     val pm = context.packageManager
-    val candidates = listOf(
+    listOf(
         Intent(AlarmClock.ACTION_SHOW_ALARMS),
         Intent(AlarmClock.ACTION_SET_ALARM)
-    )
-    candidates.forEach { intent ->
-        // resolveActivityInfo روی همه نسخه‌ها در دسترس است و null-safe بررسی می‌شود
+    ).forEach { intent ->
         if (intent.resolveActivityInfo(pm, 0) != null) {
             return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
     }
-    // تلاش نهایی: برنامه ساعت رایج روی اکثر دستگاه‌ها
-    val fallback = pm.getLaunchIntentForPackage("com.android.deskclock")
-        ?: pm.getLaunchIntentForPackage("com.google.android.deskclock")
+    val fallback = listOf(
+        "com.android.deskclock",
+        "com.google.android.deskclock",
+        "com.sec.android.app.clockpackage",
+        "com.miui.clock",
+        "com.coloros.alarmclock",
+        "com.oneplus.deskclock"
+    ).firstNotNullOfOrNull { pm.getLaunchIntentForPackage(it) }
+
     return (fallback ?: Intent(context, MainActivity::class.java))
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
 
-class KharjYarWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = KharjYarWidget()
+/** گیرنده ویجت: رسم اولیه و به‌روزرسانی با تغییر روز/ساعت. */
+class KharjYarWidgetReceiver : AppWidgetProvider() {
+
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        render(context, appWidgetManager, appWidgetIds)
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle
+    ) {
+        render(context, appWidgetManager, intArrayOf(appWidgetId))
+    }
 
     /**
-     * ساعت خودش با TextClock زنده است، ولی تاریخ شمسی/میلادی متن ثابت است.
-     * با گوش دادن به تغییر روز/ساعت/منطقه زمانی، ویجت سر نیمه‌شب بازسازی می‌شود.
+     * ساعت خودش با TextClock زنده است، ولی تاریخ شمسی متن ثابت است؛
+     * با تغییر روز/ساعت/منطقه زمانی ویجت دوباره رسم می‌شود.
      */
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
@@ -356,13 +331,38 @@ class KharjYarWidgetReceiver : GlanceAppWidgetReceiver() {
             Intent.ACTION_TIMEZONE_CHANGED -> WidgetUpdater.requestUpdate(context)
         }
     }
+
+    private fun render(
+        context: Context,
+        manager: AppWidgetManager,
+        ids: IntArray
+    ) {
+        if (ids.isEmpty()) return
+        val appContext = context.applicationContext
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching {
+                val views = WidgetRenderer.build(appContext)
+                ids.forEach { manager.updateAppWidget(it, views) }
+            }
+        }
+    }
 }
 
 object WidgetUpdater {
-    /** به‌روزرسانی همه نمونه‌های ویجت پس از تغییر داده/تنظیمات. */
+    /** به‌روزرسانی همه نمونه‌های ویجت پس از تغییر داده یا تنظیمات. */
     fun requestUpdate(context: Context) {
+        val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
-            runCatching { KharjYarWidget().updateAll(context.applicationContext) }
+            runCatching {
+                val manager = AppWidgetManager.getInstance(appContext)
+                val ids = manager.getAppWidgetIds(
+                    ComponentName(appContext, KharjYarWidgetReceiver::class.java)
+                )
+                if (ids.isNotEmpty()) {
+                    val views = WidgetRenderer.build(appContext)
+                    ids.forEach { manager.updateAppWidget(it, views) }
+                }
+            }
         }
     }
 }

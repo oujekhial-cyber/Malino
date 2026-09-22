@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ریشه ویجت: یک تصویر پس‌زمینه (کارت گرد با رنگ تم و شفافیت کاربر)
+  و روی آن، چیدمان قالب انتخابی.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/w_bg_img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:contentDescription="@null" />
+
+<!--
+  قالب «لوکس»: نام برنامه سمت راست، ساعت خیلی بزرگ سمت چپ،
+  و دو ردیف مقدار که با خط نازک از هم جدا شده‌اند. (طرح ۱ کاربر)
+-->
+<LinearLayout
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:layoutDirection="rtl"
+    android:padding="16dp">
+
+    <!-- بالا: نام برنامه + ساعت و تاریخ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <LinearLayout
+            android:id="@+id/w_app_area"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/w_logo"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/w_ic_wallet"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/w_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="خرج‌یار"
+                android:textStyle="bold"
+                android:textSize="21sp"
+                android:includeFontPadding="false"
+                android:textColor="#F0C9A4" />
+
+            <View
+                android:id="@+id/w_title_rule"
+                android:layout_width="58dp"
+                android:layout_height="1dp"
+                android:layout_marginTop="7dp"
+                android:background="#59F0C9A4" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/w_clock_area"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextClock
+                android:id="@+id/w_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="@null"
+                android:format24Hour="HH:mm"
+                android:textSize="54sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:lines="1"
+                android:textColor="#F5CBA7" />
+
+            <View
+                android:layout_width="96dp"
+                android:layout_height="1dp"
+                android:layout_marginVertical="5dp"
+                android:background="#40F0C9A4" />
+
+            <TextView
+                android:id="@+id/w_jalali"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textSize="12sp"
+                android:includeFontPadding="false"
+                android:textColor="#F3E6E0" />
+
+            <TextClock
+                android:id="@+id/w_gregorian"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="d MMM yyyy"
+                android:format24Hour="d MMM yyyy"
+                android:maxLines="1"
+                android:textSize="11sp"
+                android:includeFontPadding="false"
+                android:textColor="#C4B3AA" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ردیف درآمد -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <FrameLayout
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/w_circle">
+            <ImageView
+                android:id="@+id/w_icon_1"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:layout_gravity="center"
+                android:src="@drawable/w_ic_up"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/w_label_1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="12sp"
+            android:textColor="#F3E6E0" />
+
+        <TextView
+            android:id="@+id/w_value_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:textColor="#FFF0E4" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="7dp"
+        android:background="#26F0C9A4" />
+
+    <!-- ردیف هزینه -->
+    <LinearLayout
+        android:id="@+id/w_row_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <FrameLayout
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/w_circle">
+            <ImageView
+                android:id="@+id/w_icon_2"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:layout_gravity="center"
+                android:src="@drawable/w_ic_down"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/w_label_2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="12sp"
+            android:textColor="#F3E6E0" />
+
+        <TextView
+            android:id="@+id/w_value_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:textColor="#FFF0E4" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/w_row_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/w_label_3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="12sp"
+            android:textColor="#F3E6E0" />
+
+        <TextView
+            android:id="@+id/w_value_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:textColor="#FFF0E4" />
+    </LinearLayout>
+</LinearLayout>
+</FrameLayout>

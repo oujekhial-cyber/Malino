@@ -214,9 +214,9 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
                 brush = Brush.linearGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = 0.14f),
-                        Color.White.copy(alpha = 0.38f),
-                        Color.White.copy(alpha = 0.14f),
+                        Color.White.copy(alpha = 0.04f),
+                        Color.White.copy(alpha = 0.10f),
+                        Color.White.copy(alpha = 0.04f),
                         Color.Transparent
                     ),
                     start = Offset(x, 0f),

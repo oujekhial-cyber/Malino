@@ -1,23 +1,30 @@
 package ir.kharjyar.app
 
 import ir.kharjyar.app.data.prefs.AppSettings
+import ir.kharjyar.app.data.prefs.WidgetLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** پیش‌فرض‌ها و محدوده‌های تنظیمات ظاهری ویجت. */
+/** پیش‌فرض‌های ویجت و قالب‌های آماده. */
 class WidgetSettingsTest {
 
     @Test
     fun `widget defaults are sane`() {
         val s = AppSettings()
         assertEquals(92, s.widgetOpacity)
-        assertEquals(40, s.widgetClockSize)
-        assertTrue(s.widgetShowClock)
-        // ساعت باید از همه اجزای دیگر بزرگ‌تر باشد
-        assertTrue(s.widgetClockSize > s.widgetDateSize)
-        assertTrue(s.widgetClockSize > s.widgetValueSize)
-        assertTrue(s.widgetValueSize > s.widgetLabelSize)
+        assertTrue(s.widgetShowNumbers)
+        // پیش‌فرض: قالب دوبخشی
+        assertEquals(WidgetLayout.SPLIT, s.widgetLayout)
+    }
+
+    @Test
+    fun `six widget layouts are available`() {
+        assertEquals(6, WidgetLayout.entries.size)
+        assertEquals(
+            listOf("ROYAL", "MINIMAL", "PANELS", "STACKED", "SPLIT", "GLASS"),
+            WidgetLayout.entries.map { it.name }
+        )
     }
 
     @Test

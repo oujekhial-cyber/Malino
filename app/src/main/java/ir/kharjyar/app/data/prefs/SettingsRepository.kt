@@ -28,6 +28,25 @@ enum class WidgetBackground { THEME, SAKURA }
 enum class DigitStyle { PERSIAN, LATIN }
 
 /** تراز افقی متن‌ها در ویجت. */
+/**
+ * قالب آماده ویجت، بر پایه شش طرحی که کاربر انتخاب کرده است.
+ * هر قالب چیدمان و اندازه‌های خودش را دارد و نیازی به تنظیم دستی نیست.
+ */
+enum class WidgetLayout {
+    /** ۱ — لوکس: قاب طلایی، ساعت خیلی بزرگ، ردیف‌های جداشده با خط. */
+    ROYAL,
+    /** ۲ — مینیمال: عنوان بالا-راست، ساعت بزرگ سمت چپ. */
+    MINIMAL,
+    /** ۳ — کارتی: عنوان و ساعت در یک ردیف، مقادیر در دو نوار جدا. */
+    PANELS,
+    /** ۴ — ستونی: سربرگ کامل بالا، مقادیر در دو کارت بزرگ زیر آن. */
+    STACKED,
+    /** ۵ — دوبخشی: خط عمودی وسط، مقادیر راست و ساعت چپ. */
+    SPLIT,
+    /** ۶ — شیشه‌ای: مثل دوبخشی با قاب نورانی و تاکید بیشتر روی شفافیت. */
+    GLASS
+}
+
 enum class WidgetAlign { START, CENTER, END }
 
 /** جای عمودی متن‌های ویجت: بالا، وسط یا پایین. */
@@ -41,6 +60,8 @@ data class AppSettings(
     val lockTimeoutSeconds: Int = 60,
     val onboardingDone: Boolean = false,
     val widgetContent: WidgetContent = WidgetContent.SUMMARY,
+    /** قالب ظاهری ویجت. */
+    val widgetLayout: WidgetLayout = WidgetLayout.SPLIT,
     val widgetShowNumbers: Boolean = true,
     /** اگر قفل فعال است، نمایش اعداد در ویجت باید صریحاً مجاز شود. */
     val widgetShowNumbersWhenLocked: Boolean = false,
@@ -115,6 +136,7 @@ class SettingsRepository(private val context: Context) {
         val AMOUNTS_VISIBLE = booleanPreferencesKey("amounts_visible")
         val W_TITLE_ALIGN = stringPreferencesKey("w_title_align")
         val W_CLOCK_ALIGN = stringPreferencesKey("w_clock_align")
+        val W_LAYOUT = stringPreferencesKey("w_layout")
         val W_TITLE_VALIGN = stringPreferencesKey("w_title_valign")
         val W_CLOCK_VALIGN = stringPreferencesKey("w_clock_valign")
         val W_DATES_BELOW = booleanPreferencesKey("w_dates_below")
@@ -131,6 +153,7 @@ class SettingsRepository(private val context: Context) {
             lockTimeoutSeconds = p[Keys.LOCK_TIMEOUT] ?: 60,
             onboardingDone = p[Keys.ONBOARDING] ?: false,
             widgetContent = enumOf(p[Keys.WIDGET_CONTENT], WidgetContent.SUMMARY),
+            widgetLayout = enumOf(p[Keys.W_LAYOUT], WidgetLayout.SPLIT),
             widgetShowNumbers = p[Keys.WIDGET_NUMBERS] ?: true,
             widgetShowNumbersWhenLocked = p[Keys.WIDGET_NUMBERS_LOCKED] ?: false,
             defaultAccountId = p[Keys.DEFAULT_ACCOUNT]?.takeIf { it > 0 },
@@ -169,6 +192,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setLockTimeout(v: Int) = edit { it[Keys.LOCK_TIMEOUT] = v }
     suspend fun setOnboardingDone(v: Boolean) = edit { it[Keys.ONBOARDING] = v }
     suspend fun setWidgetContent(v: WidgetContent) = edit { it[Keys.WIDGET_CONTENT] = v.name }
+    suspend fun setWidgetLayout(v: WidgetLayout) = edit { it[Keys.W_LAYOUT] = v.name }
     suspend fun setWidgetShowNumbers(v: Boolean) = edit { it[Keys.WIDGET_NUMBERS] = v }
     suspend fun setWidgetShowNumbersWhenLocked(v: Boolean) = edit { it[Keys.WIDGET_NUMBERS_LOCKED] = v }
     suspend fun setDefaultAccount(v: Long?) = edit { it[Keys.DEFAULT_ACCOUNT] = v ?: 0L }
@@ -201,6 +225,7 @@ class SettingsRepository(private val context: Context) {
             "palette" to s.palette.name,
             "money_unit" to s.moneyUnit.name,
             "widget_content" to s.widgetContent.name,
+            "w_layout" to s.widgetLayout.name,
             "widget_numbers" to s.widgetShowNumbers.toString(),
             "widget_clock" to s.widgetShowClock.toString(),
             "widget_opacity" to s.widgetOpacity.toString(),
@@ -223,6 +248,7 @@ class SettingsRepository(private val context: Context) {
             map["palette"]?.let { v -> p[Keys.PALETTE] = paletteOf(v).name }
             map["money_unit"]?.let { v -> runCatching { MoneyUnit.valueOf(v) }.getOrNull()?.let { p[Keys.MONEY_UNIT] = it.name } }
             map["widget_content"]?.let { v -> runCatching { WidgetContent.valueOf(v) }.getOrNull()?.let { p[Keys.WIDGET_CONTENT] = it.name } }
+            map["w_layout"]?.let { v -> runCatching { WidgetLayout.valueOf(v) }.getOrNull()?.let { p[Keys.W_LAYOUT] = it.name } }
             map["widget_numbers"]?.let { p[Keys.WIDGET_NUMBERS] = it.toBoolean() }
             map["widget_clock"]?.let { p[Keys.WIDGET_CLOCK] = it.toBoolean() }
             map["widget_opacity"]?.toIntOrNull()?.let { p[Keys.WIDGET_OPACITY] = it.coerceIn(0, 100) }
