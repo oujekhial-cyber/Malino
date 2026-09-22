@@ -10,30 +10,19 @@
 > Task :app:parseDebugLocalResources UP-TO-DATE
 > Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
 > Task :app:extractDeepLinksDebug UP-TO-DATE
-> Task :app:processDebugMainManifest UP-TO-DATE
-> Task :app:processDebugManifest UP-TO-DATE
-> Task :app:processDebugManifestForPackage UP-TO-DATE
-> Task :app:processDebugResources UP-TO-DATE
-> Task :app:kspDebugKotlin UP-TO-DATE
-> Task :app:compileDebugKotlin UP-TO-DATE
-> Task :app:javaPreCompileDebug UP-TO-DATE
-> Task :app:compileDebugJavaWithJavac UP-TO-DATE
-> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
-> Task :app:preDebugAndroidTestBuild SKIPPED
-> Task :app:generateDebugAndroidTestResValues FROM-CACHE
-> Task :app:generateDebugAndroidTestLintModel
-> Task :app:extractProguardFiles
-> Task :app:generateDebugLintReportModel
-> Task :app:preDebugUnitTestBuild UP-TO-DATE
-> Task :app:generateDebugUnitTestLintModel
-> Task :app:lintAnalyzeDebugAndroidTest
-> Task :app:lintAnalyzeDebugUnitTest
-> Task :app:lintAnalyzeDebug
+> Task :app:processDebugMainManifest FAILED
 
-> Task :app:lintReportDebug
-Wrote HTML report to file:///home/runner/work/Malino/Malino/app/build/reports/lint-results-debug.html
+FAILURE: Build failed with an exception.
 
-> Task :app:lintDebug
+* What went wrong:
+Execution failed for task ':app:processDebugMainManifest'.
+> com.android.manifmerger.ManifestMerger2$MergeFailureException: Error parsing /home/runner/work/Malino/Malino/app/src/main/AndroidManifest.xml
 
-BUILD SUCCESSFUL in 1m 2s
-28 actionable tasks: 9 executed, 1 from cache, 18 up-to-date
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 810ms
+10 actionable tasks: 1 executed, 9 up-to-date
