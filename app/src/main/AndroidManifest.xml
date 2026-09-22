@@ -20,9 +20,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.KharjYar"
         android:enableOnBackInvokedCallback="true"
-        android:hasFragileUserData="false"
         android:allowClearUserData="true"
-        android:usesCleartextTraffic="false"
         tools:targetApi="35">
 
         <activity
