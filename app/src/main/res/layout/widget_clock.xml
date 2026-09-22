@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ساعت ویجت با TextClock: سیستم‌عامل خودش هر دقیقه آن را به‌روز می‌کند،
+  بنابراین برخلاف متن معمولی، به بازه به‌روزرسانی ویجت وابسته نیست.
+-->
+<TextClock xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_clock_text"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:format12Hour="@null"
+    android:format24Hour="HH:mm"
+    android:textSize="40sp"
+    android:textStyle="bold"
+    android:includeFontPadding="false"
+    android:textColor="#FFFFFF" />

@@ -1,11 +1,16 @@
 package ir.kharjyar.app.widget
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import android.util.TypedValue
+import android.widget.RemoteViews
+import androidx.compose.ui.graphics.toArgb
+import androidx.glance.appwidget.AndroidRemoteViews
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.cornerRadius
@@ -28,6 +33,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import ir.kharjyar.app.KharjYarApp
+import ir.kharjyar.app.R
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.balance.AccountBalance
 import ir.kharjyar.app.core.date.PersianDate
@@ -91,7 +97,6 @@ class KharjYarWidget : GlanceAppWidget() {
         // ---------- ساعت و تاریخ‌ها ----------
         val nowMillis = System.currentTimeMillis()
         val zoned = Instant.ofEpochMilli(nowMillis).atZone(PersianDate.TEHRAN)
-        val clock = Digits.toPersian(String.format(Locale.US, "%02d:%02d", zoned.hour, zoned.minute))
         val persianDate = "${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}"
         val gregorian = zoned.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH))
 
@@ -102,10 +107,22 @@ class KharjYarWidget : GlanceAppWidget() {
         val onBg = ColorProvider(skin.onBackdrop)
         val big = ColorProvider(skin.bigNumberColor)
         val showClock = settings.widgetShowClock
-        val clockSize = settings.widgetClockSize.sp
         val dateSize = settings.widgetDateSize.sp
         val valueSize = settings.widgetValueSize.sp
         val labelSize = settings.widgetLabelSize.sp
+
+        /**
+         * ساعت به‌صورت RemoteViews با TextClock ساخته می‌شود، نه متن ثابت.
+         * TextClock را خود سیستم‌عامل هر دقیقه به‌روز می‌کند، بنابراین ساعت ویجت
+         * همیشه با ساعت گوشی سینک است و به بازه به‌روزرسانی ویجت وابسته نیست.
+         */
+        val clockViews = RemoteViews(context.packageName, R.layout.widget_clock).apply {
+            setTextViewTextSize(R.id.widget_clock_text, TypedValue.COMPLEX_UNIT_SP, settings.widgetClockSize.toFloat())
+            setTextColor(R.id.widget_clock_text, skin.bigNumberColor.toArgb())
+            // قالب ۲۴ ساعته با ارقام فارسی مطابق زبان برنامه
+            setCharSequence(R.id.widget_clock_text, "setFormat24Hour", "HH:mm")
+            setString(R.id.widget_clock_text, "setTimeZone", PersianDate.TEHRAN.id)
+        }
 
         provideContent {
             GlanceTheme {
@@ -160,14 +177,8 @@ class KharjYarWidget : GlanceAppWidget() {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalAlignment = Alignment.End
                         ) {
-                            Text(
-                                clock,
-                                style = TextStyle(
-                                    fontSize = clockSize,
-                                    fontWeight = FontWeight.Bold,
-                                    color = big
-                                )
-                            )
+                            // ساعت زنده (TextClock) — توسط سیستم هر دقیقه به‌روز می‌شود
+                            AndroidRemoteViews(remoteViews = clockViews)
                             Spacer(GlanceModifier.height(2.dp))
                             Text(
                                 persianDate,
@@ -187,6 +198,19 @@ class KharjYarWidget : GlanceAppWidget() {
 
 class KharjYarWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = KharjYarWidget()
+
+    /**
+     * ساعت خودش با TextClock زنده است، ولی تاریخ شمسی/میلادی متن ثابت است.
+     * با گوش دادن به تغییر روز/ساعت/منطقه زمانی، ویجت سر نیمه‌شب بازسازی می‌شود.
+     */
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        when (intent.action) {
+            Intent.ACTION_DATE_CHANGED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED -> WidgetUpdater.requestUpdate(context)
+        }
+    }
 }
 
 object WidgetUpdater {

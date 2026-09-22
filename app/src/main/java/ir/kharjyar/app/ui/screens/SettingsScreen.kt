@@ -50,6 +50,12 @@ import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.LabeledSlider
 import ir.kharjyar.app.ui.components.WidgetPreview
@@ -356,6 +362,56 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
+        // ---------- درباره برنامه ----------
+        SectionCard("درباره برنامه") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text("برنامه‌نویس", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("رحیم کرمی", style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+
+            // ایمیل: با زدن، برنامه ایمیل باز می‌شود
+            ContactRow(
+                icon = Icons.Filled.Email,
+                label = "ایمیل",
+                value = "fasasoftrrr@gmail.com",
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:fasasoftrrr@gmail.com"))
+                                .putExtra(Intent.EXTRA_SUBJECT, "خرج‌یار")
+                        )
+                    }
+                }
+            )
+
+            // شماره تماس: با زدن، شماره‌گیر باز می‌شود
+            ContactRow(
+                icon = Icons.Filled.Phone,
+                label = "شماره تماس",
+                value = Digits.toPersian("09399874951"),
+                onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:09399874951")))
+                    }
+                }
+            )
+
+            Text(
+                "نسخه ۱.۰.۰",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -416,6 +472,34 @@ private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit
         } else {
             OutlinedButton(onClick = onRequest) { Text("درخواست") }
         }
+    }
+}
+
+@Composable
+/** یک ردیف تماس قابل لمس (ایمیل/تلفن) با آیکون. */
+@Composable
+private fun ContactRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.bodyLarge)
+        }
+        Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

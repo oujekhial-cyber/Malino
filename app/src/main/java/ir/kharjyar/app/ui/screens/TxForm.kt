@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.ui.components.DateTimeField
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.db.AccountEntity
@@ -101,61 +102,12 @@ fun DatePickerRow(
     onDate: (PersianDate) -> Unit,
     onTime: (Int, Int) -> Unit
 ) {
-    Column {
-        Text("تاریخ و ساعت (شمسی)", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            NumberTextField(
-                value = date.year.toString(),
-                onValueChange = { v ->
-                    v.toIntOrNull()?.let { y ->
-                        if (y in 1300..1500) {
-                            onDate(PersianDate(y, date.month, date.day.coerceAtMost(PersianDate.monthLength(y, date.month))))
-                        }
-                    }
-                },
-                label = "سال",
-                maxDigits = 4,
-                modifier = Modifier.weight(1.2f)
-            )
-            NumberTextField(
-                value = date.month.toString(),
-                onValueChange = { v ->
-                    v.toIntOrNull()?.let { m ->
-                        if (m in 1..12) {
-                            onDate(PersianDate(date.year, m, date.day.coerceAtMost(PersianDate.monthLength(date.year, m))))
-                        }
-                    }
-                },
-                label = "ماه",
-                maxDigits = 2,
-                modifier = Modifier.weight(1f)
-            )
-            NumberTextField(
-                value = date.day.toString(),
-                onValueChange = { v ->
-                    v.toIntOrNull()?.let { d -> if (d in 1..date.monthLength()) onDate(PersianDate(date.year, date.month, d)) }
-                },
-                label = "روز",
-                maxDigits = 2,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            NumberTextField(
-                value = hour.toString(),
-                onValueChange = { v -> v.toIntOrNull()?.let { h -> if (h in 0..23) onTime(h, minute) } },
-                label = "ساعت",
-                maxDigits = 2,
-                modifier = Modifier.weight(1f)
-            )
-            NumberTextField(
-                value = minute.toString(),
-                onValueChange = { v -> v.toIntOrNull()?.let { m -> if (m in 0..59) onTime(hour, m) } },
-                label = "دقیقه",
-                maxDigits = 2,
-                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
+    // انتخاب تاریخ و ساعت از طریق پنجره تقویم شمسی، نه فیلدهای عددی
+    DateTimeField(
+        date = date,
+        hour = hour,
+        minute = minute,
+        onDate = onDate,
+        onTime = onTime
+    )
 }
