@@ -1,4 +1,9 @@
-# Keep kotlinx.serialization generated serializers
+# ============================================================
+#  خرج‌یار — قوانین کوچک‌سازی و مبهم‌سازی (R8)
+#  هدف: سخت‌تر کردن مهندسی معکوس، بدون شکستن Room/Serialization/Glance
+# ============================================================
+
+# ---------- kotlinx.serialization ----------
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.**
 -keepclassmembers class ir.kharjyar.app.** {

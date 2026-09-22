@@ -69,6 +69,7 @@ fun AccountPicker(
     )
 }
 
+/** گزینه‌های «جهت بانکی» و «ماهیت» به‌صورت کمبوباکس. */
 @Composable
 fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirection: (Int) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

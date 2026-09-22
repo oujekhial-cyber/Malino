@@ -178,6 +178,21 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
         SectionCard("امنیت") {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
+                    Text("جلوگیری از اسکرین‌شات", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "ضبط صفحه و اسکرین‌شات مسدود می‌شود و پیش‌نمایش برنامه در فهرست اخیر خالی می‌ماند",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = settings.secureScreen,
+                    onCheckedChange = { scope.launch { viewModel.settingsRepo.setSecureScreen(it) } }
+                )
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
                     Text("قفل برنامه", style = MaterialTheme.typography.bodyLarge)
                     Text("اثر انگشت، چهره یا رمز دستگاه", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -261,6 +276,29 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     Text("ساعت بزرگ همراه تاریخ شمسی و میلادی در سمت راست ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Switch(checked = settings.widgetShowClock, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowClock(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("ساعت و تاریخ در ویجت", style = MaterialTheme.typography.bodyLarge)
+                    Text("ساعت بزرگ همراه تاریخ شمسی و میلادی در سمت راست ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = settings.widgetShowClock, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowClock(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
+            }
+            if (settings.widgetShowClock) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("نمایش تاریخ‌ها", style = MaterialTheme.typography.bodyLarge)
+                        Text("تاریخ شمسی و میلادی زیر ساعت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = settings.widgetShowDates, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowDates(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("تصویر پس‌زمینه تم", style = MaterialTheme.typography.bodyLarge)
+                    Text("نمایش تصویر تم (مثل شکوفه شب) پشت ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = settings.widgetShowImage, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowImage(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("نمایش اعداد در ویجت", style = MaterialTheme.typography.bodyLarge)

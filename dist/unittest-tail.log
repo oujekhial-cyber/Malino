@@ -30,12 +30,12 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
 > Task :app:javaPreCompileDebugUnitTest
 > Task :app:processDebugResources
-
 > Task :app:kspDebugKotlin
-e: The daemon has terminated unexpectedly on startup attempt #1 with error code: 0. The daemon process output:
-    1. Kotlin compile daemon is ready
 
 > Task :app:compileDebugKotlin
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/BottomBar.kt:146:13 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/BottomBar.kt:170:13 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+
 > Task :app:compileDebugJavaWithJavac
 > Task :app:processDebugJavaRes
 > Task :app:bundleDebugClassesToRuntimeJar
@@ -46,5 +46,5 @@ e: The daemon has terminated unexpectedly on startup attempt #1 with error code:
 > Task :app:processDebugUnitTestJavaRes
 > Task :app:testDebugUnitTest
 
-BUILD SUCCESSFUL in 2m 25s
+BUILD SUCCESSFUL in 2m 41s
 25 actionable tasks: 25 executed
