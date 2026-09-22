@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Add
@@ -42,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -101,17 +104,24 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 Text(
                                     "خلاصه ${summary.monthTitle}",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = skin.onHero
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
                                 Text(
                                     defaultAccount?.title ?: "همه حساب‌ها",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = skin.onHero.copy(alpha = 0.85f),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White,
+                                    maxLines = 1,
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color.White.copy(alpha = 0.16f))
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.Black.copy(alpha = 0.34f))
+                                        .border(
+                                            1.dp,
+                                            Color.White.copy(alpha = 0.28f),
+                                            RoundedCornerShape(12.dp)
+                                        )
                                         .clickable { nav.navigate("settings") }
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
                             Spacer(Modifier.height(10.dp))
@@ -121,14 +131,15 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.18f))
+                                        .background(Color.Black.copy(alpha = 0.34f))
+                                        .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
                                         .clickable { scope.launch { viewModel.settingsRepo.setAmountsVisible(!amountVisible) } },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         if (amountVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                         contentDescription = if (amountVisible) "پنهان کردن مبلغ" else "نمایش مبلغ",
-                                        tint = skin.onHero,
+                                        tint = Color.White,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -139,28 +150,31 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             Money.format(summary.incomeRial - summary.expenseRial, settings.moneyUnit)
                                         else "••••••••",
                                         style = MaterialTheme.typography.headlineMedium,
-                                        color = skin.onHero
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
                                     )
                                     Text(
                                         "خالص این ماه",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = skin.onHero.copy(alpha = 0.75f)
+                                        color = Color.White.copy(alpha = 0.85f)
                                     )
                                 }
                             }
                             Spacer(Modifier.height(14.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 SummaryChip(
-                                    "درآمد",
-                                    if (amountVisible) Money.format(summary.incomeRial, settings.moneyUnit) else "••••",
-                                    skin.incomeColor,
-                                    Modifier.weight(1f)
+                                    label = "درآمد",
+                                    value = if (amountVisible) Money.format(summary.incomeRial, settings.moneyUnit) else "••••",
+                                    tint = skin.incomeColor,
+                                    deposit = true,
+                                    modifier = Modifier.weight(1f)
                                 )
                                 SummaryChip(
-                                    "هزینه",
-                                    if (amountVisible) Money.format(summary.expenseRial, settings.moneyUnit) else "••••",
-                                    skin.expenseColor,
-                                    Modifier.weight(1f)
+                                    label = "هزینه",
+                                    value = if (amountVisible) Money.format(summary.expenseRial, settings.moneyUnit) else "••••",
+                                    tint = skin.expenseColor,
+                                    deposit = false,
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
                             if (summary.pendingCount > 0) {
@@ -378,20 +392,56 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 }
 
 @Composable
-private fun SummaryChip(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {
-    val skin = LocalAppSkin.current
+private fun SummaryChip(
+    label: String,
+    value: String,
+    tint: Color,
+    deposit: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(16.dp)
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = if (skin.dark) 0.12f else 0.30f))
-            .padding(12.dp),
+            .clip(shape)
+            // پس‌زمینه تیره مات به‌جای سفیدِ نیمه‌شفاف: روی کارت روشن هم خوانا می‌ماند
+            .background(Color.Black.copy(alpha = 0.34f))
+            // حاشیه نازک هم‌رنگ مقدار، تا چیپ از پس‌زمینه جدا شود
+            .border(1.dp, tint.copy(alpha = 0.55f), shape)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.size(8.dp).background(tint, CircleShape))
-        Spacer(Modifier.width(8.dp))
+        // آیکون فلش داخل دایره هم‌رنگ، مطابق طرح کارت‌ها
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.20f))
+                .border(1.dp, tint.copy(alpha = 0.6f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (deposit) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(17.dp)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
         Column {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = skin.onHero.copy(alpha = 0.85f))
-            Text(value, style = MaterialTheme.typography.titleSmall, color = skin.onHero, textAlign = TextAlign.Start)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.92f),
+                maxLines = 1
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = tint,
+                textAlign = TextAlign.Start,
+                maxLines = 1
+            )
         }
     }
 }
