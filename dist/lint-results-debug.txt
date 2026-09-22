@@ -53,10 +53,10 @@ of the library. [ObsoleteLintCustomCheck]
    meaning that you need to use a newer version of lint (or Android Studio or
    Gradle plugin etc) to work with these checks.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:83: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:85: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:202: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:204: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
             PermissionRow("ارسال اعلان", notifGranted) { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
                                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -103,15 +103,6 @@ of the library. [ObsoleteLintCustomCheck]
    html
 
    https://developer.android.com/distribute/best-practices/develop/target-sdk.html
-
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt:156: Error: @layout/widget_background includes views not allowed in a RemoteView: View [RemoteViewLayout]
-        val bgViews = RemoteViews(context.packageName, R.layout.widget_background).apply {
-                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-   Explanation for issues of type "RemoteViewLayout":
-   In a RemoteView, only some layouts and views are allowed.
-
-   https://developer.android.com/reference/android/widget/RemoteViews
 
 /home/runner/work/Malino/Malino/gradle/libs.versions.toml:2: Warning: A newer version of com.android.application than 8.6.1 is available: 9.4.1 [AndroidGradlePluginVersion]
 agp = "8.6.1"
@@ -379,7 +370,7 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:53: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var minute by remember { mutableStateOf(0) }
                              ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:65: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:67: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var step by remember { mutableStateOf(0) }
                            ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/PersianDatePicker.kt:142: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
@@ -441,4 +432,4 @@ espresso = "3.6.1"
    lint.unused-resources.exclude-tests =true.
    ,
 
-2 errors, 72 warnings
+1 errors, 72 warnings
