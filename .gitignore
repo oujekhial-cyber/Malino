@@ -13,3 +13,10 @@ captures/
 theme-concepts/
 gen/
 icons/
+
+# کلید امضا و رمزها — هرگز نباید وارد مخزن شوند
+.keys/
+*.p12
+*.jks
+*.keystore
+local.properties

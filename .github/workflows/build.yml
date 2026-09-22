@@ -46,6 +46,34 @@ jobs:
           set -o pipefail
           ./gradlew :app:assembleDebug --stacktrace --console=plain 2>&1 | tee assemble.log
 
+      # کلید امضا فقط وقتی موجود است که مالک مخزن آن را به‌صورت Secret اضافه کرده باشد.
+      # اگر نبود، نسخه انتشار با کلید debug امضا می‌شود تا همیشه یک فایل قابل نصب وجود داشته باشد.
+      - name: Restore signing key
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/kharjyar-release.p12"
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "کلید امضای اختصاصی بازیابی شد"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Secret کلید تعریف نشده — نسخه انتشار با کلید debug امضا می‌شود"
+          fi
+
+      - name: Assemble release APK
+        id: release
+        continue-on-error: true
+        env:
+          KEYSTORE_FILE: ${{ steps.signing.outputs.available == 'true' && format('{0}/kharjyar-release.p12', runner.temp) || '' }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleRelease --stacktrace --console=plain 2>&1 | tee release.log
+
       - name: Lint debug
         id: lint
         continue-on-error: true
@@ -66,6 +94,7 @@ jobs:
             echo "- unit tests: ${{ steps.unittests.outcome }}"
             echo "- assembleDebug: ${{ steps.assemble.outcome }}"
             echo "- lintDebug: ${{ steps.lint.outcome }}"
+            echo "- assembleRelease: ${{ steps.release.outcome }}"
             echo ""
             echo '## خلاصه تست‌های واحد'
             echo '```'
@@ -78,9 +107,24 @@ jobs:
           grep -hE "^(e:|w: .*error|.*error:)" unittest.log assemble.log 2>/dev/null \
             | head -n 200 > dist/compile-errors.log || true
           tail -n 60 lint.log > dist/lint-tail.log || true
+          tail -n 120 release.log > dist/release-tail.log || true
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             cp app/build/outputs/apk/debug/app-debug.apk dist/KharjYar-debug.apk
             (cd dist && sha256sum KharjYar-debug.apk > KharjYar-debug.apk.sha256)
+          fi
+          # نسخه انتشار: کوچک‌تر، سریع‌تر و امضاشده
+          REL=app/build/outputs/apk/release/app-release.apk
+          if [ -f "$REL" ]; then
+            cp "$REL" dist/KharjYar-release.apk
+            (cd dist && sha256sum KharjYar-release.apk > KharjYar-release.apk.sha256)
+            echo "" >> dist/build-report.md
+            echo "## نسخه انتشار" >> dist/build-report.md
+            echo "- حجم: $(du -h "$REL" | cut -f1)" >> dist/build-report.md
+            echo "- کلید اختصاصی: ${{ steps.signing.outputs.available }}" >> dist/build-report.md
+            APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+            if [ -n "$APKSIGNER" ]; then
+              "$APKSIGNER" verify --print-certs "$REL" > dist/release-signature.txt 2>&1 || true
+            fi
           fi
           if [ -d app/build/reports/lint-results-debug.txt ] || [ -f app/build/reports/lint-results-debug.txt ]; then
             cp app/build/reports/lint-results-debug.txt dist/ || true

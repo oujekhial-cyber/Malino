@@ -18,6 +18,52 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // فقط معماری گوشی‌های واقعی؛ x86 مخصوص شبیه‌ساز است و حدود ۷ مگابایت
+        // کتابخانه بومی بی‌مصرف به APK اضافه می‌کرد.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+        // فقط منابع زبان‌های مورد استفاده نگه داشته می‌شوند
+        resourceConfigurations += listOf("fa", "en")
+    }
+
+    /**
+     * امضای نسخه انتشار.
+     *
+     * کلید هرگز داخل مخزن نگهداری نمی‌شود. مسیر و رمزها از این منابع خوانده می‌شوند
+     * (به همین ترتیب اولویت):
+     *   ۱) فایل local.properties  ← برای ساخت روی کامپیوتر شخصی
+     *   ۲) متغیرهای محیطی         ← برای ساخت در CI
+     * اگر هیچ‌کدام نبود، امضای انتشار غیرفعال می‌شود و ساخت debug مثل قبل کار می‌کند.
+     */
+    val keystoreProps = java.util.Properties().apply {
+        val f = rootProject.file("local.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    fun secret(key: String, env: String): String? =
+        (keystoreProps.getProperty(key) ?: System.getenv(env))?.takeIf { it.isNotBlank() }
+
+    val storeFilePath = secret("kharjyar.storeFile", "KEYSTORE_FILE")
+    val storePw = secret("kharjyar.storePassword", "KEYSTORE_PASSWORD")
+    val keyAliasName = secret("kharjyar.keyAlias", "KEY_ALIAS")
+    val keyPw = secret("kharjyar.keyPassword", "KEY_PASSWORD")
+    val hasSigning = storeFilePath != null && storePw != null &&
+        keyAliasName != null && keyPw != null && file(storeFilePath).exists()
+
+    signingConfigs {
+        if (hasSigning) {
+            create("release") {
+                storeFile = file(storeFilePath!!)
+                storePassword = storePw
+                keyAlias = keyAliasName
+                keyPassword = keyPw
+                // هر دو طرح امضا فعال: v1 برای سازگاری، v2/v3 برای تأیید سریع‌تر سیستم
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
     }
 
     buildTypes {
@@ -26,6 +72,7 @@ android {
             resValue("string", "app_label", "خرج‌یار")
         }
         release {
+            if (hasSigning) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             resValue("string", "app_label", "خرج‌یار")
