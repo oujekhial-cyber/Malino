@@ -30,8 +30,8 @@
 > Task :app:processDebugJavaRes UP-TO-DATE
 > Task :app:mergeDebugJniLibFolders
 > Task :app:checkDebugDuplicateClasses
-> Task :app:mergeLibDexDebug
 > Task :app:mergeDebugNativeLibs
+> Task :app:mergeLibDexDebug
 > Task :app:mergeDebugJavaResource
 
 > Task :app:stripDebugDebugSymbols
