@@ -1,5 +1,6 @@
 package ir.kharjyar.app
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -43,9 +44,10 @@ class WidgetAutoUpdateTest {
     }
 
     @Test
-    fun `glow helpers exist for cards`() {
+    fun `neon frame helper exists for hero card`() {
         val surfaces = source("src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt")
-        assertTrue("هاله پیرامون کارت حذف شده", surfaces.contains("fun Modifier.softGlow"))
-        assertTrue("نور چرخان حذف شده", surfaces.contains("fun Modifier.orbitGlow"))
+        assertTrue("قاب نئونی کارت اصلی حذف شده", surfaces.contains("fun Modifier.neonFrame"))
+        // نقطه نورانی چرخان به‌خواست کاربر برداشته شد و نباید برگردد
+        assertFalse("نقطه چرخان دوباره اضافه شده", surfaces.contains("fun Modifier.orbitGlow"))
     }
 }
