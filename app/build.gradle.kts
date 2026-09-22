@@ -50,23 +50,43 @@ android {
     val storePw = secret("kharjyar.storePassword", "KEYSTORE_PASSWORD")
     val keyAliasName = secret("kharjyar.keyAlias", "KEY_ALIAS")
     val keyPw = secret("kharjyar.keyPassword", "KEY_PASSWORD")
-    val hasSigning = storeFilePath != null && storePw != null &&
+    val hasOwnKey = storeFilePath != null && storePw != null &&
         keyAliasName != null && keyPw != null && file(storeFilePath).exists()
 
+    /**
+     * کلید پشتیبان داخل مخزن.
+     *
+     * رمزش عمومی است و راز محسوب نمی‌شود؛ هدفش فقط این است که خروجی انتشار
+     * همیشه «امضاشده و قابل نصب» باشد. APK بدون امضا با خطای
+     * «App not installed as package appears to be invalid» رد می‌شود.
+     *
+     * برای انتشار واقعی، کلید اختصاصی را از طریق Secretها بدهید تا جای این یکی
+     * را بگیرد (مقدار hasOwnKey آن موقع true می‌شود).
+     */
+    val fallbackKey = rootProject.file("signing/kharjyar-fallback.p12")
+    val useFallback = !hasOwnKey && fallbackKey.exists()
+
     signingConfigs {
-        if (hasSigning) {
-            create("release") {
+        create("release") {
+            if (hasOwnKey) {
                 storeFile = file(storeFilePath!!)
                 storePassword = storePw
                 keyAlias = keyAliasName
                 keyPassword = keyPw
-                // هر دو طرح امضا فعال: v1 برای سازگاری، v2/v3 برای تأیید سریع‌تر سیستم
-                enableV1Signing = true
-                enableV2Signing = true
-                enableV3Signing = true
+            } else if (useFallback) {
+                storeFile = fallbackKey
+                storePassword = "kharjyar"
+                keyAlias = "kharjyar"
+                keyPassword = "kharjyar"
             }
+            // هر سه طرح امضا: v1 برای سازگاری، v2/v3 برای تأیید سریع‌تر سیستم
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
+
+    val hasSigning = hasOwnKey || useFallback
 
     buildTypes {
         debug {

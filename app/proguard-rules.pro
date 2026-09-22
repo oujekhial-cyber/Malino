@@ -30,3 +30,32 @@
 # مبهم‌سازی نام فایل/خط در stacktrace
 -renamesourcefileattribute SourceFile
 -keepattributes SourceFile,LineNumberTable
+
+# ---------- Room ----------
+# پیاده‌سازی‌های تولیدشده Room با بازتاب پیدا می‌شوند
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao interface *
+-dontwarn androidx.room.paging.**
+
+# ---------- موجودیت‌ها و مدل‌های داده ----------
+# نام فیلدها باید دست‌نخورده بماند تا ستون‌های دیتابیس و JSON بکاپ خراب نشوند
+-keep class ir.kharjyar.app.data.db.** { *; }
+-keep class ir.kharjyar.app.core.backup.** { *; }
+-keep class ir.kharjyar.app.data.prefs.** { *; }
+
+# ---------- Glance / ویجت ----------
+-keep class ir.kharjyar.app.widget.** { *; }
+-keep class * extends android.appwidget.AppWidgetProvider { *; }
+
+# ---------- enum ----------
+# enumها با valueOf از روی نام بازیابی می‌شوند (تنظیمات و بکاپ)
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# ---------- Parcelable / Serializable ----------
+-keepclassmembers class * implements android.os.Parcelable {
+    public static final ** CREATOR;
+}

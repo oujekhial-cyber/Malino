@@ -126,7 +126,14 @@ jobs:
             echo "- کلید اختصاصی: ${{ steps.signing.outputs.available }}" >> dist/build-report.md
             APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
             if [ -n "$APKSIGNER" ]; then
-              "$APKSIGNER" verify --print-certs "$REL" > dist/release-signature.txt 2>&1 || true
+              if "$APKSIGNER" verify --print-certs "$REL" > dist/release-signature.txt 2>&1; then
+                echo "- امضا: معتبر" >> dist/build-report.md
+              else
+                echo "- امضا: نامعتبر — APK قابل نصب نیست" >> dist/build-report.md
+                echo "::error::نسخه انتشار امضای معتبر ندارد"
+                cat dist/release-signature.txt
+                exit 1
+              fi
             fi
           fi
           if [ -d app/build/reports/lint-results-debug.txt ] || [ -f app/build/reports/lint-results-debug.txt ]; then
