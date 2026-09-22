@@ -104,15 +104,6 @@ of the library. [ObsoleteLintCustomCheck]
 
    https://developer.android.com/distribute/best-practices/develop/target-sdk.html
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt:58: Error: @layout/w_split includes views not allowed in a RemoteView: View [RemoteViewLayout]
-        RemoteViews(context.packageName, R.layout.w_split).apply {
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-   Explanation for issues of type "RemoteViewLayout":
-   In a RemoteView, only some layouts and views are allowed.
-
-   https://developer.android.com/reference/android/widget/RemoteViews
-
 /home/runner/work/Malino/Malino/gradle/libs.versions.toml:2: Warning: A newer version of com.android.application than 8.6.1 is available: 9.4.1 [AndroidGradlePluginVersion]
 agp = "8.6.1"
       ~~~~~~~
@@ -514,4 +505,4 @@ espresso = "3.6.1"
    There are quickfixes to automatically extract this hardcoded string into a
    resource lookup.
 
-2 errors, 84 warnings
+1 errors, 84 warnings
