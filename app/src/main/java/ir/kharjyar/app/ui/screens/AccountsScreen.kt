@@ -30,18 +30,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import ir.kharjyar.app.core.balance.AccountBalance
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.EmptyState
 
 @Composable
 fun AccountsScreen(viewModel: AppViewModel, nav: NavHostController) {
     val accounts by viewModel.accounts.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val allTx by viewModel.allTransactions.collectAsState()
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         floatingActionButton = {
             FloatingActionButton(onClick = { nav.navigate("accountEdit/0") }) {
                 Icon(Icons.Filled.Add, contentDescription = "افزودن حساب")
@@ -49,15 +53,14 @@ fun AccountsScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            Text("مدیریت حساب‌ها", style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.padding(4.dp))
+                        Spacer(Modifier.padding(4.dp))
             if (accounts.isEmpty()) {
                 EmptyState("حسابی معرفی نشده", "برای اتصال پیامک‌های بانکی به حساب، از دکمه + استفاده کنید")
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(accounts.size) { i ->
                         val a = accounts[i]
-                        Card(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("accountEdit/${a.id}") }) {
+                        SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("accountEdit/${a.id}") }) {
                             Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(modifier = Modifier.size(14.dp).background(Color(a.colorArgb), CircleShape))
                                 Spacer(Modifier.width(12.dp))
@@ -78,6 +81,18 @@ fun AccountsScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         Text(
                                             "موجودی اولیه: ${Money.format(a.initialBalanceRial!!, settings.moneyUnit)} (ثبت کاربر، ${PersianDate.formatDateTime(a.initialBalanceAt!!)})",
                                             style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    val est = AccountBalance.estimate(a, allTx)
+                                    if (est.rial != null) {
+                                        Text(
+                                            "مانده برآوردی: ${Money.format(est.rial, settings.moneyUnit)}",
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
+                                        Text(
+                                            est.sourceLabel() + (est.asOf?.let { " — تا ${PersianDate.formatDateTime(it)}" } ?: ""),
+                                            style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }

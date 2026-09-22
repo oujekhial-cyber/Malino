@@ -6,8 +6,17 @@ import android.content.ComponentName
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,6 +38,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
@@ -37,10 +47,11 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
-import ir.kharjyar.app.data.prefs.Palette
-import ir.kharjyar.app.data.prefs.ThemeMode
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.theme.AllSkins
+import ir.kharjyar.app.ui.theme.AppSkin
 import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import kotlinx.coroutines.launch
 
@@ -62,28 +73,30 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
     val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { notifGranted = it }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("تنظیمات", style = MaterialTheme.typography.headlineSmall)
-
+        
         // ---------- تم ----------
         SectionCard("ظاهر و تم") {
-            Text("حالت", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = settings.themeMode == ThemeMode.SYSTEM, onClick = { scope.launch { viewModel.settingsRepo.setThemeMode(ThemeMode.SYSTEM) } }, label = { Text("سیستم") })
-                FilterChip(selected = settings.themeMode == ThemeMode.LIGHT, onClick = { scope.launch { viewModel.settingsRepo.setThemeMode(ThemeMode.LIGHT) } }, label = { Text("روشن") })
-                FilterChip(selected = settings.themeMode == ThemeMode.DARK, onClick = { scope.launch { viewModel.settingsRepo.setThemeMode(ThemeMode.DARK) } }, label = { Text("تاریک") })
-            }
-            Text("پالت رنگی", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = settings.palette == Palette.DYNAMIC, onClick = { scope.launch { viewModel.settingsRepo.setPalette(Palette.DYNAMIC) } }, label = { Text("پویا (Material You)") })
-                FilterChip(selected = settings.palette == Palette.OCEAN, onClick = { scope.launch { viewModel.settingsRepo.setPalette(Palette.OCEAN) } }, label = { Text("اقیانوس") })
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = settings.palette == Palette.FOREST, onClick = { scope.launch { viewModel.settingsRepo.setPalette(Palette.FOREST) } }, label = { Text("جنگل") })
-                FilterChip(selected = settings.palette == Palette.SUNSET, onClick = { scope.launch { viewModel.settingsRepo.setPalette(Palette.SUNSET) } }, label = { Text("غروب") })
-                FilterChip(selected = settings.palette == Palette.MIDNIGHT, onClick = { scope.launch { viewModel.settingsRepo.setPalette(Palette.MIDNIGHT) } }, label = { Text("نیمه‌شب") })
+            Text("تم برنامه", style = MaterialTheme.typography.labelLarge)
+            Text(
+                "تم روی پس‌زمینه، کارت‌ها، نمودار، دیالوگ‌ها و ویجت اعمال می‌شود.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            AllSkins.chunked(2).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    row.forEach { skin ->
+                        ThemeOption(
+                            skin = skin,
+                            selected = settings.palette == skin.id,
+                            modifier = Modifier.weight(1f),
+                            onClick = { scope.launch { viewModel.settingsRepo.setPalette(skin.id) } }
+                        )
+                    }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
             }
         }
 
@@ -208,9 +221,47 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
     }
 }
 
+/** کارت پیش‌نمایش یک تم (گرادیان + نام + حالت انتخاب). */
+@Composable
+private fun ThemeOption(
+    skin: AppSkin,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(skin.cardCorner)
+    Column(
+        modifier = modifier
+            .clip(shape)
+            .background(Brush.linearGradient(skin.heroGradient))
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                brush = Brush.linearGradient(
+                    if (selected) skin.fabGradient else skin.cardBorderColors
+                ),
+                shape = shape
+            )
+            .clickable(onClick = onClick)
+            .padding(14.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(14.dp).background(skin.incomeColor, CircleShape))
+            Box(Modifier.size(14.dp).background(skin.expenseColor, CircleShape))
+            Box(Modifier.size(14.dp).background(skin.accent, CircleShape))
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(skin.title, style = MaterialTheme.typography.titleSmall, color = skin.onBackdrop)
+        Text(
+            if (selected) "انتخاب‌شده" else "برای انتخاب بزنید",
+            style = MaterialTheme.typography.labelSmall,
+            color = skin.onBackdrop.copy(alpha = 0.75f)
+        )
+    }
+}
+
 @Composable
 private fun SectionCard(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    SkinCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             content()

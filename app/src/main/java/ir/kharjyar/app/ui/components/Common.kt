@@ -32,6 +32,7 @@ import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
+import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 /** متن مبلغ با واحد نمایش. اعداد به‌صورت LTR داخل متن RTL درست نمایش داده می‌شوند. */
 @Composable
@@ -58,8 +59,8 @@ fun MoneyText(
 fun DirectionBadge(direction: Int, nature: Int, modifier: Modifier = Modifier) {
     val (icon, label, color) = when {
         nature == TxNature.TRANSFER -> Triple(Icons.Filled.SwapHoriz, "انتقال", MaterialTheme.colorScheme.tertiary)
-        direction == TxDirection.DEPOSIT -> Triple(Icons.AutoMirrored.Filled.TrendingUp, "واریز", MaterialTheme.colorScheme.primary)
-        else -> Triple(Icons.AutoMirrored.Filled.TrendingDown, "برداشت", MaterialTheme.colorScheme.error)
+        direction == TxDirection.DEPOSIT -> Triple(Icons.AutoMirrored.Filled.TrendingUp, "واریز", LocalAppSkin.current.incomeColor)
+        else -> Triple(Icons.AutoMirrored.Filled.TrendingDown, "برداشت", LocalAppSkin.current.expenseColor)
     }
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(18.dp))
@@ -101,10 +102,11 @@ fun LineChart(
     incomeSeries: List<Long>,
     expenseSeries: List<Long>,
     modifier: Modifier = Modifier,
-    incomeColor: Color = MaterialTheme.colorScheme.primary,
-    expenseColor: Color = MaterialTheme.colorScheme.error
+    incomeColor: Color = LocalAppSkin.current.incomeColor,
+    expenseColor: Color = LocalAppSkin.current.expenseColor
 ) {
-    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val skin = LocalAppSkin.current
+    val gridColor = skin.onBackdrop.copy(alpha = 0.12f)
     Canvas(modifier = modifier.fillMaxWidth().height(160.dp)) {
         val n = maxOf(incomeSeries.size, expenseSeries.size)
         if (n < 2) return@Canvas
@@ -119,13 +121,23 @@ fun LineChart(
             drawLine(gridColor, Offset(0f, y), Offset(w, y), strokeWidth = 1f)
         }
 
-        fun drawSeries(series: List<Long>, color: Color) {
-            if (series.size < 2) return
+        fun pathOf(series: List<Long>): Path? {
+            if (series.size < 2) return null
             val path = Path()
             series.forEachIndexed { i, v ->
                 val x = w - i * stepX // RTL: زمان از راست به چپ
                 val y = h - (v.toFloat() / maxValue) * (h * 0.92f) - h * 0.04f
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            return path
+        }
+
+        fun drawSeries(series: List<Long>, color: Color) {
+            val path = pathOf(series) ?: return
+            if (skin.chartGlow) {
+                // افکت درخشش: چند لایه ضخیم و کم‌رنگ زیر خط اصلی
+                drawPath(path, color.copy(alpha = 0.10f), style = Stroke(width = 18f, cap = StrokeCap.Round))
+                drawPath(path, color.copy(alpha = 0.18f), style = Stroke(width = 11f, cap = StrokeCap.Round))
             }
             drawPath(path, color, style = Stroke(width = 5f, cap = StrokeCap.Round))
         }

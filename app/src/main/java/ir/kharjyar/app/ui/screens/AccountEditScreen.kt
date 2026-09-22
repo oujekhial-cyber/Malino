@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,6 +46,8 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.AccountSenderEntity
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.keepAboveKeyboard
 import kotlinx.coroutines.launch
 
 private val accountColors = listOf(
@@ -102,11 +105,10 @@ fun AccountEditScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(if (accountId == 0L) "معرفی حساب جدید" else "ویرایش حساب", style = MaterialTheme.typography.headlineSmall)
-
+        
         OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("عنوان دلخواه (مثل «حساب حقوق»)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
         Text("نام بانک", style = MaterialTheme.typography.labelLarge)
@@ -146,15 +148,12 @@ fun AccountEditScreen(
             singleLine = true
         )
 
-        OutlinedTextField(
+        AmountTextField(
             value = initialBalance,
             onValueChange = { initialBalance = it },
-            label = { Text("موجودی اولیه اختیاری (ریال)") },
-            supportingText = {
-                Digits.parseAmount(initialBalance)?.let { Text(Money.format(it, settings.moneyUnit)) }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            label = "موجودی اولیه اختیاری (ریال)",
+            supportingText = Digits.parseAmount(initialBalance)?.let { Money.format(it, settings.moneyUnit) },
+            modifier = Modifier.fillMaxWidth()
         )
 
         Card {

@@ -4,14 +4,110 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- کیف پول ساده -->
+
+    <!-- ============ سکه طلایی بیرون‌زده از کیف (پشت بدنه) ============ -->
+    <!-- سایه نرم زیر سکه -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M32,38 h44 a6,6 0 0 1 6,6 v28 a6,6 0 0 1 -6,6 h-44 a6,6 0 0 1 -6,-6 v-28 a6,6 0 0 1 6,-6 z" />
+        android:fillColor="#22000000"
+        android:pathData="M69,42m-14,0a14,14 0 1,0 28,0a14,14 0 1,0 -28,0z" />
+    <!-- بدنه سکه با گرادیان طلایی -->
+    <path android:pathData="M69,40m-13,0a13,13 0 1,0 26,0a13,13 0 1,0 -26,0z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="58"
+                android:startY="28"
+                android:endX="82"
+                android:endY="53">
+                <item android:offset="0.0" android:color="#FFFFE9A8" />
+                <item android:offset="0.45" android:color="#FFFFC63D" />
+                <item android:offset="1.0" android:color="#FFE09B18" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- حلقه داخلی سکه -->
     <path
-        android:fillColor="#FF00658E"
-        android:pathData="M60,52 h22 v12 h-22 a6,6 0 0 1 0,-12 z" />
+        android:strokeColor="#66FFFFFF"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M69,40m-8.5,0a8.5,8.5 0 1,0 17,0a8.5,8.5 0 1,0 -17,0z" />
+    <!-- هایلایت براق سکه -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M36,32 h32 a4,4 0 0 1 4,4 v2 h-40 v-2 a4,4 0 0 1 4,-4 z" />
+        android:fillColor="#88FFFFFF"
+        android:pathData="M63.5,34.5m-3.2,0a3.2,3.2 0 1,0 6.4,0a3.2,3.2 0 1,0 -6.4,0z" />
+
+    <!-- ============ کیف پول سفید نرم ============ -->
+    <!-- سایه ملایم زیر کیف -->
+    <path
+        android:fillColor="#1A000000"
+        android:pathData="M26,52 h56 a10,10 0 0 1 10,10 v20 a10,10 0 0 1 -10,10 h-56 a10,10 0 0 1 -10,-10 v-20 a10,10 0 0 1 10,-10 z" />
+
+    <!-- درپوش/لبه بالایی کیف -->
+    <path android:pathData="M28,40 h46 a10,10 0 0 1 10,10 v8 h-66 v-8 a10,10 0 0 1 10,-10 z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="28"
+                android:startY="40"
+                android:endX="84"
+                android:endY="58">
+                <item android:offset="0.0" android:color="#FFFFFFFF" />
+                <item android:offset="1.0" android:color="#FFE7E9F7" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- بدنه اصلی کیف -->
+    <path android:pathData="M25,50 h58 a11,11 0 0 1 11,11 v19 a11,11 0 0 1 -11,11 h-58 a11,11 0 0 1 -11,-11 v-19 a11,11 0 0 1 11,-11 z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="20"
+                android:startY="48"
+                android:endX="94"
+                android:endY="92">
+                <item android:offset="0.0" android:color="#FFFFFFFF" />
+                <item android:offset="0.6" android:color="#FFF6F7FE" />
+                <item android:offset="1.0" android:color="#FFDFE3F5" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- هایلایت نرم بالای بدنه (soft 3D) -->
+    <path
+        android:fillColor="#B3FFFFFF"
+        android:pathData="M25,50 h58 a11,11 0 0 1 11,11 v3 h-80 v-3 a11,11 0 0 1 11,-11 z" />
+
+    <!-- جیب/محفظه دکمه سمت راست -->
+    <path android:pathData="M66,60 h28 v22 h-28 a11,11 0 0 1 0,-22 z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="66"
+                android:startY="60"
+                android:endX="94"
+                android:endY="82">
+                <item android:offset="0.0" android:color="#FFE8EAFB" />
+                <item android:offset="1.0" android:color="#FFCDD4F0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- دکمه (قفل) کیف -->
+    <path android:pathData="M77,71m-6.5,0a6.5,6.5 0 1,0 13,0a6.5,6.5 0 1,0 -13,0z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="70"
+                android:startY="64"
+                android:endX="84"
+                android:endY="78">
+                <item android:offset="0.0" android:color="#FF6C7BFF" />
+                <item android:offset="1.0" android:color="#FF9C27FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#99FFFFFF"
+        android:pathData="M74.6,68.4m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0z" />
 </vector>

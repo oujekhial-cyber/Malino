@@ -16,12 +16,13 @@ import kotlinx.coroutines.flow.map
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
-enum class Palette { DYNAMIC, OCEAN, FOREST, SUNSET, MIDNIGHT }
+/** چهار تم بصری برنامه. */
+enum class Palette { GLASS, NEON, PASTEL, AURORA }
 enum class WidgetContent { TODAY_EXPENSE, MONTH_EXPENSE, SUMMARY, RECENT }
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val palette: Palette = Palette.OCEAN,
+    val palette: Palette = Palette.GLASS,
     val moneyUnit: MoneyUnit = MoneyUnit.TOMAN,
     val appLockEnabled: Boolean = false,
     val lockTimeoutSeconds: Int = 60,
@@ -49,7 +50,7 @@ class SettingsRepository(private val context: Context) {
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
         AppSettings(
             themeMode = enumOf(p[Keys.THEME], ThemeMode.SYSTEM),
-            palette = enumOf(p[Keys.PALETTE], Palette.OCEAN),
+            palette = paletteOf(p[Keys.PALETTE]),
             moneyUnit = enumOf(p[Keys.MONEY_UNIT], MoneyUnit.TOMAN),
             appLockEnabled = p[Keys.APP_LOCK] ?: false,
             lockTimeoutSeconds = p[Keys.LOCK_TIMEOUT] ?: 60,
@@ -87,7 +88,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun importFromBackup(map: Map<String, String>) {
         context.dataStore.edit { p ->
             map["theme_mode"]?.let { v -> runCatching { ThemeMode.valueOf(v) }.getOrNull()?.let { p[Keys.THEME] = it.name } }
-            map["palette"]?.let { v -> runCatching { Palette.valueOf(v) }.getOrNull()?.let { p[Keys.PALETTE] = it.name } }
+            map["palette"]?.let { v -> p[Keys.PALETTE] = paletteOf(v).name }
             map["money_unit"]?.let { v -> runCatching { MoneyUnit.valueOf(v) }.getOrNull()?.let { p[Keys.MONEY_UNIT] = it.name } }
             map["widget_content"]?.let { v -> runCatching { WidgetContent.valueOf(v) }.getOrNull()?.let { p[Keys.WIDGET_CONTENT] = it.name } }
             map["widget_numbers"]?.let { p[Keys.WIDGET_NUMBERS] = it.toBoolean() }
@@ -96,6 +97,17 @@ class SettingsRepository(private val context: Context) {
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         context.dataStore.edit(block)
+    }
+
+    /** نگاشت پالت‌های قدیمی (اقیانوس/جنگل/…) به تم‌های جدید. */
+    private fun paletteOf(name: String?): Palette = when (name) {
+        null -> Palette.GLASS
+        "GLASS" -> Palette.GLASS
+        "NEON", "MIDNIGHT" -> Palette.NEON
+        "PASTEL", "SUNSET" -> Palette.PASTEL
+        "AURORA", "FOREST" -> Palette.AURORA
+        "OCEAN", "DYNAMIC" -> Palette.GLASS
+        else -> runCatching { Palette.valueOf(name) }.getOrDefault(Palette.GLASS)
     }
 
     private inline fun <reified T : Enum<T>> enumOf(name: String?, default: T): T =

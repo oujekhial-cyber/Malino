@@ -5,24 +5,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RateReview
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -32,10 +32,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import ir.kharjyar.app.core.balance.AccountBalance
+import ir.kharjyar.app.core.balance.BalanceSource
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
@@ -43,7 +47,10 @@ import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
+import ir.kharjyar.app.ui.components.EnterCard
 import ir.kharjyar.app.ui.components.LineChart
+import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 @Composable
 fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
@@ -53,119 +60,194 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val recent by viewModel.recentTransactions.collectAsState()
     val reviewCount by viewModel.reviewCount.collectAsState()
     val allTx by viewModel.allTransactions.collectAsState()
+    val skin = LocalAppSkin.current
 
     Scaffold(
+        containerColor = Color.Transparent,
+        modifier = Modifier.imePadding(),
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { nav.navigate("manual") },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("ثبت تراکنش") }
-            )
+            // FAB گرادیانی تم‌پذیر
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Brush.linearGradient(skin.fabGradient))
+                    .clickable { nav.navigate("manual") }
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White)
+                Spacer(Modifier.width(8.dp))
+                Text("ثبت تراکنش", style = MaterialTheme.typography.titleSmall, color = Color.White)
+            }
         }
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // کارت خلاصه ماه
+            // ---------- کارت خلاصه ماه (hero) ----------
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.tertiaryContainer
-                                    )
-                                )
-                            )
-                            .padding(20.dp)
-                    ) {
-                        Text(
-                            "خلاصه ${summary.monthTitle}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            SummaryCell("درآمد", Money.format(summary.incomeRial, settings.moneyUnit))
-                            SummaryCell("هزینه", Money.format(summary.expenseRial, settings.moneyUnit))
-                            SummaryCell("خالص", Money.format(summary.incomeRial - summary.expenseRial, settings.moneyUnit))
-                        }
-                        if (summary.pendingCount > 0) {
-                            Spacer(Modifier.height(8.dp))
+                EnterCard(0) {
+                    SkinCard(modifier = Modifier.fillMaxWidth(), tonal = true) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                             Text(
-                                "به‌جز ${Digits.toPersian(summary.pendingCount.toString())} مورد تأییدنشده (در جمع بالا حساب نشده)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                "خلاصه ${summary.monthTitle}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = skin.onBackdrop
                             )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                Money.format(summary.incomeRial - summary.expenseRial, settings.moneyUnit),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = skin.bigNumberColor
+                            )
+                            Text(
+                                "خالص این ماه",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = skin.onBackdrop.copy(alpha = 0.75f)
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                SummaryChip(
+                                    "درآمد",
+                                    Money.format(summary.incomeRial, settings.moneyUnit),
+                                    skin.incomeColor,
+                                    Modifier.weight(1f)
+                                )
+                                SummaryChip(
+                                    "هزینه",
+                                    Money.format(summary.expenseRial, settings.moneyUnit),
+                                    skin.expenseColor,
+                                    Modifier.weight(1f)
+                                )
+                            }
+                            if (summary.pendingCount > 0) {
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    "به‌جز ${Digits.toPersian(summary.pendingCount.toString())} مورد تأییدنشده (در جمع بالا حساب نشده)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = skin.onBackdrop.copy(alpha = 0.8f)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // نیازمند بررسی
+            // ---------- نیازمند بررسی ----------
             if (reviewCount > 0) {
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clickable { nav.navigate("review") },
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.RateReview, null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                "${Digits.toPersian(reviewCount.toString())} مورد نیازمند بررسی",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                    EnterCard(1) {
+                        SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("review") }) {
+                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.RateReview, null, tint = skin.expenseColor)
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    "${Digits.toPersian(reviewCount.toString())} مورد نیازمند بررسی",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = skin.onBackdrop
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // کارت حساب‌ها
+            // ---------- حساب‌ها با مانده برآوردی ----------
             item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("حساب‌ها", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "مدیریت",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable { nav.navigate("accounts") }.padding(8.dp)
-                    )
-                }
-                if (accounts.none { !it.archived }) {
-                    Card(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("accountEdit/0") }) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.AccountBalance, null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.width(12.dp))
-                            Text("هنوز حسابی معرفی نکرده‌اید — افزودن حساب", style = MaterialTheme.typography.bodyMedium)
+                EnterCard(2) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("حساب‌ها", style = MaterialTheme.typography.titleMedium, color = skin.onBackdrop)
+                            Text(
+                                "مدیریت",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = skin.accent,
+                                modifier = Modifier.clickable { nav.navigate("accounts") }.padding(8.dp)
+                            )
                         }
-                    }
-                } else {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(accounts.count { !it.archived }) { idx ->
-                            val account = accounts.filter { !it.archived }[idx]
-                            Card(
-                                modifier = Modifier.width(180.dp).clickable { nav.navigate("accountEdit/${account.id}") },
-                                colors = CardDefaults.cardColors(containerColor = Color(account.colorArgb).copy(alpha = 0.15f))
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(modifier = Modifier.size(10.dp).background(Color(account.colorArgb), CircleShape))
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(account.title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                                    }
-                                    Text(account.bankName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    if (account.maskedNumber.isNotBlank()) {
-                                        Text(Digits.toPersian(account.maskedNumber), style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.height(8.dp))
+                        val active = accounts.filter { !it.archived }
+                        if (active.isEmpty()) {
+                            SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("accountEdit/0") }) {
+                                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.AccountBalance, null, tint = skin.accent)
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(
+                                        "هنوز حسابی معرفی نکرده‌اید — افزودن حساب",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = skin.onBackdrop
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                items(active.size) { idx ->
+                                    val account = active[idx]
+                                    val est = AccountBalance.estimate(account, allTx)
+                                    SkinCard(
+                                        modifier = Modifier
+                                            .width(230.dp)
+                                            .clickable { nav.navigate("accountEdit/${account.id}") }
+                                    ) {
+                                        Column(modifier = Modifier.padding(14.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(10.dp)
+                                                        .background(Color(account.colorArgb), CircleShape)
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    account.title,
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    maxLines = 1,
+                                                    color = skin.onBackdrop
+                                                )
+                                            }
+                                            Text(
+                                                account.bankName,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = skin.onBackdrop.copy(alpha = 0.7f)
+                                            )
+                                            Spacer(Modifier.height(8.dp))
+                                            Text(
+                                                "مانده برآوردی",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = skin.onBackdrop.copy(alpha = 0.7f)
+                                            )
+                                            Text(
+                                                if (est.rial != null) Money.format(est.rial, settings.moneyUnit) else "—",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                color = skin.bigNumberColor,
+                                                maxLines = 1
+                                            )
+                                            Text(
+                                                est.sourceLabel(),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = skin.onBackdrop.copy(alpha = 0.65f),
+                                                maxLines = 2
+                                            )
+                                            est.asOf?.let {
+                                                Text(
+                                                    "تا ${PersianDate.formatDateTime(it)}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = skin.onBackdrop.copy(alpha = 0.65f)
+                                                )
+                                            }
+                                            if (est.source != BalanceSource.NONE && est.pendingCount > 0) {
+                                                Text(
+                                                    "${Digits.toPersian(est.pendingCount.toString())} مورد تأییدنشده محاسبه نشده",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = skin.expenseColor
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -174,89 +256,107 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 }
             }
 
-            // نمودار ۳۰ روز اخیر
+            // ---------- نمودار ۳۰ روز اخیر ----------
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("روند ۳۰ روز اخیر", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(12.dp))
-                        val (income, expense) = buildDailySeries(allTx, 30)
-                        if (income.all { it == 0L } && expense.all { it == 0L }) {
-                            EmptyState("داده‌ای برای نمودار نیست", "با ثبت اولین تراکنش، نمودار اینجا شکل می‌گیرد")
-                        } else {
-                            LineChart(incomeSeries = income, expenseSeries = expense)
-                            Spacer(Modifier.height(8.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                LegendDot(MaterialTheme.colorScheme.primary, "درآمد")
-                                LegendDot(MaterialTheme.colorScheme.error, "هزینه")
+                EnterCard(3) {
+                    SkinCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("روند ۳۰ روز اخیر", style = MaterialTheme.typography.titleMedium, color = skin.onBackdrop)
+                            Spacer(Modifier.height(12.dp))
+                            val (income, expense) = buildDailySeries(allTx, 30)
+                            if (income.all { it == 0L } && expense.all { it == 0L }) {
+                                EmptyState("داده‌ای برای نمودار نیست", "با ثبت اولین تراکنش، نمودار اینجا شکل می‌گیرد")
+                            } else {
+                                LineChart(incomeSeries = income, expenseSeries = expense)
+                                Spacer(Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    LegendDot(skin.incomeColor, "درآمد")
+                                    LegendDot(skin.expenseColor, "هزینه")
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // تراکنش‌های اخیر
-            item { Text("تراکنش‌های اخیر", style = MaterialTheme.typography.titleMedium) }
+            // ---------- تراکنش‌های اخیر ----------
+            item {
+                Text("تراکنش‌های اخیر", style = MaterialTheme.typography.titleMedium, color = skin.onBackdrop)
+            }
             if (recent.isEmpty()) {
                 item { EmptyState("تراکنشی ثبت نشده", "از دکمه «ثبت تراکنش» شروع کنید یا منتظر پیامک بانکی بمانید") }
             } else {
                 items(recent.size) { idx ->
                     val tx = recent[idx]
-                    Card(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("tx/${tx.id}") }) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    DirectionBadge(tx.direction, tx.nature)
-                                    if (tx.status == TxStatus.PENDING) {
-                                        Text(
-                                            "در انتظار تأیید",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.tertiary
-                                        )
+                    EnterCard(4 + idx) {
+                        SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("tx/${tx.id}") }) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        DirectionBadge(tx.direction, tx.nature)
+                                        if (tx.status == TxStatus.PENDING) {
+                                            Text(
+                                                "در انتظار تأیید",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.tertiary
+                                            )
+                                        }
                                     }
+                                    Text(
+                                        tx.description.ifBlank { tx.counterparty.ifBlank { "بدون توضیح" } },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        color = skin.onBackdrop
+                                    )
+                                    Text(
+                                        PersianDate.formatDateTime(tx.occurredAt),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = skin.onBackdrop.copy(alpha = 0.7f)
+                                    )
                                 }
                                 Text(
-                                    tx.description.ifBlank { tx.counterparty.ifBlank { "بدون توضیح" } },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    PersianDate.formatDateTime(tx.occurredAt),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    Money.format(tx.amountRial, settings.moneyUnit),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = skin.onBackdrop
                                 )
                             }
-                            Text(
-                                Money.format(tx.amountRial, settings.moneyUnit),
-                                style = MaterialTheme.typography.titleSmall
-                            )
                         }
                     }
                 }
             }
-            item { Spacer(Modifier.height(72.dp)) }
+            item { Spacer(Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-private fun SummaryCell(label: String, value: String) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f))
-        Text(value, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+private fun SummaryChip(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {
+    val skin = LocalAppSkin.current
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(tint.copy(alpha = if (skin.dark) 0.18f else 0.55f))
+            .padding(12.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop.copy(alpha = 0.85f))
+        Text(value, style = MaterialTheme.typography.titleSmall, color = skin.onBackdrop, textAlign = TextAlign.Start)
     }
 }
 
 @Composable
 private fun LegendDot(color: Color, label: String) {
+    val skin = LocalAppSkin.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = Modifier.size(10.dp).background(color, CircleShape))
         Spacer(Modifier.width(6.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop)
     }
 }
 

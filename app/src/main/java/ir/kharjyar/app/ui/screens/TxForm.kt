@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,11 +15,11 @@ import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
-import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.CategoryEntity
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
+import ir.kharjyar.app.ui.components.NumberTextField
 
 /** state فرم تراکنش (ثبت دستی و تکمیل پیش‌نویس). */
 class TxFormState(
@@ -105,58 +104,57 @@ fun DatePickerRow(
     Column {
         Text("تاریخ و ساعت (شمسی)", style = MaterialTheme.typography.labelLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            OutlinedTextField(
-                value = Digits.toPersian(date.year.toString()),
+            NumberTextField(
+                value = date.year.toString(),
                 onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { y ->
-                        if (y in 1300..1500) onDate(PersianDate(y, date.month, date.day.coerceAtMost(PersianDate.monthLength(y, date.month))))
+                    v.toIntOrNull()?.let { y ->
+                        if (y in 1300..1500) {
+                            onDate(PersianDate(y, date.month, date.day.coerceAtMost(PersianDate.monthLength(y, date.month))))
+                        }
                     }
                 },
-                label = { Text("سال") },
-                modifier = Modifier.weight(1.2f),
-                singleLine = true
+                label = "سال",
+                maxDigits = 4,
+                modifier = Modifier.weight(1.2f)
             )
-            OutlinedTextField(
-                value = Digits.toPersian(date.month.toString()),
+            NumberTextField(
+                value = date.month.toString(),
                 onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { m ->
-                        if (m in 1..12) onDate(PersianDate(date.year, m, date.day.coerceAtMost(PersianDate.monthLength(date.year, m))))
+                    v.toIntOrNull()?.let { m ->
+                        if (m in 1..12) {
+                            onDate(PersianDate(date.year, m, date.day.coerceAtMost(PersianDate.monthLength(date.year, m))))
+                        }
                     }
                 },
-                label = { Text("ماه") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
+                label = "ماه",
+                maxDigits = 2,
+                modifier = Modifier.weight(1f)
             )
-            OutlinedTextField(
-                value = Digits.toPersian(date.day.toString()),
+            NumberTextField(
+                value = date.day.toString(),
                 onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { d ->
-                        if (d in 1..date.monthLength()) onDate(PersianDate(date.year, date.month, d))
-                    }
+                    v.toIntOrNull()?.let { d -> if (d in 1..date.monthLength()) onDate(PersianDate(date.year, date.month, d)) }
                 },
-                label = { Text("روز") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
+                label = "روز",
+                maxDigits = 2,
+                modifier = Modifier.weight(1f)
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = Digits.toPersian(hour.toString()),
-                onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { h -> if (h in 0..23) onTime(h, minute) }
-                },
-                label = { Text("ساعت") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
+            NumberTextField(
+                value = hour.toString(),
+                onValueChange = { v -> v.toIntOrNull()?.let { h -> if (h in 0..23) onTime(h, minute) } },
+                label = "ساعت",
+                maxDigits = 2,
+                modifier = Modifier.weight(1f)
             )
-            OutlinedTextField(
-                value = Digits.toPersian(minute.toString()),
-                onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { m -> if (m in 0..59) onTime(hour, m) }
-                },
-                label = { Text("دقیقه") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
+            NumberTextField(
+                value = minute.toString(),
+                onValueChange = { v -> v.toIntOrNull()?.let { m -> if (m in 0..59) onTime(hour, m) } },
+                label = "دقیقه",
+                maxDigits = 2,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                modifier = Modifier.weight(1f)
             )
         }
     }

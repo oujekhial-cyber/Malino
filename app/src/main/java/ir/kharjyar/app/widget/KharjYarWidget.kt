@@ -30,6 +30,7 @@ import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.data.prefs.WidgetContent
+import ir.kharjyar.app.ui.theme.skinOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,12 +69,18 @@ class KharjYarWidget : GlanceAppWidget() {
             }.ifEmpty { listOf("تراکنش اخیر" to "—") }
         }
 
+        val skin = skinOf(settings.palette)
+        val bg = ColorProvider(skin.cardColor.copy(alpha = if (skin.cardAlpha < 0.8f) 0.9f else skin.cardAlpha))
+        val accent = ColorProvider(skin.accent)
+        val onBg = ColorProvider(skin.onBackdrop)
+        val big = ColorProvider(skin.bigNumberColor)
+
         provideContent {
             GlanceTheme {
                 Column(
                     modifier = GlanceModifier
                         .fillMaxSize()
-                        .background(GlanceTheme.colors.widgetBackground)
+                        .background(bg)
                         .padding(12.dp)
                         .clickable(actionStartActivity<MainActivity>()),
                     verticalAlignment = Alignment.CenterVertically
@@ -83,21 +90,25 @@ class KharjYarWidget : GlanceAppWidget() {
                         style = TextStyle(
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = GlanceTheme.colors.primary
+                            color = accent
                         )
                     )
                     Spacer(GlanceModifier.height(4.dp))
                     lines.forEach { (label, value) ->
                         Text(
                             "$label: " + if (showNumbers) value else "••••",
-                            style = TextStyle(fontSize = 13.sp, color = GlanceTheme.colors.onSurface)
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (showNumbers) big else onBg
+                            )
                         )
                     }
                     if (hideNumbers) {
                         Spacer(GlanceModifier.height(2.dp))
                         Text(
                             "اعداد به دلیل قفل برنامه مخفی‌اند",
-                            style = TextStyle(fontSize = 10.sp, color = GlanceTheme.colors.onSurfaceVariant)
+                            style = TextStyle(fontSize = 10.sp, color = onBg)
                         )
                     }
                 }
