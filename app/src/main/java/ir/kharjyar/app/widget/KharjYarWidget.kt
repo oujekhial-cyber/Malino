@@ -320,7 +320,8 @@ private fun clockIntent(context: Context): Intent {
         Intent(AlarmClock.ACTION_SET_ALARM)
     )
     candidates.forEach { intent ->
-        if (intent.resolveActivity(pm) != null) {
+        // resolveActivityInfo روی همه نسخه‌ها در دسترس است و null-safe بررسی می‌شود
+        if (intent.resolveActivityInfo(pm, 0) != null) {
             return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
     }
