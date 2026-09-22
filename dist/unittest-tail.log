@@ -25,10 +25,10 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:parseDebugLocalResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
-> Task :app:processDebugManifestForPackage
-> Task :app:javaPreCompileDebug
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
 > Task :app:javaPreCompileDebugUnitTest
+> Task :app:processDebugManifestForPackage
+> Task :app:javaPreCompileDebug
 > Task :app:processDebugResources
 > Task :app:kspDebugKotlin
 
@@ -37,8 +37,8 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/c
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/BottomBar.kt:170:13 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
 
 > Task :app:compileDebugJavaWithJavac
-> Task :app:bundleDebugClassesToCompileJar
 > Task :app:processDebugJavaRes
+> Task :app:bundleDebugClassesToCompileJar
 > Task :app:bundleDebugClassesToRuntimeJar
 > Task :app:kspDebugUnitTestKotlin
 > Task :app:compileDebugUnitTestKotlin
@@ -46,5 +46,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/c
 > Task :app:processDebugUnitTestJavaRes
 > Task :app:testDebugUnitTest
 
-BUILD SUCCESSFUL in 1m 57s
+BUILD SUCCESSFUL in 2m 30s
 25 actionable tasks: 25 executed
