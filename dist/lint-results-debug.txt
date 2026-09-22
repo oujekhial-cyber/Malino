@@ -56,10 +56,10 @@ of the library. [ObsoleteLintCustomCheck]
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:126: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
                     onClick = { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) },
                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:68: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:70: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:114: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:150: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
             PermissionRow("ارسال اعلان", notifGranted) { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
                                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -334,10 +334,10 @@ espresso = "3.6.1"
    where the version qualifier is less than or equal to the minSdkVersion,
    where the contents should be merged into the best folder.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:78: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
-    var color by remember { mutableStateOf(accountColors[0]) }
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:81: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var color by remember { mutableStateOf(DEFAULT_ACCOUNT_COLOR) }
                             ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:89: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:92: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var txCount by remember { mutableStateOf(0) }
                               ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:52: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
