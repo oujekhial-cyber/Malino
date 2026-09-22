@@ -7,11 +7,11 @@
 > Task :app:generateReleaseResValues
 > Task :app:checkReleaseAarMetadata
 > Task :app:checkReleaseDuplicateClasses
+> Task :app:mapReleaseSourceSetPaths
 
 > Task :app:stripReleaseDebugSymbols
 Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libsqlcipher.so.
 
-> Task :app:mapReleaseSourceSetPaths
 > Task :app:generateReleaseResources
 > Task :app:extractReleaseNativeSymbolTables
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
@@ -21,8 +21,8 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
-> Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:processReleaseManifestForPackage
+> Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:mergeReleaseArtProfile
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseStartupProfile
@@ -63,5 +63,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/c
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 1m 35s
+BUILD SUCCESSFUL in 2m 2s
 48 actionable tasks: 45 executed, 3 from cache
