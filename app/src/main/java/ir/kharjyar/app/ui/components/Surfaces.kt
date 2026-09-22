@@ -157,17 +157,28 @@ fun HeroCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.matchParentSize()
             )
-            // لایه هم‌رنگ‌سازی: تصویر را به لحن تم نزدیک می‌کند تا کارت
-            // نسبت به پس‌زمینه بیش از حد روشن نیفتد، و متن خوانا بماند.
+            // لایه هم‌رنگ‌سازی سبک: فقط آن‌قدر که متن خوانا بماند.
+            // عمداً کم‌رنگ است تا حالت شیشه‌ای حفظ شود و نقش تصویر تم دیده شود.
             Box(
                 modifier = Modifier
                     .matchParentSize()
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                skin.heroGradient.first().copy(alpha = 0.84f),
-                                skin.heroGradient.last().copy(alpha = 0.95f)
+                                skin.heroGradient.first().copy(alpha = 0.30f),
+                                skin.heroGradient.last().copy(alpha = 0.48f)
                             )
+                        )
+                    )
+            )
+            // سایه ملایم از پایین، تا اعداد بزرگ روی نقش تصویر گم نشوند
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0.45f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.22f)
                         )
                     )
             )
@@ -214,9 +225,9 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
                 brush = Brush.linearGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = 0.04f),
-                        Color.White.copy(alpha = 0.10f),
-                        Color.White.copy(alpha = 0.04f),
+                        Color.White.copy(alpha = 0.02f),
+                        Color.White.copy(alpha = 0.055f),
+                        Color.White.copy(alpha = 0.02f),
                         Color.Transparent
                     ),
                     start = Offset(x, 0f),

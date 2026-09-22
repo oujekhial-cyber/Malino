@@ -49,6 +49,26 @@ import java.util.Locale
  */
 object WidgetRenderer {
 
+    /**
+     * نمای اضطراری: اگر ساخت نمای کامل شکست بخورد (خواندن تنظیمات، دیتابیس یا بیت‌مپ)،
+     * این نسخه ساده نمایش داده می‌شود تا لانچر خطای «can't load widget» ندهد.
+     * فقط ساعت و تاریخ زنده را نشان می‌دهد و با لمس، برنامه باز می‌شود.
+     */
+    fun buildFallback(context: Context): RemoteViews =
+        RemoteViews(context.packageName, R.layout.w_split).apply {
+            val tz = PersianDate.TEHRAN.id
+            setString(R.id.w_clock, "setTimeZone", tz)
+            setString(R.id.w_gregorian, "setTimeZone", tz)
+            setTextViewText(R.id.w_title, "خرج‌یار")
+            setTextViewText(R.id.w_jalali, runCatching { PersianDate.today().format() }.getOrDefault(""))
+            // ردیف‌های مقدار در حالت اضطراری خالی می‌مانند
+            setViewVisibility(R.id.w_row_2, android.view.View.GONE)
+            setViewVisibility(R.id.w_row_3, android.view.View.GONE)
+            setTextViewText(R.id.w_label_1, "")
+            setTextViewText(R.id.w_value_1, "")
+            applyClickTargets(context, this)
+        }
+
     /** ساخت نمای کامل ویجت بر اساس تنظیمات کاربر. */
     suspend fun build(context: Context): RemoteViews {
         val app = context.applicationContext as KharjYarApp
@@ -128,16 +148,21 @@ object WidgetRenderer {
     ) {
         val alpha = (opacity / 100f).coerceIn(0f, 1f)
         val bitmap = runCatching {
-            val w = 1000
-            val h = 480
+            // ابعاد عمداً کوچک است: RemoteViews سقف حجم دارد (حدود ۱.۵ تا ۲ مگابایت)
+            // و بیت‌مپ بزرگ باعث خطای «can't load widget» در لانچر می‌شد.
+            // ۴۸۰×۲۳۰ حدود ۰.۴ مگابایت است و چون فقط پس‌زمینهٔ نرم است، کشیده‌شدنش دیده نمی‌شود.
+            val w = 480
+            val h = 230
             val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(out)
-            val radius = 54f
-            val rect = RectF(3f, 3f, w - 3f, h - 3f)
+            val radius = 26f
+            val rect = RectF(2f, 2f, w - 2f, h - 2f)
 
             // تصویر تم (فقط در قالب‌های شیشه‌ای) زیر رنگ کشیده می‌شود
             if (layout == WidgetLayout.GLASS || layout == WidgetLayout.ROYAL) {
-                BitmapFactory.decodeResource(context.resources, R.drawable.widget_bg_sakura)
+                // نمونه‌برداری کاهشی تا تصویر منبع هم حافظه زیادی نگیرد
+                val opts = BitmapFactory.Options().apply { inSampleSize = 4 }
+                BitmapFactory.decodeResource(context.resources, R.drawable.widget_bg_sakura, opts)
                     ?.let { src ->
                         val saved = canvas.save()
                         canvas.clipRect(rect)
@@ -169,7 +194,7 @@ object WidgetRenderer {
                 Paint().apply {
                     isAntiAlias = true
                     style = Paint.Style.STROKE
-                    strokeWidth = 3f
+                    strokeWidth = 2f
                     color = skin.accent.copy(alpha = 0.45f * alpha + 0.12f).toArgb()
                 }
             )
@@ -340,10 +365,13 @@ class KharjYarWidgetReceiver : AppWidgetProvider() {
         if (ids.isEmpty()) return
         val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
-            runCatching {
-                val views = WidgetRenderer.build(appContext)
-                ids.forEach { manager.updateAppWidget(it, views) }
-            }
+            val views = runCatching { WidgetRenderer.build(appContext) }
+                .getOrElse {
+                    // اگر رسم کامل به هر دلیلی شکست بخورد، نمای ساده جایگزین می‌شود
+                    // تا لانچر «can't load widget» نشان ندهد.
+                    WidgetRenderer.buildFallback(appContext)
+                }
+            runCatching { ids.forEach { manager.updateAppWidget(it, views) } }
         }
     }
 }
@@ -359,7 +387,8 @@ object WidgetUpdater {
                     ComponentName(appContext, KharjYarWidgetReceiver::class.java)
                 )
                 if (ids.isNotEmpty()) {
-                    val views = WidgetRenderer.build(appContext)
+                    val views = runCatching { WidgetRenderer.build(appContext) }
+                        .getOrElse { WidgetRenderer.buildFallback(appContext) }
                     ids.forEach { manager.updateAppWidget(it, views) }
                 }
             }
