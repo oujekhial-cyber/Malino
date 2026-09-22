@@ -37,5 +37,5 @@ Execution failed for task ':app:compileDebugKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 4s
+BUILD FAILED in 5s
 18 actionable tasks: 2 executed, 1 from cache, 15 up-to-date
