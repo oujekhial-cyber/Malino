@@ -1,39 +1,48 @@
 # وضعیت Build و تست (صادقانه)
 
-تاریخ: 2026-09-21
+تاریخ: 2026-09-22
 
-## چه چیزی واقعاً اجرا شد
+## نتیجه آخرین اجرا (بازطراحی ظاهر — نسخه ۱)
 
-- **در سندباکس ایجنت:** هیچ Build یا تستی اجرا **نشد**. محیط سندباکس به مخازن
-  `dl.google.com` / `maven.google.com` / `services.gradle.org` دسترسی شبکه ندارد و JDK هم نصب نیست؛
-  بنابراین `./gradlew` قابل اجرا نبود. این محدودیت صریحاً اعلام می‌شود.
-- **در GitHub Actions:** workflow «Build Malino Android» (فایل `.github/workflows/build.yml`)
-  با push اولین کامیت (`a69e23c`) روی شاخه `arena/01a0c598-malino` شروع شد
-  (run id: 35655413728) و در حال اجرا بود. پیش از پایان آن، توکن GitHub سشن ایجنت منقضی شد
-  و نتیجه نهایی از داخل سندباکس قابل مشاهده نبود.
+commit: `43b0601` — شاخه `arena/01a0c765-malino` — run id: `35688676743`
 
-## چگونه نتیجه را ببینید
+| مرحله | نتیجه |
+|---|---|
+| `:app:testDebugUnitTest` | ✅ موفق — `tests=101 failures=0 errors=0 skipped=0` |
+| `:app:assembleDebug` | ✅ موفق |
+| `:app:lintDebug` | ✅ موفق |
 
-1. GitHub → مخزن → تب **Actions** → run مربوط به شاخه `arena/01a0c598-malino`.
-2. در صورت موفقیت، CI به‌صورت خودکار این فایل‌ها را به همین شاخه کامیت می‌کند:
-   - `dist/KharjYar-debug.apk` — APK دیباگ قابل نصب (+ `sha256`)
-   - `dist/build-report.md` — نتیجه assembleDebug / تست‌های واحد / lint
-   - `dist/unittest-tail.log`، `dist/assemble-tail.log`
-   - `dist/schemas/` — Schema های Room
-3. اگر run قرمز شد، لاگ‌ها در همان صفحه Actions هستند؛ اصلاح و push مجدد روی همین شاخه CI را دوباره اجرا می‌کند.
+خروجی‌ها در پوشه `dist/`:
 
-## پوشش تست‌های واحد (نوشته‌شده، اجرای آن‌ها بر عهده CI)
+- `dist/KharjYar-debug.apk` — APK دیباگ قابل نصب (۶۵.۵ مگابایت)
+- `dist/KharjYar-debug.apk.sha256` — `30bbe32a92772f700904d3b53e1bd1d51a50f5f1538e45f21c62c8562857211d`
+- `dist/build-report.md`, `dist/unittest-tail.log`, `dist/assemble-tail.log`, `dist/lint-tail.log`
+- `dist/schemas/` — Schema های Room
 
-- `DigitsTest` — ارقام فارسی/عربی/لاتین، جداکننده‌های ,،٬./، نیم‌فاصله، ورودی نامعتبر
-- `MoneyTest` — تبدیل دقیق ریال/تومان، عدم گردکردن مخفی، عدم تغییر مقادیر با تغییر واحد نمایش
-- `PersianDateTest` — نوروز ۱۴۰۳/۱۴۰۴، roundtrip ۳۰۰۰ روزه، کبیسه ۱۴۰۳، مرز روز در منطقه زمانی تهران
-- `SmsClassifierTest` — OTP، تبلیغ، تراکنش با واژه «رمز»، پیامک فقط-مانده، پیامک شخصی
-- `ExtractorTest` — مبلغ/مانده در یک متن، قالب‌ها، تومان→ریال، قالب روی پیامک دوم، اعتبارسنجی قواعد
-- `AccountMatcherTest` — چند حساب/یک فرستنده، چند فرستنده/یک بانک، شناسه مبهم، نرمال‌سازی +98
-- `TransferMatcherTest` — دو سمت انتقال، کارمزد، پنجره زمانی، حالت مبهم، دو خرید هم‌مبلغ
-- `BackupCryptoTest` — roundtrip، رمز اشتباه، فایل خراب، nonce تازه، انتقال بین دستگاه‌ها
-- `FingerprintAndCategoryTest` — dedupe پیامک تکراری، دو خرید واقعی هم‌مبلغ، اولویت قوانین کاربر
+## کجا Build اجرا شد
+
+- **در سندباکس ایجنت:** Build اجرا **نشد**. سندباکس به `dl.google.com` /
+  `maven.google.com` / `services.gradle.org` / `repo1.maven.org` دسترسی شبکه ندارد و JDK هم
+  نصب‌شدنی نبود؛ بنابراین `./gradlew` قابل اجرا نبود. این محدودیت صریحاً اعلام می‌شود.
+- **در GitHub Actions:** workflow «Build KharjYar Android» روی همین شاخه اجرا شد و
+  خروجی‌های بالا را به‌صورت خودکار به `dist/` کامیت کرد. نتیجه بالا از همان اجرا خوانده شده است.
+
+## تست‌های واحد افزوده‌شده در این تغییر
+
+- `AmountInputTest` — نرمال‌سازی ورودی مبلغ (فارسی/عربی/لاتین و جداکننده‌ها)، حذف صفرهای ابتدایی،
+  سقف ارقام، جداسازی سه‌رقمی، و **پایداری نگاشت مکان‌نما** در `VisualTransformation`
+  (این تست یک باگ واقعی در محاسبه موقعیت مکان‌نما را گرفت که اصلاح شد).
+- `AccountBalanceTest` — مانده برآوردی حساب: موجودی اولیه + تراکنش‌های تأییدشده،
+  اولویت آخرین مانده پیامکی وقتی جدیدتر است، نادیده‌گرفتن تراکنش‌های تأییدنشده و حساب‌های دیگر.
+- `PaletteMigrationTest` — چهار تم جدید و پیش‌فرض بودن تم «شیشه‌ای».
+
+## پوشش تست‌های واحد موجود
+
+- `DigitsTest`, `MoneyTest`, `PersianDateTest`, `SmsClassifierTest`, `ExtractorTest`,
+  `AccountMatcherTest`, `TransferMatcherTest`, `BackupCryptoTest`, `FingerprintAndCategoryTest`
 
 ## تست دستگاه
 
 روی هیچ دستگاه یا شبیه‌ساز واقعی اجرا نشده است (در سندباکس در دسترس نبود). موفق اعلام نمی‌شود.
+ظاهر جدید (تم‌ها، منوی کشویی، انیمیشن کارت‌ها، رفتار کیبورد) فقط از نظر کامپایل و تست واحد
+تأیید شده؛ تأیید بصری نیاز به نصب APK روی دستگاه دارد.
