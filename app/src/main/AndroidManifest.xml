@@ -9,6 +9,9 @@
     <application
         android:name=".KharjYarApp"
         android:allowBackup="false"
+        android:hasFragileUserData="false"
+        android:usesCleartextTraffic="false"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -259,7 +260,7 @@ private fun NavArrow(
     }
 }
 
-/** پنجره ساده انتخاب ساعت و دقیقه با دکمه‌های افزایش/کاهش. */
+/** پنجره انتخاب ساعت با چرخ استوانه‌ای اسکرولی (سبک آیفون). */
 @Composable
 fun TimePickerDialog(
     initialHour: Int,
@@ -276,18 +277,42 @@ fun TimePickerDialog(
         containerColor = skin.dialogColor,
         title = { Text("انتخاب ساعت") },
         text = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier.fillMaxWidth().height(180.dp),
+                contentAlignment = Alignment.Center
             ) {
-                NumberSpinner(value = hour, range = 0..23, label = "ساعت") { hour = it }
-                Text(
-                    " : ",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = skin.onBackdrop
+                // نوار انتخاب وسط چرخ‌ها
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(skin.accent.copy(alpha = 0.14f))
                 )
-                NumberSpinner(value = minute, range = 0..59, label = "دقیقه") { minute = it }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    WheelPicker(
+                        value = hour,
+                        range = 0..23,
+                        onValueChange = { hour = it },
+                        modifier = Modifier.width(72.dp)
+                    )
+                    Text(
+                        ":",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = skin.onBackdrop,
+                        modifier = Modifier.padding(horizontal = 6.dp)
+                    )
+                    WheelPicker(
+                        value = minute,
+                        range = 0..59,
+                        onValueChange = { minute = it },
+                        modifier = Modifier.width(72.dp)
+                    )
+                }
             }
         },
         confirmButton = { TextButton(onClick = { onConfirm(hour, minute) }) { Text("تأیید") } },
@@ -295,24 +320,76 @@ fun TimePickerDialog(
     )
 }
 
+/**
+ * چرخ عددی استوانه‌ای: اعداد بالا و پایین می‌روند، مورد وسط انتخاب می‌شود،
+ * و آیتم‌های دورتر کوچک‌تر و کم‌رنگ‌تر می‌شوند تا حس استوانه بدهد.
+ * اسکرول با snap روی نزدیک‌ترین آیتم متوقف می‌شود.
+ */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun NumberSpinner(
+private fun WheelPicker(
     value: Int,
     range: IntRange,
-    label: String,
-    onChange: (Int) -> Unit
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val skin = LocalAppSkin.current
-    val span = range.last - range.first + 1
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = skin.onBackdrop.copy(alpha = 0.7f))
-        NavArrow(Icons.Filled.ChevronRight) { onChange((value - range.first + 1).mod(span) + range.first) }
-        Text(
-            Digits.toPersian("%02d".format(value)),
-            style = MaterialTheme.typography.headlineMedium,
-            color = skin.onBackdrop,
-            modifier = Modifier.padding(vertical = 4.dp)
-        )
-        NavArrow(Icons.Filled.ChevronLeft) { onChange((value - range.first - 1).mod(span) + range.first) }
+    val itemHeight = 40.dp
+    val visible = 3 // تعداد آیتم دیده‌شده (وسط + یکی بالا + یکی پایین)
+    val count = range.last - range.first + 1
+
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState(
+        initialFirstVisibleItemIndex = (value - range.first)
+    )
+    val flingBehavior = androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior(
+        lazyListState = listState
+    )
+
+    // عددی که در مرکز چرخ قرار گرفته است
+    val centered by androidx.compose.runtime.remember {
+        androidx.compose.runtime.derivedStateOf {
+            val offsetFraction = listState.firstVisibleItemScrollOffset /
+                (itemHeight.value * 2.5f).coerceAtLeast(1f)
+            (listState.firstVisibleItemIndex + if (offsetFraction > 0.5f) 1 else 0)
+                .coerceIn(0, count - 1)
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(centered) {
+        val v = range.first + centered
+        if (v != value) onValueChange(v)
+    }
+
+    androidx.compose.foundation.lazy.LazyColumn(
+        state = listState,
+        flingBehavior = flingBehavior,
+        modifier = modifier.height(itemHeight * visible),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        // فضای خالی بالا و پایین تا اولین و آخرین عدد هم بتوانند وسط بایستند
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = itemHeight)
+    ) {
+        androidx.compose.foundation.lazy.items(count) { index ->
+            val distance = kotlin.math.abs(index - centered)
+            val isCenter = distance == 0
+            Box(
+                modifier = Modifier.height(itemHeight).fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    Digits.toPersian("%02d".format(range.first + index)),
+                    style = if (isCenter) MaterialTheme.typography.headlineSmall
+                    else MaterialTheme.typography.titleMedium,
+                    fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
+                    color = skin.onBackdrop.copy(
+                        // هرچه از مرکز دورتر، کم‌رنگ‌تر — حس عمق استوانه
+                        alpha = when (distance) {
+                            0 -> 1f
+                            1 -> 0.45f
+                            else -> 0.2f
+                        }
+                    )
+                )
+            }
+        }
     }
 }

@@ -26,3 +26,19 @@ class WidgetSettingsTest {
         assertEquals(0f, 0 / 100f, 0.0001f)
     }
 }
+
+/** تنظیمات تازه‌ی ویجت و امنیت. */
+class WidgetExtraSettingsTest {
+
+    @Test
+    fun `dates and theme image are on by default`() {
+        val s = AppSettings()
+        assertTrue(s.widgetShowDates)
+        assertTrue(s.widgetShowImage)
+    }
+
+    @Test
+    fun `screen capture protection is on by default`() {
+        assertTrue(AppSettings().secureScreen)
+    }
+}

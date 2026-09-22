@@ -41,7 +41,7 @@ import ir.kharjyar.app.ui.components.keepAboveKeyboard
 import kotlinx.coroutines.launch
 
 /**
- * جزئیات/ویرایش/تکمیل تراکنش. برای پیش‌نویس پیامکی، همین صفحه پنجره «برای چه بود؟» است:
+ * جزئیات/ویرایش/تکمیل تراکنش. برای پیش‌نویس پیامکی، همین صفحه پنجره «خرید/واریز بابت چی بوده؟» است:
  * تأیید (ثبت)، اصلاح، یا «بعداً» (اطلاعات حذف نمی‌شود).
  */
 @Composable
@@ -115,7 +115,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            if (isPending) "تکمیل تراکنش — برای چه بود؟" else "جزئیات و ویرایش تراکنش",
+            if (isPending) "تکمیل تراکنش — خرید/واریز بابت چی بوده؟" else "جزئیات و ویرایش تراکنش",
             style = MaterialTheme.typography.headlineSmall
         )
         if (isPending) {
@@ -161,7 +161,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("برای چه بود؟") },
+            label = { Text("خرید/واریز بابت چی بوده؟") },
             modifier = Modifier.fillMaxWidth().keepAboveKeyboard()
         )
 

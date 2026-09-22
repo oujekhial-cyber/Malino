@@ -40,6 +40,8 @@ fun WidgetPreview(
     valueSize: Int,
     labelSize: Int,
     showClock: Boolean,
+    showDates: Boolean = true,
+    showImage: Boolean = true,
     showNumbers: Boolean,
     lines: List<Pair<String, String>>,
     modifier: Modifier = Modifier
@@ -59,6 +61,20 @@ fun WidgetPreview(
             )
             .padding(10.dp)
     ) {
+        // تصویر تم پشت ویجت (اگر فعال باشد) تا پیش‌نمایش با ویجت واقعی یکی باشد
+        if (showImage) {
+            skin.backdropImage?.let { res ->
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(res),
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .padding(10.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                )
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -103,24 +119,30 @@ fun WidgetPreview(
                         fontWeight = FontWeight.Bold,
                         color = skin.bigNumberColor
                     )
-                    Text(
-                        "${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}",
-                        fontSize = dateSize.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = skin.onBackdrop
-                    )
-                    Text(
-                        "22 Sep 2026",
-                        fontSize = (dateSize * 0.85f).sp,
-                        color = skin.onBackdrop.copy(alpha = 0.85f)
-                    )
+                    if (showDates) {
+                        Text(
+                            "${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}",
+                            fontSize = dateSize.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = skin.onBackdrop
+                        )
+                        Text(
+                            "22 Sep 2026",
+                            fontSize = (dateSize * 0.85f).sp,
+                            color = skin.onBackdrop.copy(alpha = 0.85f)
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-/** اسلایدر برچسب‌دار با نمایش مقدار فعلی — برای اندازه اجزای ویجت. */
+/**
+ * اسلایدر باریک و جمع‌وجور برای اندازه اجزای ویجت:
+ * ریل نازک، دستگیره کوچک، و مقدار داخل یک کپسول کنار برچسب.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun LabeledSlider(
     label: String,
@@ -131,23 +153,67 @@ fun LabeledSlider(
     modifier: Modifier = Modifier
 ) {
     val skin = LocalAppSkin.current
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = skin.onBackdrop)
+            Text(
+                label,
+                style = MaterialTheme.typography.bodySmall,
+                color = skin.onBackdrop.copy(alpha = 0.9f)
+            )
             Text(
                 Digits.toPersian(value.toString()) + valueSuffix,
-                style = MaterialTheme.typography.labelLarge,
-                color = skin.accent
+                style = MaterialTheme.typography.labelSmall,
+                color = skin.accent,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(skin.accent.copy(alpha = 0.14f))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
             )
         }
         androidx.compose.material3.Slider(
             value = value.toFloat(),
             onValueChange = { onValueChange(it.toInt()) },
             valueRange = range.first.toFloat()..range.last.toFloat(),
-            steps = (range.last - range.first - 1).coerceAtMost(60)
+            modifier = Modifier.height(24.dp),
+            colors = androidx.compose.material3.SliderDefaults.colors(
+                thumbColor = skin.accent,
+                activeTrackColor = skin.accent,
+                inactiveTrackColor = skin.onBackdrop.copy(alpha = 0.18f)
+            ),
+            // دستگیره کوچک و گرد به‌جای دستگیره بزرگ پیش‌فرض
+            thumb = {
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(skin.accent)
+                )
+            },
+            // ریل نازک
+            track = { state ->
+                val fraction = if (range.last > range.first) {
+                    (value - range.first).toFloat() / (range.last - range.first).toFloat()
+                } else 0f
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(skin.onBackdrop.copy(alpha = 0.18f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(skin.accent)
+                    )
+                }
+            }
         )
     }
 }

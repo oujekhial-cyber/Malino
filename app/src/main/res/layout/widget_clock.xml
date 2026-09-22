@@ -1,15 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ساعت ویجت با TextClock: سیستم‌عامل خودش هر دقیقه آن را به‌روز می‌کند،
-  بنابراین برخلاف متن معمولی، به بازه به‌روزرسانی ویجت وابسته نیست.
+  ستون ساعت و تاریخ ویجت.
+
+  ساعت و تاریخ میلادی از TextClock استفاده می‌کنند که سیستم‌عامل خودش
+  آن را زنده نگه می‌دارد (هر دقیقه)، پس به بازه به‌روزرسانی ویجت وابسته نیست.
+  تاریخ شمسی چون تقویم جلالی در اندروید نیست، متن است و با رویداد
+  تغییر روز (DATE_CHANGED) بازنویسی می‌شود.
 -->
-<TextClock xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_clock_text"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:format12Hour="@null"
-    android:format24Hour="HH:mm"
-    android:textSize="40sp"
-    android:textStyle="bold"
-    android:includeFontPadding="false"
-    android:textColor="#FFFFFF" />
+    android:orientation="vertical"
+    android:gravity="end">
+
+    <TextClock
+        android:id="@+id/widget_clock_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format12Hour="@null"
+        android:format24Hour="HH:mm"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:ellipsize="none"
+        android:includeFontPadding="false"
+        android:textSize="40sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF" />
+
+    <TextView
+        android:id="@+id/widget_jalali_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:includeFontPadding="false"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF" />
+
+    <TextClock
+        android:id="@+id/widget_gregorian_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format12Hour="d MMM yyyy"
+        android:format24Hour="d MMM yyyy"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:includeFontPadding="false"
+        android:textSize="11sp"
+        android:textColor="#FFFFFF" />
+</LinearLayout>

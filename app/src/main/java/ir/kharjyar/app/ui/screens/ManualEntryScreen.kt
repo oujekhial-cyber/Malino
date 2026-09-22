@@ -82,7 +82,7 @@ fun ManualEntryScreen(viewModel: AppViewModel, nav: NavHostController) {
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("برای چه بود؟") },
+                label = { Text("خرید/واریز بابت چی بوده؟") },
                 modifier = Modifier.fillMaxWidth().keepAboveKeyboard()
             )
 

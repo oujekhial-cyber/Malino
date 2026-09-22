@@ -19,8 +19,8 @@ class PaletteMigrationTest {
     }
 
     @Test
-    fun `default palette is aurora`() {
-        assertEquals(Palette.AURORA, ir.kharjyar.app.data.prefs.AppSettings().palette)
+    fun `default palette is sakura`() {
+        assertEquals(Palette.SAKURA, ir.kharjyar.app.data.prefs.AppSettings().palette)
     }
 
     @Test

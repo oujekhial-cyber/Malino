@@ -16,10 +16,14 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.background
+import androidx.glance.layout.ContentScale
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -98,7 +102,6 @@ class KharjYarWidget : GlanceAppWidget() {
         val nowMillis = System.currentTimeMillis()
         val zoned = Instant.ofEpochMilli(nowMillis).atZone(PersianDate.TEHRAN)
         val persianDate = "${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}"
-        val gregorian = zoned.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH))
 
         val skin = skinOf(settings.palette)
         // میزان شیشه‌ای بودن از تنظیمات کاربر (۰ = کاملاً شفاف، ۱۰۰ = مات)
@@ -107,7 +110,6 @@ class KharjYarWidget : GlanceAppWidget() {
         val onBg = ColorProvider(skin.onBackdrop)
         val big = ColorProvider(skin.bigNumberColor)
         val showClock = settings.widgetShowClock
-        val dateSize = settings.widgetDateSize.sp
         val valueSize = settings.widgetValueSize.sp
         val labelSize = settings.widgetLabelSize.sp
 
@@ -117,24 +119,71 @@ class KharjYarWidget : GlanceAppWidget() {
          * همیشه با ساعت گوشی سینک است و به بازه به‌روزرسانی ویجت وابسته نیست.
          */
         val clockViews = RemoteViews(context.packageName, R.layout.widget_clock).apply {
+            val tz = PersianDate.TEHRAN.id
+
+            // ساعت (زنده)
             setTextViewTextSize(R.id.widget_clock_text, TypedValue.COMPLEX_UNIT_SP, settings.widgetClockSize.toFloat())
             setTextColor(R.id.widget_clock_text, skin.bigNumberColor.toArgb())
-            // قالب ۲۴ ساعته با ارقام فارسی مطابق زبان برنامه
             setCharSequence(R.id.widget_clock_text, "setFormat24Hour", "HH:mm")
-            setString(R.id.widget_clock_text, "setTimeZone", PersianDate.TEHRAN.id)
+            setString(R.id.widget_clock_text, "setTimeZone", tz)
+
+            // تاریخ شمسی (متن، با تغییر روز بازنویسی می‌شود)
+            setTextViewTextSize(R.id.widget_jalali_text, TypedValue.COMPLEX_UNIT_SP, settings.widgetDateSize.toFloat())
+            setTextColor(R.id.widget_jalali_text, skin.onBackdrop.toArgb())
+            setTextViewText(R.id.widget_jalali_text, persianDate)
+
+            // تاریخ میلادی (زنده)
+            setTextViewTextSize(
+                R.id.widget_gregorian_text,
+                TypedValue.COMPLEX_UNIT_SP,
+                (settings.widgetDateSize * 0.85f)
+            )
+            setTextColor(R.id.widget_gregorian_text, skin.onBackdrop.copy(alpha = 0.85f).toArgb())
+            setCharSequence(R.id.widget_gregorian_text, "setFormat24Hour", "d MMM yyyy")
+            setCharSequence(R.id.widget_gregorian_text, "setFormat12Hour", "d MMM yyyy")
+            setString(R.id.widget_gregorian_text, "setTimeZone", tz)
+
+            // نمایش/پنهان‌سازی تاریخ‌ها طبق تنظیمات
+            val dateVis = if (settings.widgetShowDates) android.view.View.VISIBLE else android.view.View.GONE
+            setViewVisibility(R.id.widget_jalali_text, dateVis)
+            setViewVisibility(R.id.widget_gregorian_text, dateVis)
         }
+
+        // تصویر پس‌زمینه تم (مثل شکوفه شب) روی ویجت
+        val bgImage = if (settings.widgetShowImage) skin.backdropImage else null
 
         provideContent {
             GlanceTheme {
-                Row(
+                Box(
                     modifier = GlanceModifier
                         .fillMaxSize()
-                        .background(bg)
                         .cornerRadius(20.dp)
-                        .padding(14.dp)
-                        .clickable(actionStartActivity<MainActivity>()),
-                    verticalAlignment = Alignment.CenterVertically
+                        .clickable(actionStartActivity<MainActivity>())
                 ) {
+                    // لایه ۱: تصویر تم (اگر فعال باشد)
+                    if (bgImage != null) {
+                        Image(
+                            provider = ImageProvider(bgImage),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = GlanceModifier.fillMaxSize().cornerRadius(20.dp)
+                        )
+                    }
+                    // لایه ۲: رنگ نیمه‌شفاف — «میزان شیشه‌ای بودن» روی همین اعمال می‌شود
+                    Box(
+                        modifier = GlanceModifier
+                            .fillMaxSize()
+                            .background(bg)
+                            .cornerRadius(20.dp)
+                    ) {}
+
+                    // لایه ۳: محتوا
+                    Row(
+                        modifier = GlanceModifier
+                            .fillMaxSize()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     // ---------- سمت چپ: مقادیر مالی ----------
                     // (در RTL این ستون سمت چپ ویجت دیده می‌شود)
                     Column(
@@ -171,24 +220,15 @@ class KharjYarWidget : GlanceAppWidget() {
 
                     if (showClock) {
                         Spacer(GlanceModifier.width(12.dp))
-                        // ---------- سمت راست: ساعت بزرگ + تاریخ شمسی + میلادی ----------
-                        Column(
+                        // ---------- سمت راست: ساعت و تاریخ‌های زنده ----------
+                        // همه در یک RemoteViews تا سیستم‌عامل خودش آن‌ها را به‌روز نگه دارد
+                        Box(
                             modifier = GlanceModifier.fillMaxHeight(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalAlignment = Alignment.End
+                            contentAlignment = Alignment.Center
                         ) {
-                            // ساعت زنده (TextClock) — توسط سیستم هر دقیقه به‌روز می‌شود
                             AndroidRemoteViews(remoteViews = clockViews)
-                            Spacer(GlanceModifier.height(2.dp))
-                            Text(
-                                persianDate,
-                                style = TextStyle(fontSize = dateSize, fontWeight = FontWeight.Medium, color = onBg)
-                            )
-                            Text(
-                                gregorian,
-                                style = TextStyle(fontSize = dateSize * 0.85f, color = onBg)
-                            )
                         }
+                    }
                     }
                 }
             }

@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +18,13 @@ import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.CategoryEntity
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
-import ir.kharjyar.app.ui.components.NumberTextField
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import ir.kharjyar.app.ui.components.ComboBox
 
 /** state فرم تراکنش (ثبت دستی و تکمیل پیش‌نویس). */
 class TxFormState(
@@ -44,31 +48,52 @@ fun AccountPicker(
     selectedId: Long?,
     onSelect: (Long) -> Unit
 ) {
-    Column {
-        Text("حساب", style = MaterialTheme.typography.labelLarge)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            items(accounts.size) { i ->
-                val a = accounts[i]
-                FilterChip(selected = selectedId == a.id, onClick = { onSelect(a.id) }, label = { Text(a.title) })
-            }
+    ComboBox(
+        label = "حساب",
+        options = accounts.map { it.id },
+        selected = selectedId,
+        labelOf = { id -> accounts.firstOrNull { it.id == id }?.title ?: "—" },
+        placeholder = "انتخاب حساب",
+        onSelect = onSelect,
+        leadingOf = { id ->
+            // نقطه رنگی حساب
+            val color = accounts.firstOrNull { it.id == id }?.colorArgb ?: 0xFF888888
+            Box(
+                modifier = Modifier
+                    .size(14.dp)
+                    .clip(CircleShape)
+                    .background(Color(color))
+            )
         }
-    }
+    )
 }
 
+/** گزینه‌های «جهت بانکی» و «ماهیت» به‌صورت کمبوباکس. */
 @Composable
 fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirection: (Int) -> Unit) {
-    Column {
-        Text("جهت بانکی", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            FilterChip(selected = direction == TxDirection.DEPOSIT, onClick = { onDirection(TxDirection.DEPOSIT) }, label = { Text("واریز") })
-            FilterChip(selected = direction == TxDirection.WITHDRAW, onClick = { onDirection(TxDirection.WITHDRAW) }, label = { Text("برداشت") })
-        }
-        Text("ماهیت", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            FilterChip(selected = nature == TxNature.INCOME, onClick = { onNature(TxNature.INCOME) }, label = { Text("درآمد") })
-            FilterChip(selected = nature == TxNature.EXPENSE, onClick = { onNature(TxNature.EXPENSE) }, label = { Text("هزینه/خرید") })
-            FilterChip(selected = nature == TxNature.TRANSFER, onClick = { onNature(TxNature.TRANSFER) }, label = { Text("انتقال") })
-        }
+    val directions = listOf(TxDirection.DEPOSIT, TxDirection.WITHDRAW)
+    val natures = listOf(TxNature.INCOME, TxNature.EXPENSE, TxNature.TRANSFER)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ComboBox(
+            label = "جهت بانکی",
+            options = directions,
+            selected = direction,
+            labelOf = { if (it == TxDirection.DEPOSIT) "واریز" else "برداشت" },
+            onSelect = onDirection
+        )
+        ComboBox(
+            label = "ماهیت",
+            options = natures,
+            selected = nature,
+            labelOf = {
+                when (it) {
+                    TxNature.INCOME -> "درآمد"
+                    TxNature.EXPENSE -> "هزینه/خرید"
+                    else -> "انتقال"
+                }
+            },
+            onSelect = onNature
+        )
         Text(
             "واریز الزاماً درآمد نیست و برداشت الزاماً هزینه نیست؛ ماهیت را خودتان مشخص کنید.",
             style = MaterialTheme.typography.bodySmall,
@@ -80,18 +105,17 @@ fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirecti
 @Composable
 fun CategoryPicker(categories: List<CategoryEntity>, selectedId: Long?, nature: Int, onSelect: (Long?) -> Unit) {
     val visible = categories.filter { !it.archived }
-    Column {
-        Text("دسته‌بندی", style = MaterialTheme.typography.labelLarge)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            item {
-                FilterChip(selected = selectedId == null, onClick = { onSelect(null) }, label = { Text("نامشخص") })
-            }
-            items(visible.size) { i ->
-                val c = visible[i]
-                FilterChip(selected = selectedId == c.id, onClick = { onSelect(c.id) }, label = { Text(c.name) })
-            }
-        }
-    }
+    // ۰ به معنی «نامشخص» است چون ComboBox مقدار غیرnull می‌خواهد
+    val options = listOf(0L) + visible.map { it.id }
+    ComboBox(
+        label = "دسته‌بندی",
+        options = options,
+        selected = selectedId ?: 0L,
+        labelOf = { id ->
+            if (id == 0L) "نامشخص" else visible.firstOrNull { it.id == id }?.name ?: "—"
+        },
+        onSelect = { id -> onSelect(if (id == 0L) null else id) }
+    )
 }
 
 @Composable

@@ -98,23 +98,32 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            // شبکه دو‌ستونه از همه تم‌ها
-            AllSkins.chunked(2).forEach { pair ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    pair.forEach { skin ->
-                        ThemeOption(
-                            skin = skin,
-                            selected = settings.palette == skin.id,
-                            modifier = Modifier.weight(1f),
-                            onClick = { scope.launch { viewModel.settingsRepo.setPalette(skin.id) } }
-                        )
-                    }
-                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+            // انتخاب تم از کمبوباکس تا فهرست بلند تم‌ها جلوی چشم نباشد
+            ComboBox(
+                label = "تم",
+                options = AllSkins.map { it.id },
+                selected = settings.palette,
+                labelOf = { id -> AllSkins.first { it.id == id }.title },
+                onSelect = { id -> scope.launch { viewModel.settingsRepo.setPalette(id) } },
+                leadingOf = { id ->
+                    val sk = AllSkins.first { it.id == id }
+                    // نمونه رنگ تم به شکل یک دایره گرادیانی
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(sk.heroGradient))
+                            .border(1.dp, sk.accent.copy(alpha = 0.6f), CircleShape)
+                    )
                 }
-            }
+            )
+            // پیش‌نمایش تم فعلی
+            ThemeOption(
+                skin = AllSkins.first { it.id == settings.palette },
+                selected = true,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {}
+            )
         }
 
         // ---------- حساب پیش‌فرض ----------
@@ -171,6 +180,21 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
         // ---------- امنیت ----------
         SectionCard("امنیت") {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("جلوگیری از اسکرین‌شات", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "ضبط صفحه و اسکرین‌شات مسدود می‌شود و پیش‌نمایش برنامه در فهرست اخیر خالی می‌ماند",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = settings.secureScreen,
+                    onCheckedChange = { scope.launch { viewModel.settingsRepo.setSecureScreen(it) } }
+                )
+            }
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("قفل برنامه", style = MaterialTheme.typography.bodyLarge)
@@ -230,6 +254,22 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 }
                 Switch(checked = settings.widgetShowClock, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowClock(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
             }
+            if (settings.widgetShowClock) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("نمایش تاریخ‌ها", style = MaterialTheme.typography.bodyLarge)
+                        Text("تاریخ شمسی و میلادی زیر ساعت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = settings.widgetShowDates, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowDates(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("تصویر پس‌زمینه تم", style = MaterialTheme.typography.bodyLarge)
+                    Text("نمایش تصویر تم (مثل شکوفه شب) پشت ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = settings.widgetShowImage, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowImage(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
+            }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("نمایش اعداد در ویجت", style = MaterialTheme.typography.bodyLarge)
                 Switch(checked = settings.widgetShowNumbers, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowNumbers(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
@@ -252,6 +292,8 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 valueSize = settings.widgetValueSize,
                 labelSize = settings.widgetLabelSize,
                 showClock = settings.widgetShowClock,
+                showDates = settings.widgetShowDates,
+                showImage = settings.widgetShowImage,
                 showNumbers = settings.widgetShowNumbers,
                 lines = when (settings.widgetContent) {
                     WidgetContent.TODAY_EXPENSE -> listOf("هزینه امروز" to "۳,۲۵۰,۰۰۰")

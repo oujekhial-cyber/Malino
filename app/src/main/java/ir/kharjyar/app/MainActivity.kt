@@ -2,6 +2,7 @@ package ir.kharjyar.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.biometric.BiometricManager
@@ -10,6 +11,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import ir.kharjyar.app.notify.Notifier
 import ir.kharjyar.app.ui.AppRoot
 import ir.kharjyar.app.ui.AppViewModel
@@ -26,6 +29,25 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        /*
+         * FLAG_SECURE: جلوی اسکرین‌شات و ضبط صفحه را می‌گیرد و پیش‌نمایش برنامه را در
+         * فهرست برنامه‌های اخیر خالی می‌کند تا مبالغ لو نروند.
+         * قابل خاموش کردن از تنظیمات است.
+         */
+        lifecycleScope.launch {
+            viewModel.settings.collect { s ->
+                if (s.secureScreen) {
+                    window.setFlags(
+                        WindowManager.LayoutParams.FLAG_SECURE,
+                        WindowManager.LayoutParams.FLAG_SECURE
+                    )
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
+        }
+
         enableEdgeToEdge()
         viewModel.onAppStart()
 

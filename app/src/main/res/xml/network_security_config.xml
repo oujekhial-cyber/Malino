@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  برنامه اصلاً به اینترنت وصل نمی‌شود. این پیکربندی هرگونه ترافیک رمزنگاری‌نشده
+  را مسدود می‌کند و اجازه نمی‌دهد گواهی‌های کاربر (که ابزارهای شنود نصب می‌کنند)
+  به‌عنوان مرجع معتبر پذیرفته شوند.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
