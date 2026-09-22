@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -37,7 +39,7 @@ android {
      *   ۲) متغیرهای محیطی         ← برای ساخت در CI
      * اگر هیچ‌کدام نبود، امضای انتشار غیرفعال می‌شود و ساخت debug مثل قبل کار می‌کند.
      */
-    val keystoreProps = java.util.Properties().apply {
+    val keystoreProps = Properties().apply {
         val f = rootProject.file("local.properties")
         if (f.exists()) f.inputStream().use { load(it) }
     }
