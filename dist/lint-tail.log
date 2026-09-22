@@ -15,25 +15,35 @@
 > Task :app:processDebugManifestForPackage UP-TO-DATE
 > Task :app:processDebugResources UP-TO-DATE
 > Task :app:kspDebugKotlin UP-TO-DATE
-> Task :app:compileDebugKotlin UP-TO-DATE
 > Task :app:javaPreCompileDebug UP-TO-DATE
-> Task :app:compileDebugJavaWithJavac UP-TO-DATE
-> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
 > Task :app:preDebugAndroidTestBuild SKIPPED
 > Task :app:generateDebugAndroidTestResValues FROM-CACHE
-> Task :app:generateDebugAndroidTestLintModel
 > Task :app:extractProguardFiles
-> Task :app:generateDebugLintReportModel
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
-> Task :app:generateDebugUnitTestLintModel
-> Task :app:lintAnalyzeDebugAndroidTest
-> Task :app:lintAnalyzeDebugUnitTest
-> Task :app:lintAnalyzeDebug
 
-> Task :app:lintReportDebug
-Wrote HTML report to file:///home/runner/work/Malino/Malino/app/build/reports/lint-results-debug.html
+> Task :app:compileDebugKotlin FAILED
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/PersianDatePicker.kt:371:42 Unresolved reference 'items'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/PersianDatePicker.kt:371:57 Cannot infer type for this parameter. Please specify it explicitly.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/PersianDatePicker.kt:372:50 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/PersianDatePicker.kt:374:13 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:191:26 Unresolved reference 'size'.
 
-> Task :app:lintDebug
+FAILURE: Build failed with an exception.
 
-BUILD SUCCESSFUL in 39s
-28 actionable tasks: 9 executed, 1 from cache, 18 up-to-date
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 5s
+18 actionable tasks: 2 executed, 1 from cache, 15 up-to-date
