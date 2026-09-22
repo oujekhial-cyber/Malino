@@ -1,6 +1,7 @@
 package ir.kharjyar.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,8 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.AccountBalance
@@ -34,8 +39,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -61,8 +65,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import ir.kharjyar.app.MainActivity
+import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.ui.components.AppBackdrop
+import ir.kharjyar.app.ui.components.BottomItem
+import ir.kharjyar.app.ui.components.BottomNavBar
 import ir.kharjyar.app.ui.screens.AccountEditScreen
 import ir.kharjyar.app.ui.screens.AccountFromSmsScreen
 import ir.kharjyar.app.ui.screens.AccountsScreen
@@ -137,10 +144,11 @@ private fun LockScreen(onUnlockRequest: () -> Unit) {
 private data class DrawerEntry(
     val route: String,
     val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val icon: ImageVector,
     val badge: Boolean = false
 )
 
+/** آیتم‌های کشو (همه مقصدها). */
 private val drawerEntries = listOf(
     DrawerEntry("home", "خانه", Icons.Filled.Home),
     DrawerEntry("transactions", "تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
@@ -151,6 +159,9 @@ private val drawerEntries = listOf(
     DrawerEntry("backup", "بکاپ", Icons.Filled.CloudUpload),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
+
+/** چهار مقصد اصلی نوار پایین. */
+private val bottomRoutes = listOf("home", "transactions", "reports", "accounts")
 
 private fun titleOf(route: String?): String = when {
     route == null -> "خرج‌یار"
@@ -171,6 +182,8 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val skin = LocalAppSkin.current
+    val accounts by viewModel.accounts.collectAsState()
+    val settings by viewModel.settings.collectAsState()
 
     LaunchedEffect(initialDestination) {
         initialDestination?.let { navController.navigate(it) }
@@ -185,72 +198,36 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
+    fun go(route: String) {
+        if (currentRoute != route) {
+            navController.navigate(route) {
+                popUpTo("home") { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
+
+    // کشو در سمت راست: در RTL پیش‌فرض ModalNavigationDrawer از راست باز می‌شود.
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = skin.dialogColor,
-                drawerContentColor = MaterialTheme.colorScheme.onSurface
+                drawerContainerColor = Color.Transparent,
+                drawerContentColor = skin.onBackdrop,
+                drawerShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
             ) {
-                // هدر گرادیانی با آیکون و نام برنامه
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .background(Brush.linearGradient(skin.heroGradient))
-                ) {
-                    Row(
-                        modifier = Modifier.align(Alignment.BottomStart).padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color.White.copy(alpha = 0.22f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Filled.AccountBalance,
-                                contentDescription = null,
-                                tint = Color.White
-                            )
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text("خرج‌یار", style = MaterialTheme.typography.titleLarge, color = Color.White)
-                            Text(
-                                "دستیار خرج و دخل شما",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
-                        }
+                DrawerBody(
+                    skin = skin,
+                    currentRoute = currentRoute,
+                    reviewCount = reviewCount,
+                    accountCount = accounts.count { !it.archived },
+                    defaultAccountName = accounts.firstOrNull { it.id == settings.defaultAccountId }?.title,
+                    onNavigate = { route ->
+                        scope.launch { drawerState.close() }
+                        go(route)
                     }
-                }
-                Spacer(Modifier.height(8.dp))
-                drawerEntries.forEach { entry ->
-                    NavigationDrawerItem(
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                        selected = currentRoute == entry.route,
-                        label = { Text(entry.label) },
-                        icon = { Icon(entry.icon, contentDescription = entry.label) },
-                        badge = {
-                            if (entry.badge && reviewCount > 0) {
-                                Badge { Text(Digits.toPersian(reviewCount.toString())) }
-                            }
-                        },
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            if (currentRoute != entry.route) {
-                                navController.navigate(entry.route) {
-                                    popUpTo("home") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        }
-                    )
-                }
+                )
             }
         }
     ) {
@@ -260,8 +237,8 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
             topBar = {
                 TopAppBar(
                     title = { Text(titleOf(currentRoute)) },
-                    // دکمه همبرگری در سمت چپ برنامه (RTL ⇒ actions سمت چپ قرار می‌گیرد)
-                    actions = {
+                    // منوی همبرگری سمت راست: در RTL، navigationIcon سمت راست قرار می‌گیرد.
+                    navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Filled.Menu, contentDescription = "منو")
                         }
@@ -269,9 +246,24 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                         titleContentColor = skin.onBackdrop,
-                        actionIconContentColor = skin.onBackdrop
+                        navigationIconContentColor = skin.onBackdrop
                     )
                 )
+            },
+            bottomBar = {
+                if (currentRoute in bottomRoutes) {
+                    BottomNavBar(
+                        items = listOf(
+                            BottomItem("home", "خانه", Icons.Filled.Home),
+                            BottomItem("transactions", "تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
+                            BottomItem("reports", "گزارش‌ها", Icons.Filled.BarChart),
+                            BottomItem("accounts", "حساب‌ها", Icons.Filled.AccountBalance)
+                        ),
+                        currentRoute = currentRoute,
+                        onSelect = { go(it) },
+                        onFabClick = { navController.navigate("manual") }
+                    )
+                }
             }
         ) { padding ->
             NavHost(
@@ -300,6 +292,170 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 }
                 composable("categories") { CategoriesScreen(viewModel) }
                 composable("backup") { BackupScreen(viewModel) }
+            }
+        }
+    }
+}
+
+/** بدنه کشو: هدر گرادیانی با آواتار، خلاصه وضعیت، و آیتم‌های کپسولی. */
+@Composable
+private fun DrawerBody(
+    skin: ir.kharjyar.app.ui.theme.AppSkin,
+    currentRoute: String?,
+    reviewCount: Int,
+    accountCount: Int,
+    defaultAccountName: String?,
+    onNavigate: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(skin.backgroundColors + skin.backgroundColors.last()))
+    ) {
+        // ---------- هدر ----------
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.linearGradient(skin.heroGradient))
+                .statusBarsPadding()
+                .padding(20.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.AccountBalance,
+                            contentDescription = null,
+                            tint = skin.onHero,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text("خرج‌یار", style = MaterialTheme.typography.titleLarge, color = skin.onHero)
+                        Text(
+                            "دستیار خرج و دخل شما",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = skin.onHero.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DrawerStat("حساب‌ها", Digits.toPersian(accountCount.toString()), skin)
+                    DrawerStat("بررسی", Digits.toPersian(reviewCount.toString()), skin)
+                }
+                defaultAccountName?.let {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "حساب پیش‌فرض: $it",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = skin.onHero.copy(alpha = 0.9f)
+                    )
+                }
+            }
+        }
+
+        // ---------- آیتم‌ها ----------
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            drawerEntries.forEach { entry ->
+                DrawerRow(
+                    entry = entry,
+                    selected = currentRoute == entry.route,
+                    badgeCount = if (entry.badge) reviewCount else 0,
+                    skin = skin,
+                    onClick = { onNavigate(entry.route) }
+                )
+            }
+        }
+
+        // ---------- پانویس ----------
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                "نسخه ۱.۰.۰",
+                style = MaterialTheme.typography.labelSmall,
+                color = skin.onBackdrop.copy(alpha = 0.5f)
+            )
+            Text(
+                PersianDate.today().format(),
+                style = MaterialTheme.typography.labelSmall,
+                color = skin.onBackdrop.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DrawerStat(label: String, value: String, skin: ir.kharjyar.app.ui.theme.AppSkin) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.16f))
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        Text(value, style = MaterialTheme.typography.titleMedium, color = skin.onHero)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = skin.onHero.copy(alpha = 0.85f))
+    }
+}
+
+@Composable
+private fun DrawerRow(
+    entry: DrawerEntry,
+    selected: Boolean,
+    badgeCount: Int,
+    skin: ir.kharjyar.app.ui.theme.AppSkin,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(
+                if (selected) Brush.horizontalGradient(
+                    listOf(skin.accent.copy(alpha = 0.22f), Color.Transparent)
+                ) else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // نوار نشانگر انتخاب
+        Box(
+            modifier = Modifier
+                .size(width = 3.dp, height = 20.dp)
+                .clip(CircleShape)
+                .background(if (selected) skin.accent else Color.Transparent)
+        )
+        Spacer(Modifier.width(12.dp))
+        Icon(
+            entry.icon,
+            contentDescription = entry.label,
+            tint = if (selected) skin.accent else skin.onBackdrop.copy(alpha = 0.75f),
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(Modifier.width(14.dp))
+        Text(
+            entry.label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) skin.accent else skin.onBackdrop,
+            modifier = Modifier.weight(1f)
+        )
+        if (badgeCount > 0) {
+            Badge(containerColor = skin.expenseColor) {
+                Text(Digits.toPersian(badgeCount.toString()))
             }
         }
     }

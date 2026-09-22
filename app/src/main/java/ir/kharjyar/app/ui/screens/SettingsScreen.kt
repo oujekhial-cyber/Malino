@@ -50,6 +50,7 @@ import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.theme.AllSkins
 import ir.kharjyar.app.ui.theme.AppSkin
 import ir.kharjyar.app.widget.KharjYarWidgetReceiver
@@ -60,6 +61,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settings by viewModel.settings.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
 
     var smsGranted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED)
@@ -81,18 +83,52 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
         SectionCard("ظاهر و تم") {
             Text("تم برنامه", style = MaterialTheme.typography.labelLarge)
             Text(
-                "تم «شفق قطبی» روی پس‌زمینه، کارت‌ها، نمودار، دیالوگ‌ها و ویجت اعمال می‌شود.",
+                "تم انتخابی روی پس‌زمینه، کارت‌ها، نمودار، دیالوگ‌ها، نوار پایین و ویجت اعمال می‌شود.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            AllSkins.forEach { skin ->
-                ThemeOption(
-                    skin = skin,
-                    selected = settings.palette == skin.id,
+            // شبکه دو‌ستونه از همه تم‌ها
+            AllSkins.chunked(2).forEach { pair ->
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { scope.launch { viewModel.settingsRepo.setPalette(skin.id) } }
-                )
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    pair.forEach { skin ->
+                        ThemeOption(
+                            skin = skin,
+                            selected = settings.palette == skin.id,
+                            modifier = Modifier.weight(1f),
+                            onClick = { scope.launch { viewModel.settingsRepo.setPalette(skin.id) } }
+                        )
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
             }
+        }
+
+        // ---------- حساب پیش‌فرض ----------
+        SectionCard("حساب پیش‌فرض") {
+            Text(
+                "با انتخاب حساب پیش‌فرض، داشبورد و ویجت به‌صورت پیش‌فرض اطلاعات همان حساب را نشان می‌دهند.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            val accountOptions: List<Long> = listOf(0L) + accounts.filter { !it.archived }.map { it.id }
+            ComboBox(
+                label = "حساب پیش‌فرض داشبورد و ویجت",
+                options = accountOptions,
+                selected = settings.defaultAccountId ?: 0L,
+                labelOf = { id ->
+                    if (id == 0L) "همه حساب‌ها"
+                    else accounts.firstOrNull { it.id == id }?.title ?: "—"
+                },
+                onSelect = { id ->
+                    scope.launch {
+                        viewModel.settingsRepo.setDefaultAccount(if (id == 0L) null else id)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
         }
 
         // ---------- پول ----------
@@ -177,6 +213,13 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 FilterChip(selected = settings.widgetContent == WidgetContent.RECENT, onClick = { scope.launch { viewModel.settingsRepo.setWidgetContent(WidgetContent.RECENT); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } }, label = { Text("آخرین تراکنش‌ها") })
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("ساعت و تاریخ در ویجت", style = MaterialTheme.typography.bodyLarge)
+                    Text("ساعت بزرگ همراه تاریخ شمسی و میلادی در سمت راست ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = settings.widgetShowClock, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowClock(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("نمایش اعداد در ویجت", style = MaterialTheme.typography.bodyLarge)
                 Switch(checked = settings.widgetShowNumbers, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowNumbers(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
             }
@@ -245,11 +288,11 @@ private fun ThemeOption(
             Box(Modifier.size(14.dp).background(skin.accent, CircleShape))
         }
         Spacer(Modifier.height(10.dp))
-        Text(skin.title, style = MaterialTheme.typography.titleSmall, color = skin.onBackdrop)
+        Text(skin.title, style = MaterialTheme.typography.titleSmall, color = skin.onHero)
         Text(
-            if (selected) "انتخاب‌شده" else "برای انتخاب بزنید",
+            if (selected) "انتخاب‌شده ✓" else skin.subtitle,
             style = MaterialTheme.typography.labelSmall,
-            color = skin.onBackdrop.copy(alpha = 0.75f)
+            color = skin.onHero.copy(alpha = 0.75f)
         )
     }
 }

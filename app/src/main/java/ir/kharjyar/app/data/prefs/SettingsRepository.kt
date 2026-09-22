@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import ir.kharjyar.app.core.money.MoneyUnit
@@ -17,7 +18,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 /** تم بصری برنامه. فعلاً تنها تم: شفق قطبی. */
-enum class Palette { AURORA }
+enum class Palette { AURORA, EMERALD, PAPER, PLUM, SLATE }
 enum class WidgetContent { TODAY_EXPENSE, MONTH_EXPENSE, SUMMARY, RECENT }
 
 data class AppSettings(
@@ -30,7 +31,11 @@ data class AppSettings(
     val widgetContent: WidgetContent = WidgetContent.SUMMARY,
     val widgetShowNumbers: Boolean = true,
     /** اگر قفل فعال است، نمایش اعداد در ویجت باید صریحاً مجاز شود. */
-    val widgetShowNumbersWhenLocked: Boolean = false
+    val widgetShowNumbersWhenLocked: Boolean = false,
+    /** حساب پیش‌فرض داشبورد و ویجت. null یعنی «همه حساب‌ها». */
+    val defaultAccountId: Long? = null,
+    /** نمایش ساعت و تاریخ در سمت راست ویجت. */
+    val widgetShowClock: Boolean = true
 )
 
 class SettingsRepository(private val context: Context) {
@@ -45,6 +50,8 @@ class SettingsRepository(private val context: Context) {
         val WIDGET_CONTENT = stringPreferencesKey("widget_content")
         val WIDGET_NUMBERS = booleanPreferencesKey("widget_numbers")
         val WIDGET_NUMBERS_LOCKED = booleanPreferencesKey("widget_numbers_locked")
+        val DEFAULT_ACCOUNT = longPreferencesKey("default_account_id")
+        val WIDGET_CLOCK = booleanPreferencesKey("widget_clock")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -57,7 +64,9 @@ class SettingsRepository(private val context: Context) {
             onboardingDone = p[Keys.ONBOARDING] ?: false,
             widgetContent = enumOf(p[Keys.WIDGET_CONTENT], WidgetContent.SUMMARY),
             widgetShowNumbers = p[Keys.WIDGET_NUMBERS] ?: true,
-            widgetShowNumbersWhenLocked = p[Keys.WIDGET_NUMBERS_LOCKED] ?: false
+            widgetShowNumbersWhenLocked = p[Keys.WIDGET_NUMBERS_LOCKED] ?: false,
+            defaultAccountId = p[Keys.DEFAULT_ACCOUNT]?.takeIf { it > 0 },
+            widgetShowClock = p[Keys.WIDGET_CLOCK] ?: true
         )
     }
 
@@ -72,6 +81,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetContent(v: WidgetContent) = edit { it[Keys.WIDGET_CONTENT] = v.name }
     suspend fun setWidgetShowNumbers(v: Boolean) = edit { it[Keys.WIDGET_NUMBERS] = v }
     suspend fun setWidgetShowNumbersWhenLocked(v: Boolean) = edit { it[Keys.WIDGET_NUMBERS_LOCKED] = v }
+    suspend fun setDefaultAccount(v: Long?) = edit { it[Keys.DEFAULT_ACCOUNT] = v ?: 0L }
+    suspend fun setWidgetShowClock(v: Boolean) = edit { it[Keys.WIDGET_CLOCK] = v }
 
     /** تنظیمات غیرحساس برای بکاپ. */
     suspend fun exportForBackup(): Map<String, String> {
@@ -81,7 +92,8 @@ class SettingsRepository(private val context: Context) {
             "palette" to s.palette.name,
             "money_unit" to s.moneyUnit.name,
             "widget_content" to s.widgetContent.name,
-            "widget_numbers" to s.widgetShowNumbers.toString()
+            "widget_numbers" to s.widgetShowNumbers.toString(),
+            "widget_clock" to s.widgetShowClock.toString()
         )
     }
 
@@ -92,6 +104,7 @@ class SettingsRepository(private val context: Context) {
             map["money_unit"]?.let { v -> runCatching { MoneyUnit.valueOf(v) }.getOrNull()?.let { p[Keys.MONEY_UNIT] = it.name } }
             map["widget_content"]?.let { v -> runCatching { WidgetContent.valueOf(v) }.getOrNull()?.let { p[Keys.WIDGET_CONTENT] = it.name } }
             map["widget_numbers"]?.let { p[Keys.WIDGET_NUMBERS] = it.toBoolean() }
+            map["widget_clock"]?.let { p[Keys.WIDGET_CLOCK] = it.toBoolean() }
         }
     }
 
@@ -100,7 +113,8 @@ class SettingsRepository(private val context: Context) {
     }
 
     /** نگاشت پالت‌های قدیمی (اقیانوس/جنگل/…) به تم‌های جدید. */
-    private fun paletteOf(@Suppress("UNUSED_PARAMETER") name: String?): Palette = Palette.AURORA
+    private fun paletteOf(name: String?): Palette =
+        name?.let { runCatching { Palette.valueOf(it) }.getOrNull() } ?: Palette.AURORA
 
     private inline fun <reified T : Enum<T>> enumOf(name: String?, default: T): T =
         name?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default

@@ -57,29 +57,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val settings by viewModel.settings.collectAsState()
     val summary by viewModel.monthSummary.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
-    val recent by viewModel.recentTransactions.collectAsState()
+    val recent by viewModel.scopedRecent.collectAsState()
     val reviewCount by viewModel.reviewCount.collectAsState()
     val allTx by viewModel.allTransactions.collectAsState()
+    val scopedTx by viewModel.scopedTransactions.collectAsState()
+    val defaultAccount by viewModel.defaultAccount.collectAsState()
     val skin = LocalAppSkin.current
 
     Scaffold(
         containerColor = Color.Transparent,
-        modifier = Modifier.imePadding(),
-        floatingActionButton = {
-            // FAB گرادیانی تم‌پذیر
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Brush.linearGradient(skin.fabGradient))
-                    .clickable { nav.navigate("manual") }
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White)
-                Spacer(Modifier.width(8.dp))
-                Text("ثبت تراکنش", style = MaterialTheme.typography.titleSmall, color = Color.White)
-            }
-        }
+        modifier = Modifier.imePadding()
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -91,21 +78,37 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 EnterCard(0) {
                     SkinCard(modifier = Modifier.fillMaxWidth(), tonal = true) {
                         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-                            Text(
-                                "خلاصه ${summary.monthTitle}",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = skin.onBackdrop
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "خلاصه ${summary.monthTitle}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = skin.onHero
+                                )
+                                Text(
+                                    defaultAccount?.title ?: "همه حساب‌ها",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = skin.onHero.copy(alpha = 0.85f),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color.White.copy(alpha = 0.16f))
+                                        .clickable { nav.navigate("settings") }
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
                             Spacer(Modifier.height(6.dp))
                             Text(
                                 Money.format(summary.incomeRial - summary.expenseRial, settings.moneyUnit),
                                 style = MaterialTheme.typography.headlineMedium,
-                                color = skin.bigNumberColor
+                                color = skin.onHero
                             )
                             Text(
                                 "خالص این ماه",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = skin.onBackdrop.copy(alpha = 0.75f)
+                                color = skin.onHero.copy(alpha = 0.75f)
                             )
                             Spacer(Modifier.height(14.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -127,7 +130,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 Text(
                                     "به‌جز ${Digits.toPersian(summary.pendingCount.toString())} مورد تأییدنشده (در جمع بالا حساب نشده)",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = skin.onBackdrop.copy(alpha = 0.8f)
+                                    color = skin.onHero.copy(alpha = 0.8f)
                                 )
                             }
                         }
@@ -263,7 +266,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("روند ۳۰ روز اخیر", style = MaterialTheme.typography.titleMedium, color = skin.onBackdrop)
                             Spacer(Modifier.height(12.dp))
-                            val (income, expense) = buildDailySeries(allTx, 30)
+                            val (income, expense) = buildDailySeries(scopedTx, 30)
                             if (income.all { it == 0L } && expense.all { it == 0L }) {
                                 EmptyState("داده‌ای برای نمودار نیست", "با ثبت اولین تراکنش، نمودار اینجا شکل می‌گیرد")
                             } else {
@@ -331,7 +334,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                 }
             }
-            item { Spacer(Modifier.height(80.dp)) }
+            item { Spacer(Modifier.height(110.dp)) }
         }
     }
 }
@@ -339,14 +342,19 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 @Composable
 private fun SummaryChip(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {
     val skin = LocalAppSkin.current
-    Column(
+    Row(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(tint.copy(alpha = if (skin.dark) 0.18f else 0.55f))
-            .padding(12.dp)
+            .background(Color.White.copy(alpha = if (skin.dark) 0.12f else 0.30f))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop.copy(alpha = 0.85f))
-        Text(value, style = MaterialTheme.typography.titleSmall, color = skin.onBackdrop, textAlign = TextAlign.Start)
+        Box(modifier = Modifier.size(8.dp).background(tint, CircleShape))
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = skin.onHero.copy(alpha = 0.85f))
+            Text(value, style = MaterialTheme.typography.titleSmall, color = skin.onHero, textAlign = TextAlign.Start)
+        }
     }
 }
 

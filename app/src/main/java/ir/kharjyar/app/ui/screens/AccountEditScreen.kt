@@ -47,15 +47,18 @@ import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.AccountSenderEntity
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.ColorPicker
+import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.keepAboveKeyboard
+import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
 
-private val accountColors = listOf(
-    0xFF3F51B5, 0xFF00897B, 0xFFD81B60, 0xFFF4511E, 0xFF6D4C41,
-    0xFF546E7A, 0xFF7B1FA2, 0xFF2E7D32, 0xFFC62828, 0xFF0277BD
-)
+/** رنگ پیش‌فرض حساب جدید. */
+private const val DEFAULT_ACCOUNT_COLOR = 0xFF3F51B5
 
+/** «توسعه تعاون» طبق درخواست کاربر اولین گزینه است. */
 private val bankNames = listOf(
+    "بانک توسعه تعاون",
     "ملی", "ملت", "صادرات", "تجارت", "سپه", "کشاورزی", "مسکن", "رفاه", "پاسارگاد",
     "پارسیان", "سامان", "اقتصاد نوین", "شهر", "دی", "سینا", "کارآفرین", "آینده",
     "گردشگری", "ایران زمین", "خاورمیانه", "رسالت", "قرض‌الحسنه مهر", "پست بانک", "سایر"
@@ -75,7 +78,7 @@ fun AccountEditScreen(
 
     var title by remember { mutableStateOf("") }
     var bankName by remember { mutableStateOf("") }
-    var color by remember { mutableStateOf(accountColors[0]) }
+    var color by remember { mutableStateOf(DEFAULT_ACCOUNT_COLOR) }
     var maskedNumber by remember { mutableStateOf("") }
     var initialBalance by remember { mutableStateOf("") }
     var archived by remember { mutableStateOf(false) }
@@ -111,34 +114,34 @@ fun AccountEditScreen(
         
         OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("عنوان دلخواه (مثل «حساب حقوق»)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
-        Text("نام بانک", style = MaterialTheme.typography.labelLarge)
-        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(bankNames.size) { i ->
-                androidx.compose.material3.FilterChip(
-                    selected = bankName == bankNames[i],
-                    onClick = { bankName = bankNames[i] },
-                    label = { Text(bankNames[i]) }
-                )
-            }
-        }
-        OutlinedTextField(value = bankName, onValueChange = { bankName = it }, label = { Text("یا نام بانک را بنویسید") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-
-        Text("رنگ", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            accountColors.take(10).forEach { c ->
+        ComboBox(
+            label = "نام بانک",
+            options = bankNames,
+            selected = bankNames.firstOrNull { it == bankName },
+            labelOf = { it },
+            placeholder = "انتخاب بانک",
+            onSelect = { bankName = it },
+            leadingOf = { name ->
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .background(Color(c), CircleShape)
-                        .border(
-                            width = if (color == c) 3.dp else 0.dp,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            shape = CircleShape
+                        .size(10.dp)
+                        .background(
+                            if (name == bankName) LocalAppSkin.current.accent
+                            else LocalAppSkin.current.onBackdrop.copy(alpha = 0.3f),
+                            CircleShape
                         )
-                        .clickable { color = c }
                 )
             }
-        }
+        )
+        OutlinedTextField(
+            value = bankName,
+            onValueChange = { bankName = it },
+            label = { Text("یا نام بانک را دستی بنویسید") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        ColorPicker(color = color, onColorChange = { color = it })
 
         OutlinedTextField(
             value = maskedNumber,
