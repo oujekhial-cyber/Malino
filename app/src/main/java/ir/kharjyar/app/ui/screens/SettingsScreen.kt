@@ -81,22 +81,17 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
         SectionCard("ظاهر و تم") {
             Text("تم برنامه", style = MaterialTheme.typography.labelLarge)
             Text(
-                "تم روی پس‌زمینه، کارت‌ها، نمودار، دیالوگ‌ها و ویجت اعمال می‌شود.",
+                "تم «شفق قطبی» روی پس‌زمینه، کارت‌ها، نمودار، دیالوگ‌ها و ویجت اعمال می‌شود.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            AllSkins.chunked(2).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    row.forEach { skin ->
-                        ThemeOption(
-                            skin = skin,
-                            selected = settings.palette == skin.id,
-                            modifier = Modifier.weight(1f),
-                            onClick = { scope.launch { viewModel.settingsRepo.setPalette(skin.id) } }
-                        )
-                    }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
-                }
+            AllSkins.forEach { skin ->
+                ThemeOption(
+                    skin = skin,
+                    selected = settings.palette == skin.id,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { scope.launch { viewModel.settingsRepo.setPalette(skin.id) } }
+                )
             }
         }
 

@@ -16,13 +16,13 @@ import kotlinx.coroutines.flow.map
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
-/** چهار تم بصری برنامه. */
-enum class Palette { GLASS, NEON, PASTEL, AURORA }
+/** تم بصری برنامه. فعلاً تنها تم: شفق قطبی. */
+enum class Palette { AURORA }
 enum class WidgetContent { TODAY_EXPENSE, MONTH_EXPENSE, SUMMARY, RECENT }
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val palette: Palette = Palette.GLASS,
+    val palette: Palette = Palette.AURORA,
     val moneyUnit: MoneyUnit = MoneyUnit.TOMAN,
     val appLockEnabled: Boolean = false,
     val lockTimeoutSeconds: Int = 60,
@@ -100,15 +100,7 @@ class SettingsRepository(private val context: Context) {
     }
 
     /** نگاشت پالت‌های قدیمی (اقیانوس/جنگل/…) به تم‌های جدید. */
-    private fun paletteOf(name: String?): Palette = when (name) {
-        null -> Palette.GLASS
-        "GLASS" -> Palette.GLASS
-        "NEON", "MIDNIGHT" -> Palette.NEON
-        "PASTEL", "SUNSET" -> Palette.PASTEL
-        "AURORA", "FOREST" -> Palette.AURORA
-        "OCEAN", "DYNAMIC" -> Palette.GLASS
-        else -> runCatching { Palette.valueOf(name) }.getOrDefault(Palette.GLASS)
-    }
+    private fun paletteOf(@Suppress("UNUSED_PARAMETER") name: String?): Palette = Palette.AURORA
 
     private inline fun <reified T : Enum<T>> enumOf(name: String?, default: T): T =
         name?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default
