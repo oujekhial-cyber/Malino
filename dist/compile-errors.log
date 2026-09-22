@@ -1,0 +1,2 @@
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt:292:64 Argument type mismatch: actual type is 'android.content.Intent', but 'android.content.ComponentName' was expected.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt:292:64 Argument type mismatch: actual type is 'android.content.Intent', but 'android.content.ComponentName' was expected.

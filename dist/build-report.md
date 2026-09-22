@@ -1,12 +1,12 @@
 # گزارش Build و تست (CI)
 
-- commit: 6618eb7ec0d0495aa64d872c8fc40a18ef23ddb1
-- تاریخ: 2026-09-22 16:11 UTC
-- unit tests: success
-- assembleDebug: success
-- lintDebug: success
+- commit: 91da4cf17b26f13374749f839790c2da81f08a02
+- تاریخ: 2026-09-22 17:05 UTC
+- unit tests: failure
+- assembleDebug: failure
+- lintDebug: failure
 
 ## خلاصه تست‌های واحد
 ```
-tests=112 failures=0 errors=0 skipped=0
+(no test results)
 ```
