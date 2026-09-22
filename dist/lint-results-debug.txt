@@ -104,6 +104,15 @@ of the library. [ObsoleteLintCustomCheck]
 
    https://developer.android.com/distribute/best-practices/develop/target-sdk.html
 
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt:58: Error: @layout/w_split includes views not allowed in a RemoteView: View [RemoteViewLayout]
+        RemoteViews(context.packageName, R.layout.w_split).apply {
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "RemoteViewLayout":
+   In a RemoteView, only some layouts and views are allowed.
+
+   https://developer.android.com/reference/android/widget/RemoteViews
+
 /home/runner/work/Malino/Malino/gradle/libs.versions.toml:2: Warning: A newer version of com.android.application than 8.6.1 is available: 9.4.1 [AndroidGradlePluginVersion]
 agp = "8.6.1"
       ~~~~~~~
@@ -300,7 +309,7 @@ espresso = "3.6.1"
    However, you may simply not be aware that a more recent version is
    available, and that is what this lint check helps find.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt:234: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt:245: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier,
     ~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:285: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
@@ -450,6 +459,9 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/res/drawable/w_card.xml:3: Warning: The resource R.drawable.w_card appears to be unused [UnusedResources]
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
 ^
+/home/runner/work/Malino/Malino/app/src/main/res/layout/widget_clock.xml:8: Warning: The resource R.layout.widget_clock appears to be unused [UnusedResources]
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+^
 
    Explanation for issues of type "UnusedResources":
    Unused resources make applications larger and slow down builds.
@@ -502,4 +514,4 @@ espresso = "3.6.1"
    There are quickfixes to automatically extract this hardcoded string into a
    resource lookup.
 
-1 errors, 83 warnings
+2 errors, 84 warnings
