@@ -113,8 +113,11 @@ jobs:
             (cd dist && sha256sum KharjYar-debug.apk > KharjYar-debug.apk.sha256)
           fi
           # نسخه انتشار: کوچک‌تر، سریع‌تر و امضاشده
-          REL=app/build/outputs/apk/release/app-release.apk
-          if [ -f "$REL" ]; then
+          # نام فایل خروجی بسته به امضا فرق می‌کند (app-release یا app-release-unsigned)
+          REL=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
+          echo "خروجی انتشار: ${REL:-یافت نشد}"
+          ls -la app/build/outputs/apk/release/ 2>/dev/null || true
+          if [ -n "$REL" ] && [ -f "$REL" ]; then
             cp "$REL" dist/KharjYar-release.apk
             (cd dist && sha256sum KharjYar-release.apk > KharjYar-release.apk.sha256)
             echo "" >> dist/build-report.md
