@@ -90,7 +90,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             item {
                 EnterCard(0) {
                     HeroCard(
-                        modifier = Modifier.fillMaxWidth().shine(settings.cardShine, skin.cardCorner),
+                        modifier = Modifier.fillMaxWidth(),
                         orbit = settings.cardShine
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
