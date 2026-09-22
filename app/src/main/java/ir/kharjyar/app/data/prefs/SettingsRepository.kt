@@ -27,6 +27,9 @@ enum class WidgetBackground { THEME, SAKURA }
 /** سبک نمایش ارقام در کل برنامه و ویجت. */
 enum class DigitStyle { PERSIAN, LATIN }
 
+/** تراز افقی متن‌ها در ویجت. */
+enum class WidgetAlign { START, CENTER, END }
+
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val palette: Palette = Palette.SAKURA,
@@ -63,7 +66,18 @@ data class AppSettings(
     /** ارقام فارسی یا لاتین در کل برنامه و ویجت. */
     val digitStyle: DigitStyle = DigitStyle.PERSIAN,
     /** حرکت آرام هاله نور شیشه‌ای روی کارت‌های صفحه خانه. */
-    val cardShine: Boolean = true
+    val cardShine: Boolean = true,
+    /** نمایش مبالغ در کارت خانه (با دکمه چشم عوض می‌شود و ماندگار است). */
+    val amountsVisible: Boolean = true,
+    /** چیدمان متن‌های ویجت. */
+    val widgetTitleAlign: WidgetAlign = WidgetAlign.START,
+    val widgetClockAlign: WidgetAlign = WidgetAlign.CENTER,
+    /** ترتیب عمودی پنل ساعت نسبت به تاریخ‌ها. */
+    val widgetDatesBelowClock: Boolean = true,
+    /** فاصله عمودی پنل ساعت از بالای ویجت (۰=وسط، منفی=بالاتر، مثبت=پایین‌تر) بر حسب dp. */
+    val widgetClockOffsetY: Int = 0,
+    /** فاصله عمودی متن‌های خرج‌یار بر حسب dp. */
+    val widgetTitleOffsetY: Int = 0
 )
 
 class SettingsRepository(private val context: Context) {
@@ -91,6 +105,12 @@ class SettingsRepository(private val context: Context) {
         val SECURE_SCREEN = booleanPreferencesKey("secure_screen")
         val DIGIT_STYLE = stringPreferencesKey("digit_style")
         val CARD_SHINE = booleanPreferencesKey("card_shine")
+        val AMOUNTS_VISIBLE = booleanPreferencesKey("amounts_visible")
+        val W_TITLE_ALIGN = stringPreferencesKey("w_title_align")
+        val W_CLOCK_ALIGN = stringPreferencesKey("w_clock_align")
+        val W_DATES_BELOW = booleanPreferencesKey("w_dates_below")
+        val W_CLOCK_OFFSET_Y = intPreferencesKey("w_clock_offset_y")
+        val W_TITLE_OFFSET_Y = intPreferencesKey("w_title_offset_y")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -119,7 +139,13 @@ class SettingsRepository(private val context: Context) {
                 // پرچم سراسری ارقام همگام با تنظیم کاربر نگه داشته می‌شود
                 ir.kharjyar.app.core.text.Digits.usePersianDigits = it == DigitStyle.PERSIAN
             },
-            cardShine = p[Keys.CARD_SHINE] ?: true
+            cardShine = p[Keys.CARD_SHINE] ?: true,
+            amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
+            widgetTitleAlign = enumOf(p[Keys.W_TITLE_ALIGN], WidgetAlign.START),
+            widgetClockAlign = enumOf(p[Keys.W_CLOCK_ALIGN], WidgetAlign.CENTER),
+            widgetDatesBelowClock = p[Keys.W_DATES_BELOW] ?: true,
+            widgetClockOffsetY = (p[Keys.W_CLOCK_OFFSET_Y] ?: 0).coerceIn(-40, 40),
+            widgetTitleOffsetY = (p[Keys.W_TITLE_OFFSET_Y] ?: 0).coerceIn(-40, 40)
         )
     }
 
@@ -147,6 +173,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setSecureScreen(v: Boolean) = edit { it[Keys.SECURE_SCREEN] = v }
     suspend fun setDigitStyle(v: DigitStyle) = edit { it[Keys.DIGIT_STYLE] = v.name }
     suspend fun setCardShine(v: Boolean) = edit { it[Keys.CARD_SHINE] = v }
+    suspend fun setAmountsVisible(v: Boolean) = edit { it[Keys.AMOUNTS_VISIBLE] = v }
+    suspend fun setWidgetTitleAlign(v: WidgetAlign) = edit { it[Keys.W_TITLE_ALIGN] = v.name }
+    suspend fun setWidgetClockAlign(v: WidgetAlign) = edit { it[Keys.W_CLOCK_ALIGN] = v.name }
+    suspend fun setWidgetDatesBelowClock(v: Boolean) = edit { it[Keys.W_DATES_BELOW] = v }
+    suspend fun setWidgetClockOffsetY(v: Int) = edit { it[Keys.W_CLOCK_OFFSET_Y] = v.coerceIn(-40, 40) }
+    suspend fun setWidgetTitleOffsetY(v: Int) = edit { it[Keys.W_TITLE_OFFSET_Y] = v.coerceIn(-40, 40) }
 
     /** تنظیمات غیرحساس برای بکاپ. */
     suspend fun exportForBackup(): Map<String, String> {

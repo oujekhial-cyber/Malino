@@ -1,6 +1,7 @@
 package ir.kharjyar.app.widget
 
 import android.content.Context
+import android.provider.AlarmClock
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -28,7 +29,6 @@ import androidx.glance.layout.Box
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -50,6 +50,7 @@ import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.prefs.WidgetBackground
+import ir.kharjyar.app.data.prefs.WidgetAlign
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.theme.skinOf
 import kotlinx.coroutines.CoroutineScope
@@ -122,6 +123,28 @@ class KharjYarWidget : GlanceAppWidget() {
         val valueSize = settings.widgetValueSize.sp
         val labelSize = settings.widgetLabelSize.sp
 
+        // تراز افقی انتخابی کاربر برای دو پنل ویجت
+        fun horizOf(a: WidgetAlign) = when (a) {
+            WidgetAlign.START -> Alignment.Start
+            WidgetAlign.CENTER -> Alignment.CenterHorizontally
+            WidgetAlign.END -> Alignment.End
+        }
+        // جابه‌جایی عمودی با padding نامتقارن شبیه‌سازی می‌شود
+        val titleOff = settings.widgetTitleOffsetY
+        val clockOff = settings.widgetClockOffsetY
+        val titleShiftTop = (if (titleOff > 0) titleOff else 0).dp
+        val titleShiftBottom = (if (titleOff < 0) -titleOff else 0).dp
+        val clockShiftTop = (if (clockOff > 0) clockOff else 0).dp
+        val clockShiftBottom = (if (clockOff < 0) -clockOff else 0).dp
+        val titleAlign = horizOf(settings.widgetTitleAlign)
+        val clockAlign = horizOf(settings.widgetClockAlign)
+        // gravity متناظر برای چیدمان XML پنل ساعت
+        val clockGravity = when (settings.widgetClockAlign) {
+            WidgetAlign.START -> android.view.Gravity.START
+            WidgetAlign.CENTER -> android.view.Gravity.CENTER_HORIZONTAL
+            WidgetAlign.END -> android.view.Gravity.END
+        }
+
         /**
          * ساعت به‌صورت RemoteViews با TextClock ساخته می‌شود، نه متن ثابت.
          * TextClock را خود سیستم‌عامل هر دقیقه به‌روز می‌کند، بنابراین ساعت ویجت
@@ -153,6 +176,13 @@ class KharjYarWidget : GlanceAppWidget() {
             setTextViewTextSize(R.id.widget_gregorian, TypedValue.COMPLEX_UNIT_SP, datePx * 0.85f)
             setTextColor(R.id.widget_gregorian, onArgb)
             setString(R.id.widget_gregorian, "setTimeZone", tz)
+
+            // تراز افقی متن‌های پنل ساعت
+            setInt(R.id.widget_clock_panel, "setGravity", clockGravity)
+            setInt(R.id.widget_hour, "setGravity", clockGravity)
+            setInt(R.id.widget_minute, "setGravity", clockGravity)
+            setInt(R.id.widget_jalali, "setGravity", clockGravity)
+            setInt(R.id.widget_gregorian, "setGravity", clockGravity)
         }
 
         /**
@@ -188,7 +218,6 @@ class KharjYarWidget : GlanceAppWidget() {
                     modifier = GlanceModifier
                         .fillMaxSize()
                         .cornerRadius(20.dp)
-                        .clickable(actionStartActivity<MainActivity>())
                 ) {
                     // لایه پس‌زمینه: یا بیت‌مپ آماده (تصویر + رنگ) یا فقط رنگ تم
                     if (bgBitmap != null) {
@@ -213,8 +242,17 @@ class KharjYarWidget : GlanceAppWidget() {
                     ) {
                     // ---------- سمت راست (در RTL اول می‌آید): مقادیر مالی ----------
                     Column(
-                        modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = GlanceModifier
+                            .defaultWeight()
+                            .fillMaxHeight()
+                            // لمس این ناحیه، خودِ خرج‌یار را باز می‌کند
+                            .clickable(actionStartActivity<MainActivity>())
+                            .padding(
+                                top = titleShiftTop,
+                                bottom = titleShiftBottom
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalAlignment = titleAlign
                     ) {
                         Text(
                             "خرج‌یار",
@@ -248,9 +286,16 @@ class KharjYarWidget : GlanceAppWidget() {
                         Spacer(GlanceModifier.width(12.dp))
                         // ---------- سمت چپ: ساعت بزرگ + تاریخ شمسی + میلادی ----------
                         Column(
-                            modifier = GlanceModifier.fillMaxHeight(),
+                            modifier = GlanceModifier
+                                .fillMaxHeight()
+                                // لمس ساعت، برنامه ساعت گوشی را باز می‌کند
+                                .clickable(actionStartActivity(clockIntent(context)))
+                                .padding(
+                                    top = clockShiftTop,
+                                    bottom = clockShiftBottom
+                                ),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalAlignment = Alignment.Start
+                            horizontalAlignment = clockAlign
                         ) {
                             // ساعت/دقیقه/تاریخ‌ها همگی زنده‌اند و توسط سیستم به‌روز می‌شوند
                             AndroidRemoteViews(remoteViews = clockViews)
@@ -261,6 +306,29 @@ class KharjYarWidget : GlanceAppWidget() {
             }
         }
     }
+}
+
+/**
+ * اینتنت باز کردن برنامه ساعت گوشی.
+ * اول اکشن استاندارد «نمایش ساعت‌ها» امتحان می‌شود؛ اگر روی دستگاه پشتیبانی
+ * نشود، سراغ زنگ هشدار و در نهایت برنامه پیش‌فرض ساعت می‌رویم.
+ */
+private fun clockIntent(context: Context): Intent {
+    val pm = context.packageManager
+    val candidates = listOf(
+        Intent(AlarmClock.ACTION_SHOW_ALARMS),
+        Intent(AlarmClock.ACTION_SET_ALARM)
+    )
+    candidates.forEach { intent ->
+        if (intent.resolveActivity(pm) != null) {
+            return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+    }
+    // تلاش نهایی: برنامه ساعت رایج روی اکثر دستگاه‌ها
+    val fallback = pm.getLaunchIntentForPackage("com.android.deskclock")
+        ?: pm.getLaunchIntentForPackage("com.google.android.deskclock")
+    return (fallback ?: Intent(context, MainActivity::class.java))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
 
 class KharjYarWidgetReceiver : GlanceAppWidgetReceiver() {

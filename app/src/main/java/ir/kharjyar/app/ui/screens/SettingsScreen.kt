@@ -53,6 +53,7 @@ import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.prefs.WidgetBackground
 import ir.kharjyar.app.data.prefs.DigitStyle
+import ir.kharjyar.app.data.prefs.WidgetAlign
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
@@ -429,6 +430,62 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                 }
             )
+            // ---------- چیدمان متن‌های ویجت ----------
+            Text("چیدمان متن‌ها در ویجت", style = MaterialTheme.typography.labelLarge)
+            ComboBox(
+                label = "تراز بخش خرج‌یار و مبالغ",
+                options = listOf(WidgetAlign.START, WidgetAlign.CENTER, WidgetAlign.END),
+                selected = settings.widgetTitleAlign,
+                labelOf = { alignLabel(it) },
+                onSelect = { v ->
+                    scope.launch {
+                        viewModel.settingsRepo.setWidgetTitleAlign(v)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
+            LabeledSlider(
+                label = "جابه‌جایی عمودی خرج‌یار و مبالغ",
+                value = settings.widgetTitleOffsetY,
+                range = -40..40,
+                onValueChange = { v ->
+                    scope.launch {
+                        viewModel.settingsRepo.setWidgetTitleOffsetY(v)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
+            if (settings.widgetShowClock) {
+                ComboBox(
+                    label = "تراز ساعت و تاریخ",
+                    options = listOf(WidgetAlign.START, WidgetAlign.CENTER, WidgetAlign.END),
+                    selected = settings.widgetClockAlign,
+                    labelOf = { alignLabel(it) },
+                    onSelect = { v ->
+                        scope.launch {
+                            viewModel.settingsRepo.setWidgetClockAlign(v)
+                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                        }
+                    }
+                )
+                LabeledSlider(
+                    label = "جابه‌جایی عمودی ساعت و تاریخ",
+                    value = settings.widgetClockOffsetY,
+                    range = -40..40,
+                    onValueChange = { v ->
+                        scope.launch {
+                            viewModel.settingsRepo.setWidgetClockOffsetY(v)
+                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                        }
+                    }
+                )
+            }
+            Text(
+                "عدد منفی یعنی بالاتر و عدد مثبت یعنی پایین‌تر.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             OutlinedButton(
                 onClick = {
                     scope.launch {
@@ -437,6 +494,10 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                         viewModel.settingsRepo.setWidgetDateSize(13)
                         viewModel.settingsRepo.setWidgetValueSize(14)
                         viewModel.settingsRepo.setWidgetLabelSize(10)
+                        viewModel.settingsRepo.setWidgetTitleAlign(WidgetAlign.START)
+                        viewModel.settingsRepo.setWidgetClockAlign(WidgetAlign.CENTER)
+                        viewModel.settingsRepo.setWidgetTitleOffsetY(0)
+                        viewModel.settingsRepo.setWidgetClockOffsetY(0)
                         ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
                     }
                 },
@@ -601,6 +662,13 @@ private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit
             OutlinedButton(onClick = onRequest) { Text("درخواست") }
         }
     }
+}
+
+/** برچسب فارسی تراز افقی. */
+private fun alignLabel(a: WidgetAlign): String = when (a) {
+    WidgetAlign.START -> "راست"
+    WidgetAlign.CENTER -> "وسط"
+    WidgetAlign.END -> "چپ"
 }
 
 /** یک ردیف تماس قابل لمس (ایمیل/تلفن) با آیکون. */

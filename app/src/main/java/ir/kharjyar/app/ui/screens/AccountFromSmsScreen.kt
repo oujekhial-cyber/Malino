@@ -12,7 +12,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +31,7 @@ import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.data.db.AccountSenderEntity
 import ir.kharjyar.app.data.db.SmsCandidateEntity
+import ir.kharjyar.app.data.db.SmsStatus
 import ir.kharjyar.app.ui.AppViewModel
 import kotlinx.coroutines.launch
 
@@ -37,6 +41,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun AccountFromSmsScreen(viewModel: AppViewModel, nav: NavHostController, smsId: Long) {
+    var showAdConfirm by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val accounts by viewModel.accounts.collectAsState()
     var sms by remember { mutableStateOf<SmsCandidateEntity?>(null) }
@@ -126,5 +131,59 @@ fun AccountFromSmsScreen(viewModel: AppViewModel, nav: NavHostController, smsId:
                 ) { Text("${a.title} (${a.bankName})") }
             }
         }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+        // اگر این پیامک اصلاً مالی نیست، کاربر می‌تواند آن را کنار بگذارد
+        Text(
+            "اگر این پیامک مالی نیست:",
+            style = MaterialTheme.typography.titleSmall
+        )
+        OutlinedButton(
+            onClick = {
+                scope.launch {
+                    sms?.let {
+                        viewModel.repo.smsDao.update(
+                            it.copy(status = SmsStatus.DISMISSED, updatedAt = System.currentTimeMillis())
+                        )
+                    }
+                    nav.popBackStack()
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("صرف‌نظر از این پیامک") }
+
+        TextButton(
+            onClick = { showAdConfirm = true },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("این فرستنده تبلیغاتی است") }
+    }
+
+    // ---------- تأیید علامت‌گذاری فرستنده تبلیغاتی ----------
+    if (showAdConfirm) {
+        val sender = sms?.sender.orEmpty()
+        AlertDialog(
+            onDismissRequest = { showAdConfirm = false },
+            title = { Text("پیامک تبلیغاتی") },
+            text = {
+                Text(
+                    "پیام‌های «$sender» از این پس تبلیغاتی در نظر گرفته می‌شوند و " +
+                        "بدون ذخیره متن نادیده گرفته می‌شوند.\n\n" +
+                        "هر وقت خواستید می‌توانید از تنظیمات ← فرستنده‌های تبلیغاتی آن را برگردانید."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        viewModel.repo.blockSender(sender)
+                        showAdConfirm = false
+                        nav.popBackStack()
+                    }
+                }) { Text("بله، تبلیغاتی است") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAdConfirm = false }) { Text("انصراف") }
+            }
+        )
     }
 }
