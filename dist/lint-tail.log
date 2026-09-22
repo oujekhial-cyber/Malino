@@ -1,3 +1,5 @@
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
 > Task :app:checkDebugAarMetadata UP-TO-DATE
 > Task :app:generateDebugResValues UP-TO-DATE
@@ -13,48 +15,25 @@
 > Task :app:processDebugManifestForPackage UP-TO-DATE
 > Task :app:processDebugResources UP-TO-DATE
 > Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
 > Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
 > Task :app:preDebugAndroidTestBuild SKIPPED
 > Task :app:generateDebugAndroidTestResValues FROM-CACHE
+> Task :app:generateDebugAndroidTestLintModel
 > Task :app:extractProguardFiles
+> Task :app:generateDebugLintReportModel
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugUnitTestLintModel
+> Task :app:lintAnalyzeDebugAndroidTest
+> Task :app:lintAnalyzeDebugUnitTest
+> Task :app:lintAnalyzeDebug
 
-> Task :app:compileDebugKotlin FAILED
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/MainActivity.kt:40:23 Unresolved reference 'secureScreen'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:4:27 Conflicting import: imported name 'PackageManager' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:5:19 Conflicting import: imported name 'Build' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:6:42 Conflicting import: imported name 'RoundedCornerShape' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:10:37 Conflicting import: imported name 'Color' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:12:30 Conflicting import: imported name 'ContextCompat' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:13:27 Conflicting import: imported name 'Lifecycle' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:14:27 Conflicting import: imported name 'LifecycleEventObserver' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:55:27 Conflicting import: imported name 'PackageManager' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:56:19 Conflicting import: imported name 'Build' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:57:42 Conflicting import: imported name 'RoundedCornerShape' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:60:37 Conflicting import: imported name 'Color' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:62:30 Conflicting import: imported name 'ContextCompat' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:63:27 Conflicting import: imported name 'Lifecycle' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:64:27 Conflicting import: imported name 'LifecycleEventObserver' is ambiguous.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/OnboardingScreen.kt:239:29 Unresolved reference 'width'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:189:40 Unresolved reference 'secureScreen'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:190:79 Unresolved reference 'setSecureScreen'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:293:47 Unresolved reference 'widgetShowDates'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:293:122 Unresolved reference 'setWidgetShowDates'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:301:43 Unresolved reference 'widgetShowImage'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:301:118 Unresolved reference 'setWidgetShowImage'.
+> Task :app:lintReportDebug
+Wrote HTML report to file:///home/runner/work/Malino/Malino/app/build/reports/lint-results-debug.html
 
-FAILURE: Build failed with an exception.
+> Task :app:lintDebug
 
-* What went wrong:
-Execution failed for task ':app:compileDebugKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-   > Compilation error. See log for more details
-
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
-
-BUILD FAILED in 6s
-18 actionable tasks: 2 executed, 1 from cache, 15 up-to-date
+BUILD SUCCESSFUL in 1m 2s
+28 actionable tasks: 9 executed, 1 from cache, 18 up-to-date
