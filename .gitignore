@@ -10,3 +10,6 @@ captures/
 .cxx/
 *.apk.idsig
 .DS_Store
+theme-concepts/
+gen/
+icons/

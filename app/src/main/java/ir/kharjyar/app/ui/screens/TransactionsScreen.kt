@@ -32,6 +32,7 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
 
@@ -57,8 +58,7 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("تراکنش‌ها", style = MaterialTheme.typography.headlineSmall)
-        OutlinedTextField(
+                OutlinedTextField(
             value = query,
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -113,7 +113,7 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 items(filtered.size) { i ->
                     val tx = filtered[i]
                     val catName = categories.firstOrNull { it.id == tx.categoryId }?.name
-                    Card(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("tx/${tx.id}") }) {
+                    SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("tx/${tx.id}") }) {
                         Row(
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,

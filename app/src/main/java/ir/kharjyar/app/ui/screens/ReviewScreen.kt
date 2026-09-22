@@ -25,6 +25,7 @@ import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.data.db.SmsStatus
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.EmptyState
 import kotlinx.coroutines.launch
 
@@ -39,8 +40,7 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
     }.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("نیازمند بررسی", style = MaterialTheme.typography.headlineSmall)
-        Text(
+                Text(
             "هیچ موردی بدون تأیید شما ثبت قطعی نمی‌شود.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -58,7 +58,7 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
                         SmsStatus.DRAFT_READY -> "پیش‌نویس آماده — تکمیل و تأیید" to null
                         else -> "در انتظار پردازش" to null
                     }
-                    Card(
+                    SkinCard(
                         modifier = Modifier.fillMaxWidth().clickable {
                             if (route != null) {
                                 nav.navigate(route)

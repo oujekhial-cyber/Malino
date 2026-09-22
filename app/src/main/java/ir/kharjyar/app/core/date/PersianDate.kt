@@ -23,6 +23,12 @@ data class PersianDate(val year: Int, val month: Int, val day: Int) : Comparable
 
     fun monthName(): String = MONTH_NAMES[month - 1]
 
+    /** نام روز هفته به فارسی (شنبه تا جمعه). */
+    fun dayOfWeekName(): String = WEEK_DAY_NAMES[
+        // DayOfWeek: MONDAY=1 .. SUNDAY=7 ؛ شنبه شروع هفته ایرانی است
+        (toLocalDate().dayOfWeek.value + 1) % 7
+    ]
+
     fun monthLength(): Int = monthLength(year, month)
 
     fun firstOfMonth(): PersianDate = PersianDate(year, month, 1)
@@ -56,6 +62,11 @@ data class PersianDate(val year: Int, val month: Int, val day: Int) : Comparable
 
     companion object {
         val TEHRAN: ZoneId = ZoneId.of("Asia/Tehran")
+
+        /** ایندکس ۰ = شنبه */
+        val WEEK_DAY_NAMES = listOf(
+            "شنبه", "یک‌شنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"
+        )
 
         val MONTH_NAMES = listOf(
             "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",

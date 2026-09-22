@@ -5,22 +5,26 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.ui.components.DateTimeField
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
-import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.CategoryEntity
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
+import ir.kharjyar.app.ui.components.ComboBox
+import ir.kharjyar.app.ui.components.NumberTextField
 
 /** state فرم تراکنش (ثبت دستی و تکمیل پیش‌نویس). */
 class TxFormState(
@@ -44,31 +48,50 @@ fun AccountPicker(
     selectedId: Long?,
     onSelect: (Long) -> Unit
 ) {
-    Column {
-        Text("حساب", style = MaterialTheme.typography.labelLarge)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            items(accounts.size) { i ->
-                val a = accounts[i]
-                FilterChip(selected = selectedId == a.id, onClick = { onSelect(a.id) }, label = { Text(a.title) })
-            }
+    ComboBox(
+        label = "حساب",
+        options = accounts.map { it.id },
+        selected = selectedId,
+        labelOf = { id -> accounts.firstOrNull { it.id == id }?.title ?: "—" },
+        placeholder = "انتخاب حساب",
+        onSelect = onSelect,
+        leadingOf = { id ->
+            val color = accounts.firstOrNull { it.id == id }?.colorArgb
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .background(
+                        if (color != null) Color(color) else Color.Gray,
+                        CircleShape
+                    )
+            )
         }
-    }
+    )
 }
 
 @Composable
 fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirection: (Int) -> Unit) {
-    Column {
-        Text("جهت بانکی", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            FilterChip(selected = direction == TxDirection.DEPOSIT, onClick = { onDirection(TxDirection.DEPOSIT) }, label = { Text("واریز") })
-            FilterChip(selected = direction == TxDirection.WITHDRAW, onClick = { onDirection(TxDirection.WITHDRAW) }, label = { Text("برداشت") })
-        }
-        Text("ماهیت", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            FilterChip(selected = nature == TxNature.INCOME, onClick = { onNature(TxNature.INCOME) }, label = { Text("درآمد") })
-            FilterChip(selected = nature == TxNature.EXPENSE, onClick = { onNature(TxNature.EXPENSE) }, label = { Text("هزینه/خرید") })
-            FilterChip(selected = nature == TxNature.TRANSFER, onClick = { onNature(TxNature.TRANSFER) }, label = { Text("انتقال") })
-        }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ComboBox(
+            label = "جهت بانکی",
+            options = listOf(TxDirection.DEPOSIT, TxDirection.WITHDRAW),
+            selected = direction,
+            labelOf = { if (it == TxDirection.DEPOSIT) "واریز (پول وارد حساب شد)" else "برداشت (پول از حساب خارج شد)" },
+            onSelect = onDirection
+        )
+        ComboBox(
+            label = "ماهیت",
+            options = listOf(TxNature.INCOME, TxNature.EXPENSE, TxNature.TRANSFER),
+            selected = nature,
+            labelOf = {
+                when (it) {
+                    TxNature.INCOME -> "درآمد"
+                    TxNature.TRANSFER -> "انتقال بین حساب‌ها"
+                    else -> "هزینه/خرید"
+                }
+            },
+            onSelect = onNature
+        )
         Text(
             "واریز الزاماً درآمد نیست و برداشت الزاماً هزینه نیست؛ ماهیت را خودتان مشخص کنید.",
             style = MaterialTheme.typography.bodySmall,
@@ -80,18 +103,16 @@ fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirecti
 @Composable
 fun CategoryPicker(categories: List<CategoryEntity>, selectedId: Long?, nature: Int, onSelect: (Long?) -> Unit) {
     val visible = categories.filter { !it.archived }
-    Column {
-        Text("دسته‌بندی", style = MaterialTheme.typography.labelLarge)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            item {
-                FilterChip(selected = selectedId == null, onClick = { onSelect(null) }, label = { Text("نامشخص") })
-            }
-            items(visible.size) { i ->
-                val c = visible[i]
-                FilterChip(selected = selectedId == c.id, onClick = { onSelect(c.id) }, label = { Text(c.name) })
-            }
-        }
-    }
+    // گزینه ۰ به معنی «نامشخص» است
+    ComboBox(
+        label = "دسته‌بندی",
+        options = listOf(0L) + visible.map { it.id },
+        selected = selectedId ?: 0L,
+        labelOf = { id ->
+            if (id == 0L) "نامشخص" else visible.firstOrNull { it.id == id }?.name ?: "—"
+        },
+        onSelect = { id -> onSelect(if (id == 0L) null else id) }
+    )
 }
 
 @Composable
@@ -102,62 +123,12 @@ fun DatePickerRow(
     onDate: (PersianDate) -> Unit,
     onTime: (Int, Int) -> Unit
 ) {
-    Column {
-        Text("تاریخ و ساعت (شمسی)", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-            OutlinedTextField(
-                value = Digits.toPersian(date.year.toString()),
-                onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { y ->
-                        if (y in 1300..1500) onDate(PersianDate(y, date.month, date.day.coerceAtMost(PersianDate.monthLength(y, date.month))))
-                    }
-                },
-                label = { Text("سال") },
-                modifier = Modifier.weight(1.2f),
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = Digits.toPersian(date.month.toString()),
-                onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { m ->
-                        if (m in 1..12) onDate(PersianDate(date.year, m, date.day.coerceAtMost(PersianDate.monthLength(date.year, m))))
-                    }
-                },
-                label = { Text("ماه") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = Digits.toPersian(date.day.toString()),
-                onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { d ->
-                        if (d in 1..date.monthLength()) onDate(PersianDate(date.year, date.month, d))
-                    }
-                },
-                label = { Text("روز") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = Digits.toPersian(hour.toString()),
-                onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { h -> if (h in 0..23) onTime(h, minute) }
-                },
-                label = { Text("ساعت") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = Digits.toPersian(minute.toString()),
-                onValueChange = { v ->
-                    Digits.normalize(v).filter(Char::isDigit).toIntOrNull()?.let { m -> if (m in 0..59) onTime(hour, m) }
-                },
-                label = { Text("دقیقه") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
-        }
-    }
+    // انتخاب تاریخ و ساعت از طریق پنجره تقویم شمسی، نه فیلدهای عددی
+    DateTimeField(
+        date = date,
+        hour = hour,
+        minute = minute,
+        onDate = onDate,
+        onTime = onTime
+    )
 }

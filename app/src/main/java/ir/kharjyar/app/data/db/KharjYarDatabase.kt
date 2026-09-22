@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import ir.kharjyar.app.core.security.DatabaseKey
+import net.sqlcipher.database.SupportFactory
 
 @Database(
     entities = [
@@ -39,6 +41,8 @@ abstract class KharjYarDatabase : RoomDatabase() {
                     KharjYarDatabase::class.java,
                     "kharjyar.db"
                 )
+                    // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
+                    .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }

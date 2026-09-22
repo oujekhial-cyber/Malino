@@ -14,7 +14,8 @@ class BackupManager(
     private val settings: SettingsRepository
 ) {
 
-    suspend fun createBackup(password: CharArray): ByteArray {
+    /** @param password اگر null باشد، بکاپ بدون رمزنگاری ساخته می‌شود (به انتخاب کاربر). */
+    suspend fun createBackup(password: CharArray?): ByteArray {
         val payload = BackupPayload(
             createdAt = System.currentTimeMillis(),
             accounts = repo.accountDao.allOnce().map { BAccount.of(it) },
@@ -27,12 +28,20 @@ class BackupManager(
             smsQueue = repo.smsDao.allOnce().map { BSms.of(it) },
             settings = settings.exportForBackup()
         )
-        return BackupCrypto.encrypt(payload.toJson().toByteArray(Charsets.UTF_8), password)
+        val json = payload.toJson().toByteArray(Charsets.UTF_8)
+        return if (password == null) BackupCrypto.packPlain(json)
+        else BackupCrypto.encrypt(json, password)
     }
 
-    /** اعتبارسنجی فایل و رمز؛ بدون تغییر داده. برای نمایش تعداد به کاربر پیش از Restore. */
-    fun validate(fileBytes: ByteArray, password: CharArray): BackupPayload {
-        val plain = BackupCrypto.decrypt(fileBytes, password)
+    /** آیا فایل انتخاب‌شده برای باز شدن به رمز نیاز دارد؟ */
+    fun needsPassword(fileBytes: ByteArray): Boolean = BackupCrypto.isEncrypted(fileBytes)
+
+    /**
+     * اعتبارسنجی فایل (و رمز، اگر لازم باشد)؛ بدون تغییر داده.
+     * برای نمایش تعداد رکوردها به کاربر پیش از Restore.
+     */
+    fun validate(fileBytes: ByteArray, password: CharArray?): BackupPayload {
+        val plain = BackupCrypto.open(fileBytes, password)
         val payload = BackupPayload.fromJson(String(plain, Charsets.UTF_8))
         if (payload.formatVersion != 1) {
             throw BackupCrypto.BackupFormatException("نسخه فرمت (${payload.formatVersion}) پشتیبانی نمی‌شود")

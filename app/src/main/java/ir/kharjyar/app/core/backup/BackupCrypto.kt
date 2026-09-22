@@ -20,6 +20,8 @@ import javax.crypto.spec.SecretKeySpec
 object BackupCrypto {
 
     private val MAGIC = "KHRJBKP1".toByteArray(Charsets.US_ASCII)
+    /** فایل بدون رمز (کاربر رمزگذاری را خاموش کرده است). */
+    private val MAGIC_PLAIN = "KHRJBKP0".toByteArray(Charsets.US_ASCII)
     private const val VERSION: Byte = 1
     const val PBKDF2_ITERATIONS = 210_000
     private const val KEY_BITS = 256
@@ -29,6 +31,41 @@ object BackupCrypto {
 
     class BackupFormatException(message: String) : Exception(message)
     class WrongPasswordOrCorruptException : Exception("رمز اشتباه یا فایل خراب است")
+    /** فایل رمزدار است و برای باز کردن به رمز نیاز دارد. */
+    class PasswordRequiredException : Exception("این فایل رمزدار است")
+
+    /** آیا این فایل برای بازگشایی به رمز نیاز دارد؟ */
+    fun isEncrypted(fileBytes: ByteArray): Boolean {
+        if (fileBytes.size < MAGIC.size) return false
+        return fileBytes.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)
+    }
+
+    /** بسته‌بندی بدون رمزنگاری: [8B magic "KHRJBKP0"][1B version][payload] */
+    fun packPlain(plaintext: ByteArray): ByteArray =
+        MAGIC_PLAIN + byteArrayOf(VERSION) + plaintext
+
+    private fun unpackPlain(fileBytes: ByteArray): ByteArray {
+        val headerLen = MAGIC_PLAIN.size + 1
+        if (fileBytes.size <= headerLen) throw BackupFormatException("فایل بکاپ ناقص است")
+        val version = fileBytes[MAGIC_PLAIN.size]
+        if (version != VERSION) throw BackupFormatException("نسخه بکاپ ($version) پشتیبانی نمی‌شود")
+        return fileBytes.copyOfRange(headerLen, fileBytes.size)
+    }
+
+    /**
+     * خواندن محتوای فایل صرف‌نظر از رمزدار بودن.
+     * اگر فایل رمزدار باشد و [password] داده نشده باشد، [PasswordRequiredException] پرتاب می‌شود.
+     */
+    fun open(fileBytes: ByteArray, password: CharArray?): ByteArray {
+        if (fileBytes.size >= MAGIC_PLAIN.size &&
+            fileBytes.copyOfRange(0, MAGIC_PLAIN.size).contentEquals(MAGIC_PLAIN)
+        ) {
+            return unpackPlain(fileBytes)
+        }
+        if (!isEncrypted(fileBytes)) throw BackupFormatException("این فایل بکاپ خرج‌یار نیست")
+        if (password == null) throw PasswordRequiredException()
+        return decrypt(fileBytes, password)
+    }
 
     fun encrypt(plaintext: ByteArray, password: CharArray): ByteArray {
         val random = SecureRandom()

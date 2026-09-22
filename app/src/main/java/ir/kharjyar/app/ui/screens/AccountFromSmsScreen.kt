@@ -3,6 +3,7 @@ package ir.kharjyar.app.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -92,11 +93,10 @@ fun AccountFromSmsScreen(viewModel: AppViewModel, nav: NavHostController, smsId:
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("پیامک از حساب ناشناخته", style = MaterialTheme.typography.headlineSmall)
-
+        
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text("فرستنده: ${s.sender}", style = MaterialTheme.typography.titleSmall)

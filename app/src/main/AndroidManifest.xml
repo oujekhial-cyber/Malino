@@ -12,9 +12,14 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_label"
         android:supportsRtl="true"
         android:theme="@style/Theme.KharjYar"
+        android:enableOnBackInvokedCallback="true"
+        android:hasFragileUserData="false"
+        android:allowClearUserData="true"
+        android:usesCleartextTraffic="false"
         tools:targetApi="35">
 
         <activity
@@ -43,6 +48,10 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- تا تاریخِ ویجت سر نیمه‌شب و با تغییر ساعت/منطقه زمانی تازه شود -->
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

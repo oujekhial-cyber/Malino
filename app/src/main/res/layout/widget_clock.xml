@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  پنل ساعت و تاریخ ویجت.
+  ساعت و دقیقه هرکدام TextClock هستند تا سیستم‌عامل خودش آن‌ها را زنده نگه دارد.
+  تاریخ میلادی هم TextClock است (با قالب تاریخ) پس بدون نیاز به بازسازی ویجت به‌روز می‌شود.
+  تاریخ شمسی تنها موردی است که از کد مقداردهی می‌شود و با DATE_CHANGED تازه می‌شود.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal">
+
+    <!-- ساعت (بزرگ) -->
+    <TextClock
+        android:id="@+id/widget_hour"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format12Hour="@null"
+        android:format24Hour="HH"
+        android:textSize="40sp"
+        android:textStyle="bold"
+        android:includeFontPadding="false"
+        android:lines="1"
+        android:textColor="#FFFFFF" />
+
+    <!-- دقیقه، زیر ساعت -->
+    <TextClock
+        android:id="@+id/widget_minute"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format12Hour="@null"
+        android:format24Hour="mm"
+        android:textSize="40sp"
+        android:textStyle="bold"
+        android:includeFontPadding="false"
+        android:lines="1"
+        android:layout_marginTop="-6dp"
+        android:textColor="#FFFFFF" />
+
+    <!-- تاریخ شمسی -->
+    <TextView
+        android:id="@+id/widget_jalali"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:lines="1"
+        android:layout_marginTop="4dp"
+        android:textColor="#FFFFFF" />
+
+    <!-- تاریخ میلادی (زنده) -->
+    <TextClock
+        android:id="@+id/widget_gregorian"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format12Hour="d MMM yyyy"
+        android:format24Hour="d MMM yyyy"
+        android:textSize="11sp"
+        android:lines="1"
+        android:textColor="#FFFFFF" />
+</LinearLayout>

@@ -313,8 +313,11 @@ class Repository(val db: KharjYarDatabase) {
         val netRial: Long get() = incomeRial - expenseRial
     }
 
-    suspend fun summary(from: Long, to: Long): Summary {
-        val txs = txDao.listRange(from, to)
+    /** @param accountId اگر داده شود، خلاصه فقط برای همان حساب محاسبه می‌شود. */
+    suspend fun summary(from: Long, to: Long, accountId: Long? = null): Summary {
+        val txs = txDao.listRange(from, to).let { list ->
+            if (accountId == null) list else list.filter { it.accountId == accountId }
+        }
         var income = 0L; var expense = 0L
         var pIncome = 0L; var pExpense = 0L; var pCount = 0
         for (t in txs) {
