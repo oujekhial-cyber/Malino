@@ -53,29 +53,33 @@ class ThousandsSeparatorTransformation(
         val digits = text.text
         if (digits.isEmpty()) return TransformedText(AnnotatedString(""), OffsetMapping.Identity)
 
-        val out = buildString {
-            digits.forEachIndexed { i, c ->
-                val remaining = digits.length - i
-                append(if (persianDigits) Digits.toPersian(c.toString()) else c.toString())
-                if (remaining > 1 && (remaining - 1) % 3 == 0) append('،')
-            }
+        val out = StringBuilder()
+        // نگاشت: به ازای هر موقعیت اصلی (۰..n) موقعیت متناظر در متن نمایشی
+        val originalToOut = IntArray(digits.length + 1)
+        digits.forEachIndexed { i, c ->
+            originalToOut[i] = out.length
+            out.append(if (persianDigits) Digits.toPersian(c.toString()) else c.toString())
+            val remaining = digits.length - i - 1
+            if (remaining > 0 && remaining % 3 == 0) out.append('،')
         }
+        originalToOut[digits.length] = out.length
+
+        val rendered = out.toString()
         val mapping = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int {
-                if (digits.isEmpty()) return 0
-                val o = offset.coerceIn(0, digits.length)
-                // تعداد جداکننده‌های قبل از این موقعیت
-                val before = if (o == 0) 0 else (o - 1) / 3
-                return (o + before).coerceIn(0, out.length)
-            }
+            override fun originalToTransformed(offset: Int): Int =
+                originalToOut[offset.coerceIn(0, digits.length)]
 
             override fun transformedToOriginal(offset: Int): Int {
-                val o = offset.coerceIn(0, out.length)
-                val seps = out.take(o).count { it == '،' }
-                return (o - seps).coerceIn(0, digits.length)
+                val o = offset.coerceIn(0, rendered.length)
+                // نزدیک‌ترین موقعیت اصلی که نگاشتش از o بیشتر نشود
+                var result = 0
+                for (i in 0..digits.length) {
+                    if (originalToOut[i] <= o) result = i else break
+                }
+                return result
             }
         }
-        return TransformedText(AnnotatedString(out), mapping)
+        return TransformedText(AnnotatedString(rendered), mapping)
     }
 }
 
