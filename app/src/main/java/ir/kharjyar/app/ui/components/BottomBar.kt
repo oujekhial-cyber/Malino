@@ -72,6 +72,25 @@ fun BottomNavBar(
     require(items.size == 4) { "نوار پایین برای دقیقاً چهار آیتم طراحی شده است" }
 
     Box(modifier = modifier.fillMaxWidth()) {
+        // محو شدن تدریجی محتوای صفحه پیش از رسیدن به نوار:
+        // از بالا شفاف و هرچه به نوار نزدیک‌تر، پررنگ‌تر — تا لبه‌ای سخت دیده نشود.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(96.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Transparent,
+                            skin.navBarColor.copy(alpha = 0.30f),
+                            skin.navBarColor.copy(alpha = 0.72f),
+                            skin.navBarColor
+                        )
+                    )
+                )
+        )
+
         // بدنه نوار با قوس (بریدگی) دور دکمه مرکزی
         Row(
             modifier = Modifier

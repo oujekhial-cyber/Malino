@@ -2,7 +2,7 @@
 <!--
   پنل ساعت و تاریخ ویجت.
   ساعت و دقیقه هرکدام TextClock هستند تا سیستم‌عامل خودش آن‌ها را زنده نگه دارد.
-  تاریخ میلادی هم TextClock است (با قالب تاریخ) پس بدون نیاز به بازسازی ویجت به‌روز می‌شود.
+  تاریخ میلادی هم TextClock است (با قالب تاریخ) پس بدون بازسازی ویجت به‌روز می‌شود.
   تاریخ شمسی تنها موردی است که از کد مقداردهی می‌شود و با DATE_CHANGED تازه می‌شود.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -35,7 +35,7 @@
         android:textStyle="bold"
         android:includeFontPadding="false"
         android:lines="1"
-        android:layout_marginTop="-6dp"
+        android:layout_marginTop="-8dp"
         android:textColor="#FFFFFF" />
 
     <!-- تاریخ شمسی -->
@@ -45,8 +45,10 @@
         android:layout_height="wrap_content"
         android:textSize="13sp"
         android:textStyle="bold"
-        android:lines="1"
-        android:layout_marginTop="4dp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:layout_marginTop="5dp"
         android:textColor="#FFFFFF" />
 
     <!-- تاریخ میلادی (زنده) -->
@@ -57,6 +59,9 @@
         android:format12Hour="d MMM yyyy"
         android:format24Hour="d MMM yyyy"
         android:textSize="11sp"
-        android:lines="1"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:layout_marginTop="1dp"
         android:textColor="#FFFFFF" />
 </LinearLayout>

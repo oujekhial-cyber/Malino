@@ -394,34 +394,37 @@ private val SakuraScheme = darkColorScheme(
 private val SakuraSkin = AppSkin(
     id = Palette.SAKURA,
     title = "شکوفه شب",
-    subtitle = "بنفش تاریک با کارت صورتی‌بنفش و شکوفه",
+    subtitle = "بنفش شبانه با کارت شکوفه و لحن هماهنگ",
     dark = true,
-    backgroundColors = listOf(Color(0xFF150C1B), Color(0xFF100814)),
+    // پس‌زمینه کمی روشن‌تر از قبل تا فاصله‌اش با کارت‌ها کمتر شود
+    backgroundColors = listOf(Color(0xFF1B1224), Color(0xFF15101D)),
     backdropBlobs = listOf(
         AppSkin.Blob(Color(0x2EE86FA8), 0.8f, 0.1f, 0.08f),
         AppSkin.Blob(Color(0x269B6BF0), 0.9f, 0.95f, 0.55f)
     ),
-    cardColor = Color(0xFF1E1226),
-    cardAlpha = 0.92f,
-    cardBorderColors = listOf(Color(0x40E86FA8), Color(0x339B6BF0)),
+    // کارت‌ها یک پله روشن‌تر: پله‌بندی نرم بین پس‌زمینه، کارت و هدر
+    cardColor = Color(0xFF291B36),
+    cardAlpha = 0.95f,
+    cardBorderColors = listOf(Color(0x59E86FA8), Color(0x409B6BF0)),
     cardBorderWidth = 1.dp,
     cardCorner = 24.dp,
-    heroGradient = listOf(Color(0xFFF07AAE), Color(0xFF9B6BF0)),
-    onHero = Color(0xFFFFFFFF),
-    fabGradient = listOf(Color(0xFFF07AAE), Color(0xFF9B6BF0)),
+    // هدر از صورتی روشن به بنفش تیره‌تر رفت تا با پس‌زمینه شب هم‌خانواده شود
+    heroGradient = listOf(Color(0xFFB5548A), Color(0xFF6A4BB5)),
+    onHero = Color(0xFFFFF0F8),
+    fabGradient = listOf(Color(0xFFE86FA8), Color(0xFF8A62E0)),
     accent = Color(0xFFE86FA8),
     incomeColor = Color(0xFF6FD3B4),
     expenseColor = Color(0xFFF2627E),
     chartGlow = true,
     bigNumberColor = Color(0xFFFFE3F0),
     onBackdrop = Color(0xFFF3E6F2),
-    dialogColor = Color(0xFF1E1226),
-    navBarColor = Color(0xFF150D1C),
+    dialogColor = Color(0xFF241730),
+    navBarColor = Color(0xFF1A1123),
     navSelected = Color(0xFFE86FA8),
     navUnselected = Color(0xFF8B7A94),
     heroImage = R.drawable.hero_sakura,
     backdropImage = R.drawable.bg_sakura,
-    backdropImageAlpha = 0.75f
+    backdropImageAlpha = 0.62f
 )
 
 // ================================================================ تم ۸: اعماق اقیانوس

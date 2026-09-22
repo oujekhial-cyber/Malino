@@ -51,6 +51,7 @@ import androidx.navigation.NavHostController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.prefs.WidgetBackground
+import ir.kharjyar.app.data.prefs.DigitStyle
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
@@ -120,6 +121,25 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {}
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("هاله نور روی کارت‌ها", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "حرکت آرام یک بازتاب شیشه‌ای روی کارت‌های صفحه خانه",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = settings.cardShine,
+                    onCheckedChange = { scope.launch { viewModel.settingsRepo.setCardShine(it) } }
+                )
+            }
         }
 
         // ---------- حساب پیش‌فرض ----------
@@ -148,13 +168,29 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
 
         // ---------- پول ----------
-        SectionCard("واحد نمایش پول") {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = settings.moneyUnit == MoneyUnit.TOMAN, onClick = { scope.launch { viewModel.settingsRepo.setMoneyUnit(MoneyUnit.TOMAN) } }, label = { Text("تومان") })
-                FilterChip(selected = settings.moneyUnit == MoneyUnit.RIAL, onClick = { scope.launch { viewModel.settingsRepo.setMoneyUnit(MoneyUnit.RIAL) } }, label = { Text("ریال") })
-            }
+        SectionCard("نمایش اعداد و واحد پول") {
+            ComboBox(
+                label = "واحد نمایش پول",
+                options = listOf(MoneyUnit.RIAL, MoneyUnit.TOMAN),
+                selected = settings.moneyUnit,
+                labelOf = { if (it == MoneyUnit.RIAL) "ریال" else "تومان" },
+                onSelect = { scope.launch { viewModel.settingsRepo.setMoneyUnit(it) } }
+            )
+            ComboBox(
+                label = "شکل ارقام",
+                options = listOf(DigitStyle.PERSIAN, DigitStyle.LATIN),
+                selected = settings.digitStyle,
+                labelOf = { if (it == DigitStyle.PERSIAN) "فارسی (۱۲۳)" else "انگلیسی (123)" },
+                onSelect = { style ->
+                    scope.launch {
+                        viewModel.settingsRepo.setDigitStyle(style)
+                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                    }
+                }
+            )
             Text(
-                "مبالغ همیشه به ریال ذخیره می‌شوند؛ تغییر واحد نمایش مقادیر ذخیره‌شده را تغییر نمی‌دهد.",
+                "شکل ارقام روی کل برنامه و ویجت اعمال می‌شود. مبالغ همیشه به ریال ذخیره می‌شوند؛ " +
+                    "تغییر واحد نمایش، مقادیر ذخیره‌شده را تغییر نمی‌دهد.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

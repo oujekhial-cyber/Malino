@@ -16,11 +16,8 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
-import androidx.glance.Image
-import androidx.glance.ImageProvider
 import androidx.glance.background
 import androidx.glance.layout.Box
-import androidx.glance.layout.ContentScale
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.layout.Alignment
@@ -56,7 +53,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * ویجت Glance: ساعت و تاریخ در سمت راست، خلاصه مالی در سمت چپ.
+ * ویجت Glance: مقادیر مالی سمت راست، ساعت و تاریخ سمت چپ.
  * اگر قفل برنامه فعال است، اعداد به‌صورت پیش‌فرض مخفی‌اند مگر کاربر صریحاً اجازه دهد.
  */
 class KharjYarWidget : GlanceAppWidget() {
@@ -108,7 +105,6 @@ class KharjYarWidget : GlanceAppWidget() {
 
         val skin = skinOf(settings.palette)
         // میزان شیشه‌ای بودن از تنظیمات کاربر (۰ = کاملاً شفاف، ۱۰۰ = مات)
-        val bg = ColorProvider(skin.cardColor.copy(alpha = settings.widgetOpacity / 100f))
         val accent = ColorProvider(skin.accent)
         val onBg = ColorProvider(skin.onBackdrop)
         val big = ColorProvider(skin.bigNumberColor)
@@ -152,6 +148,28 @@ class KharjYarWidget : GlanceAppWidget() {
             setString(R.id.widget_gregorian, "setTimeZone", tz)
         }
 
+        /**
+         * پس‌زمینه به‌صورت RemoteViews ساخته می‌شود تا شفافیت هم روی تصویر و هم
+         * روی رنگ اعمال شود؛ در غیر این صورت تصویرِ مات، اثر شیشه‌ای را از بین می‌برد.
+         */
+        val alphaFraction = (settings.widgetOpacity / 100f).coerceIn(0f, 1f)
+        val bgViews = RemoteViews(context.packageName, R.layout.widget_background).apply {
+            if (useSakuraBg) {
+                setImageViewResource(R.id.widget_bg_image, R.drawable.widget_bg_sakura)
+                setInt(R.id.widget_bg_image, "setImageAlpha", (alphaFraction * 255).toInt())
+                setViewVisibility(R.id.widget_bg_image, android.view.View.VISIBLE)
+            } else {
+                setViewVisibility(R.id.widget_bg_image, android.view.View.GONE)
+            }
+            // رنگ تم با همان شفافیت؛ روی تصویر می‌نشیند و لحن تم را حفظ می‌کند
+            val tintAlpha = if (useSakuraBg) alphaFraction * 0.55f else alphaFraction
+            setInt(
+                R.id.widget_bg_tint,
+                "setBackgroundColor",
+                skin.cardColor.copy(alpha = tintAlpha).toArgb()
+            )
+        }
+
         provideContent {
             GlanceTheme {
                 Box(
@@ -160,29 +178,16 @@ class KharjYarWidget : GlanceAppWidget() {
                         .cornerRadius(20.dp)
                         .clickable(actionStartActivity<MainActivity>())
                 ) {
-                    // لایه ۱: تصویر شکوفه شب (در صورت انتخاب کاربر)
-                    if (useSakuraBg) {
-                        Image(
-                            provider = ImageProvider(R.drawable.widget_bg_sakura),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = GlanceModifier.fillMaxSize().cornerRadius(20.dp)
-                        )
+                    // لایه پس‌زمینه: تصویر و رنگ، هر دو با شفافیت انتخابی کاربر
+                    Box(modifier = GlanceModifier.fillMaxSize().cornerRadius(20.dp)) {
+                        AndroidRemoteViews(remoteViews = bgViews)
                     }
-                    // لایه ۲: رنگ کارت با شفافیت انتخابی — روی تصویر، اثر شیشه‌ای می‌دهد
-                    Box(
-                        modifier = GlanceModifier
-                            .fillMaxSize()
-                            .background(bg)
-                            .cornerRadius(20.dp)
-                    ) {}
 
                     Row(
                         modifier = GlanceModifier.fillMaxSize().padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                    // ---------- سمت چپ: مقادیر مالی ----------
-                    // (در RTL این ستون سمت چپ ویجت دیده می‌شود)
+                    // ---------- سمت راست (در RTL اول می‌آید): مقادیر مالی ----------
                     Column(
                         modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
                         verticalAlignment = Alignment.CenterVertically
@@ -217,11 +222,11 @@ class KharjYarWidget : GlanceAppWidget() {
 
                     if (showClock) {
                         Spacer(GlanceModifier.width(12.dp))
-                        // ---------- سمت راست: ساعت بزرگ + تاریخ شمسی + میلادی ----------
+                        // ---------- سمت چپ: ساعت بزرگ + تاریخ شمسی + میلادی ----------
                         Column(
                             modifier = GlanceModifier.fillMaxHeight(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalAlignment = Alignment.End
+                            horizontalAlignment = Alignment.Start
                         ) {
                             // ساعت/دقیقه/تاریخ‌ها همگی زنده‌اند و توسط سیستم به‌روز می‌شوند
                             AndroidRemoteViews(remoteViews = clockViews)

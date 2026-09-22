@@ -60,6 +60,7 @@ import ir.kharjyar.app.ui.components.EnterCard
 import ir.kharjyar.app.ui.components.HeroCard
 import ir.kharjyar.app.ui.components.LineChart
 import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.components.shine
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 @Composable
@@ -87,7 +88,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             // ---------- کارت خلاصه ماه (hero) ----------
             item {
                 EnterCard(0) {
-                    HeroCard(modifier = Modifier.fillMaxWidth()) {
+                    HeroCard(modifier = Modifier.fillMaxWidth().shine(settings.cardShine, skin.cardCorner)) {
                         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -245,6 +246,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     SkinCard(
                                         modifier = Modifier
                                             .width(230.dp)
+                                            .shine(settings.cardShine, skin.cardCorner)
                                             .clickable { nav.navigate("accountEdit/${account.id}") }
                                     ) {
                                         Column(modifier = Modifier.padding(14.dp)) {

@@ -24,10 +24,13 @@ enum class WidgetContent { TODAY_EXPENSE, MONTH_EXPENSE, SUMMARY, RECENT }
 /** پس‌زمینه ویجت: رنگ ساده تم یا تصویر شکوفه شب (هر دو با شیشه‌ای بودن قابل تنظیم). */
 enum class WidgetBackground { THEME, SAKURA }
 
+/** سبک نمایش ارقام در کل برنامه و ویجت. */
+enum class DigitStyle { PERSIAN, LATIN }
+
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val palette: Palette = Palette.SAKURA,
-    val moneyUnit: MoneyUnit = MoneyUnit.TOMAN,
+    val moneyUnit: MoneyUnit = MoneyUnit.RIAL,
     val appLockEnabled: Boolean = false,
     val lockTimeoutSeconds: Int = 60,
     val onboardingDone: Boolean = false,
@@ -56,7 +59,11 @@ data class AppSettings(
     /** نمایش تصویر پس‌زمینه تم پشت ویجت. */
     val widgetShowImage: Boolean = true,
     /** جلوگیری از اسکرین‌شات و ضبط صفحه (FLAG_SECURE). */
-    val secureScreen: Boolean = true
+    val secureScreen: Boolean = true,
+    /** ارقام فارسی یا لاتین در کل برنامه و ویجت. */
+    val digitStyle: DigitStyle = DigitStyle.PERSIAN,
+    /** حرکت آرام هاله نور شیشه‌ای روی کارت‌های صفحه خانه. */
+    val cardShine: Boolean = true
 )
 
 class SettingsRepository(private val context: Context) {
@@ -82,6 +89,8 @@ class SettingsRepository(private val context: Context) {
         val WIDGET_DATES = booleanPreferencesKey("widget_dates")
         val WIDGET_IMAGE = booleanPreferencesKey("widget_image")
         val SECURE_SCREEN = booleanPreferencesKey("secure_screen")
+        val DIGIT_STYLE = stringPreferencesKey("digit_style")
+        val CARD_SHINE = booleanPreferencesKey("card_shine")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -105,7 +114,12 @@ class SettingsRepository(private val context: Context) {
             widgetBackground = enumOf(p[Keys.WIDGET_BG], WidgetBackground.THEME),
             widgetShowDates = p[Keys.WIDGET_DATES] ?: true,
             widgetShowImage = p[Keys.WIDGET_IMAGE] ?: true,
-            secureScreen = p[Keys.SECURE_SCREEN] ?: true
+            secureScreen = p[Keys.SECURE_SCREEN] ?: true,
+            digitStyle = enumOf(p[Keys.DIGIT_STYLE], DigitStyle.PERSIAN).also {
+                // پرچم سراسری ارقام همگام با تنظیم کاربر نگه داشته می‌شود
+                ir.kharjyar.app.core.text.Digits.usePersianDigits = it == DigitStyle.PERSIAN
+            },
+            cardShine = p[Keys.CARD_SHINE] ?: true
         )
     }
 
@@ -131,6 +145,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetShowDates(v: Boolean) = edit { it[Keys.WIDGET_DATES] = v }
     suspend fun setWidgetShowImage(v: Boolean) = edit { it[Keys.WIDGET_IMAGE] = v }
     suspend fun setSecureScreen(v: Boolean) = edit { it[Keys.SECURE_SCREEN] = v }
+    suspend fun setDigitStyle(v: DigitStyle) = edit { it[Keys.DIGIT_STYLE] = v.name }
+    suspend fun setCardShine(v: Boolean) = edit { it[Keys.CARD_SHINE] = v }
 
     /** تنظیمات غیرحساس برای بکاپ. */
     suspend fun exportForBackup(): Map<String, String> {
@@ -150,7 +166,9 @@ class SettingsRepository(private val context: Context) {
             "widget_background" to s.widgetBackground.name,
             "widget_dates" to s.widgetShowDates.toString(),
             "widget_image" to s.widgetShowImage.toString(),
-            "secure_screen" to s.secureScreen.toString()
+            "secure_screen" to s.secureScreen.toString(),
+            "digit_style" to s.digitStyle.name,
+            "card_shine" to s.cardShine.toString()
         )
     }
 
@@ -171,6 +189,8 @@ class SettingsRepository(private val context: Context) {
             map["widget_dates"]?.let { p[Keys.WIDGET_DATES] = it.toBoolean() }
             map["widget_image"]?.let { p[Keys.WIDGET_IMAGE] = it.toBoolean() }
             map["secure_screen"]?.let { p[Keys.SECURE_SCREEN] = it.toBoolean() }
+            map["digit_style"]?.let { v -> runCatching { DigitStyle.valueOf(v) }.getOrNull()?.let { p[Keys.DIGIT_STYLE] = it.name } }
+            map["card_shine"]?.let { p[Keys.CARD_SHINE] = it.toBoolean() }
         }
     }
 

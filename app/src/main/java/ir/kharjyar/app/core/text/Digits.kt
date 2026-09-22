@@ -6,6 +6,14 @@ package ir.kharjyar.app.core.text
  */
 object Digits {
 
+    /**
+     * سبک ارقام انتخابی کاربر. چون نمایش ارقام در ده‌ها نقطه (شامل ویجت که
+     * خارج از درخت Compose است) لازم می‌شود، به‌جای پاس دادن دستی از یک
+     * پرچم سراسری استفاده می‌شود که هنگام خواندن تنظیمات ست می‌شود.
+     */
+    @Volatile
+    var usePersianDigits: Boolean = true
+
     private val persian = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
     private val arabic = charArrayOf('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩')
 
@@ -26,8 +34,21 @@ object Digits {
         return sb.toString()
     }
 
-    /** تبدیل ارقام لاتین به فارسی برای نمایش. */
+    /**
+     * تبدیل ارقام لاتین به فارسی برای نمایش.
+     * اگر کاربر ارقام لاتین را انتخاب کرده باشد، رشته دست‌نخورده برمی‌گردد.
+     */
     fun toPersian(input: String): String {
+        if (!usePersianDigits) return input
+        val sb = StringBuilder(input.length)
+        for (ch in input) {
+            if (ch in '0'..'9') sb.append(persian[ch - '0']) else sb.append(ch)
+        }
+        return sb.toString()
+    }
+
+    /** تبدیل اجباری به ارقام فارسی، بدون توجه به تنظیم کاربر. */
+    fun toPersianAlways(input: String): String {
         val sb = StringBuilder(input.length)
         for (ch in input) {
             if (ch in '0'..'9') sb.append(persian[ch - '0']) else sb.append(ch)
