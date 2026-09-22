@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -338,7 +341,7 @@ private fun WheelPicker(
     val visible = 3 // تعداد آیتم دیده‌شده (وسط + یکی بالا + یکی پایین)
     val count = range.last - range.first + 1
 
-    val listState = androidx.compose.foundation.lazy.rememberLazyListState(
+    val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = (value - range.first)
     )
     val flingBehavior = androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior(
@@ -360,7 +363,7 @@ private fun WheelPicker(
         if (v != value) onValueChange(v)
     }
 
-    androidx.compose.foundation.lazy.LazyColumn(
+    LazyColumn(
         state = listState,
         flingBehavior = flingBehavior,
         modifier = modifier.height(itemHeight * visible),
@@ -368,7 +371,7 @@ private fun WheelPicker(
         // فضای خالی بالا و پایین تا اولین و آخرین عدد هم بتوانند وسط بایستند
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = itemHeight)
     ) {
-        androidx.compose.foundation.lazy.items(count) { index ->
+        items(items = (0 until count).toList()) { index ->
             val distance = kotlin.math.abs(index - centered)
             val isCenter = distance == 0
             Box(
