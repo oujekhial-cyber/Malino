@@ -47,6 +47,20 @@ object SmsStatus {
     const val DISMISSED = 6      // کاربر صرف‌نظر کرد
 }
 
+/**
+ * فرستنده‌ای که کاربر آن را «تبلیغاتی» علامت زده است.
+ * پیامک‌های بعدی این فرستنده بدون مزاحمت و بدون ذخیره متن، کنار گذاشته می‌شوند.
+ */
+@Entity(
+    tableName = "blocked_senders",
+    indices = [Index(value = ["sender"], unique = true)]
+)
+data class BlockedSenderEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sender: String,
+    val createdAt: Long
+)
+
 /** پیامک مالی یا مشکوک به مالی در صف بررسی. */
 @Entity(
     tableName = "sms_candidates",

@@ -31,6 +31,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -75,6 +76,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
     val scope = rememberCoroutineScope()
     val settings by viewModel.settings.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val blockedSenders by viewModel.blockedSenders.collectAsState()
 
     var smsGranted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED)
@@ -309,14 +311,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("ساعت و تاریخ در ویجت", style = MaterialTheme.typography.bodyLarge)
-                    Text("ساعت بزرگ همراه تاریخ شمسی و میلادی در سمت راست ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Switch(checked = settings.widgetShowClock, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowClock(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("ساعت و تاریخ در ویجت", style = MaterialTheme.typography.bodyLarge)
-                    Text("ساعت بزرگ همراه تاریخ شمسی و میلادی در سمت راست ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("ساعت بزرگ همراه تاریخ شمسی و میلادی در سمت چپ ویجت", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Switch(checked = settings.widgetShowClock, onCheckedChange = { scope.launch { viewModel.settingsRepo.setWidgetShowClock(it); ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context) } })
             }
@@ -463,6 +458,29 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
             NavRow("دسته‌بندی‌ها و قوانین") { nav.navigate("categories") }
             NavRow("موارد نیازمند بررسی") { nav.navigate("review") }
             NavRow("بکاپ و بازیابی رمزنگاری‌شده") { nav.navigate("backup") }
+        }
+
+        // ---------- فرستنده‌های تبلیغاتی ----------
+        if (blockedSenders.isNotEmpty()) {
+            SectionCard("فرستنده‌های تبلیغاتی") {
+                Text(
+                    "پیام‌های این فرستنده‌ها نادیده گرفته می‌شوند. برای برگرداندن، حذفشان کنید.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                blockedSenders.forEach { blocked ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(blocked.sender, style = MaterialTheme.typography.bodyLarge)
+                        TextButton(onClick = {
+                            scope.launch { viewModel.repo.unblockSender(blocked.sender) }
+                        }) { Text("برگرداندن") }
+                    }
+                }
+            }
         }
 
         SectionCard("حریم خصوصی") {

@@ -1,6 +1,13 @@
 package ir.kharjyar.app.widget
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.layout.ContentScale
 import android.content.Intent
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -149,26 +156,31 @@ class KharjYarWidget : GlanceAppWidget() {
         }
 
         /**
-         * پس‌زمینه به‌صورت RemoteViews ساخته می‌شود تا شفافیت هم روی تصویر و هم
-         * روی رنگ اعمال شود؛ در غیر این صورت تصویرِ مات، اثر شیشه‌ای را از بین می‌برد.
+         * پس‌زمینه به‌صورت یک بیت‌مپ آماده ساخته می‌شود (نه لایه RemoteViews جداگانه).
+         * دلیل: تودرتو کردن چند AndroidRemoteViews داخل Glance باعث خطای
+         * «can't load widget» در بعضی لانچرها می‌شد. با کشیدن تصویر و رنگ روی یک
+         * بوم واحد، هم آن خطا برطرف می‌شود و هم شفافیت واقعاً اعمال می‌گردد.
          */
         val alphaFraction = (settings.widgetOpacity / 100f).coerceIn(0f, 1f)
-        val bgViews = RemoteViews(context.packageName, R.layout.widget_background).apply {
-            if (useSakuraBg) {
-                setImageViewResource(R.id.widget_bg_image, R.drawable.widget_bg_sakura)
-                setInt(R.id.widget_bg_image, "setImageAlpha", (alphaFraction * 255).toInt())
-                setViewVisibility(R.id.widget_bg_image, android.view.View.VISIBLE)
-            } else {
-                setViewVisibility(R.id.widget_bg_image, android.view.View.GONE)
-            }
-            // رنگ تم با همان شفافیت؛ روی تصویر می‌نشیند و لحن تم را حفظ می‌کند
-            val tintAlpha = if (useSakuraBg) alphaFraction * 0.55f else alphaFraction
-            setInt(
-                R.id.widget_bg_tint,
-                "setBackgroundColor",
-                skin.cardColor.copy(alpha = tintAlpha).toArgb()
-            )
-        }
+        val bgBitmap: Bitmap? = runCatching {
+            if (!useSakuraBg) return@runCatching null
+            val src = BitmapFactory.decodeResource(context.resources, R.drawable.widget_bg_sakura)
+                ?: return@runCatching null
+            val out = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(out)
+            // تصویر با شفافیت انتخابی کاربر
+            canvas.drawBitmap(src, 0f, 0f, Paint().apply {
+                alpha = (alphaFraction * 255).toInt().coerceIn(0, 255)
+                isFilterBitmap = true
+            })
+            // لایه رنگ تم روی تصویر تا لحن تم حفظ شود
+            canvas.drawColor(skin.cardColor.copy(alpha = alphaFraction * 0.5f).toArgb())
+            if (src != out) src.recycle()
+            out
+        }.getOrNull()
+
+        // اگر تصویری در کار نیست، فقط رنگ تم با شفازیت انتخابی روی پس‌زمینه می‌نشیند
+        val plainBg = ColorProvider(skin.cardColor.copy(alpha = alphaFraction))
 
         provideContent {
             GlanceTheme {
@@ -178,9 +190,21 @@ class KharjYarWidget : GlanceAppWidget() {
                         .cornerRadius(20.dp)
                         .clickable(actionStartActivity<MainActivity>())
                 ) {
-                    // لایه پس‌زمینه: تصویر و رنگ، هر دو با شفافیت انتخابی کاربر
-                    Box(modifier = GlanceModifier.fillMaxSize().cornerRadius(20.dp)) {
-                        AndroidRemoteViews(remoteViews = bgViews)
+                    // لایه پس‌زمینه: یا بیت‌مپ آماده (تصویر + رنگ) یا فقط رنگ تم
+                    if (bgBitmap != null) {
+                        Image(
+                            provider = ImageProvider(bgBitmap),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = GlanceModifier.fillMaxSize().cornerRadius(20.dp)
+                        )
+                    } else {
+                        Box(
+                            modifier = GlanceModifier
+                                .fillMaxSize()
+                                .background(plainBg)
+                                .cornerRadius(20.dp)
+                        ) {}
                     }
 
                     Row(

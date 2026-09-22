@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import ir.kharjyar.app.core.security.DatabaseKey
 import net.sqlcipher.database.SupportFactory
@@ -17,9 +18,10 @@ import net.sqlcipher.database.SupportFactory
         TransactionEntity::class,
         TransferGroupEntity::class,
         CategoryEntity::class,
-        CategoryRuleEntity::class
+        CategoryRuleEntity::class,
+        BlockedSenderEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -29,6 +31,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun transferDao(): TransferDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun blockedSenderDao(): BlockedSenderDao
 
     companion object {
         @Volatile
@@ -43,10 +46,30 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
+                    .addMigrations(MIGRATION_1_2)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
             }
+
+        /**
+         * نسخه ۲: جدول فرستنده‌های تبلیغاتی مسدودشده.
+         * مهاجرت واقعی نوشته شده تا داده‌های موجود کاربر از بین نرود.
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `blocked_senders` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`sender` TEXT NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                        "`index_blocked_senders_sender` ON `blocked_senders` (`sender`)"
+                )
+            }
+        }
 
         /** دسته‌های اولیه پیش‌فرض. */
         val DEFAULT_CATEGORIES: List<Triple<String, Long, Int>> = listOf(

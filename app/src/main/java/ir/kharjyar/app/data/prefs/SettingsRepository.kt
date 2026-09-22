@@ -97,7 +97,7 @@ class SettingsRepository(private val context: Context) {
         AppSettings(
             themeMode = enumOf(p[Keys.THEME], ThemeMode.SYSTEM),
             palette = paletteOf(p[Keys.PALETTE]),
-            moneyUnit = enumOf(p[Keys.MONEY_UNIT], MoneyUnit.TOMAN),
+            moneyUnit = enumOf(p[Keys.MONEY_UNIT], MoneyUnit.RIAL),
             appLockEnabled = p[Keys.APP_LOCK] ?: false,
             lockTimeoutSeconds = p[Keys.LOCK_TIMEOUT] ?: 60,
             onboardingDone = p[Keys.ONBOARDING] ?: false,

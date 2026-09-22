@@ -47,6 +47,24 @@ interface AccountDao {
 }
 
 @Dao
+interface BlockedSenderDao {
+    @Query("SELECT * FROM blocked_senders ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<BlockedSenderEntity>>
+
+    @Query("SELECT * FROM blocked_senders ORDER BY createdAt DESC")
+    suspend fun allOnce(): List<BlockedSenderEntity>
+
+    @Query("SELECT COUNT(*) > 0 FROM blocked_senders WHERE sender = :sender")
+    suspend fun isBlocked(sender: String): Boolean
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(entity: BlockedSenderEntity): Long
+
+    @Query("DELETE FROM blocked_senders WHERE sender = :sender")
+    suspend fun unblock(sender: String)
+}
+
+@Dao
 interface SmsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIgnore(sms: SmsCandidateEntity): Long

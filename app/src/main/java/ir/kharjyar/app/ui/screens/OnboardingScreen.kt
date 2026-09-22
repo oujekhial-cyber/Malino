@@ -44,6 +44,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -96,11 +98,36 @@ fun OnboardingScreen(viewModel: AppViewModel) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    var askNotifNext by remember { mutableStateOf(false) }
     val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         smsGranted = it
+        // بعد از پاسخ به پیامک، نوبت مجوز اعلان است
+        askNotifNext = true
     }
     val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         notifGranted = it
+    }
+
+    LaunchedEffect(askNotifNext) {
+        if (askNotifNext) {
+            askNotifNext = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notifGranted) {
+                notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    /**
+     * با رسیدن به گام مجوزها، پنجره سیستمی یک‌بار خودکار باز می‌شود تا کاربر
+     * دنبال دکمه نگردد. اگر قبلاً رد کرده باشد، اندروید دیگر پنجره را نشان
+     * نمی‌دهد و کاربر می‌تواند از دکمه‌های همین صفحه اقدام کند.
+     */
+    var autoAsked by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(step, smsGranted) {
+        if (step == 1 && !autoAsked && !smsGranted) {
+            autoAsked = true
+            smsPermission.launch(Manifest.permission.RECEIVE_SMS)
+        }
     }
 
     Column(

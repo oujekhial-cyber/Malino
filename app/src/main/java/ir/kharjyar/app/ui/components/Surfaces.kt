@@ -165,8 +165,8 @@ fun HeroCard(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                skin.heroGradient.first().copy(alpha = 0.34f),
-                                skin.heroGradient.last().copy(alpha = 0.52f)
+                                skin.heroGradient.first().copy(alpha = 0.55f),
+                                skin.heroGradient.last().copy(alpha = 0.74f)
                             )
                         )
                     )
@@ -189,7 +189,7 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 5200, easing = LinearEasing),
+            animation = tween(durationMillis = 4200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shineProgress"
@@ -199,7 +199,7 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
         // نوار نور از چپِ بیرون کادر تا راستِ بیرون کادر سفر می‌کند
         val travel = size.width * 2f
         val x = -size.width * 0.6f + travel * progress
-        val bandWidth = size.width * 0.32f
+        val bandWidth = size.width * 0.42f
         clipPath(
             Path().apply {
                 addRoundRect(
@@ -214,9 +214,9 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
                 brush = Brush.linearGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = 0.06f),
-                        Color.White.copy(alpha = 0.13f),
-                        Color.White.copy(alpha = 0.06f),
+                        Color.White.copy(alpha = 0.10f),
+                        Color.White.copy(alpha = 0.28f),
+                        Color.White.copy(alpha = 0.10f),
                         Color.Transparent
                     ),
                     start = Offset(x, 0f),

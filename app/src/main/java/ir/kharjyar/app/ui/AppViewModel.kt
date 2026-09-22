@@ -7,6 +7,7 @@ import ir.kharjyar.app.KharjYarApp
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.data.Repository
 import ir.kharjyar.app.data.db.AccountEntity
+import ir.kharjyar.app.data.db.BlockedSenderEntity
 import ir.kharjyar.app.data.db.CategoryEntity
 import ir.kharjyar.app.data.db.SmsStatus
 import ir.kharjyar.app.data.db.TransactionEntity
@@ -35,6 +36,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val categories: StateFlow<List<CategoryEntity>> = repo.categoryDao.observeAll()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** فرستنده‌هایی که کاربر تبلیغاتی علامت زده است. */
+    val blockedSenders: StateFlow<List<BlockedSenderEntity>> = repo.blockedSenderDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val recentTransactions: StateFlow<List<TransactionEntity>> = repo.txDao.observeRecent(8)
