@@ -27,6 +27,7 @@ import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.layout.Box
 import androidx.glance.action.actionStartActivity
+import androidx.glance.appwidget.action.actionStartActivity as actionStartActivityIntent
 import androidx.glance.action.clickable
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
@@ -289,7 +290,7 @@ class KharjYarWidget : GlanceAppWidget() {
                             modifier = GlanceModifier
                                 .fillMaxHeight()
                                 // لمس ساعت، برنامه ساعت گوشی را باز می‌کند
-                                .clickable(actionStartActivity(clockIntent(context)))
+                                .clickable(actionStartActivityIntent(clockIntent(context)))
                                 .padding(
                                     top = clockShiftTop,
                                     bottom = clockShiftBottom
