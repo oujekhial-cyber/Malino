@@ -53,10 +53,10 @@ of the library. [ObsoleteLintCustomCheck]
    meaning that you need to use a newer version of lint (or Android Studio or
    Gradle plugin etc) to work with these checks.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:87: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:86: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:206: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:205: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
             PermissionRow("ارسال اعلان", notifGranted) { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
                                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -303,10 +303,7 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt:234: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier,
     ~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:54: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
-    modifier: Modifier = Modifier
-    ~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:164: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:285: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier
     ~~~~~~~~
 
@@ -345,6 +342,21 @@ espresso = "3.6.1"
    Similarly, it also looks for resources in -vNN folders, such as values-v14
    where the version qualifier is less than or equal to the minSdkVersion,
    where the contents should be merged into the best folder.
+
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:38: Warning: This tag and its children can be replaced by one <TextView/> and a compound drawable [UseCompoundDrawables]
+        <LinearLayout
+         ~~~~~~~~~~~~
+
+   Explanation for issues of type "UseCompoundDrawables":
+   A LinearLayout which contains an ImageView and a TextView can be more
+   efficiently handled as a compound drawable (a single TextView, using the
+   drawableTop, drawableLeft, drawableRight and/or drawableBottom attributes
+   to draw one or more images adjacent to the text).
+
+   If the two widgets are offset from each other with margins, this can be
+   replaced with a drawablePadding attribute.
+
+   There's a lint quickfix to perform this conversion in the Eclipse plugin.
 
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:81: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var color by remember { mutableStateOf(DEFAULT_ACCOUNT_COLOR) }
@@ -413,10 +425,31 @@ espresso = "3.6.1"
    Identifier: androidx.compose.runtime
    Feedback: https://issuetracker.google.com/issues/new?component=612128
 
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:142: Warning: Nested weights are bad for performance [NestedWeights]
+            android:layout_weight="1"
+            ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:188: Warning: Nested weights are bad for performance [NestedWeights]
+            android:layout_weight="1"
+            ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:222: Warning: Nested weights are bad for performance [NestedWeights]
+            android:layout_weight="1"
+            ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_royal.xml:41: Warning: Nested weights are bad for performance [NestedWeights]
+            android:layout_weight="1"
+            ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "NestedWeights":
+   Layout weights require a widget to be measured twice. When a LinearLayout
+   with non-zero weights is nested inside another LinearLayout with non-zero
+   weights, then the number of measurements increase exponentially.
+
 /home/runner/work/Malino/Malino/app/src/main/res/mipmap-hdpi/ic_launcher_fg.png: Warning: The resource R.mipmap.ic_launcher_fg appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/values/strings.xml:3: Warning: The resource R.string.widget_name appears to be unused [UnusedResources]
     <string name="widget_name">ویجت خرج‌یار</string>
             ~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/drawable/w_card.xml:3: Warning: The resource R.drawable.w_card appears to be unused [UnusedResources]
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+^
 
    Explanation for issues of type "UnusedResources":
    Unused resources make applications larger and slow down builds.
@@ -432,4 +465,41 @@ espresso = "3.6.1"
    lint.unused-resources.exclude-tests =true.
    ,
 
-1 errors, 72 warnings
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_minimal.xml:208: Warning: Avoid using sizes smaller than 11sp: 10sp [SmallSp]
+            android:textSize="10sp"
+            ~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:101: Warning: Avoid using sizes smaller than 11sp: 10sp [SmallSp]
+                android:textSize="10sp"
+                ~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "SmallSp":
+   Avoid using sizes smaller than 11sp.
+
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_minimal.xml:39: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
+            android:text="خرج‌یار"
+            ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:58: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
+                android:text="خرج‌یار"
+                ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_royal.xml:57: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
+                android:text="خرج‌یار"
+                ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_split.xml:43: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
+            android:text="خرج‌یار"
+            ~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "HardcodedText":
+   Hardcoding text attributes directly in layout files is bad for several
+   reasons:
+
+   * When creating configuration variations (for example for landscape or
+   portrait) you have to repeat the actual text (and keep it up to date when
+   making changes)
+
+   * The application cannot be translated to other languages by just adding
+   new translations for existing string resources.
+
+   There are quickfixes to automatically extract this hardcoded string into a
+   resource lookup.
+
+1 errors, 83 warnings
