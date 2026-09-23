@@ -51,7 +51,6 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
-import ir.kharjyar.app.data.prefs.WidgetBackground
 import ir.kharjyar.app.data.prefs.DigitStyle
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.data.prefs.WidgetLayout

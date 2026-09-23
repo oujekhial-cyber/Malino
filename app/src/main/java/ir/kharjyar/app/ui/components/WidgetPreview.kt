@@ -16,8 +16,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -250,7 +250,7 @@ private fun ValueRow(label: String, value: String, showNumbers: Boolean) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                if (income) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
+                if (income) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
                 contentDescription = null,
                 tint = if (income) skin.incomeColor else skin.expenseColor,
                 modifier = Modifier.size(12.dp)

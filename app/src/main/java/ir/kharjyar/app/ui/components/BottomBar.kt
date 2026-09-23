@@ -183,7 +183,7 @@ private class NotchedBarShape(
         val path = Path().apply {
             moveTo(0f, c)
             // گوشه گرد بالا-چپ
-            quadraticBezierTo(0f, 0f, c, 0f)
+            quadraticTo(0f, 0f, c, 0f)
             // خط تا شروع دامنه قوس
             lineTo(cx - r - ease, 0f)
             // شیب ورودی نرم: منحنی بلند و کم‌عمق به‌جای گوشه تیز
@@ -206,7 +206,7 @@ private class NotchedBarShape(
             )
             lineTo(size.width - c, 0f)
             // گوشه گرد بالا-راست
-            quadraticBezierTo(size.width, 0f, size.width, c)
+            quadraticTo(size.width, 0f, size.width, c)
             lineTo(size.width, size.height)
             lineTo(0f, size.height)
             close()
