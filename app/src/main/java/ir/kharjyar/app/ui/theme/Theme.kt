@@ -148,52 +148,7 @@ private val SakuraSkin = AppSkin(
 )
 
 // ================================================================ تم ۲: موج نیلی
-private val IndigoScheme = darkColorScheme(
-    primary = Color(0xFF2E7CFF), onPrimary = Color(0xFF001636),
-    primaryContainer = Color(0xFF141C42), onPrimaryContainer = Color(0xFFE6ECFF),
-    secondary = Color(0xFF9B5CFF), onSecondary = Color(0xFF001636),
-    secondaryContainer = Color(0xFF141C42), onSecondaryContainer = Color(0xFFE6ECFF),
-    tertiary = Color(0xFF3DD6C0), onTertiary = Color(0xFF001636),
-    tertiaryContainer = Color(0xFF141C42), onTertiaryContainer = Color(0xFFE6ECFF),
-    background = Color(0xFF05081A), onBackground = Color(0xFFE6ECFF),
-    surface = Color(0xFF0C1230), onSurface = Color(0xFFE6ECFF),
-    surfaceVariant = Color(0xFF141C42), onSurfaceVariant = Color(0xFFAEB9DB),
-    outline = Color(0x802E7CFF), outlineVariant = Color(0x33FFFFFF),
-    error = Color(0xFFFF6B8A), onError = Color(0xFF3B0A10),
-    errorContainer = Color(0xFF5C1020), onErrorContainer = Color(0xFFFFD9E0)
-)
 
-private val IndigoSkin = AppSkin(
-    id = Palette.INDIGO,
-    title = "موج نیلی",
-    subtitle = "سرمه‌ای شب با موج‌های آبی و بنفش",
-    dark = true,
-    backgroundColors = listOf(Color(0xFF05081A), Color(0xFF030510)),
-    backdropBlobs = listOf(
-        AppSkin.Blob(Color(0x242E7CFF), 0.85f, 0.9f, 0.08f),
-        AppSkin.Blob(Color(0x1C9B5CFF), 0.9f, 0.1f, 0.55f)
-    ),
-    cardColor = Color(0xFF0C1230),
-    cardAlpha = 0.95f,
-    cardBorderColors = listOf(Color(0x592E7CFF), Color(0x409B5CFF)),
-    cardBorderWidth = 1.dp,
-    cardCorner = 22.dp,
-    heroGradient = listOf(Color(0xFF0B1038), Color(0xFF3A1C96)),
-    onHero = Color(0xFFFFFFFF),
-    fabGradient = listOf(Color(0xFF2E7CFF), Color(0xFF9B5CFF)),
-    accent = Color(0xFF2E7CFF),
-    incomeColor = Color(0xFF3DD6C0),
-    expenseColor = Color(0xFFFF6B8A),
-    chartGlow = true,
-    bigNumberColor = Color(0xFFFFFFFF),
-    onBackdrop = Color(0xFFE6ECFF),
-    dialogColor = Color(0xFF0C1230),
-    navBarColor = Color(0xFF060A1C),
-    navSelected = Color(0xFF2E7CFF),
-    navUnselected = Color(0xFF7180A8),
-    heroImage = R.drawable.hero_indigo_wave,
-    neonColors = listOf(Color(0xFF2E7CFF), Color(0xFF9B5CFF))
-)
 
 // ================================================================ تم ۳: بنفش تیره
 private val VioletScheme = lightColorScheme(
@@ -231,15 +186,17 @@ private val VioletSkin = AppSkin(
     onHero = Color(0xFF241A38),
     fabGradient = listOf(Color(0xFF7C3AED), Color(0xFFDB2777)),
     accent = Color(0xFF7C3AED),
-    incomeColor = Color(0xFF059669),
-    expenseColor = Color(0xFFD1344F),
+    // سبز تیره‌تر تا روی سفید کنتراست کافی داشته باشد
+    incomeColor = Color(0xFF047857),
+    expenseColor = Color(0xFFC01C38),
     chartGlow = false,
     bigNumberColor = Color(0xFF241A38),
     onBackdrop = Color(0xFF1C1626),
     dialogColor = Color(0xFFFFFFFF),
     navBarColor = Color(0xFFFFFFFF),
     navSelected = Color(0xFF7C3AED),
-    navUnselected = Color(0xFF9C93B0),
+    // خاکستری تیره‌تر برای آیکون‌های غیرفعال نوار پایین
+    navUnselected = Color(0xFF6B6480),
     heroImage = R.drawable.hero_daylight,
     neonColors = listOf(Color(0xFF7C3AED), Color(0xFFDB2777))
 )
@@ -293,100 +250,10 @@ private val LotusSkin = AppSkin(
 )
 
 // ================================================================ تم ۵: شب مطلق
-private val MidnightScheme = darkColorScheme(
-    primary = Color(0xFFFF2D95), onPrimary = Color(0xFF3A0020),
-    primaryContainer = Color(0xFF16161F), onPrimaryContainer = Color(0xFFF0F0F5),
-    secondary = Color(0xFF22D3EE), onSecondary = Color(0xFF3A0020),
-    secondaryContainer = Color(0xFF16161F), onSecondaryContainer = Color(0xFFF0F0F5),
-    tertiary = Color(0xFF4ADE80), onTertiary = Color(0xFF3A0020),
-    tertiaryContainer = Color(0xFF16161F), onTertiaryContainer = Color(0xFFF0F0F5),
-    background = Color(0xFF000000), onBackground = Color(0xFFF0F0F5),
-    surface = Color(0xFF0B0B10), onSurface = Color(0xFFF0F0F5),
-    surfaceVariant = Color(0xFF16161F), onSurfaceVariant = Color(0xFFA8A8B8),
-    outline = Color(0x80FF2D95), outlineVariant = Color(0x33FFFFFF),
-    error = Color(0xFFFF4D6D), onError = Color(0xFF3B0A10),
-    errorContainer = Color(0xFF5C1020), onErrorContainer = Color(0xFFFFD9E0)
-)
 
-private val MidnightSkin = AppSkin(
-    id = Palette.MIDNIGHT,
-    title = "شب مطلق",
-    subtitle = "مشکی خالص با نئون سرخابی و فیروزه‌ای",
-    dark = true,
-    backgroundColors = listOf(Color(0xFF000000), Color(0xFF040406)),
-    backdropBlobs = listOf(
-        AppSkin.Blob(Color(0x1AFF2D95), 0.8f, 0.05f, 0.9f),
-        AppSkin.Blob(Color(0x1422D3EE), 0.8f, 0.95f, 0.1f)
-    ),
-    cardColor = Color(0xFF0B0B10),
-    cardAlpha = 0.96f,
-    cardBorderColors = listOf(Color(0x59FF2D95), Color(0x4022D3EE)),
-    cardBorderWidth = 1.dp,
-    cardCorner = 22.dp,
-    heroGradient = listOf(Color(0xFF0A0A0F), Color(0xFF14101C)),
-    onHero = Color(0xFFFFFFFF),
-    fabGradient = listOf(Color(0xFFFF2D95), Color(0xFF22D3EE)),
-    accent = Color(0xFFFF2D95),
-    incomeColor = Color(0xFF4ADE80),
-    expenseColor = Color(0xFFFF4D6D),
-    chartGlow = true,
-    bigNumberColor = Color(0xFFFFFFFF),
-    onBackdrop = Color(0xFFF0F0F5),
-    dialogColor = Color(0xFF0B0B10),
-    navBarColor = Color(0xFF000000),
-    navSelected = Color(0xFFFF2D95),
-    navUnselected = Color(0xFF6E6E80),
-    heroImage = R.drawable.hero_dark_ring,
-    neonColors = listOf(Color(0xFFFF2D95), Color(0xFF22D3EE))
-)
 
 // ================================================================ تم ۶: غروب
-private val SunsetScheme = darkColorScheme(
-    primary = Color(0xFFFF7A59), onPrimary = Color(0xFF3B1000),
-    primaryContainer = Color(0xFF2A1A42), onPrimaryContainer = Color(0xFFFCEAE4),
-    secondary = Color(0xFFC77DFF), onSecondary = Color(0xFF3B1000),
-    secondaryContainer = Color(0xFF2A1A42), onSecondaryContainer = Color(0xFFFCEAE4),
-    tertiary = Color(0xFF5EE6B8), onTertiary = Color(0xFF3B1000),
-    tertiaryContainer = Color(0xFF2A1A42), onTertiaryContainer = Color(0xFFFCEAE4),
-    background = Color(0xFF120A1F), onBackground = Color(0xFFFCEAE4),
-    surface = Color(0xFF1D1230), onSurface = Color(0xFFFCEAE4),
-    surfaceVariant = Color(0xFF2A1A42), onSurfaceVariant = Color(0xFFCBB3C8),
-    outline = Color(0x80FF7A59), outlineVariant = Color(0x33FFFFFF),
-    error = Color(0xFFFF6B8A), onError = Color(0xFF3B0A10),
-    errorContainer = Color(0xFF5C1020), onErrorContainer = Color(0xFFFFD9E0)
-)
 
-private val SunsetSkin = AppSkin(
-    id = Palette.SUNSET,
-    title = "غروب",
-    subtitle = "افق نارنجی و بنفش با کوه و دریاچه",
-    dark = true,
-    backgroundColors = listOf(Color(0xFF120A1F), Color(0xFF0B0615)),
-    backdropBlobs = listOf(
-        AppSkin.Blob(Color(0x24FF7A59), 0.8f, 0.5f, 0.05f),
-        AppSkin.Blob(Color(0x1CC77DFF), 0.85f, 0.1f, 0.6f)
-    ),
-    cardColor = Color(0xFF1D1230),
-    cardAlpha = 0.95f,
-    cardBorderColors = listOf(Color(0x59FF7A59), Color(0x40C77DFF)),
-    cardBorderWidth = 1.dp,
-    cardCorner = 22.dp,
-    heroGradient = listOf(Color(0xFF7A3F8F), Color(0xFFD96A6A)),
-    onHero = Color(0xFFFFFFFF),
-    fabGradient = listOf(Color(0xFFFF7A59), Color(0xFFC77DFF)),
-    accent = Color(0xFFFF7A59),
-    incomeColor = Color(0xFF5EE6B8),
-    expenseColor = Color(0xFFFF6B8A),
-    chartGlow = true,
-    bigNumberColor = Color(0xFFFFFFFF),
-    onBackdrop = Color(0xFFFCEAE4),
-    dialogColor = Color(0xFF1D1230),
-    navBarColor = Color(0xFF0E0819),
-    navSelected = Color(0xFFFF7A59),
-    navUnselected = Color(0xFF8B7A94),
-    heroImage = R.drawable.hero_sunset,
-    neonColors = listOf(Color(0xFFFF7A59), Color(0xFFC77DFF))
-)
 
 // ================================================================ تم ۷: اقیانوس
 private val OceanScheme = darkColorScheme(
@@ -486,16 +353,13 @@ private val GoldSkin = AppSkin(
 
 /** همه تم‌های موجود، به ترتیب نمایش در تنظیمات. */
 val AllSkins: List<AppSkin> = listOf(
-    SakuraSkin, IndigoSkin, VioletSkin, LotusSkin, MidnightSkin, SunsetSkin, OceanSkin, GoldSkin
+    SakuraSkin, VioletSkin, LotusSkin, OceanSkin, GoldSkin
 )
 
 fun skinOf(palette: Palette): AppSkin = when (palette) {
     Palette.SAKURA -> SakuraSkin
-    Palette.INDIGO -> IndigoSkin
     Palette.VIOLET -> VioletSkin
     Palette.LOTUS -> LotusSkin
-    Palette.MIDNIGHT -> MidnightSkin
-    Palette.SUNSET -> SunsetSkin
     Palette.OCEAN -> OceanSkin
     Palette.GOLD -> GoldSkin
 }
@@ -513,11 +377,8 @@ fun KharjYarTheme(
     val skin = skinOf(palette)
     val colorScheme = when (palette) {
         Palette.SAKURA -> SakuraScheme
-        Palette.INDIGO -> IndigoScheme
         Palette.VIOLET -> VioletScheme
         Palette.LOTUS -> LotusScheme
-        Palette.MIDNIGHT -> MidnightScheme
-        Palette.SUNSET -> SunsetScheme
         Palette.OCEAN -> OceanScheme
         Palette.GOLD -> GoldScheme
     }

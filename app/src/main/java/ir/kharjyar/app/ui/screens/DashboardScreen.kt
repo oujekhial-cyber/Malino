@@ -110,19 +110,19 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     "خلاصه ${summary.monthTitle}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = skin.onHero
                                 )
                                 Text(
                                     defaultAccount?.title ?: "همه حساب‌ها",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color.White,
+                                    color = skin.onHero,
                                     maxLines = 1,
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.Black.copy(alpha = 0.34f))
+                                        .background(heroChipBg(skin))
                                         .border(
                                             1.dp,
-                                            Color.White.copy(alpha = 0.28f),
+                                            skin.onHero.copy(alpha = 0.28f),
                                             RoundedCornerShape(12.dp)
                                         )
                                         .clickable { nav.navigate("settings") }
@@ -136,15 +136,15 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.34f))
-                                        .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
+                                        .background(heroChipBg(skin))
+                                        .border(1.dp, skin.onHero.copy(alpha = 0.28f), CircleShape)
                                         .clickable { scope.launch { viewModel.settingsRepo.setAmountsVisible(!amountVisible) } },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         if (amountVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                         contentDescription = if (amountVisible) "پنهان کردن مبلغ" else "نمایش مبلغ",
-                                        tint = Color.White,
+                                        tint = skin.onHero,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -156,12 +156,12 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         else "••••••••",
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = skin.onHero
                                     )
                                     Text(
                                         "خالص این ماه",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = Color.White.copy(alpha = 0.85f)
+                                        color = skin.onHero.copy(alpha = 0.85f)
                                     )
                                 }
                             }
@@ -386,6 +386,14 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     }
 }
 
+/**
+ * پس‌زمینه چیپ‌های روی کارت شاخص.
+ * روی تم‌های تیره یک لایه مشکی و روی تم روشن یک لایه سفید می‌نشیند تا
+ * متن در هر دو حالت کنتراست کافی داشته باشد.
+ */
+private fun heroChipBg(skin: ir.kharjyar.app.ui.theme.AppSkin): Color =
+    if (skin.dark) Color.Black.copy(alpha = 0.34f) else Color.White.copy(alpha = 0.72f)
+
 @Composable
 private fun SummaryChip(
     label: String,
@@ -394,12 +402,13 @@ private fun SummaryChip(
     deposit: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val skin = LocalAppSkin.current
     val shape = RoundedCornerShape(16.dp)
     Row(
         modifier = modifier
             .clip(shape)
-            // پس‌زمینه تیره مات به‌جای سفیدِ نیمه‌شفاف: روی کارت روشن هم خوانا می‌ماند
-            .background(Color.Black.copy(alpha = 0.34f))
+            // پس‌زمینه کنتراست‌دار نسبت به کارت: روی تم روشن، روشن؛ روی تم تیره، تیره
+            .background(heroChipBg(skin))
             // حاشیه نازک هم‌رنگ مقدار، تا چیپ از پس‌زمینه جدا شود
             .border(1.dp, tint.copy(alpha = 0.55f), shape)
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -426,7 +435,7 @@ private fun SummaryChip(
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.92f),
+                color = skin.onHero.copy(alpha = 0.92f),
                 maxLines = 1
             )
             Text(

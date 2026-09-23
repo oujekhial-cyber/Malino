@@ -11,9 +11,9 @@ import org.junit.Test
 class PaletteMigrationTest {
 
     @Test
-    fun `all eight palettes are available`() {
+    fun `all five palettes are available`() {
         assertEquals(
-            listOf("SAKURA", "INDIGO", "VIOLET", "LOTUS", "MIDNIGHT", "SUNSET", "OCEAN", "GOLD"),
+            listOf("SAKURA", "VIOLET", "LOTUS", "OCEAN", "GOLD"),
             Palette.entries.map { it.name }
         )
     }

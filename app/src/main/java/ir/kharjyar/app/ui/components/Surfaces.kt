@@ -254,8 +254,7 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
 fun Modifier.neonFrame(
     colors: List<Color>,
     cornerRadius: Dp,
-    spread: Dp = 22.dp,
-    coreWidth: Dp = 1.6.dp
+    spread: Dp = 13.dp
 ): Modifier = this.drawBehind {
     if (colors.isEmpty()) return@drawBehind
     val corner = cornerRadius.toPx()
@@ -266,44 +265,24 @@ fun Modifier.neonFrame(
         end = Offset(size.width, size.height)
     )
 
-    // هاله: از بیرون به داخل، هر لایه باریک‌تر و پررنگ‌تر
-    val halo = listOf(
-        1.00f to 0.05f,
-        0.74f to 0.08f,
-        0.52f to 0.12f,
-        0.34f to 0.17f,
-        0.20f to 0.24f,
-        0.10f to 0.34f
-    )
-    halo.forEach { (k, alpha) ->
+    // هاله محو: لایه‌های بسیار نازک و پرتعداد.
+    // قبلاً چند لایهٔ ضخیم بود و مرز هر لایه به شکل خط صاف دیده می‌شد؛
+    // با ضخامت کم و گام ریز، گذار پیوسته و بدون خط می‌شود.
+    val steps = 26
+    for (i in steps downTo 1) {
+        val k = i / steps.toFloat()
         val g = s * k
+        // شدت با توان دو زیاد می‌شود: نزدیک لبه پررنگ، دورتر سریع محو
+        val alpha = 0.085f * (1f - k) * (1f - k) + 0.012f
         drawRoundRect(
             brush = brush,
             topLeft = Offset(-g, -g),
             size = Size(size.width + g * 2, size.height + g * 2),
             cornerRadius = CornerRadius(corner + g),
             alpha = alpha,
-            style = Stroke(width = g * 1.5f)
+            style = Stroke(width = s / steps * 2.4f)
         )
     }
-
-    // مغز روشن نئون، دقیقاً روی لبه
-    drawRoundRect(
-        brush = brush,
-        topLeft = Offset.Zero,
-        size = size,
-        cornerRadius = CornerRadius(corner),
-        style = Stroke(width = coreWidth.toPx())
-    )
-    // رگه سفید نازک داخل مغز، همان برق لوله نئون
-    drawRoundRect(
-        color = Color.White,
-        topLeft = Offset.Zero,
-        size = size,
-        cornerRadius = CornerRadius(corner),
-        alpha = 0.55f,
-        style = Stroke(width = coreWidth.toPx() * 0.4f)
-    )
 }
 
 /** انیمیشن ورود کارت‌ها: محو‌شدن + لغزش ملایم از پایین، با تأخیر ترتیبی. */

@@ -60,7 +60,6 @@ import ir.kharjyar.app.ui.components.SkinCard
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.ui.components.ComboBox
@@ -118,13 +117,6 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                 }
             )
-            ThemeOption(
-                skin = AllSkins.first { it.id == settings.palette },
-                selected = true,
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {}
-            )
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -426,21 +418,13 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
             )
         }
 
-        // ---------- درباره برنامه ----------
-        SectionCard("درباره برنامه") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Filled.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text("برنامه‌نویس", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("رحیم کرمی", style = MaterialTheme.typography.bodyLarge)
-                }
-            }
+        // ---------- پشتیبانی ----------
+        SectionCard("پشتیبانی و ارتباط با ما") {
+            Text(
+                "برای گزارش مشکل، پیشنهاد یا راهنمایی با ما در تماس باشید.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             // ایمیل: با زدن، برنامه ایمیل باز می‌شود
             ContactRow(
@@ -478,43 +462,6 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
     }
 }
 
-/** کارت پیش‌نمایش یک تم (گرادیان + نام + حالت انتخاب). */
-@Composable
-private fun ThemeOption(
-    skin: AppSkin,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(skin.cardCorner)
-    Column(
-        modifier = modifier
-            .clip(shape)
-            .background(Brush.linearGradient(skin.heroGradient))
-            .border(
-                width = if (selected) 2.dp else 1.dp,
-                brush = Brush.linearGradient(
-                    if (selected) skin.fabGradient else skin.cardBorderColors
-                ),
-                shape = shape
-            )
-            .clickable(onClick = onClick)
-            .padding(14.dp)
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(14.dp).background(skin.incomeColor, CircleShape))
-            Box(Modifier.size(14.dp).background(skin.expenseColor, CircleShape))
-            Box(Modifier.size(14.dp).background(skin.accent, CircleShape))
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(skin.title, style = MaterialTheme.typography.titleSmall, color = skin.onHero)
-        Text(
-            if (selected) "انتخاب‌شده ✓" else skin.subtitle,
-            style = MaterialTheme.typography.labelSmall,
-            color = skin.onHero.copy(alpha = 0.75f)
-        )
-    }
-}
 
 @Composable
 private fun SectionCard(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
