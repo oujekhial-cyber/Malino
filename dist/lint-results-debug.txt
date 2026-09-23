@@ -53,10 +53,10 @@ of the library. [ObsoleteLintCustomCheck]
    meaning that you need to use a newer version of lint (or Android Studio or
    Gradle plugin etc) to work with these checks.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:86: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:85: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:205: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt:197: Warning: Field requires API level 33 (current min is 31): android.Manifest.permission#POST_NOTIFICATIONS [InlinedApi]
             PermissionRow("ارسال اعلان", notifGranted) { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
                                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -306,7 +306,7 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Pickers.kt:293: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier
     ~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt:313: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt:292: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier,
     ~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:285: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
@@ -465,9 +465,12 @@ espresso = "3.6.1"
 
 /home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/bg_ocean.webp: Warning: The resource R.drawable.bg_ocean appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/bg_sakura.webp: Warning: The resource R.drawable.bg_sakura appears to be unused [UnusedResources]
+/home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_dark_ring.webp: Warning: The resource R.drawable.hero_dark_ring appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_gold.webp: Warning: The resource R.drawable.hero_gold appears to be unused [UnusedResources]
+/home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_indigo_wave.webp: Warning: The resource R.drawable.hero_indigo_wave appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_ocean.webp: Warning: The resource R.drawable.hero_ocean appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_sakura.webp: Warning: The resource R.drawable.hero_sakura appears to be unused [UnusedResources]
+/home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_sunset.webp: Warning: The resource R.drawable.hero_sunset appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/drawable-nodpi/hero_violet_stripe.webp: Warning: The resource R.drawable.hero_violet_stripe appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/mipmap-hdpi/ic_launcher_fg.png: Warning: The resource R.mipmap.ic_launcher_fg appears to be unused [UnusedResources]
 /home/runner/work/Malino/Malino/app/src/main/res/values/strings.xml:3: Warning: The resource R.string.widget_name appears to be unused [UnusedResources]
@@ -531,4 +534,4 @@ espresso = "3.6.1"
    There are quickfixes to automatically extract this hardcoded string into a
    resource lookup.
 
-1 errors, 93 warnings
+1 errors, 96 warnings
