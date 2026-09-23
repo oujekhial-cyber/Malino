@@ -14,6 +14,16 @@ data class AccountEntity(
     val icon: String = "bank",
     /** شناسه ماسک‌شده کارت/حساب برای نمایش، مثل ****1234 */
     val maskedNumber: String = "",
+    /** شماره حساب. خالی یعنی کاربر وارد نکرده و نباید نمایش داده شود. */
+    val accountNumber: String = "",
+    /** شماره شبا بدون IR. */
+    val iban: String = "",
+    /** شماره ۱۶ رقمی کارت. */
+    val cardNumber: String = "",
+    /** تاریخ انقضای کارت به شکل MM/YY. */
+    val cardExpiry: String = "",
+    /** CVV2 کارت. */
+    val cardCvv2: String = "",
     /** موجودی اولیه اختیاری (ریال). */
     val initialBalanceRial: Long? = null,
     /** زمان ثبت موجودی اولیه. */

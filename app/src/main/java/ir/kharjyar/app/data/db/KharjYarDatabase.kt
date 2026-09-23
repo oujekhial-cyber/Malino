@@ -21,7 +21,7 @@ import net.sqlcipher.database.SupportFactory
         CategoryRuleEntity::class,
         BlockedSenderEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -46,7 +46,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -68,6 +68,22 @@ abstract class KharjYarDatabase : RoomDatabase() {
                     "CREATE UNIQUE INDEX IF NOT EXISTS " +
                         "`index_blocked_senders_sender` ON `blocked_senders` (`sender`)"
                 )
+            }
+        }
+
+        /**
+         * نسخه ۳: فیلدهای کارت بانکی روی حساب‌ها.
+         * ستون‌ها با مقدار پیش‌فرض خالی اضافه می‌شوند تا داده موجود دست‌نخورده بماند.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "accountNumber", "iban", "cardNumber", "cardExpiry", "cardCvv2"
+                ).forEach { col ->
+                    db.execSQL(
+                        "ALTER TABLE `accounts` ADD COLUMN `$col` TEXT NOT NULL DEFAULT ''"
+                    )
+                }
             }
         }
 

@@ -196,51 +196,52 @@ private val IndigoSkin = AppSkin(
 )
 
 // ================================================================ تم ۳: بنفش تیره
-private val VioletScheme = darkColorScheme(
-    primary = Color(0xFFA855F7), onPrimary = Color(0xFF250040),
-    primaryContainer = Color(0xFF1F1233), onPrimaryContainer = Color(0xFFEDE4F7),
-    secondary = Color(0xFFEC4899), onSecondary = Color(0xFF250040),
-    secondaryContainer = Color(0xFF1F1233), onSecondaryContainer = Color(0xFFEDE4F7),
-    tertiary = Color(0xFF34D399), onTertiary = Color(0xFF250040),
-    tertiaryContainer = Color(0xFF1F1233), onTertiaryContainer = Color(0xFFEDE4F7),
-    background = Color(0xFF0A0614), onBackground = Color(0xFFEDE4F7),
-    surface = Color(0xFF140C22), onSurface = Color(0xFFEDE4F7),
-    surfaceVariant = Color(0xFF1F1233), onSurfaceVariant = Color(0xFFBFAFD4),
-    outline = Color(0x80A855F7), outlineVariant = Color(0x33FFFFFF),
-    error = Color(0xFFF43F6E), onError = Color(0xFF3B0A10),
-    errorContainer = Color(0xFF5C1020), onErrorContainer = Color(0xFFFFD9E0)
+private val VioletScheme = lightColorScheme(
+    primary = Color(0xFF7C3AED), onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFEDE4FF), onPrimaryContainer = Color(0xFF2A0D5E),
+    secondary = Color(0xFFDB2777), onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFFFE0EF), onSecondaryContainer = Color(0xFF4A0424),
+    tertiary = Color(0xFF0891B2), onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFCFF3FB), onTertiaryContainer = Color(0xFF00323D),
+    background = Color(0xFFF7F4FD), onBackground = Color(0xFF1C1626),
+    surface = Color(0xFFFFFFFF), onSurface = Color(0xFF1C1626),
+    surfaceVariant = Color(0xFFF1ECFA), onSurfaceVariant = Color(0xFF5B5470),
+    outline = Color(0xFFD5CCE8), outlineVariant = Color(0xFFE8E1F5),
+    error = Color(0xFFD1344F), onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFFDAE0), onErrorContainer = Color(0xFF400010)
 )
 
 private val VioletSkin = AppSkin(
     id = Palette.VIOLET,
-    title = "بنفش تیره",
-    subtitle = "بنفش عمیق با خط‌های نئونی مورب",
-    dark = true,
-    backgroundColors = listOf(Color(0xFF0A0614), Color(0xFF06030D)),
+    title = "روشنای روز",
+    subtitle = "سفید و یاسی روشن، مناسب محیط پرنور",
+    dark = false,
+    backgroundColors = listOf(Color(0xFFF7F4FD), Color(0xFFFFFFFF)),
     backdropBlobs = listOf(
-        AppSkin.Blob(Color(0x20A855F7), 0.8f, 0.08f, 0.1f),
-        AppSkin.Blob(Color(0x18EC4899), 0.85f, 0.95f, 0.6f)
+        AppSkin.Blob(Color(0x1A7C3AED), 0.8f, 0.08f, 0.08f),
+        AppSkin.Blob(Color(0x14DB2777), 0.85f, 0.95f, 0.6f)
     ),
-    cardColor = Color(0xFF140C22),
-    cardAlpha = 0.95f,
-    cardBorderColors = listOf(Color(0x59A855F7), Color(0x40EC4899)),
+    cardColor = Color(0xFFFFFFFF),
+    cardAlpha = 1f,
+    cardBorderColors = listOf(Color(0x337C3AED), Color(0x26DB2777)),
     cardBorderWidth = 1.dp,
     cardCorner = 22.dp,
-    heroGradient = listOf(Color(0xFF1A0E2E), Color(0xFF2E1548)),
-    onHero = Color(0xFFFFFFFF),
-    fabGradient = listOf(Color(0xFFA855F7), Color(0xFFEC4899)),
-    accent = Color(0xFFA855F7),
-    incomeColor = Color(0xFF34D399),
-    expenseColor = Color(0xFFF43F6E),
-    chartGlow = true,
-    bigNumberColor = Color(0xFFFFFFFF),
-    onBackdrop = Color(0xFFEDE4F7),
-    dialogColor = Color(0xFF140C22),
-    navBarColor = Color(0xFF080512),
-    navSelected = Color(0xFFA855F7),
-    navUnselected = Color(0xFF7D6E94),
-    heroImage = R.drawable.hero_violet_stripe,
-    neonColors = listOf(Color(0xFFA855F7), Color(0xFFEC4899))
+    heroGradient = listOf(Color(0xFFEDE4FF), Color(0xFFFCE7F3)),
+    // کارت روشن است، پس متن روی آن باید تیره باشد
+    onHero = Color(0xFF241A38),
+    fabGradient = listOf(Color(0xFF7C3AED), Color(0xFFDB2777)),
+    accent = Color(0xFF7C3AED),
+    incomeColor = Color(0xFF059669),
+    expenseColor = Color(0xFFD1344F),
+    chartGlow = false,
+    bigNumberColor = Color(0xFF241A38),
+    onBackdrop = Color(0xFF1C1626),
+    dialogColor = Color(0xFFFFFFFF),
+    navBarColor = Color(0xFFFFFFFF),
+    navSelected = Color(0xFF7C3AED),
+    navUnselected = Color(0xFF9C93B0),
+    heroImage = R.drawable.hero_daylight,
+    neonColors = listOf(Color(0xFF7C3AED), Color(0xFFDB2777))
 )
 
 // ================================================================ تم ۴: نیلوفر

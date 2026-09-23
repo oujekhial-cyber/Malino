@@ -121,12 +121,6 @@ fun SkinCard(
     )
     Box(
         modifier = modifier
-            .then(
-                if (glow) Modifier.softGlow(
-                    color = if (tonal) skin.heroGradient.first() else skin.cardColor,
-                    shape = shape
-                ) else Modifier
-            )
             .clip(shape)
             .background(
                 if (tonal) Brush.linearGradient(skin.heroGradient)

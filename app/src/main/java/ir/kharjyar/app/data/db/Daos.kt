@@ -158,6 +158,14 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun delete(id: Long)
 
+    /** حذف گروهی برای انتخاب چندتایی. */
+    @Query("DELETE FROM transactions WHERE id IN (:ids)")
+    suspend fun deleteAll(ids: List<Long>)
+
+    /** درج دوباره با همان شناسه، برای «بازگرداندن» پس از حذف. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun restore(txs: List<TransactionEntity>)
+
     @Query(
         """SELECT * FROM transactions
            WHERE transferGroupId IS NULL AND nature = 3
