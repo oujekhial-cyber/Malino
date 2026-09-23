@@ -31,10 +31,17 @@ class PaletteMigrationTest {
     }
 
     @Test
-    fun `all skins are dark and carry neon colors`() {
-        // هر هشت تم تیره‌اند و قاب نئونی مخصوص خودشان را دارند
-        assertTrue(AllSkins.all { it.dark })
+    fun `every skin carries neon colors and a hero image`() {
+        // همه تم‌ها قاب نئونی و تصویر کارت مخصوص خودشان را دارند
         assertTrue(AllSkins.all { it.neonColors.size >= 2 })
         assertTrue(AllSkins.all { it.heroImage != null })
+    }
+
+    @Test
+    fun `there is exactly one light skin among the palettes`() {
+        // تم بنفش تیره به یک تم روشن تبدیل شد؛ بقیه تیره می‌مانند
+        val light = AllSkins.filter { !it.dark }
+        assertEquals(1, light.size)
+        assertEquals(Palette.VIOLET, light.first().id)
     }
 }
