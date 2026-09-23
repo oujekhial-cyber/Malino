@@ -1,12 +1,2 @@
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:88 Argument type mismatch: actual type is 'kotlin.Long?', but 'kotlin.String' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:108 Argument type mismatch: actual type is 'kotlin.Long?', but 'kotlin.String' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:126 Argument type mismatch: actual type is 'kotlin.Boolean', but 'kotlin.String' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:136 Argument type mismatch: actual type is 'kotlin.Long', but 'kotlin.String' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:136 No value passed for parameter 'createdAt'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:222:38 None of the following candidates is applicable:
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:88 Argument type mismatch: actual type is 'kotlin.Long?', but 'kotlin.String' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:108 Argument type mismatch: actual type is 'kotlin.Long?', but 'kotlin.String' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:126 Argument type mismatch: actual type is 'kotlin.Boolean', but 'kotlin.String' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:136 Argument type mismatch: actual type is 'kotlin.Long', but 'kotlin.String' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/backup/BackupPayload.kt:46:136 No value passed for parameter 'createdAt'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:222:38 None of the following candidates is applicable:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:223:38 None of the following candidates is applicable:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:223:38 None of the following candidates is applicable:
