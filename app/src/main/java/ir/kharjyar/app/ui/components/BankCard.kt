@@ -42,6 +42,43 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.data.db.AccountEntity
+
+/**
+ * نسخه کوتاه برای پیش‌نمایش در فرم معرفی حساب: مستقیماً موجودیت حساب را می‌گیرد.
+ *
+ * @param balanceText اگر null باشد، بخش مانده نمایش داده نمی‌شود.
+ * @param masked اگر true باشد شماره کارت و CVV2 پوشانده می‌شوند.
+ */
+@Composable
+fun BankCard(
+    account: AccountEntity,
+    balanceText: String?,
+    balanceCaption: String?,
+    selected: Boolean,
+    masked: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+    onCopy: (String) -> Unit = {}
+) {
+    BankCard(
+        title = account.title,
+        bankName = account.bankName,
+        colorArgb = account.colorArgb,
+        balanceText = balanceText ?: "",
+        balanceHint = balanceCaption ?: "",
+        selected = selected,
+        cardNumber = account.cardNumber,
+        accountNumber = account.accountNumber,
+        iban = account.iban,
+        expiry = account.cardExpiry,
+        cvv2 = account.cardCvv2,
+        showSecrets = !masked,
+        modifier = modifier,
+        onClick = onClick,
+        onCopy = onCopy
+    )
+}
 
 /**
  * کارت حساب به شکل کارت عابربانک.
@@ -152,19 +189,25 @@ fun BankCard(
             Spacer(Modifier.height(10.dp))
         }
 
-        // ---------- مانده ----------
-        Text(
-            balanceHint,
-            style = MaterialTheme.typography.labelSmall,
-            color = onCard.copy(alpha = 0.72f)
-        )
-        Text(
-            balanceText,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = onCard,
-            maxLines = 1
-        )
+        // ---------- مانده (در حالت پیش‌نمایش فرم نمایش داده نمی‌شود) ----------
+        if (balanceText.isNotBlank() || balanceHint.isNotBlank()) {
+            if (balanceHint.isNotBlank()) {
+                Text(
+                    balanceHint,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = onCard.copy(alpha = 0.72f)
+                )
+            }
+            if (balanceText.isNotBlank()) {
+                Text(
+                    balanceText,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = onCard,
+                    maxLines = 1
+                )
+            }
+        }
 
         // ---------- جزئیات، فقط وقتی کارت انتخاب شده ----------
         AnimatedVisibility(
