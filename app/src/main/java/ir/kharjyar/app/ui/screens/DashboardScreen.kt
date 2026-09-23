@@ -41,9 +41,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -58,6 +61,7 @@ import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
+import ir.kharjyar.app.ui.components.BankCard
 import ir.kharjyar.app.ui.components.EnterCard
 import ir.kharjyar.app.ui.components.HeroCard
 import ir.kharjyar.app.ui.components.LineChart
@@ -77,6 +81,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val skin = LocalAppSkin.current
     // از تنظیمات خوانده می‌شود تا با رفتن به صفحه دیگر و برگشتن حفظ شود
     val amountVisible = settings.amountsVisible
+    val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -242,68 +247,58 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             }
                         } else {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                // کارت «همه حساب‌ها»: مجموع همه حساب‌ها
+                                item {
+                                    val totalRial = active.sumOf { acc ->
+                                        AccountBalance.estimate(acc, allTx).rial ?: 0L
+                                    }
+                                    BankCard(
+                                        title = "همه حساب‌ها",
+                                        bankName = "${Digits.toPersian(active.size.toString())} حساب فعال",
+                                        colorArgb = skin.accent.toArgb().toLong() and 0xFFFFFFFFL,
+                                        balanceText = if (amountVisible)
+                                            Money.format(totalRial, settings.moneyUnit) else "••••••",
+                                        balanceHint = "مجموع مانده برآوردی",
+                                        selected = defaultAccount == null,
+                                        modifier = Modifier.width(250.dp),
+                                        onClick = {
+                                            scope.launch { viewModel.settingsRepo.setDefaultAccount(null) }
+                                        }
+                                    )
+                                }
                                 items(active.size) { idx ->
                                     val account = active[idx]
                                     val est = AccountBalance.estimate(account, allTx)
-                                    SkinCard(
-                                        modifier = Modifier
-                                            .width(230.dp)
-                                            .clickable { nav.navigate("accountEdit/${account.id}") }
-                                    ) {
-                                        Column(modifier = Modifier.padding(14.dp)) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(10.dp)
-                                                        .background(Color(account.colorArgb), CircleShape)
-                                                )
-                                                Spacer(Modifier.width(8.dp))
-                                                Text(
-                                                    account.title,
-                                                    style = MaterialTheme.typography.titleSmall,
-                                                    maxLines = 1,
-                                                    color = skin.onBackdrop
-                                                )
-                                            }
-                                            Text(
-                                                account.bankName,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = skin.onBackdrop.copy(alpha = 0.7f)
-                                            )
-                                            Spacer(Modifier.height(8.dp))
-                                            Text(
-                                                "مانده برآوردی",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = skin.onBackdrop.copy(alpha = 0.7f)
-                                            )
-                                            Text(
-                                                if (est.rial != null) Money.format(est.rial, settings.moneyUnit) else "—",
-                                                style = MaterialTheme.typography.titleLarge,
-                                                color = skin.bigNumberColor,
-                                                maxLines = 1
-                                            )
-                                            Text(
-                                                est.sourceLabel(),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = skin.onBackdrop.copy(alpha = 0.65f),
-                                                maxLines = 2
-                                            )
-                                            est.asOf?.let {
-                                                Text(
-                                                    "تا ${PersianDate.formatDateTime(it)}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = skin.onBackdrop.copy(alpha = 0.65f)
+                                    BankCard(
+                                        title = account.title,
+                                        bankName = account.bankName,
+                                        colorArgb = account.colorArgb,
+                                        balanceText = when {
+                                            !amountVisible -> "••••••"
+                                            est.rial != null -> Money.format(est.rial, settings.moneyUnit)
+                                            else -> "—"
+                                        },
+                                        balanceHint = "مانده برآوردی",
+                                        selected = defaultAccount?.id == account.id,
+                                        cardNumber = account.cardNumber,
+                                        accountNumber = account.accountNumber,
+                                        iban = account.iban,
+                                        expiry = account.cardExpiry,
+                                        cvv2 = account.cardCvv2,
+                                        showSecrets = amountVisible,
+                                        modifier = Modifier.width(250.dp),
+                                        onClick = {
+                                            // انتخاب کارت = تغییر حساب پیش‌فرض داشبورد
+                                            scope.launch {
+                                                viewModel.settingsRepo.setDefaultAccount(
+                                                    if (defaultAccount?.id == account.id) null else account.id
                                                 )
                                             }
-                                            if (est.source != BalanceSource.NONE && est.pendingCount > 0) {
-                                                Text(
-                                                    "${Digits.toPersian(est.pendingCount.toString())} مورد تأییدنشده محاسبه نشده",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = skin.expenseColor
-                                                )
-                                            }
+                                        },
+                                        onCopy = { text ->
+                                            clipboard.setText(AnnotatedString(text))
                                         }
-                                    }
+                                    )
                                 }
                             }
                         }

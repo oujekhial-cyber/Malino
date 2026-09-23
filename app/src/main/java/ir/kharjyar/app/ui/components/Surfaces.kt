@@ -239,35 +239,6 @@ fun Modifier.shine(enabled: Boolean, cornerRadius: Dp): Modifier {
 }
 
 /**
- * هاله نرم پیرامون یک سطح، هم‌رنگ خودش.
- *
- * از سایه سخت استفاده نمی‌شود؛ shadow با رنگ روشن روی پس‌زمینه تیره لبه کثیف
- * می‌سازد. در عوض چند لایه کم‌رنگ با شعاع فزاینده پشت کارت کشیده می‌شود که
- * نتیجه‌اش پخش نرم نور است.
- */
-fun Modifier.softGlow(
-    color: Color,
-    shape: androidx.compose.ui.graphics.Shape,
-    radius: Dp = 18.dp,
-    intensity: Float = 0.5f
-): Modifier = this.drawBehind {
-    val r = radius.toPx()
-    val corner = ((shape as? RoundedCornerShape)
-        ?.topStart?.toPx(size, this) ?: 0f)
-    // سه لایه از بیرون به داخل، هر کدام کمی پررنگ‌تر
-    val layers = listOf(1f to 0.05f, 0.62f to 0.09f, 0.3f to 0.14f)
-    layers.forEach { (spread, alpha) ->
-        val grow = r * spread
-        drawRoundRect(
-            color = color.copy(alpha = alpha * intensity),
-            topLeft = Offset(-grow, -grow * 0.6f),
-            size = Size(size.width + grow * 2, size.height + grow * 1.2f),
-            cornerRadius = CornerRadius(corner + grow)
-        )
-    }
-}
-
-/**
  * قاب نئونی دور کارت اصلی.
  *
  * مثل یک لوله نئون واقعی ساخته می‌شود: چند دور خطِ هم‌مرکز با ضخامت فزاینده و
