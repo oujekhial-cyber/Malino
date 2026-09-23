@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -222,11 +222,10 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(vertical = 12.dp, bottom = 110.dp)
                 ) {
-                    items(
-                        count = filtered.size,
-                        key = { idx -> filtered[idx].id }
-                    ) { i ->
-                        val tx = filtered[i]
+                    itemsIndexed(
+                        items = filtered,
+                        key = { _, item -> item.id }
+                    ) { _, tx ->
                         TransactionRow(
                             tx = tx,
                             categoryName = categories.firstOrNull { it.id == tx.categoryId }?.name,
