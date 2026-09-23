@@ -48,6 +48,11 @@ import ir.kharjyar.app.data.db.AccountSenderEntity
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.ColorPicker
+import ir.kharjyar.app.ui.components.BankCard
+import ir.kharjyar.app.ui.components.SearchableComboBox
+import ir.kharjyar.app.ui.components.ColorPickerField
+import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.components.NumberTextField
 import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.keepAboveKeyboard
 import ir.kharjyar.app.ui.theme.LocalAppSkin
@@ -80,6 +85,11 @@ fun AccountEditScreen(
     var bankName by remember { mutableStateOf("") }
     var color by remember { mutableStateOf(DEFAULT_ACCOUNT_COLOR) }
     var maskedNumber by remember { mutableStateOf("") }
+    var accountNumber by remember { mutableStateOf("") }
+    var iban by remember { mutableStateOf("") }
+    var cardNumber by remember { mutableStateOf("") }
+    var cardExpiry by remember { mutableStateOf("") }
+    var cardCvv2 by remember { mutableStateOf("") }
     var initialBalance by remember { mutableStateOf("") }
     var archived by remember { mutableStateOf(false) }
     var existing by remember { mutableStateOf<AccountEntity?>(null) }
@@ -97,6 +107,8 @@ fun AccountEditScreen(
                 existing = a
                 title = a.title; bankName = a.bankName; color = a.colorArgb
                 maskedNumber = a.maskedNumber; archived = a.archived
+                accountNumber = a.accountNumber; iban = a.iban
+                cardNumber = a.cardNumber; cardExpiry = a.cardExpiry; cardCvv2 = a.cardCvv2
                 initialBalance = a.initialBalanceRial?.toString() ?: ""
             }
             viewModel.repo.accountDao.sendersOf(accountId).forEach {
@@ -112,44 +124,98 @@ fun AccountEditScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         
-        OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("عنوان دلخواه (مثل «حساب حقوق»)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+        // ---------- پیش‌نمایش زنده کارت ----------
+        BankCard(
+            account = AccountEntity(
+                id = accountId,
+                title = title.ifBlank { "عنوان حساب" },
+                bankName = bankName,
+                colorArgb = color,
+                accountNumber = accountNumber,
+                iban = iban,
+                cardNumber = cardNumber,
+                cardExpiry = cardExpiry,
+                cardCvv2 = cardCvv2,
+                createdAt = 0L
+            ),
+            balanceText = null,
+            balanceCaption = null,
+            selected = true,
+            masked = false,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        ComboBox(
-            label = "نام بانک",
-            options = bankNames,
-            selected = bankNames.firstOrNull { it == bankName },
-            labelOf = { it },
-            placeholder = "انتخاب بانک",
-            onSelect = { bankName = it },
-            leadingOf = { name ->
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .background(
-                            if (name == bankName) LocalAppSkin.current.accent
-                            else LocalAppSkin.current.onBackdrop.copy(alpha = 0.3f),
-                            CircleShape
-                        )
+        // ---------- پایه ----------
+        FormSection("اطلاعات پایه") {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("عنوان دلخواه (مثل «حساب حقوق»)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            SearchableComboBox(
+                label = "نام بانک",
+                options = bankNames,
+                value = bankName,
+                onValueChange = { bankName = it },
+                placeholder = "حروف اول نام بانک را بنویسید"
+            )
+            ColorPickerField(color = color, onColorChange = { color = it })
+        }
+
+        // ---------- شماره‌ها ----------
+        FormSection("شماره‌ها (اختیاری)") {
+            Text(
+                "هر کدام را خالی بگذارید، روی کارت نمایش داده نمی‌شود.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            NumberTextField(
+                value = cardNumber,
+                onValueChange = { cardNumber = it.filter(Char::isDigit).take(16) },
+                label = "شماره کارت (۱۶ رقم)",
+                maxDigits = 16,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = cardExpiry,
+                    onValueChange = { cardExpiry = it.take(5) },
+                    label = { Text("انقضا MM/YY") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                NumberTextField(
+                    value = cardCvv2,
+                    onValueChange = { cardCvv2 = it.filter(Char::isDigit).take(4) },
+                    label = "CVV2",
+                    maxDigits = 4,
+                    modifier = Modifier.weight(1f)
                 )
             }
-        )
-        OutlinedTextField(
-            value = bankName,
-            onValueChange = { bankName = it },
-            label = { Text("یا نام بانک را دستی بنویسید") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        ColorPicker(color = color, onColorChange = { color = it })
-
-        OutlinedTextField(
-            value = maskedNumber,
-            onValueChange = { maskedNumber = it },
-            label = { Text("شناسه کارت/حساب (ترجیحاً ماسک‌شده مثل ****۱۲۳۴)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+            NumberTextField(
+                value = accountNumber,
+                onValueChange = { accountNumber = it.filter(Char::isDigit).take(20) },
+                label = "شماره حساب",
+                maxDigits = 20,
+                modifier = Modifier.fillMaxWidth()
+            )
+            NumberTextField(
+                value = iban,
+                onValueChange = { iban = it.filter(Char::isDigit).take(24) },
+                label = "شبا (۲۴ رقم، بدون IR)",
+                maxDigits = 24,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = maskedNumber,
+                onValueChange = { maskedNumber = it },
+                label = { Text("شناسه کوتاه برای تطبیق پیامک (مثل ****۱۲۳۴)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
 
         AmountTextField(
             value = initialBalance,
@@ -218,6 +284,9 @@ fun AccountEditScreen(
                             AccountEntity(
                                 title = title.trim(), bankName = bankName.trim(), colorArgb = color,
                                 maskedNumber = maskedNumber.trim(),
+                                accountNumber = accountNumber.trim(), iban = iban.trim(),
+                                cardNumber = cardNumber.trim(), cardExpiry = cardExpiry.trim(),
+                                cardCvv2 = cardCvv2.trim(),
                                 initialBalanceRial = balanceRial,
                                 initialBalanceAt = if (balanceRial != null) now else null,
                                 archived = false, createdAt = now
@@ -229,6 +298,9 @@ fun AccountEditScreen(
                             existing!!.copy(
                                 title = title.trim(), bankName = bankName.trim(), colorArgb = color,
                                 maskedNumber = maskedNumber.trim(),
+                                accountNumber = accountNumber.trim(), iban = iban.trim(),
+                                cardNumber = cardNumber.trim(), cardExpiry = cardExpiry.trim(),
+                                cardCvv2 = cardCvv2.trim(),
                                 initialBalanceRial = balanceRial,
                                 initialBalanceAt = if (balanceRial != null) (existing!!.initialBalanceAt ?: now) else null,
                                 archived = archived
@@ -286,5 +358,22 @@ fun AccountEditScreen(
                 }) { Text("بایگانی (پیشنهادی)") }
             }
         )
+    }
+}
+
+/** یک بخش از فرم داخل کارت، با عنوان و فاصله‌گذاری یکنواخت. */
+@Composable
+private fun FormSection(
+    title: String,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
+) {
+    SkinCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            content()
+        }
     }
 }

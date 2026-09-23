@@ -28,6 +28,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableLongStateOf
+import ir.kharjyar.app.core.text.Digits
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -277,3 +280,162 @@ private val presetColors = listOf(
     0xFF3F51B5L, 0xFF00897BL, 0xFFD81B60L, 0xFFF4511EL,
     0xFF7B1FA2L, 0xFF2E7D32L, 0xFF0277BDL, 0xFFE0A33CL
 )
+
+/**
+ * انتخاب رنگ جمع‌وجور: یک ردیف کوچک که فقط رنگ فعلی را نشان می‌دهد و
+ * با لمس، پنجره انتخاب رنگ باز می‌شود. اینطور پالت همیشه جلوی چشم کاربر نیست.
+ */
+@Composable
+fun ColorPickerField(
+    color: Long,
+    onColorChange: (Long) -> Unit,
+    label: String = "رنگ حساب",
+    modifier: Modifier = Modifier
+) {
+    val skin = LocalAppSkin.current
+    var open by remember { mutableStateOf(false) }
+    var draft by remember(color) { mutableLongStateOf(color) }
+    val shape = RoundedCornerShape(14.dp)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(skin.cardColor.copy(alpha = skin.cardAlpha))
+            .border(1.dp, skin.accent.copy(alpha = 0.32f), shape)
+            .clickable { draft = color; open = true }
+            .padding(horizontal = 14.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .clip(CircleShape)
+                .background(Color(color))
+                .border(1.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = skin.onBackdrop)
+        Spacer(Modifier.weight(1f))
+        Text(
+            "تغییر",
+            style = MaterialTheme.typography.labelMedium,
+            color = skin.accent
+        )
+    }
+
+    if (open) {
+        AlertDialog(
+            onDismissRequest = { open = false },
+            containerColor = skin.dialogColor,
+            title = { Text("انتخاب رنگ") },
+            text = { ColorPicker(color = draft, onColorChange = { draft = it }) },
+            confirmButton = {
+                TextButton(onClick = { onColorChange(draft); open = false }) { Text("تأیید") }
+            },
+            dismissButton = { TextButton(onClick = { open = false }) { Text("انصراف") } }
+        )
+    }
+}
+
+/**
+ * کمبوباکس قابل جست‌وجو: کاربر چند حرف اول را می‌نویسد و فهرست فیلتر می‌شود.
+ * مقدار دلخواه خارج از فهرست هم پذیرفته می‌شود (مثلاً نام بانکی که در لیست نیست).
+ */
+@Composable
+fun SearchableComboBox(
+    label: String,
+    options: List<String>,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "برای جست‌وجو تایپ کنید"
+) {
+    val skin = LocalAppSkin.current
+    var open by remember { mutableStateOf(false) }
+    var queryText by remember { mutableStateOf("") }
+
+    val matches = remember(queryText, options) {
+        val q = Digits.normalize(queryText).trim()
+        if (q.isBlank()) options
+        else options.filter { it.contains(q, ignoreCase = true) || it.startsWith(q) }
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            trailingIcon = {
+                Icon(
+                    Icons.Filled.ArrowDropDown,
+                    contentDescription = "باز کردن فهرست",
+                    tint = skin.accent,
+                    modifier = Modifier.clickable { queryText = ""; open = true }
+                )
+            }
+        )
+    }
+
+    if (open) {
+        AlertDialog(
+            onDismissRequest = { open = false },
+            containerColor = skin.dialogColor,
+            title = { Text(label) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = queryText,
+                        onValueChange = { queryText = it },
+                        placeholder = { Text(placeholder) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    if (matches.isEmpty()) {
+                        Text(
+                            "موردی پیدا نشد؛ می‌توانید نام دلخواه را مستقیم بنویسید.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = skin.onBackdrop.copy(alpha = 0.7f)
+                        )
+                    } else {
+                        LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                            items(matches.size) { i ->
+                                val item = matches[i]
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onValueChange(item)
+                                            open = false
+                                        }
+                                        .padding(vertical = 11.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (item == value) skin.accent
+                                                else skin.onBackdrop.copy(alpha = 0.28f)
+                                            )
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        item,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = skin.onBackdrop
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { open = false }) { Text("بستن") } }
+        )
+    }
+}
