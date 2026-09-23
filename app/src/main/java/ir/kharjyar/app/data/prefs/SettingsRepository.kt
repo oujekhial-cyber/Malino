@@ -90,7 +90,7 @@ data class AppSettings(
     /** ارقام فارسی یا لاتین در کل برنامه و ویجت. */
     val digitStyle: DigitStyle = DigitStyle.PERSIAN,
     /** حرکت آرام هاله نور شیشه‌ای روی کارت‌های صفحه خانه. */
-    val cardShine: Boolean = true,
+    val cardShine: Boolean = false,
     /** نمایش مبالغ در کارت خانه (با دکمه چشم عوض می‌شود و ماندگار است). */
     val amountsVisible: Boolean = true,
     /** چیدمان متن‌های ویجت. */
@@ -171,7 +171,7 @@ class SettingsRepository(private val context: Context) {
                 // پرچم سراسری ارقام همگام با تنظیم کاربر نگه داشته می‌شود
                 ir.kharjyar.app.core.text.Digits.usePersianDigits = it == DigitStyle.PERSIAN
             },
-            cardShine = p[Keys.CARD_SHINE] ?: true,
+            cardShine = p[Keys.CARD_SHINE] ?: false,
             amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
             widgetTitleAlign = enumOf(p[Keys.W_TITLE_ALIGN], WidgetAlign.START),
             widgetClockAlign = enumOf(p[Keys.W_CLOCK_ALIGN], WidgetAlign.CENTER),

@@ -7,6 +7,7 @@ import ir.kharjyar.app.data.prefs.DigitStyle
 import ir.kharjyar.app.data.prefs.Palette
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -24,7 +25,8 @@ class DisplaySettingsTest {
         assertEquals(MoneyUnit.RIAL, s.moneyUnit)
         assertEquals(DigitStyle.PERSIAN, s.digitStyle)
         assertEquals(Palette.SAKURA, s.palette)
-        assertTrue(s.cardShine)
+        // هاله دور کارت طبق خواست کاربر پیش‌فرض خاموش است
+        assertFalse(s.cardShine)
     }
 
     @Test
