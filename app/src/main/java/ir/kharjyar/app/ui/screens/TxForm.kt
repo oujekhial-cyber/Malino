@@ -69,21 +69,42 @@ fun AccountPicker(
     )
 }
 
-/** گزینه‌های «جهت بانکی» و «ماهیت» به‌صورت کمبوباکس. */
+/**
+ * گزینه‌های «جهت بانکی» و «ماهیت».
+ *
+ * @param showDirection وقتی کاربر پیش از ورود به فرم، واریز/برداشت را انتخاب کرده،
+ * این بخش پنهان می‌شود و فقط ماهیتِ متناسب با همان جهت نمایش داده می‌شود.
+ */
 @Composable
-fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirection: (Int) -> Unit) {
+fun NaturePicker(
+    nature: Int,
+    direction: Int,
+    onNature: (Int) -> Unit,
+    onDirection: (Int) -> Unit,
+    showDirection: Boolean = true
+) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (showDirection) {
+            ComboBox(
+                label = "جهت بانکی",
+                options = listOf(TxDirection.DEPOSIT, TxDirection.WITHDRAW),
+                selected = direction,
+                labelOf = { if (it == TxDirection.DEPOSIT) "واریز (پول وارد حساب شد)" else "برداشت (پول از حساب خارج شد)" },
+                onSelect = onDirection
+            )
+        }
+        val deposit = direction == TxDirection.DEPOSIT
+        val natureOptions = if (showDirection) {
+            listOf(TxNature.INCOME, TxNature.EXPENSE, TxNature.TRANSFER)
+        } else if (deposit) {
+            listOf(TxNature.INCOME, TxNature.TRANSFER)
+        } else {
+            listOf(TxNature.EXPENSE, TxNature.TRANSFER)
+        }
         ComboBox(
-            label = "جهت بانکی",
-            options = listOf(TxDirection.DEPOSIT, TxDirection.WITHDRAW),
-            selected = direction,
-            labelOf = { if (it == TxDirection.DEPOSIT) "واریز (پول وارد حساب شد)" else "برداشت (پول از حساب خارج شد)" },
-            onSelect = onDirection
-        )
-        ComboBox(
-            label = "ماهیت",
-            options = listOf(TxNature.INCOME, TxNature.EXPENSE, TxNature.TRANSFER),
-            selected = nature,
+            label = if (showDirection) "ماهیت" else "این پول چه بود؟",
+            options = natureOptions,
+            selected = if (nature in natureOptions) nature else natureOptions.first(),
             labelOf = {
                 when (it) {
                     TxNature.INCOME -> "واریز (درآمد)"
@@ -94,7 +115,12 @@ fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirecti
             onSelect = onNature
         )
         Text(
-            "هر واریزی درآمد نیست و هر برداشتی خرج نیست؛ مثلاً جابه‌جایی پول بین حساب‌های خودتان انتقال است.",
+            if (showDirection)
+                "هر واریزی درآمد نیست و هر برداشتی خرج نیست؛ مثلاً جابه‌جایی پول بین حساب‌های خودتان انتقال است."
+            else if (deposit)
+                "اگر این پول از حساب دیگر خودتان آمده، «انتقال بین حساب‌ها» را انتخاب کنید تا جزو درآمد حساب نشود."
+            else
+                "اگر این پول به حساب دیگر خودتان رفته، «انتقال بین حساب‌ها» را انتخاب کنید تا جزو خرج حساب نشود.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

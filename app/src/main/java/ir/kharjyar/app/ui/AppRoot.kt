@@ -1,6 +1,7 @@
 package ir.kharjyar.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
@@ -56,6 +59,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,7 +76,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -78,9 +86,12 @@ import androidx.navigation.compose.rememberNavController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.ui.components.AppBackdrop
 import ir.kharjyar.app.ui.components.BottomItem
 import ir.kharjyar.app.ui.components.BottomNavBar
+import ir.kharjyar.app.ui.components.greetingByHour
+import ir.kharjyar.app.ui.components.todayHeaderLine
 import ir.kharjyar.app.ui.screens.AccountEditScreen
 import ir.kharjyar.app.ui.screens.AccountFromSmsScreen
 import ir.kharjyar.app.ui.screens.AccountsScreen
@@ -163,7 +174,7 @@ private data class DrawerEntry(
 /** آیتم‌های کشو (همه مقصدها). */
 private val drawerEntries = listOf(
     DrawerEntry("home", "خانه", Icons.Filled.Home),
-    DrawerEntry("quickAdd", "ثبت سریع با جمله", Icons.Filled.AutoAwesome),
+    DrawerEntry("quickAdd", "بگو تا بنویسم", Icons.Filled.AutoAwesome),
     DrawerEntry("transactions", "تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("reports", "گزارش‌ها", Icons.Filled.BarChart),
     DrawerEntry("accounts", "حساب‌ها", Icons.Filled.AccountBalance),
@@ -183,7 +194,8 @@ private fun titleOf(route: String?): String = when {
     route.startsWith("template") -> "آموزش قالب پیامک"
     route.startsWith("tx/") -> "ویرایش تراکنش"
     route == "manual" -> "ثبت تراکنش"
-    route == "quickAdd" -> "ثبت سریع"
+    route == "manual/{dir}" -> "ثبت تراکنش"
+    route == "quickAdd" -> "بگو تا بنویسم"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
 }
 
@@ -211,6 +223,8 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
 
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+    // پیش از باز کردن فرم، نوع تراکنش پرسیده می‌شود تا هر صفحه ساده‌تر بماند.
+    var showDirectionChooser by rememberSaveable { mutableStateOf(false) }
 
     fun go(route: String) {
         if (currentRoute != route) {
@@ -255,7 +269,27 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
             modifier = Modifier.imePadding(),
             topBar = {
                 TopAppBar(
-                    title = { Text(titleOf(currentRoute)) },
+                    title = {
+                        if (currentRoute == "home") {
+                            // سلام و تاریخ در بالای برنامه، کنار منوی همبرگری
+                            Column {
+                                Text(
+                                    greetingByHour(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    todayHeaderLine(),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = skin.onBackdrop.copy(alpha = 0.72f),
+                                    maxLines = 1
+                                )
+                            }
+                        } else {
+                            Text(titleOf(currentRoute))
+                        }
+                    },
                     // منوی همبرگری سمت راست: در RTL، navigationIcon سمت راست قرار می‌گیرد.
                     navigationIcon = {
                         val menuRotation by animateFloatAsState(
@@ -293,7 +327,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                         ),
                         currentRoute = currentRoute,
                         onSelect = { go(it) },
-                        onFabClick = { navController.navigate("manual") }
+                        onFabClick = { showDirectionChooser = true }
                     )
                 }
             }
@@ -308,6 +342,17 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("reports") { ReportsScreen(viewModel) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
                 composable("manual") { ManualEntryScreen(viewModel, navController) }
+                composable("manual/{dir}") { entry ->
+                    ManualEntryScreen(
+                        viewModel,
+                        navController,
+                        presetDirection = when (entry.arguments?.getString("dir")) {
+                            "deposit" -> TxDirection.DEPOSIT
+                            "withdraw" -> TxDirection.WITHDRAW
+                            else -> null
+                        }
+                    )
+                }
                 composable("quickAdd") { QuickAddScreen(viewModel, navController) }
                 composable("review") { ReviewScreen(viewModel, navController) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
@@ -327,6 +372,125 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("backup") { BackupScreen(viewModel) }
             }
         }
+
+        if (showDirectionChooser) {
+            DirectionChooserDialog(
+                skin = skin,
+                onDismiss = { showDirectionChooser = false },
+                onPick = { dir ->
+                    showDirectionChooser = false
+                    navController.navigate("manual/$dir")
+                }
+            )
+        }
+    }
+}
+
+/**
+ * پرسش «واریز یا برداشت؟» پیش از باز شدن فرم ثبت تراکنش.
+ * با این کار فرم بعدی کوتاه‌تر و بدون گزینه‌های اضافه باز می‌شود.
+ */
+@Composable
+private fun DirectionChooserDialog(
+    skin: ir.kharjyar.app.ui.theme.AppSkin,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = skin.dialogColor,
+            contentColor = skin.onBackdrop,
+            tonalElevation = 6.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "چه چیزی ثبت کنیم؟",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = skin.onBackdrop
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "پول وارد حساب شد یا از حساب خارج شد؟",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = skin.onBackdrop.copy(alpha = 0.7f)
+                )
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    DirectionChoiceCard(
+                        title = "واریز",
+                        subtitle = "پول گرفتم",
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        tint = skin.incomeColor,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onPick("deposit") }
+                    )
+                    DirectionChoiceCard(
+                        title = "برداشت",
+                        subtitle = "پول دادم",
+                        icon = Icons.AutoMirrored.Filled.TrendingDown,
+                        tint = skin.expenseColor,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onPick("withdraw") }
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "انصراف",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = skin.onBackdrop.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onDismiss() }
+                        .padding(horizontal = 18.dp, vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DirectionChoiceCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(tint.copy(alpha = 0.14f))
+            .border(1.5.dp, tint.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+            .padding(vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.22f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(title, style = MaterialTheme.typography.titleSmall, color = tint)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = LocalAppSkin.current.onBackdrop.copy(alpha = 0.7f)
+        )
     }
 }
 

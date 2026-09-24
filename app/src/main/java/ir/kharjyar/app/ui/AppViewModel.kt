@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ir.kharjyar.app.KharjYarApp
+import ir.kharjyar.app.core.balance.TxSummarizer
 import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.Repository
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.BlockedSenderEntity
@@ -18,7 +20,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 /**
  * ViewModel سراسری: تنظیمات، وضعیت قفل و جریان‌های داده مشترک.
@@ -76,38 +77,58 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val pendingTxCount: StateFlow<Int> = repo.txDao.observePendingCount()
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
-    // ---------- خلاصه ماه جاری ----------
+    // ---------- خلاصه کارت اصلی ----------
+
+    /** بازه کارت اصلی صفحه خانه. */
+    enum class SummaryRange { MONTH, ALL }
+
     data class MonthSummary(
         val monthTitle: String = "",
         val incomeRial: Long = 0,
         val expenseRial: Long = 0,
         val pendingCount: Int = 0,
         val pendingIncomeRial: Long = 0,
-        val pendingExpenseRial: Long = 0
+        val pendingExpenseRial: Long = 0,
+        val range: SummaryRange = SummaryRange.MONTH,
+        /** آیا بیرون از این بازه داده‌ای هست؟ برای پیشنهاد «همه» بعد از بازیابی بکاپ. */
+        val hasDataOutsideRange: Boolean = false
     )
 
-    private val _monthSummary = MutableStateFlow(MonthSummary())
-    val monthSummary: StateFlow<MonthSummary> = _monthSummary
+    private val _summaryRange = MutableStateFlow(SummaryRange.MONTH)
+    val summaryRange: StateFlow<SummaryRange> = _summaryRange
 
-    init {
-        viewModelScope.launch {
-            combine(allTransactions, defaultAccount) { _, acc -> acc?.id }.collect { refreshSummary() }
-        }
+    fun toggleSummaryRange() {
+        _summaryRange.value =
+            if (_summaryRange.value == SummaryRange.MONTH) SummaryRange.ALL else SummaryRange.MONTH
     }
 
-    private suspend fun refreshSummary() {
-        val today = PersianDate.today()
-        val (from, to) = repo.currentPersianMonthRange()
-        val s = repo.summary(from, to, defaultAccount.value?.id)
-        _monthSummary.value = MonthSummary(
-            monthTitle = "${today.monthName()} ${ir.kharjyar.app.core.text.Digits.toPersian(today.year.toString())}",
-            incomeRial = s.incomeRial,
-            expenseRial = s.expenseRial,
-            pendingCount = s.pendingCount,
-            pendingIncomeRial = s.pendingIncomeRial,
-            pendingExpenseRial = s.pendingExpenseRial
-        )
-    }
+    /**
+     * خلاصه کارت اصلی مستقیماً از همان فهرست تراکنش‌های حافظه ساخته می‌شود که
+     * کارت‌ها و نمودار از آن استفاده می‌کنند. به همین دلیل با تعویض کارت یا با
+     * ورود داده تازه (مثلاً بازیابی بکاپ) بدون هیچ تازه‌سازی دستی، درست و
+     * فیلترشده به‌روز می‌شود.
+     */
+    val monthSummary: StateFlow<MonthSummary> =
+        combine(allTransactions, defaultAccount, _summaryRange) { txs, acc, range ->
+            val today = PersianDate.today()
+            val (from, to) = repo.currentPersianMonthRange()
+            val accountId = acc?.id
+            val month = TxSummarizer.summarize(txs, accountId, from, to)
+            val all = TxSummarizer.summarize(txs, accountId)
+            val chosen = if (range == SummaryRange.MONTH) month else all
+            MonthSummary(
+                monthTitle = if (range == SummaryRange.MONTH)
+                    "${today.monthName()} ${Digits.toPersian(today.year.toString())}"
+                else "همه تراکنش‌ها",
+                incomeRial = chosen.incomeRial,
+                expenseRial = chosen.expenseRial,
+                pendingCount = chosen.pendingCount,
+                pendingIncomeRial = chosen.pendingIncomeRial,
+                pendingExpenseRial = chosen.pendingExpenseRial,
+                range = range,
+                hasDataOutsideRange = !all.isEmpty && month.isEmpty
+            )
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, MonthSummary())
 
     // ---------- قفل برنامه ----------
     private val _locked = MutableStateFlow(false)

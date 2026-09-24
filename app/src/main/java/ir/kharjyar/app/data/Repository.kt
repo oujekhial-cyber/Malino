@@ -18,6 +18,7 @@ import ir.kharjyar.app.core.sms.SmsKind
 import ir.kharjyar.app.core.transfer.TransferCandidate
 import ir.kharjyar.app.core.transfer.TransferMatch
 import ir.kharjyar.app.core.transfer.TransferMatcher
+import ir.kharjyar.app.core.balance.TxSummarizer
 import ir.kharjyar.app.data.db.BlockedSenderEntity
 import ir.kharjyar.app.data.db.KharjYarDatabase
 import ir.kharjyar.app.data.db.SmsCandidateEntity
@@ -339,24 +340,9 @@ class Repository(val db: KharjYarDatabase) {
 
     /** @param accountId اگر داده شود، خلاصه فقط برای همان حساب محاسبه می‌شود. */
     suspend fun summary(from: Long, to: Long, accountId: Long? = null): Summary {
-        val txs = txDao.listRange(from, to).let { list ->
-            if (accountId == null) list else list.filter { it.accountId == accountId }
-        }
-        var income = 0L; var expense = 0L
-        var pIncome = 0L; var pExpense = 0L; var pCount = 0
-        for (t in txs) {
-            if (t.nature == TxNature.TRANSFER) continue
-            val isConfirmed = t.status == TxStatus.CONFIRMED
-            when {
-                t.nature == TxNature.INCOME || (t.nature == TxNature.UNKNOWN && t.direction == TxDirection.DEPOSIT) -> {
-                    if (isConfirmed) income += t.amountRial else { pIncome += t.amountRial; pCount++ }
-                }
-                t.nature == TxNature.EXPENSE || (t.nature == TxNature.UNKNOWN && t.direction == TxDirection.WITHDRAW) -> {
-                    if (isConfirmed) expense += t.amountRial else { pExpense += t.amountRial; pCount++ }
-                }
-            }
-        }
-        return Summary(income, expense, pCount, pIncome, pExpense)
+        // منطق جمع‌زدن در TxSummarizer است تا صفحه خانه و ویجت دقیقاً یک محاسبه داشته باشند.
+        val s = TxSummarizer.summarize(txDao.listRange(from, to), accountId)
+        return Summary(s.incomeRial, s.expenseRial, s.pendingCount, s.pendingIncomeRial, s.pendingExpenseRial)
     }
 
     /** بازه ماه شمسی جاری. */

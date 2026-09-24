@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Visibility
@@ -70,6 +71,9 @@ import ir.kharjyar.app.ui.components.EnterCard
 import ir.kharjyar.app.ui.components.HeroCard
 import ir.kharjyar.app.ui.components.LineChart
 import ir.kharjyar.app.ui.components.SkinCard
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.ui.text.style.TextOverflow
+import ir.kharjyar.app.ui.components.EmbossedText
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 @Composable
@@ -99,58 +103,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ---------- سلام و خوش‌آمد ----------
-            item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        greetingByHour(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = skin.onBackdrop
-                    )
-                    Text(
-                        "${PersianDate.today().dayOfWeekName()} ${Digits.toPersian(PersianDate.today().day.toString())} ${PersianDate.today().monthName()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = skin.onBackdrop.copy(alpha = 0.7f)
-                    )
-                }
-            }
-
-            // ---------- میان‌بر ثبت سریع با جمله ----------
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(skin.accent.copy(alpha = 0.14f))
-                        .border(1.dp, skin.accent.copy(alpha = 0.40f), RoundedCornerShape(14.dp))
-                        .clickable { nav.navigate("quickAdd") }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Filled.Mic,
-                        contentDescription = null,
-                        tint = skin.accent,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "ثبت سریع با یک جمله",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = skin.onBackdrop
-                        )
-                        Text(
-                            "بگویید یا بنویسید: «۲۵۰ هزار تومن نان خریدم»",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = skin.onBackdrop.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-
             // ---------- کارت خلاصه ماه (hero) ----------
             item {
                 EnterCard(0) {
@@ -164,12 +116,30 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    "خلاصه ${summary.monthTitle}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = skin.onHero
-                                )
+                                // عنوان، خودش کلید تغییر بازه است: «این ماه ⇄ همه»
+                                Row(
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { viewModel.toggleSummaryRange() }
+                                        .padding(end = 6.dp, top = 2.dp, bottom = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    EmbossedText(
+                                        "خلاصه ${summary.monthTitle}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = skin.onHero,
+                                        maxLines = 1
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(
+                                        Icons.Filled.SwapHoriz,
+                                        contentDescription = "تغییر بازه",
+                                        tint = skin.onHero.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                                 Text(
                                     defaultAccount?.title ?: "همه حساب‌ها",
                                     style = MaterialTheme.typography.labelMedium,
@@ -208,16 +178,18 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 }
                                 Spacer(Modifier.width(12.dp))
                                 Column {
-                                    Text(
+                                    EmbossedText(
                                         if (amountVisible)
                                             Money.format(summary.incomeRial - summary.expenseRial, settings.moneyUnit)
                                         else "••••••••",
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = skin.onHero
+                                        color = skin.onHero,
+                                        maxLines = 1,
+                                        depth = 1.25f
                                     )
                                     Text(
-                                        "خالص این ماه",
+                                        if (summary.range == AppViewModel.SummaryRange.MONTH) "خالص این ماه" else "خالص همه تراکنش‌ها",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = skin.onHero.copy(alpha = 0.85f)
                                     )
@@ -240,6 +212,14 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     modifier = Modifier.weight(1f)
                                 )
                             }
+                            if (summary.hasDataOutsideRange) {
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    "در این ماه تراکنشی نیست؛ برای دیدن همه، روی عنوان بزنید.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = skin.onHero.copy(alpha = 0.85f)
+                                )
+                            }
                             if (summary.pendingCount > 0) {
                                 Spacer(Modifier.height(10.dp))
                                 Text(
@@ -250,6 +230,61 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             }
                         }
                     }
+                }
+            }
+
+            // ---------- میان‌بر «بگو تا بنویسم» ----------
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(skin.accent.copy(alpha = 0.22f), skin.accent.copy(alpha = 0.06f))
+                            )
+                        )
+                        .border(1.dp, skin.accent.copy(alpha = 0.38f), RoundedCornerShape(30.dp))
+                        .clickable { nav.navigate("quickAdd") }
+                        .padding(start = 6.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(skin.accent.copy(alpha = 0.22f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Mic,
+                            contentDescription = null,
+                            tint = skin.accent,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "بگو تا بنویسم",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = skin.onBackdrop
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "«۲۵۰ هزار تومن نان»",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = skin.onBackdrop.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        Icons.Filled.AutoAwesome,
+                        contentDescription = null,
+                        tint = skin.accent.copy(alpha = 0.9f),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
 
@@ -504,13 +539,13 @@ private fun SummaryChip(
                 color = skin.onHero.copy(alpha = 0.92f),
                 maxLines = 1
             )
-            Text(
+            EmbossedText(
                 value,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleSmall.copy(textAlign = TextAlign.Start),
                 fontWeight = FontWeight.Bold,
                 color = tint,
-                textAlign = TextAlign.Start,
-                maxLines = 1
+                maxLines = 1,
+                depth = 0.8f
             )
         }
     }
@@ -526,16 +561,7 @@ private fun LegendDot(color: Color, label: String) {
     }
 }
 
-/** سلام متناسب با ساعت گوشی. */
-private fun greetingByHour(): String {
-    val h = java.time.ZonedDateTime.now(PersianDate.TEHRAN).hour
-    return when (h) {
-        in 5..11 -> "صبح بخیر 🌤"
-        in 12..16 -> "ظهر بخیر ☀️"
-        in 17..20 -> "عصر بخیر 🌇"
-        else -> "شب بخیر 🌙"
-    }
-}
+
 
 /** سری روزانه درآمد/هزینه برای n روز اخیر (بر اساس روز شمسی/منطقه زمانی تهران). */
 internal fun buildDailySeries(
