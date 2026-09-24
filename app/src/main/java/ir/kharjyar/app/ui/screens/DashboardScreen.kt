@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Add
@@ -112,6 +113,41 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         style = MaterialTheme.typography.bodySmall,
                         color = skin.onBackdrop.copy(alpha = 0.7f)
                     )
+                }
+            }
+
+            // ---------- میان‌بر ثبت سریع با جمله ----------
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(skin.accent.copy(alpha = 0.14f))
+                        .border(1.dp, skin.accent.copy(alpha = 0.40f), RoundedCornerShape(14.dp))
+                        .clickable { nav.navigate("quickAdd") }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Mic,
+                        contentDescription = null,
+                        tint = skin.accent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "ثبت سریع با یک جمله",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = skin.onBackdrop
+                        )
+                        Text(
+                            "بگویید یا بنویسید: «۲۵۰ هزار تومن نان خریدم»",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = skin.onBackdrop.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
 

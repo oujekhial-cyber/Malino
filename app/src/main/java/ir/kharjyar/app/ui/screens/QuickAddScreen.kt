@@ -180,7 +180,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             onValueChange = { input = it; saved = false },
             label = { Text("چه اتفاقی افتاد؟") },
             placeholder = { Text("۲۵۰ هزار تومن کیک از سوپرمارکت خریدم با حساب روزمره") },
-            trailingIcon = if (!voiceAvailable) null else {
+            trailingIcon = {
                 {
                 // گفتن به‌جای تایپ کردن
                 Box(
@@ -188,14 +188,22 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                         .padding(end = 4.dp)
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(skin.accent.copy(alpha = 0.16f))
-                        .clickable { startVoice() },
+                        .background(
+                            if (voiceAvailable) skin.accent.copy(alpha = 0.16f)
+                            else skin.onBackdrop.copy(alpha = 0.10f)
+                        )
+                        .clickable {
+                            if (voiceAvailable) startVoice()
+                            else voiceError = "موتور تبدیل گفتار به متن روی این گوشی پیدا نشد. " +
+                                "برنامه Google (یا Speech Services) را نصب/فعال کنید و " +
+                                "زبان فارسی را در تنظیمات آن اضافه کنید."
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Filled.Mic,
                         contentDescription = "گفتن با صدا",
-                        tint = skin.accent,
+                        tint = if (voiceAvailable) skin.accent else skin.onBackdrop.copy(alpha = 0.45f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -204,6 +212,23 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             modifier = Modifier.fillMaxWidth(),
             minLines = 3
         )
+
+        // وضعیت موتور گفتار تا کاربر بداند چرا میکروفون کار می‌کند یا نه
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (voiceAvailable) skin.incomeColor else skin.expenseColor)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                if (voiceAvailable) "تبدیل گفتار به متن روی این گوشی فعال است"
+                else "تبدیل گفتار به متن در دسترس نیست — می‌توانید تایپ کنید",
+                style = MaterialTheme.typography.bodySmall,
+                color = skin.onBackdrop.copy(alpha = 0.7f)
+            )
+        }
 
         voiceError?.let { msg ->
             Text(

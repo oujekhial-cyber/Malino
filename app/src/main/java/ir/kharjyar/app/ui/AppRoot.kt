@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Close
@@ -162,6 +163,7 @@ private data class DrawerEntry(
 /** آیتم‌های کشو (همه مقصدها). */
 private val drawerEntries = listOf(
     DrawerEntry("home", "خانه", Icons.Filled.Home),
+    DrawerEntry("quickAdd", "ثبت سریع با جمله", Icons.Filled.AutoAwesome),
     DrawerEntry("transactions", "تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("reports", "گزارش‌ها", Icons.Filled.BarChart),
     DrawerEntry("accounts", "حساب‌ها", Icons.Filled.AccountBalance),
