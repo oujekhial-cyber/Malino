@@ -35,5 +35,5 @@ Wrote HTML report to file:///home/runner/work/Malino/Malino/app/build/reports/li
 
 > Task :app:lintDebug
 
-BUILD SUCCESSFUL in 1m 11s
+BUILD SUCCESSFUL in 53s
 28 actionable tasks: 8 executed, 1 from cache, 19 up-to-date
