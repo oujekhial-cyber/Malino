@@ -344,6 +344,8 @@ private class CardAnalyzer(
         recognizer.process(input)
             // شنونده پیش‌فرض روی رشته اصلی اجرا می‌شود؛ به‌روزرسانی state امن است
             .addOnSuccessListener { result -> onText(result.text) }
+            // شکست یک فریم مهم نیست؛ فریم بعدی دوباره تلاش می‌کند
+            .addOnFailureListener { }
             .addOnCompleteListener { imageProxy.close() }
     }
 }

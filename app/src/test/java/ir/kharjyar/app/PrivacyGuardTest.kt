@@ -17,9 +17,25 @@ class PrivacyGuardTest {
 
     @Test
     fun `app has no internet permission`() {
-        assertFalse(
-            "برنامه نباید مجوز اینترنت بگیرد؛ تحلیل جمله باید روی خود گوشی بماند",
-            manifest.contains("android.permission.INTERNET")
+        // تنها حالت مجاز، حذف صریح مجوزی است که کتابخانه‌ها (مثل ML Kit) اضافه می‌کنند
+        manifest.lines()
+            .filter { it.contains("android.permission.INTERNET") }
+            .forEach { line ->
+                assertTrue(
+                    "برنامه نباید مجوز اینترنت بگیرد؛ همه پردازش‌ها باید روی خود گوشی بماند",
+                    line.contains("tools:node=\"remove\"")
+                )
+            }
+    }
+
+    @Test
+    fun `internet permission added by libraries is stripped`() {
+        // ML Kit از طریق play-services-basement مجوز INTERNET را به مانیفست
+        // ادغام‌شده تزریق می‌کند؛ بدون این حذف، برنامه «دسترسی کامل به شبکه» می‌گیرد
+        assertTrue(
+            "حذف صریح مجوز اینترنت باید در مانیفست بماند",
+            manifest.contains("android.permission.INTERNET") &&
+                manifest.contains("tools:node=\"remove\"")
         )
     }
 

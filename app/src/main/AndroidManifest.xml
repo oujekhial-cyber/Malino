@@ -15,6 +15,14 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <!--
+      کتابخانه تشخیص متن (وابسته به play-services-basement) مجوز INTERNET را به
+      مانیفست ادغام‌شده اضافه می‌کند. مدل OCR داخل خود APK است و به شبکه نیازی
+      ندارد، پس این مجوز صریحاً حذف می‌شود تا وعده «بدون اینترنت» نشکند.
+      گردش‌کار CI مانیفست ادغام‌شده را هم بررسی می‌کند.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+
+    <!--
       از اندروید ۱۱ دیدِ برنامه‌ها محدود است؛ بدون این بخش resolveActivity
       برای برنامه ساعت همیشه null برمی‌گرداند و لمس ساعت کار نمی‌کند.
     -->

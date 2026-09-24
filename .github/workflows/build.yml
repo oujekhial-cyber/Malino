@@ -74,6 +74,23 @@ jobs:
           set -o pipefail
           ./gradlew :app:assembleRelease --stacktrace --console=plain 2>&1 | tee release.log
 
+      # مانیفست ادغام‌شده را بررسی می‌کند: کتابخانه‌ها (مثل ML Kit) می‌توانند
+      # مجوز INTERNET را بی‌سروصدا اضافه کنند و وعده آفلاین بودن را بشکنند.
+      - name: Privacy check on merged manifest
+        id: privacy
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          FOUND=0
+          for M in $(find app/build/intermediates -path '*merged_manifest*' -name 'AndroidManifest.xml'); do
+            if grep -q 'android.permission.INTERNET' "$M"; then
+              echo "::error::مجوز INTERNET در مانیفست ادغام‌شده پیدا شد: $M"
+              FOUND=1
+            fi
+          done
+          if [ "$FOUND" = "1" ]; then exit 1; fi
+          echo "مانیفست ادغام‌شده مجوز اینترنت ندارد"
+
       - name: Lint debug
         id: lint
         continue-on-error: true
@@ -93,6 +110,7 @@ jobs:
             echo "- تاریخ: $(date -u '+%Y-%m-%d %H:%M UTC')"
             echo "- unit tests: ${{ steps.unittests.outcome }}"
             echo "- assembleDebug: ${{ steps.assemble.outcome }}"
+            echo "- بررسی حریم خصوصی (مانیفست ادغام‌شده): ${{ steps.privacy.outcome }}"
             echo "- lintDebug: ${{ steps.lint.outcome }}"
             echo "- assembleRelease: ${{ steps.release.outcome }}"
             echo ""
@@ -168,6 +186,6 @@ jobs:
           if-no-files-found: warn
 
       - name: Fail job if build failed
-        if: steps.assemble.outcome != 'success' || steps.unittests.outcome != 'success'
+        if: steps.assemble.outcome != 'success' || steps.unittests.outcome != 'success' || steps.privacy.outcome != 'success'
         run: |
           echo "build or tests failed"; exit 1
