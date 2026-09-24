@@ -181,7 +181,6 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             label = { Text("چه اتفاقی افتاد؟") },
             placeholder = { Text("۲۵۰ هزار تومن کیک از سوپرمارکت خریدم با حساب روزمره") },
             trailingIcon = {
-                {
                 // گفتن به‌جای تایپ کردن
                 Box(
                     modifier = Modifier
@@ -206,7 +205,6 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                         tint = if (voiceAvailable) skin.accent else skin.onBackdrop.copy(alpha = 0.45f),
                         modifier = Modifier.size(20.dp)
                     )
-                }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
