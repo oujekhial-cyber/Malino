@@ -1,7 +1,7 @@
 # گزارش Build و تست (CI)
 
-- commit: 6238062774b27b42dd35db8357c3402897adfdcc
-- تاریخ: 2026-09-24 13:44 UTC
+- commit: 0d9eba8b21441f605851caa07a02fc169952edb4
+- تاریخ: 2026-09-24 14:01 UTC
 - unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success

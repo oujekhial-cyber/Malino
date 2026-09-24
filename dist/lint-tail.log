@@ -26,14 +26,14 @@
 > Task :app:generateDebugLintReportModel
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
 > Task :app:generateDebugUnitTestLintModel
+> Task :app:lintAnalyzeDebug
 > Task :app:lintAnalyzeDebugAndroidTest
 > Task :app:lintAnalyzeDebugUnitTest
-> Task :app:lintAnalyzeDebug
 
 > Task :app:lintReportDebug
 Wrote HTML report to file:///home/runner/work/Malino/Malino/app/build/reports/lint-results-debug.html
 
 > Task :app:lintDebug
 
-BUILD SUCCESSFUL in 1m
+BUILD SUCCESSFUL in 1m 42s
 28 actionable tasks: 8 executed, 1 from cache, 19 up-to-date

@@ -42,5 +42,5 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:processDebugUnitTestJavaRes
 > Task :app:testDebugUnitTest
 
-BUILD SUCCESSFUL in 2m 20s
+BUILD SUCCESSFUL in 2m 44s
 25 actionable tasks: 25 executed
