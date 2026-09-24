@@ -87,6 +87,7 @@ import ir.kharjyar.app.ui.screens.BackupScreen
 import ir.kharjyar.app.ui.screens.CategoriesScreen
 import ir.kharjyar.app.ui.screens.DashboardScreen
 import ir.kharjyar.app.ui.screens.ManualEntryScreen
+import ir.kharjyar.app.ui.screens.QuickAddScreen
 import ir.kharjyar.app.ui.screens.OnboardingScreen
 import ir.kharjyar.app.ui.screens.ReportsScreen
 import ir.kharjyar.app.ui.screens.ReviewScreen
