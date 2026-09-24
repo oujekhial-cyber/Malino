@@ -13,6 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import ir.kharjyar.app.ui.components.BottomBarOverhang
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -272,7 +276,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                        .padding(horizontal = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val menuRotation by animateFloatAsState(
@@ -287,7 +291,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                                 if (drawerState.isOpen) drawerState.close() else drawerState.open()
                             }
                         },
-                        modifier = Modifier.size(42.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             if (drawerState.isOpen) Icons.Filled.Close else Icons.Filled.Menu,
@@ -341,10 +345,19 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 }
             }
         ) { padding ->
+            // محتوا تا خطِ بالای نوار پایین ادامه پیدا می‌کند؛ فقط بخشِ «بیرون‌زدگی»
+            // دکمه وسط (که شفاف است) از فاصله پایین کم می‌شود تا نوار سیاهِ خالی نماند.
+            val layoutDirection = LocalLayoutDirection.current
+            val contentPadding = PaddingValues(
+                start = padding.calculateStartPadding(layoutDirection),
+                end = padding.calculateEndPadding(layoutDirection),
+                top = padding.calculateTopPadding(),
+                bottom = (padding.calculateBottomPadding() - BottomBarOverhang).coerceAtLeast(0.dp)
+            )
             NavHost(
                 navController = navController,
                 startDestination = "home",
-                modifier = Modifier.padding(padding)
+                modifier = Modifier.padding(contentPadding)
             ) {
                 composable("home") { DashboardScreen(viewModel, navController) }
                 composable("transactions") { TransactionsScreen(viewModel, navController) }

@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -47,8 +48,8 @@ fun GlassSnackbarHost(hostState: SnackbarHostState, modifier: Modifier = Modifie
 private fun GlassSnackbar(data: SnackbarData) {
     val skin = LocalAppSkin.current
     val shape = RoundedCornerShape(18.dp)
-    // شیشه‌ای: پس‌زمینه با ۵۰٪ شفافیت و یک حاشیه نازک روشن
-    val glass = (if (skin.dark) Color.Black else Color.White).copy(alpha = 0.5f)
+    // شیشه‌ای: کل کادر (پس‌زمینه، حاشیه و متن) با ۵۰٪ شفافیت رسم می‌شود
+    val glass = if (skin.dark) Color.Black else Color.White
     val onGlass = skin.onBackdrop
 
     Box(
@@ -58,6 +59,8 @@ private fun GlassSnackbar(data: SnackbarData) {
         Row(
             modifier = Modifier
                 .widthIn(max = 280.dp)
+                // شفافیت ۵۰٪ روی کل کادر پیام
+                .alpha(0.5f)
                 .clip(shape)
                 .background(glass)
                 .border(1.dp, onGlass.copy(alpha = 0.18f), shape)

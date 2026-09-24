@@ -116,9 +116,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            // فاصله کم بالا تا کارت اصلی درست زیر نوار بالایی بنشیند
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            // بدون فاصله مرده: کارت اصلی درست زیر نوار بالایی و فهرست تا خط نوار پایین
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // ---------- کارت خلاصه ماه (hero) ----------
             item {
@@ -127,7 +127,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         modifier = Modifier.fillMaxWidth(),
                         neon = settings.cardShine
                     ) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -174,7 +174,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         .padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
-                            Spacer(Modifier.height(10.dp))
+                            Spacer(Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 // دکمه چشم برای پنهان/نمایش مبلغ
                                 Box(
@@ -212,7 +212,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     )
                                 }
                             }
-                            Spacer(Modifier.height(14.dp))
+                            Spacer(Modifier.height(10.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 SummaryChip(
                                     label = "واریز",
@@ -505,7 +505,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                 }
             }
-            item { Spacer(Modifier.height(110.dp)) }
         }
     }
 }

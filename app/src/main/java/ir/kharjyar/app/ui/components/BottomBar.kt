@@ -50,6 +50,12 @@ import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 
+/**
+ * بلندای بخشی از نوار پایین که بالای بدنه نوار بیرون می‌زند (نیمه بالایی دکمه وسط).
+ * این ناحیه شفاف است، پس محتوا می‌تواند تا زیر آن ادامه پیدا کند.
+ */
+val BottomBarOverhang: Dp = 19.dp
+
 /** یک آیتم نوار پایین. */
 data class BottomItem(
     val route: String,

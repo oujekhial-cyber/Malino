@@ -219,7 +219,7 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(top = 12.dp, bottom = 110.dp)
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 12.dp)
                 ) {
                     itemsIndexed(
                         items = filtered,
