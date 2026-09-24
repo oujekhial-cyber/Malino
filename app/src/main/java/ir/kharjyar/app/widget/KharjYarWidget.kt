@@ -100,12 +100,12 @@ object WidgetRenderer {
         val unit = settings.moneyUnit
         val lines: List<Pair<String, String>> = when (settings.widgetContent) {
             WidgetContent.TODAY_EXPENSE ->
-                listOf("هزینه امروز" to Money.format(todaySummary.expenseRial, unit))
+                listOf("برداشت امروز" to Money.format(todaySummary.expenseRial, unit))
             WidgetContent.MONTH_EXPENSE ->
-                listOf("هزینه ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit))
+                listOf("برداشت ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit))
             WidgetContent.SUMMARY -> listOfNotNull(
-                "درآمد ${today.monthName()}" to Money.format(monthSummary.incomeRial, unit),
-                "هزینه ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit),
+                "واریز ${today.monthName()}" to Money.format(monthSummary.incomeRial, unit),
+                "برداشت ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit),
                 balanceLine
             )
             WidgetContent.RECENT -> recent.map { tx ->
@@ -114,8 +114,9 @@ object WidgetRenderer {
             }.ifEmpty { listOf("تراکنش اخیر" to "—") }
         }
 
+        // روز هفته از ساعت واقعی گوشی خوانده می‌شود (today از LocalDate.now می‌آید)
         val persianDate =
-            "${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}"
+            "امروز ${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}"
 
         // ---------- ساخت نما ----------
         val layoutRes = when (settings.widgetLayout) {

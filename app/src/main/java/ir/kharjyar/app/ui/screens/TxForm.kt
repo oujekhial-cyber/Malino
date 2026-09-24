@@ -86,15 +86,15 @@ fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirecti
             selected = nature,
             labelOf = {
                 when (it) {
-                    TxNature.INCOME -> "درآمد"
+                    TxNature.INCOME -> "واریز (درآمد)"
                     TxNature.TRANSFER -> "انتقال بین حساب‌ها"
-                    else -> "هزینه/خرید"
+                    else -> "برداشت (خرج)"
                 }
             },
             onSelect = onNature
         )
         Text(
-            "واریز الزاماً درآمد نیست و برداشت الزاماً هزینه نیست؛ ماهیت را خودتان مشخص کنید.",
+            "هر واریزی درآمد نیست و هر برداشتی خرج نیست؛ مثلاً جابه‌جایی پول بین حساب‌های خودتان انتقال است.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

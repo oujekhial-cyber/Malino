@@ -188,13 +188,13 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     FilterChip(
                         selected = filterNature == TxNature.EXPENSE,
                         onClick = { filterNature = if (filterNature == TxNature.EXPENSE) null else TxNature.EXPENSE },
-                        label = { Text("هزینه") })
+                        label = { Text("برداشت") })
                 }
                 item {
                     FilterChip(
                         selected = filterNature == TxNature.INCOME,
                         onClick = { filterNature = if (filterNature == TxNature.INCOME) null else TxNature.INCOME },
-                        label = { Text("درآمد") })
+                        label = { Text("واریز") })
                 }
                 item {
                     FilterChip(

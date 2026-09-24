@@ -208,8 +208,6 @@ class SettingsRepository(private val context: Context) {
     suspend fun exportForBackup(): Map<String, String> {
         val s = current()
         return mapOf(
-            "theme_mode" to s.themeMode.name,
-            "palette" to s.palette.name,
             "money_unit" to s.moneyUnit.name,
             "widget_content" to s.widgetContent.name,
             "w_layout" to s.widgetLayout.name,
@@ -229,8 +227,6 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun importFromBackup(map: Map<String, String>) {
         context.dataStore.edit { p ->
-            map["theme_mode"]?.let { v -> runCatching { ThemeMode.valueOf(v) }.getOrNull()?.let { p[Keys.THEME] = it.name } }
-            map["palette"]?.let { v -> p[Keys.PALETTE] = paletteOf(v).name }
             map["money_unit"]?.let { v -> runCatching { MoneyUnit.valueOf(v) }.getOrNull()?.let { p[Keys.MONEY_UNIT] = it.name } }
             map["widget_content"]?.let { v -> runCatching { WidgetContent.valueOf(v) }.getOrNull()?.let { p[Keys.WIDGET_CONTENT] = it.name } }
             map["w_layout"]?.let { v -> runCatching { WidgetLayout.valueOf(v) }.getOrNull()?.let { p[Keys.W_LAYOUT] = it.name } }

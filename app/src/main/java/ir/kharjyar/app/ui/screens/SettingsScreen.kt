@@ -309,10 +309,10 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 opacity = settings.widgetOpacity,
                 showNumbers = settings.widgetShowNumbers,
                 lines = when (settings.widgetContent) {
-                    WidgetContent.TODAY_EXPENSE -> listOf("هزینه امروز" to "۳,۲۵۰,۰۰۰")
-                    WidgetContent.MONTH_EXPENSE -> listOf("هزینه شهریور" to "۱۸,۴۰۰,۰۰۰")
+                    WidgetContent.TODAY_EXPENSE -> listOf("برداشت امروز" to "۳,۲۵۰,۰۰۰")
+                    WidgetContent.MONTH_EXPENSE -> listOf("برداشت شهریور" to "۱۸,۴۰۰,۰۰۰")
                     WidgetContent.RECENT -> listOf("واریز" to "۵,۸۷۰,۰۰۰", "برداشت" to "۱,۲۸۰,۰۰۰")
-                    WidgetContent.SUMMARY -> listOf("درآمد شهریور" to "۵,۸۷۰,۰۰۰", "هزینه شهریور" to "۳,۲۵۰,۰۰۰")
+                    WidgetContent.SUMMARY -> listOf("واریز شهریور" to "۵,۸۷۰,۰۰۰", "برداشت شهریور" to "۳,۲۵۰,۰۰۰")
                 }
             )
 
@@ -496,8 +496,8 @@ private fun layoutLabel(l: WidgetLayout): String = when (l) {
 
 private fun contentLabel(c: WidgetContent): String = when (c) {
     WidgetContent.SUMMARY -> "خلاصه ماه"
-    WidgetContent.TODAY_EXPENSE -> "هزینه امروز"
-    WidgetContent.MONTH_EXPENSE -> "هزینه ماه"
+    WidgetContent.TODAY_EXPENSE -> "برداشت امروز"
+    WidgetContent.MONTH_EXPENSE -> "برداشت ماه"
     WidgetContent.RECENT -> "آخرین تراکنش‌ها"
 }
 

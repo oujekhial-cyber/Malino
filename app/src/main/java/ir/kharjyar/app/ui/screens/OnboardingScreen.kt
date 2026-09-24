@@ -154,7 +154,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
         Spacer(Modifier.height(24.dp))
         Text("خرج‌یار", style = MaterialTheme.typography.headlineLarge)
         Text(
-            "همیار شخصی مدیریت درآمد و مخارج",
+            "همیار شخصی مدیریت واریز و برداشت",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

@@ -30,6 +30,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -83,9 +86,11 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val amountVisible = settings.amountsVisible
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
 
     Scaffold(
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbar) },
         modifier = Modifier.imePadding()
     ) { padding ->
         LazyColumn(
@@ -93,6 +98,23 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ---------- سلام و خوش‌آمد ----------
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        greetingByHour(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = skin.onBackdrop
+                    )
+                    Text(
+                        "${PersianDate.today().dayOfWeekName()} ${Digits.toPersian(PersianDate.today().day.toString())} ${PersianDate.today().monthName()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = skin.onBackdrop.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
             // ---------- کارت خلاصه ماه (hero) ----------
             item {
                 EnterCard(0) {
@@ -168,14 +190,14 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             Spacer(Modifier.height(14.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 SummaryChip(
-                                    label = "درآمد",
+                                    label = "واریز",
                                     value = if (amountVisible) Money.format(summary.incomeRial, settings.moneyUnit) else "••••",
                                     tint = skin.incomeColor,
                                     deposit = true,
                                     modifier = Modifier.weight(1f)
                                 )
                                 SummaryChip(
-                                    label = "هزینه",
+                                    label = "برداشت",
                                     value = if (amountVisible) Money.format(summary.expenseRial, settings.moneyUnit) else "••••",
                                     tint = skin.expenseColor,
                                     deposit = false,
@@ -295,8 +317,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                 )
                                             }
                                         },
-                                        onCopy = { text ->
+                                        onCopy = { label, text ->
                                             clipboard.setText(AnnotatedString(text))
+                                            scope.launch {
+                                                // پیام کوتاه تأیید؛ خودش بعد از چند ثانیه محو می‌شود
+                                                snackbar.currentSnackbarData?.dismiss()
+                                                snackbar.showSnackbar(
+                                                    message = "$label کپی شد",
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                            }
                                         }
                                     )
                                 }
@@ -320,8 +350,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 LineChart(incomeSeries = income, expenseSeries = expense)
                                 Spacer(Modifier.height(8.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    LegendDot(skin.incomeColor, "درآمد")
-                                    LegendDot(skin.expenseColor, "هزینه")
+                                    LegendDot(skin.incomeColor, "واریز")
+                                    LegendDot(skin.expenseColor, "برداشت")
                                 }
                             }
                         }
@@ -457,6 +487,17 @@ private fun LegendDot(color: Color, label: String) {
         Box(modifier = Modifier.size(10.dp).background(color, CircleShape))
         Spacer(Modifier.width(6.dp))
         Text(label, style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop)
+    }
+}
+
+/** سلام متناسب با ساعت گوشی. */
+private fun greetingByHour(): String {
+    val h = java.time.ZonedDateTime.now(PersianDate.TEHRAN).hour
+    return when (h) {
+        in 5..11 -> "صبح بخیر 🌤"
+        in 12..16 -> "ظهر بخیر ☀️"
+        in 17..20 -> "عصر بخیر 🌇"
+        else -> "شب بخیر 🌙"
     }
 }
 

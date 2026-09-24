@@ -119,8 +119,8 @@ fun ReportsScreen(viewModel: AppViewModel) {
                                     description = tx.description,
                                     categoryName = categories.firstOrNull { it.id == tx.categoryId }?.name ?: "",
                                     natureText = when (tx.nature) {
-                                        TxNature.INCOME -> "درآمد"
-                                        TxNature.EXPENSE -> "هزینه"
+                                        TxNature.INCOME -> "واریز"
+                                        TxNature.EXPENSE -> "برداشت"
                                         TxNature.TRANSFER -> "انتقال"
                                         else -> if (tx.direction == TxDirection.DEPOSIT) "واریز (تأییدنشده)" else "برداشت (تأییدنشده)"
                                     } + if (tx.status == TxStatus.PENDING) " *" else "",
@@ -204,14 +204,14 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     StatTile(
-                        label = "درآمد",
+                        label = "واریز",
                         value = Money.format(income, settings.moneyUnit),
                         tint = skin.incomeColor,
                         up = true,
                         modifier = Modifier.weight(1f)
                     )
                     StatTile(
-                        label = "هزینه",
+                        label = "برداشت",
                         value = Money.format(expense, settings.moneyUnit),
                         tint = skin.expenseColor,
                         up = false,
@@ -268,7 +268,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
         SkinCard(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text(
-                    "روند درآمد و هزینه",
+                    "روند واریز و برداشت",
                     style = MaterialTheme.typography.titleMedium,
                     color = skin.onBackdrop
                 )
@@ -279,8 +279,8 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     LineChart(incomeSeries = incomeSeries, expenseSeries = expenseSeries)
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ChartLegend(skin.incomeColor, "درآمد")
-                        ChartLegend(skin.expenseColor, "هزینه")
+                        ChartLegend(skin.incomeColor, "واریز")
+                        ChartLegend(skin.expenseColor, "برداشت")
                     }
                 }
             }
@@ -291,7 +291,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
             SkinCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Text(
-                        "هزینه بر اساس دسته",
+                        "برداشت بر اساس دسته",
                         style = MaterialTheme.typography.titleMedium,
                         color = skin.onBackdrop
                     )

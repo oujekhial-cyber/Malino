@@ -42,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.money.Money
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.AccountSenderEntity
@@ -181,8 +183,17 @@ fun AccountEditScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = cardExpiry,
-                    onValueChange = { cardExpiry = it.take(5) },
-                    label = { Text("انقضا MM/YY") },
+                    onValueChange = { raw ->
+                        // فقط رقم نگه می‌داریم و ممیز را خودکار بعد از ماه می‌گذاریم
+                        val d = Digits.normalize(raw).filter(Char::isDigit).take(6)
+                        cardExpiry = when {
+                            d.length <= 2 -> d
+                            else -> d.substring(0, 2) + "/" + d.substring(2)
+                        }
+                    },
+                    label = { Text("انقضا (ماه/سال ۱۴۰۵)") },
+                    placeholder = { Text("۰۶/۱۴۰۸") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -194,12 +205,19 @@ fun AccountEditScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
-            NumberTextField(
+            OutlinedTextField(
                 value = accountNumber,
-                onValueChange = { accountNumber = it.filter(Char::isDigit).take(20) },
-                label = "شماره حساب",
-                maxDigits = 20,
-                modifier = Modifier.fillMaxWidth()
+                onValueChange = { raw ->
+                    // شماره حساب بعضی بانک‌ها نقطه یا خط تیره دارد (مثل ۱۲۳۴.۵۶.۷۸۹)
+                    accountNumber = Digits.normalize(raw)
+                        .filter { it.isDigit() || it == '.' || it == '-' }
+                        .take(30)
+                },
+                label = { Text("شماره حساب") },
+                placeholder = { Text("مثلاً ۱۲۳۴.۵۶.۷۸۹۰۱۲۳.۱") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
             NumberTextField(
                 value = iban,

@@ -237,7 +237,7 @@ private fun ClockBlock(jalali: String, clockSize: Int) {
 @Composable
 private fun ValueRow(label: String, value: String, showNumbers: Boolean) {
     val skin = LocalAppSkin.current
-    val income = label.contains("درآمد") || label.contains("واریز") || label.contains("مانده")
+    val income = label.contains("واریز") || label.contains("واریز") || label.contains("مانده")
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically

@@ -59,7 +59,7 @@ fun BankCard(
     masked: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
-    onCopy: (String) -> Unit = {}
+    onCopy: (label: String, value: String) -> Unit = { _, _ -> }
 ) {
     BankCard(
         title = account.title,
@@ -105,7 +105,7 @@ fun BankCard(
     showSecrets: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
-    onCopy: (String) -> Unit = {}
+    onCopy: (label: String, value: String) -> Unit = { _, _ -> }
 ) {
     val base = Color(colorArgb)
     // گرادیان از رنگ حساب: روشن‌تر در بالا-راست، تیره‌تر در پایین-چپ
@@ -184,7 +184,7 @@ fun BankCard(
                 color = onCard,
                 letterSpacing = 1.5.sp,
                 maxLines = 1,
-                modifier = Modifier.clickable { onCopy(cardNumber) }
+                modifier = Modifier.clickable { onCopy("شماره کارت", cardNumber) }
             )
             Spacer(Modifier.height(10.dp))
         }
@@ -226,10 +226,10 @@ fun BankCard(
                 Spacer(Modifier.height(10.dp))
 
                 if (accountNumber.isNotBlank()) {
-                    CardField("شماره حساب", Digits.toPersian(accountNumber), onCard) { onCopy(accountNumber) }
+                    CardField("شماره حساب", Digits.toPersian(accountNumber), onCard) { onCopy("شماره حساب", accountNumber) }
                 }
                 if (iban.isNotBlank()) {
-                    CardField("شبا", "IR" + Digits.toPersian(iban), onCard) { onCopy("IR$iban") }
+                    CardField("شبا", "IR" + Digits.toPersian(iban), onCard) { onCopy("شماره شبا", "IR$iban") }
                 }
                 if (expiry.isNotBlank() || cvv2.isNotBlank()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
