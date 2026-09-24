@@ -4,28 +4,28 @@
 > Task :app:buildKotlinToolingMetadata
 > Task :app:mergeReleaseNativeLibs
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :app:checkReleaseDuplicateClasses
 > Task :app:checkReleaseAarMetadata
 > Task :app:generateReleaseResValues
+> Task :app:checkReleaseDuplicateClasses
 > Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
 
 > Task :app:stripReleaseDebugSymbols
 Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libsqlcipher.so.
 
-> Task :app:generateReleaseResources
-> Task :app:extractReleaseNativeSymbolTables
-> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:packageReleaseResources
 > Task :app:parseReleaseLocalResources FROM-CACHE
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
-> Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:processReleaseManifestForPackage
-> Task :app:mergeReleaseArtProfile
+> Task :app:extractReleaseNativeSymbolTables
+> Task :app:javaPreCompileRelease FROM-CACHE
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseStartupProfile
+> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseShaders
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
@@ -57,5 +57,5 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 1m 27s
+BUILD SUCCESSFUL in 2m 1s
 48 actionable tasks: 45 executed, 3 from cache
