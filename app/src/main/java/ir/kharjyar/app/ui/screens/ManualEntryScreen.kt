@@ -8,6 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -60,6 +67,20 @@ fun ManualEntryScreen(viewModel: AppViewModel, nav: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         
+        // میان‌بر به ثبت با جمله فارسی
+        OutlinedButton(
+            onClick = { nav.navigate("quickAdd") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("ثبت سریع با یک جمله")
+        }
+
         if (active.isEmpty()) {
             Text("ابتدا یک حساب معرفی کنید.", color = MaterialTheme.colorScheme.error)
             Button(onClick = { nav.navigate("accountEdit/0") }) { Text("افزودن حساب") }

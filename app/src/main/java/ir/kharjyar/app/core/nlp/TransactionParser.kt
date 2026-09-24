@@ -1,0 +1,302 @@
+package ir.kharjyar.app.core.nlp
+
+import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.core.money.MoneyUnit
+import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.data.db.TxDirection
+import ir.kharjyar.app.data.db.TxNature
+
+/** یک حساب، آن‌قدر که پارسر لازم دارد. */
+data class ParserAccount(val id: Long, val title: String, val bankName: String)
+
+/** یک دسته، آن‌قدر که پارسر لازم دارد. */
+data class ParserCategory(val id: Long, val name: String)
+
+/** میزان اطمینان پارسر به نتیجه. */
+enum class ParseConfidence { HIGH, MEDIUM, LOW }
+
+/**
+ * نتیجه تحلیل جمله کاربر.
+ *
+ * هیچ‌وقت مستقیم ثبت نمی‌شود؛ همیشه اول به کاربر نشان داده می‌شود تا تأیید کند.
+ */
+data class ParsedTransaction(
+    val amountRial: Long?,
+    val direction: Int,
+    val nature: Int,
+    val accountId: Long?,
+    val accountTitle: String?,
+    val categoryId: Long?,
+    val categoryName: String?,
+    val description: String,
+    val date: PersianDate,
+    val hour: Int,
+    val minute: Int,
+    /** آیا کاربر تاریخ را صریح گفته یا پیش‌فرض «امروز» گذاشته‌ایم. */
+    val dateExplicit: Boolean,
+    val confidence: ParseConfidence,
+    /** مواردی که پارسر مطمئن نیست و بهتر است کاربر بررسی کند. */
+    val warnings: List<String>
+) {
+    /** بدون مبلغ یا بدون حساب نمی‌توان ثبت کرد. */
+    val isComplete: Boolean get() = amountRial != null && amountRial > 0 && accountId != null
+}
+
+/**
+ * تحلیل‌گر جمله فارسی برای ثبت سریع تراکنش.
+ *
+ * تماماً روی خود گوشی اجرا می‌شود؛ هیچ داده‌ای به بیرون نمی‌رود و برنامه
+ * همچنان بدون مجوز اینترنت کار می‌کند.
+ *
+ * نمونه ورودی:
+ *   «۲۵۰ هزار تومن کیک از سوپرمارکت خریدم با حساب روزمره»
+ */
+object TransactionParser {
+
+    // ---------- واژگان ----------
+
+    /** فعل‌ها و کلماتی که یعنی پول از حساب خارج شده. */
+    private val withdrawalWords = listOf(
+        "خریدم", "خرید", "دادم", "پرداخت", "پرداختم", "هزینه", "خرج", "خرج کردم",
+        "برداشت", "کشیدم", "حساب کردم", "رد کردم", "فرستادم", "ارسال", "واریز کردم به"
+    )
+
+    /** فعل‌ها و کلماتی که یعنی پول وارد حساب شده. */
+    private val depositWords = listOf(
+        "گرفتم", "دریافت", "دریافتی", "واریز شد", "ریختن", "ریخت", "ریختند",
+        "حقوق", "درآمد", "فروختم", "پس گرفتم", "بهم دادن", "بهم داد", "عیدی", "پاداش"
+    )
+
+    /** انتقال بین حساب‌های خود کاربر. */
+    private val transferWords = listOf(
+        "انتقال", "منتقل", "جابجا", "جابه‌جا", "کارت به کارت", "بین حساب"
+    )
+
+    /** واحد پول در متن. */
+    private val tomanWords = listOf("تومان", "تومن", "توما")
+    private val rialWords = listOf("ریال")
+
+    /** کلیدواژه هر دسته پیش‌فرض، برای حدس زدن دسته‌بندی. */
+    private val categoryHints: Map<String, List<String>> = mapOf(
+        "خوراک و سوپرمارکت" to listOf(
+            "سوپرمارکت", "سوپر", "خواربار", "نان", "نانوایی", "میوه", "تره‌بار",
+            "گوشت", "مرغ", "لبنیات", "شیر", "کیک", "شیرینی", "قنادی", "خوراک", "بقالی"
+        ),
+        "رستوران و کافه" to listOf("رستوران", "کافه", "کافی‌شاپ", "فست‌فود", "پیتزا", "ساندویچ", "قهوه", "چایخانه", "غذا"),
+        "حمل‌ونقل" to listOf("تاکسی", "اسنپ", "تپسی", "مترو", "اتوبوس", "بنزین", "سوخت", "گازوئیل", "کرایه", "بلیت", "پارکینگ"),
+        "مسکن و اجاره" to listOf("اجاره", "رهن", "ودیعه", "شارژ ساختمان", "مسکن"),
+        "قبوض" to listOf("قبض", "برق", "آب", "گاز", "عوارض", "جریمه"),
+        "اینترنت و تلفن" to listOf("اینترنت", "شارژ", "بسته", "همراه اول", "ایرانسل", "رایتل", "مخابرات", "تلفن", "سیم‌کارت"),
+        "درمان" to listOf("دکتر", "پزشک", "دارو", "داروخانه", "بیمارستان", "آزمایش", "دندان", "درمان", "ویزیت"),
+        "پوشاک" to listOf("لباس", "کفش", "پوشاک", "مانتو", "شلوار", "پیراهن"),
+        "آموزش" to listOf("کلاس", "آموزش", "دانشگاه", "مدرسه", "کتاب", "شهریه", "دوره"),
+        "تفریح" to listOf("سینما", "تفریح", "سفر", "بازی", "کنسرت", "استخر", "باشگاه"),
+        "خرید آنلاین" to listOf("دیجی‌کالا", "دیجیکالا", "اینترنتی", "آنلاین", "باسلام", "ترب"),
+        "هدیه و کمک" to listOf("هدیه", "کادو", "کمک", "صدقه", "خیریه", "عیدی"),
+        "کارمزد بانکی" to listOf("کارمزد", "کارمزد بانکی", "هزینه تراکنش"),
+        "حقوق" to listOf("حقوق", "دستمزد", "مواجب", "پاداش")
+    )
+
+    /** روزهای هفته برای تاریخ نسبی. ایندکس صفر = شنبه. */
+    private val weekDays = listOf("شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "سه شنبه", "چهارشنبه", "پنجشنبه", "پنج‌شنبه", "جمعه")
+
+    // ---------- ورودی اصلی ----------
+
+    /**
+     * جمله کاربر را تحلیل می‌کند.
+     *
+     * @param text جمله فارسی، تایپی یا حاصل تبدیل گفتار به متن.
+     * @param accounts حساب‌های کاربر، برای تطبیق نام.
+     * @param categories دسته‌های موجود.
+     * @param defaultUnit واحدی که اگر کاربر نگفت فرض شود.
+     * @param today امروز؛ برای تست‌پذیری قابل تزریق است.
+     */
+    fun parse(
+        text: String,
+        accounts: List<ParserAccount>,
+        categories: List<ParserCategory>,
+        defaultUnit: MoneyUnit,
+        today: PersianDate = PersianDate.today()
+    ): ParsedTransaction {
+        val warnings = mutableListOf<String>()
+        val normalized = normalize(text)
+
+        // ---------- مبلغ ----------
+        val rawAmount = PersianNumbers.parseFirst(normalized)
+        val unit = detectUnit(normalized, defaultUnit)
+        val amountRial = rawAmount?.let {
+            if (unit == MoneyUnit.TOMAN) it * 10 else it
+        }
+        if (amountRial == null) warnings.add("مبلغ پیدا نشد")
+
+        // ---------- جهت و ماهیت ----------
+        val isTransfer = transferWords.any { normalized.contains(it) }
+        val depositHit = depositWords.any { normalized.contains(it) }
+        val withdrawalHit = withdrawalWords.any { normalized.contains(it) }
+
+        val direction = when {
+            isTransfer -> TxDirection.WITHDRAW
+            depositHit && !withdrawalHit -> TxDirection.DEPOSIT
+            withdrawalHit -> TxDirection.WITHDRAW
+            else -> TxDirection.WITHDRAW   // حالت رایج‌تر
+        }
+        val nature = when {
+            isTransfer -> TxNature.TRANSFER
+            direction == TxDirection.DEPOSIT -> TxNature.INCOME
+            else -> TxNature.EXPENSE
+        }
+        if (!depositHit && !withdrawalHit && !isTransfer) {
+            warnings.add("نوع تراکنش مشخص نبود؛ «برداشت» در نظر گرفته شد")
+        }
+
+        // ---------- حساب ----------
+        val account = matchAccount(normalized, accounts)
+        if (account == null) {
+            warnings.add(
+                if (accounts.isEmpty()) "هنوز حسابی ثبت نکرده‌اید"
+                else "حساب مشخص نشد؛ انتخابش کنید"
+            )
+        }
+
+        // ---------- تاریخ ----------
+        val (date, explicit) = matchDate(normalized, today)
+
+        // ---------- دسته ----------
+        val category = matchCategory(normalized, categories, nature)
+
+        // ---------- شرح ----------
+        val description = buildDescription(text, normalized)
+
+        val confidence = when {
+            amountRial != null && account != null && warnings.isEmpty() -> ParseConfidence.HIGH
+            amountRial != null && account != null -> ParseConfidence.MEDIUM
+            else -> ParseConfidence.LOW
+        }
+
+        return ParsedTransaction(
+            amountRial = amountRial,
+            direction = direction,
+            nature = nature,
+            accountId = account?.id,
+            accountTitle = account?.title,
+            categoryId = category?.id,
+            categoryName = category?.name,
+            description = description,
+            date = date,
+            hour = 12,
+            minute = 0,
+            dateExplicit = explicit,
+            confidence = confidence,
+            warnings = warnings
+        )
+    }
+
+    // ---------- بخش‌های کمکی ----------
+
+    private fun normalize(text: String): String =
+        Digits.normalize(text)
+            .replace('\u200c', ' ')
+            .replace('ي', 'ی')
+            .replace('ك', 'ک')
+            .replace(Regex("[,،٬]"), "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    private fun detectUnit(text: String, default: MoneyUnit): MoneyUnit = when {
+        tomanWords.any { text.contains(it) } -> MoneyUnit.TOMAN
+        rialWords.any { text.contains(it) } -> MoneyUnit.RIAL
+        else -> default
+    }
+
+    /**
+     * تطبیق نام حساب.
+     * اول دنبال عنوان دقیق می‌گردد، بعد نام بانک، و در آخر واژه‌به‌واژه.
+     */
+    private fun matchAccount(text: String, accounts: List<ParserAccount>): ParserAccount? {
+        if (accounts.isEmpty()) return null
+
+        // عنوان کامل حساب در جمله آمده باشد
+        accounts.sortedByDescending { it.title.length }.forEach { acc ->
+            val t = normalize(acc.title)
+            if (t.isNotBlank() && text.contains(t)) return acc
+        }
+        // نام بانک، اگر فقط یک حساب از آن بانک باشد
+        accounts.sortedByDescending { it.bankName.length }.forEach { acc ->
+            val b = normalize(acc.bankName)
+            if (b.isNotBlank() && text.contains(b)) {
+                val sameBank = accounts.count { normalize(it.bankName) == b }
+                if (sameBank == 1) return acc
+            }
+        }
+        // تطبیق واژه‌ای: دست‌کم یک واژه سه‌حرفی مشترک
+        val words = text.split(" ").filter { it.length >= 3 }.toSet()
+        accounts.forEach { acc ->
+            val titleWords = normalize(acc.title).split(" ").filter { it.length >= 3 }
+            if (titleWords.any { it in words }) return acc
+        }
+        return null
+    }
+
+    /**
+     * تاریخ نسبی. خروجی دوم می‌گوید کاربر صریح گفته یا پیش‌فرض گذاشته‌ایم.
+     */
+    private fun matchDate(text: String, today: PersianDate): Pair<PersianDate, Boolean> {
+        when {
+            text.contains("پریروز") -> return today.plusDays(-2) to true
+            text.contains("دیروز") -> return today.plusDays(-1) to true
+            text.contains("پس فردا") || text.contains("پس‌فردا") -> return today.plusDays(2) to true
+            text.contains("فردا") -> return today.plusDays(1) to true
+            text.contains("امروز") -> return today to true
+        }
+        // «سه‌شنبه» یا «سه‌شنبه گذشته» → نزدیک‌ترین روز گذشته با آن نام
+        weekDays.forEachIndexed { _, name ->
+            if (text.contains(name)) {
+                for (back in 1..7) {
+                    val d = today.plusDays(-back)
+                    if (d.dayOfWeekName() == name.replace(" ", "\u200c")) return d to true
+                }
+            }
+        }
+        return today to false
+    }
+
+    /** حدس دسته از روی کلیدواژه‌ها، محدود به دسته‌های موجود کاربر. */
+    private fun matchCategory(
+        text: String,
+        categories: List<ParserCategory>,
+        nature: Int
+    ): ParserCategory? {
+        if (categories.isEmpty()) return null
+        // دسته‌ای که نامش مستقیم در جمله آمده
+        categories.sortedByDescending { it.name.length }.forEach { c ->
+            if (text.contains(normalize(c.name))) return c
+        }
+        // از روی کلیدواژه‌ها
+        categoryHints.forEach { (catName, hints) ->
+            if (hints.any { text.contains(it) }) {
+                categories.firstOrNull { normalize(it.name) == normalize(catName) }?.let { return it }
+            }
+        }
+        // انتقال دسته ندارد
+        if (nature == TxNature.TRANSFER) return null
+        return null
+    }
+
+    /**
+     * شرح: جمله کاربر با حذف بخش‌های ساختاری (مبلغ، واحد، نام حساب).
+     * اگر چیز معناداری نماند، خود جمله اصلی برمی‌گردد.
+     */
+    private fun buildDescription(original: String, normalized: String): String {
+        var s = normalized
+        // حذف عدد و واحد
+        s = s.replace(Regex("\\d+"), " ")
+        (tomanWords + rialWords + listOf("هزار", "میلیون", "میلیارد", "نیم")).forEach {
+            s = s.replace(it, " ")
+        }
+        listOf("با حساب", "از حساب", "به حساب", "حساب", "کارت").forEach {
+            s = s.replace(it, " ")
+        }
+        s = s.replace(Regex("\\s+"), " ").trim()
+        return if (s.length >= 3) s else original.trim()
+    }
+}

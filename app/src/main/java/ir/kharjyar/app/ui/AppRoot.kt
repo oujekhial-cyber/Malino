@@ -180,6 +180,7 @@ private fun titleOf(route: String?): String = when {
     route.startsWith("template") -> "آموزش قالب پیامک"
     route.startsWith("tx/") -> "ویرایش تراکنش"
     route == "manual" -> "ثبت تراکنش"
+    route == "quickAdd" -> "ثبت سریع"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
 }
 
@@ -304,6 +305,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("reports") { ReportsScreen(viewModel) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
                 composable("manual") { ManualEntryScreen(viewModel, navController) }
+                composable("quickAdd") { QuickAddScreen(viewModel, navController) }
                 composable("review") { ReviewScreen(viewModel, navController) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->
