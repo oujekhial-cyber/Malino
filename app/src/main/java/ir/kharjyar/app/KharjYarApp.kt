@@ -6,6 +6,16 @@ import android.app.NotificationManager
 import ir.kharjyar.app.data.Repository
 import ir.kharjyar.app.data.db.KharjYarDatabase
 import ir.kharjyar.app.data.prefs.SettingsRepository
+import ir.kharjyar.app.widget.WidgetUpdater
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 class KharjYarApp : Application() {
 
@@ -16,6 +26,33 @@ class KharjYarApp : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        observeDataForWidget()
+    }
+
+    /**
+     * ویجت را به جریان داده وصل می‌کند.
+     *
+     * قبلاً هر صفحه‌ای که داده را تغییر می‌داد باید خودش WidgetUpdater را صدا می‌زد؛
+     * هر جا این کار فراموش می‌شد ویجت کهنه می‌ماند (مثلاً بعد از تأیید تراکنش در
+     * صفحه بررسی). حالا مستقیماً به Room گوش می‌دهیم، پس هر تغییری — از هر مسیری —
+     * خودبه‌خود ویجت را تازه می‌کند.
+     *
+     * تغییرات پشت‌سرهم با debounce جمع می‌شوند تا هنگام ثبت گروهی، ویجت ده‌ها بار
+     * پشت هم بازسازی نشود.
+     */
+    @OptIn(FlowPreview::class)
+    private fun observeDataForWidget() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        combine(
+            repository.txDao.observeAll(),
+            repository.accountDao.observeAll(),
+            settings.settings
+        ) { txs, accounts, _ -> txs.size to accounts.size }
+            .debounce(400)
+            // اولین مقدار هنگام راه‌اندازی رد می‌شود؛ ویجت همان موقع خودش رسم شده است
+            .drop(1)
+            .onEach { WidgetUpdater.requestUpdate(this@KharjYarApp) }
+            .launchIn(scope)
     }
 
     private fun createNotificationChannels() {

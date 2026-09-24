@@ -18,6 +18,7 @@ import ir.kharjyar.app.core.sms.SmsKind
 import ir.kharjyar.app.core.transfer.TransferCandidate
 import ir.kharjyar.app.core.transfer.TransferMatch
 import ir.kharjyar.app.core.transfer.TransferMatcher
+import ir.kharjyar.app.data.db.BlockedSenderEntity
 import ir.kharjyar.app.data.db.KharjYarDatabase
 import ir.kharjyar.app.data.db.SmsCandidateEntity
 import ir.kharjyar.app.data.db.SmsStatus
@@ -40,6 +41,7 @@ class Repository(val db: KharjYarDatabase) {
     val txDao = db.transactionDao()
     val transferDao = db.transferDao()
     val categoryDao = db.categoryDao()
+    val blockedSenderDao = db.blockedSenderDao()
 
     /** نتیجه ثبت اولیه پیامک (از Receiver). */
     data class IngestResult(val smsId: Long?, val duplicate: Boolean, val kind: SmsKind)
@@ -49,6 +51,11 @@ class Repository(val db: KharjYarDatabase) {
      * پیامک غیرمالی ذخیره نمی‌شود (OTP و پیامک شخصی نگه داشته نمی‌شوند).
      */
     suspend fun ingestSms(sender: String, body: String, receivedAt: Long): IngestResult {
+        // فرستنده‌ای که کاربر «تبلیغاتی» علامت زده: بی‌سروصدا نادیده گرفته می‌شود
+        // و متن پیامک هم اصلاً ذخیره نمی‌شود.
+        if (blockedSenderDao.isBlocked(sender)) {
+            return IngestResult(null, false, SmsKind.NON_FINANCIAL)
+        }
         val kind = SmsClassifier.classify(body)
         if (kind == SmsKind.NON_FINANCIAL) return IngestResult(null, false, kind)
         val fp = SmsFingerprint.of(sender, body, receivedAt)
@@ -63,6 +70,23 @@ class Repository(val db: KharjYarDatabase) {
         val id = smsDao.insertIgnore(row)
         return if (id == -1L) IngestResult(null, true, kind) else IngestResult(id, false, kind)
     }
+
+    /**
+     * علامت‌گذاری یک فرستنده به‌عنوان تبلیغاتی:
+     * پیامک‌های در صفِ همان فرستنده صرف‌نظر می‌شوند و پیام‌های بعدی هم نادیده گرفته می‌شوند.
+     */
+    suspend fun blockSender(sender: String) {
+        blockedSenderDao.insertIgnore(
+            BlockedSenderEntity(sender = sender, createdAt = now())
+        )
+        // صف فعلی را هم از همین فرستنده پاک می‌کنیم
+        smsDao.allOnce()
+            .filter { it.sender == sender && it.status != SmsStatus.DONE }
+            .forEach { smsDao.update(it.copy(status = SmsStatus.DISMISSED, updatedAt = now())) }
+    }
+
+    /** برداشتن علامت تبلیغاتی از یک فرستنده. */
+    suspend fun unblockSender(sender: String) = blockedSenderDao.unblock(sender)
 
     /** نتیجه پردازش کامل پیامک (در Worker). */
     sealed class ProcessOutcome {
@@ -313,8 +337,11 @@ class Repository(val db: KharjYarDatabase) {
         val netRial: Long get() = incomeRial - expenseRial
     }
 
-    suspend fun summary(from: Long, to: Long): Summary {
-        val txs = txDao.listRange(from, to)
+    /** @param accountId اگر داده شود، خلاصه فقط برای همان حساب محاسبه می‌شود. */
+    suspend fun summary(from: Long, to: Long, accountId: Long? = null): Summary {
+        val txs = txDao.listRange(from, to).let { list ->
+            if (accountId == null) list else list.filter { it.accountId == accountId }
+        }
         var income = 0L; var expense = 0L
         var pIncome = 0L; var pExpense = 0L; var pCount = 0
         for (t in txs) {

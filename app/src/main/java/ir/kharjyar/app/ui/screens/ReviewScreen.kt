@@ -16,8 +16,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,12 +28,15 @@ import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.data.db.SmsStatus
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.EmptyState
 import kotlinx.coroutines.launch
 
 /** صف بررسی: پیامک‌های نیازمند معرفی حساب، آموزش قالب یا تأیید پیش‌نویس. */
 @Composable
 fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
+    // فرستنده‌ای که کاربر می‌خواهد تبلیغاتی علامت بزند (برای تأیید)
+    var adSender by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val queue by remember {
         viewModel.repo.smsDao.observeByStatus(
@@ -39,8 +45,7 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
     }.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("نیازمند بررسی", style = MaterialTheme.typography.headlineSmall)
-        Text(
+                Text(
             "هیچ موردی بدون تأیید شما ثبت قطعی نمی‌شود.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -58,7 +63,7 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
                         SmsStatus.DRAFT_READY -> "پیش‌نویس آماده — تکمیل و تأیید" to null
                         else -> "در انتظار پردازش" to null
                     }
-                    Card(
+                    SkinCard(
                         modifier = Modifier.fillMaxWidth().clickable {
                             if (route != null) {
                                 nav.navigate(route)
@@ -94,18 +99,47 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                             ) {
                                 AssistChip(onClick = {}, label = { Text(label) })
-                                TextButton(onClick = {
-                                    scope.launch {
-                                        viewModel.repo.smsDao.update(
-                                            sms.copy(status = SmsStatus.DISMISSED, updatedAt = System.currentTimeMillis())
-                                        )
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    // علامت‌گذاری فرستنده به‌عنوان تبلیغاتی:
+                                    // پیام‌های بعدی همین فرستنده خودکار نادیده گرفته می‌شوند
+                                    TextButton(onClick = { adSender = sms.sender }) {
+                                        Text("تبلیغاتی است")
                                     }
-                                }) { Text("صرف‌نظر") }
+                                    TextButton(onClick = {
+                                        scope.launch {
+                                            viewModel.repo.smsDao.update(
+                                                sms.copy(status = SmsStatus.DISMISSED, updatedAt = System.currentTimeMillis())
+                                            )
+                                        }
+                                    }) { Text("صرف‌نظر") }
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    // ---------- تأیید علامت‌گذاری فرستنده تبلیغاتی ----------
+    adSender?.let { sender ->
+        AlertDialog(
+            onDismissRequest = { adSender = null },
+            title = { Text("پیامک تبلیغاتی") },
+            text = {
+                Text(
+                    "پیام‌های «$sender» از این پس تبلیغاتی در نظر گرفته می‌شوند و " +
+                        "بدون ذخیره متن، نادیده گرفته می‌شوند.\n\n" +
+                        "هر وقت خواستید می‌توانید از تنظیمات ← فرستنده‌های تبلیغاتی آن را برگردانید."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { viewModel.repo.blockSender(sender) }
+                    adSender = null
+                }) { Text("بله، تبلیغاتی است") }
+            },
+            dismissButton = { TextButton(onClick = { adSender = null }) { Text("انصراف") } }
+        )
     }
 }

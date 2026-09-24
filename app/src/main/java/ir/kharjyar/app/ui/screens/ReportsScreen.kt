@@ -7,14 +7,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +37,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.date.PersianDate
@@ -35,7 +52,10 @@ import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.pdf.PdfExporter
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.EmptyState
+import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.theme.LocalAppSkin
 import ir.kharjyar.app.ui.components.LineChart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,6 +73,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
     val allTx by viewModel.allTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val skin = LocalAppSkin.current
 
     var range by remember { mutableStateOf(RangeKind.MONTH) }
     var filterAccount by remember { mutableStateOf<Long?>(null) }
@@ -98,8 +119,8 @@ fun ReportsScreen(viewModel: AppViewModel) {
                                     description = tx.description,
                                     categoryName = categories.firstOrNull { it.id == tx.categoryId }?.name ?: "",
                                     natureText = when (tx.nature) {
-                                        TxNature.INCOME -> "درآمد"
-                                        TxNature.EXPENSE -> "هزینه"
+                                        TxNature.INCOME -> "واریز"
+                                        TxNature.EXPENSE -> "برداشت"
                                         TxNature.TRANSFER -> "انتقال"
                                         else -> if (tx.direction == TxDirection.DEPOSIT) "واریز (تأییدنشده)" else "برداشت (تأییدنشده)"
                                     } + if (tx.status == TxStatus.PENDING) " *" else "",
@@ -136,78 +157,335 @@ fun ReportsScreen(viewModel: AppViewModel) {
         }
     }
 
+    // ---------- تفکیک هزینه بر اساس دسته ----------
+    val byCategory = confirmed
+        .filter { it.nature == TxNature.EXPENSE || (it.nature == TxNature.UNKNOWN && it.direction == TxDirection.WITHDRAW) }
+        .groupBy { it.categoryId }
+        .map { (catId, list) ->
+            val name = categories.firstOrNull { it.id == catId }?.name ?: "بدون دسته"
+            val color = categories.firstOrNull { it.id == catId }?.colorArgb ?: 0xFF8A8F98
+            Triple(name, list.sumOf { it.amountRial }, color)
+        }
+        .sortedByDescending { it.second }
+
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("گزارش‌ها", style = MaterialTheme.typography.headlineSmall)
+        // ---------- بازه زمانی: نوار بخش‌بندی‌شده ----------
+        SegmentedRange(
+            options = RangeKind.entries.toList(),
+            selected = range,
+            labelOf = { it.label },
+            onSelect = { range = it }
+        )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RangeKind.entries.forEach { r ->
-                FilterChip(selected = range == r, onClick = { range = r }, label = { Text(r.label) })
-            }
-        }
-        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(accounts.size) { i ->
-                val a = accounts[i]
-                FilterChip(
-                    selected = filterAccount == a.id,
-                    onClick = { filterAccount = if (filterAccount == a.id) null else a.id },
-                    label = { Text(a.title) }
+        // ---------- کارت خلاصه ----------
+        SkinCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Text(
+                    "خالص این بازه",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = skin.onBackdrop.copy(alpha = 0.7f)
                 )
-            }
-        }
-        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(categories.count { !it.archived }) { i ->
-                val c = categories.filter { !it.archived }[i]
-                FilterChip(
-                    selected = filterCategory == c.id,
-                    onClick = { filterCategory = if (filterCategory == c.id) null else c.id },
-                    label = { Text(c.name) }
+                Text(
+                    Money.format(income - expense, settings.moneyUnit),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = skin.bigNumberColor
                 )
-            }
-        }
-
-        Card {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("درآمد: " + Money.format(income, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
-                Text("هزینه: " + Money.format(expense, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
-                Text("خالص: " + Money.format(income - expense, settings.moneyUnit), style = MaterialTheme.typography.titleMedium)
-                if (pending.isNotEmpty()) {
-                    Text(
-                        "${Digits.toPersian(pending.size.toString())} مورد تأییدنشده جداگانه است و در جمع بالا نیامده (مجموع: ${Money.format(pending.sumOf { it.amountRial }, settings.moneyUnit)})",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary
+                Spacer(Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    StatTile(
+                        label = "واریز",
+                        value = Money.format(income, settings.moneyUnit),
+                        tint = skin.incomeColor,
+                        up = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatTile(
+                        label = "برداشت",
+                        value = Money.format(expense, settings.moneyUnit),
+                        tint = skin.expenseColor,
+                        up = false,
+                        modifier = Modifier.weight(1f)
                     )
                 }
+                if (pending.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "${Digits.toPersian(pending.size.toString())} مورد تأییدنشده در جمع بالا نیامده " +
+                            "(${Money.format(pending.sumOf { it.amountRial }, settings.moneyUnit)})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = skin.expenseColor
+                    )
+                }
+            }
+        }
+
+        // ---------- فیلترها، جمع‌وجور در کمبوباکس ----------
+        SkinCard(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Text(
-                    "انتقال بین حساب‌های خودتان در درآمد/هزینه حساب نمی‌شود.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "فیلترها",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = skin.onBackdrop
+                )
+                ComboBox(
+                    label = "حساب",
+                    options = listOf(0L) + accounts.filter { !it.archived }.map { it.id },
+                    selected = filterAccount ?: 0L,
+                    labelOf = { id ->
+                        if (id == 0L) "همه حساب‌ها"
+                        else accounts.firstOrNull { it.id == id }?.title ?: "—"
+                    },
+                    onSelect = { filterAccount = if (it == 0L) null else it }
+                )
+                ComboBox(
+                    label = "دسته‌بندی",
+                    options = listOf(0L) + categories.filter { !it.archived }.map { it.id },
+                    selected = filterCategory ?: 0L,
+                    labelOf = { id ->
+                        if (id == 0L) "همه دسته‌ها"
+                        else categories.firstOrNull { it.id == id }?.name ?: "—"
+                    },
+                    onSelect = { filterCategory = if (it == 0L) null else it }
                 )
             }
         }
 
-        Card {
+        // ---------- نمودار روند ----------
+        SkinCard(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
-                Text("نمودار درآمد و هزینه", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "روند واریز و برداشت",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = skin.onBackdrop
+                )
                 Spacer(Modifier.height(12.dp))
                 if (incomeSeries.all { it == 0L } && expenseSeries.all { it == 0L }) {
                     EmptyState("داده‌ای در این بازه نیست", "بازه یا فیلترها را تغییر دهید")
                 } else {
                     LineChart(incomeSeries = incomeSeries, expenseSeries = expenseSeries)
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ChartLegend(skin.incomeColor, "واریز")
+                        ChartLegend(skin.expenseColor, "برداشت")
+                    }
                 }
             }
         }
 
+        // ---------- هزینه بر اساس دسته ----------
+        if (byCategory.isNotEmpty()) {
+            SkinCard(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        "برداشت بر اساس دسته",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = skin.onBackdrop
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    val maxVal = byCategory.first().second.coerceAtLeast(1L)
+                    byCategory.take(6).forEach { (name, amount, colorArgb) ->
+                        CategoryBar(
+                            name = name,
+                            amountText = Money.format(amount, settings.moneyUnit),
+                            fraction = (amount.toFloat() / maxVal).coerceIn(0.02f, 1f),
+                            share = if (expense > 0) amount.toFloat() / expense else 0f,
+                            color = Color(colorArgb)
+                        )
+                        Spacer(Modifier.height(10.dp))
+                    }
+                }
+            }
+        }
+
+        // ---------- خروجی ----------
         Button(
             onClick = { savePdf.launch("kharjyar-report-${today.format(persianDigits = false).replace("/", "-")}.pdf") },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("خروجی PDF") }
+        ) {
+            Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("خروجی PDF")
+        }
 
         exportMessage?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+            Text(it, style = MaterialTheme.typography.bodySmall, color = skin.accent)
         }
+        Spacer(Modifier.height(90.dp))
+    }
+}
+
+/** نوار بخش‌بندی‌شده برای انتخاب بازه، به‌جای چیپ‌های پراکنده. */
+@Composable
+private fun <T> SegmentedRange(
+    options: List<T>,
+    selected: T,
+    labelOf: (T) -> String,
+    onSelect: (T) -> Unit
+) {
+    val skin = LocalAppSkin.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(skin.cardColor.copy(alpha = skin.cardAlpha))
+            .padding(4.dp)
+    ) {
+        options.forEach { option ->
+            val active = option == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(if (active) skin.accent else Color.Transparent)
+                    .clickable { onSelect(option) }
+                    .padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    labelOf(option),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                    color = if (active) skin.onHero else skin.onBackdrop.copy(alpha = 0.75f),
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+/** کاشی درآمد/هزینه با آیکون فلش. */
+@Composable
+private fun StatTile(
+    label: String,
+    value: String,
+    tint: Color,
+    up: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(tint.copy(alpha = 0.12f))
+            .border(1.dp, tint.copy(alpha = 0.45f), shape)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.22f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (up) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Spacer(Modifier.width(9.dp))
+        Column {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = LocalAppSkin.current.onBackdrop.copy(alpha = 0.8f)
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = tint,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+/** نوار افقی سهم هر دسته از کل هزینه. */
+@Composable
+private fun CategoryBar(
+    name: String,
+    amountText: String,
+    fraction: Float,
+    share: Float,
+    color: Color
+) {
+    val skin = LocalAppSkin.current
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(9.dp).clip(CircleShape).background(color))
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = skin.onBackdrop,
+                    maxLines = 1
+                )
+            }
+            Text(
+                amountText,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = skin.onBackdrop
+            )
+        }
+        Spacer(Modifier.height(5.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(7.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(skin.onBackdrop.copy(alpha = 0.10f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction)
+                        .height(7.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(color)
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                Digits.toPersian((share * 100).toInt().toString()) + "٪",
+                style = MaterialTheme.typography.labelSmall,
+                color = skin.onBackdrop.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChartLegend(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(9.dp).clip(CircleShape).background(color))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = LocalAppSkin.current.onBackdrop.copy(alpha = 0.8f)
+        )
     }
 }
 

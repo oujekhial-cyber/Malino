@@ -88,8 +88,8 @@ object PdfExporter {
         val summaryPaint = Paint().apply { color = 0xFFEFF3F8.toInt() }
         canvas.drawRoundRect(MARGIN, y, PAGE_W - MARGIN, y + 70, 8f, 8f, summaryPaint)
         var sy = y + 8
-        sy += drawRtlText(canvas, "درآمد: ${data.incomeText}", typeface, 12f, sy, Color.BLACK, inset = 12f)
-        sy += drawRtlText(canvas, "هزینه: ${data.expenseText}", typeface, 12f, sy, Color.BLACK, inset = 12f)
+        sy += drawRtlText(canvas, "واریز: ${data.incomeText}", typeface, 12f, sy, Color.BLACK, inset = 12f)
+        sy += drawRtlText(canvas, "برداشت: ${data.expenseText}", typeface, 12f, sy, Color.BLACK, inset = 12f)
         drawRtlText(canvas, "خالص: ${data.netText}", boldTypeface, 12f, sy, Color.BLACK, inset = 12f)
         y += 82
         data.pendingNote?.let {
@@ -102,7 +102,7 @@ object PdfExporter {
             ensureSpace(150f)
             drawLineChart(canvas, data.incomeSeries, data.expenseSeries, y, 130f)
             y += 140
-            y += drawRtlText(canvas, "— درآمد (آبی)   — هزینه (قرمز)", typeface, 10f, y, Color.DKGRAY)
+            y += drawRtlText(canvas, "— واریز (آبی)   — برداشت (قرمز)", typeface, 10f, y, Color.DKGRAY)
             y += 8
         }
 

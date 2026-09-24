@@ -41,11 +41,27 @@ data class BackupPayload(
 data class BAccount(
     val id: Long, val title: String, val bankName: String, val colorArgb: Long,
     val icon: String, val maskedNumber: String, val initialBalanceRial: Long?,
-    val initialBalanceAt: Long?, val archived: Boolean, val createdAt: Long
+    val initialBalanceAt: Long?, val archived: Boolean, val createdAt: Long,
+    // فیلدهای کارت بانکی؛ پیش‌فرض خالی تا بکاپ‌های قدیمی هم خوانده شوند
+    val accountNumber: String = "", val iban: String = "",
+    val cardNumber: String = "", val cardExpiry: String = "", val cardCvv2: String = ""
 ) {
-    fun toEntity() = AccountEntity(id, title, bankName, colorArgb, icon, maskedNumber, initialBalanceRial, initialBalanceAt, archived, createdAt)
+    fun toEntity() = AccountEntity(
+        id = id, title = title, bankName = bankName, colorArgb = colorArgb, icon = icon,
+        maskedNumber = maskedNumber, accountNumber = accountNumber, iban = iban,
+        cardNumber = cardNumber, cardExpiry = cardExpiry, cardCvv2 = cardCvv2,
+        initialBalanceRial = initialBalanceRial, initialBalanceAt = initialBalanceAt,
+        archived = archived, createdAt = createdAt
+    )
     companion object {
-        fun of(e: AccountEntity) = BAccount(e.id, e.title, e.bankName, e.colorArgb, e.icon, e.maskedNumber, e.initialBalanceRial, e.initialBalanceAt, e.archived, e.createdAt)
+        fun of(e: AccountEntity) = BAccount(
+            id = e.id, title = e.title, bankName = e.bankName, colorArgb = e.colorArgb,
+            icon = e.icon, maskedNumber = e.maskedNumber,
+            initialBalanceRial = e.initialBalanceRial, initialBalanceAt = e.initialBalanceAt,
+            archived = e.archived, createdAt = e.createdAt,
+            accountNumber = e.accountNumber, iban = e.iban,
+            cardNumber = e.cardNumber, cardExpiry = e.cardExpiry, cardCvv2 = e.cardCvv2
+        )
     }
 }
 

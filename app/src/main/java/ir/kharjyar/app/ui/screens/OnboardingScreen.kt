@@ -1,6 +1,18 @@
 package ir.kharjyar.app.ui.screens
 
 import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -14,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +44,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,9 +66,69 @@ import kotlinx.coroutines.launch
 fun OnboardingScreen(viewModel: AppViewModel) {
     var step by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    /** وضعیت واقعی مجوز را از خود سیستم می‌پرسد (نه از حافظه برنامه). */
+    fun hasPermission(name: String): Boolean =
+        ContextCompat.checkSelfPermission(context, name) == PackageManager.PERMISSION_GRANTED
+
+    var smsGranted by remember { mutableStateOf(hasPermission(Manifest.permission.RECEIVE_SMS)) }
+    var notifGranted by remember {
+        mutableStateOf(
+            // اعلان فقط از اندروید ۱۳ به بعد مجوز جدا دارد
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                hasPermission(Manifest.permission.POST_NOTIFICATIONS)
+            else true
+        )
+    }
+
+    // اگر کاربر از تنظیمات گوشی مجوز را عوض کند، با برگشت به برنامه دوباره استعلام می‌گیریم
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                smsGranted = hasPermission(Manifest.permission.RECEIVE_SMS)
+                notifGranted =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                        hasPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    else true
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    var askNotifNext by remember { mutableStateOf(false) }
+    val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        smsGranted = it
+        // بعد از پاسخ به پیامک، نوبت مجوز اعلان است
+        askNotifNext = true
+    }
+    val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        notifGranted = it
+    }
+
+    LaunchedEffect(askNotifNext) {
+        if (askNotifNext) {
+            askNotifNext = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notifGranted) {
+                notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    /**
+     * با رسیدن به گام مجوزها، پنجره سیستمی یک‌بار خودکار باز می‌شود تا کاربر
+     * دنبال دکمه نگردد. اگر قبلاً رد کرده باشد، اندروید دیگر پنجره را نشان
+     * نمی‌دهد و کاربر می‌تواند از دکمه‌های همین صفحه اقدام کند.
+     */
+    var autoAsked by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(step, smsGranted) {
+        if (step == 1 && !autoAsked && !smsGranted) {
+            autoAsked = true
+            smsPermission.launch(Manifest.permission.RECEIVE_SMS)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -79,7 +154,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
         Spacer(Modifier.height(24.dp))
         Text("خرج‌یار", style = MaterialTheme.typography.headlineLarge)
         Text(
-            "همیار شخصی مدیریت درآمد و مخارج",
+            "همیار شخصی مدیریت واریز و برداشت",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -112,20 +187,28 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     title = "مجوز دریافت پیامک",
                     text = "برای تشخیص خودکار تراکنش‌ها لازم است. فقط پیامک‌های دریافتی جدید بررسی می‌شوند؛ تاریخچه پیامک‌ها خوانده نمی‌شود."
                 )
-                OutlinedButton(
-                    onClick = { smsPermission.launch(Manifest.permission.RECEIVE_SMS) },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("درخواست مجوز پیامک") }
+                PermissionButton(
+                    granted = smsGranted,
+                    grantedText = "فعال است",
+                    requestText = "درخواست مجوز پیامک",
+                    onRequest = { smsPermission.launch(Manifest.permission.RECEIVE_SMS) }
+                )
                 Spacer(Modifier.height(12.dp))
                 FeatureCard(
                     icon = { Icon(Icons.Filled.Notifications, null, tint = MaterialTheme.colorScheme.primary) },
                     title = "مجوز اعلان",
                     text = "وقتی برنامه باز نیست، تراکنش جدید با اعلان به شما اطلاع داده می‌شود تا «برای چه بود؟» را تکمیل کنید."
                 )
-                OutlinedButton(
-                    onClick = { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("درخواست مجوز اعلان") }
+                PermissionButton(
+                    granted = notifGranted,
+                    grantedText = "فعال است",
+                    requestText = "درخواست مجوز اعلان",
+                    onRequest = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
+                )
                 Spacer(Modifier.height(24.dp))
                 Text(
                     "این مجوزها اختیاری‌اند؛ ثبت دستی تراکنش همیشه بدون مجوز کار می‌کند.",
@@ -140,6 +223,41 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                 ) { Text("شروع") }
             }
         }
+    }
+}
+
+/**
+ * دکمه مجوز: اگر مجوز داده شده باشد به حالت «فعال است» با تیک سبز تبدیل می‌شود
+ * و دیگر قابل فشردن نیست. وضعیت از خود سیستم‌عامل خوانده می‌شود.
+ */
+@Composable
+private fun PermissionButton(
+    granted: Boolean,
+    grantedText: String,
+    requestText: String,
+    onRequest: () -> Unit
+) {
+    if (granted) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(50))
+                .background(Color(0xFF2E7D32).copy(alpha = 0.18f))
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(grantedText, color = Color(0xFF4CAF50))
+        }
+    } else {
+        OutlinedButton(onClick = onRequest, modifier = Modifier.fillMaxWidth()) { Text(requestText) }
     }
 }
 

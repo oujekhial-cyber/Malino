@@ -14,6 +14,16 @@ data class AccountEntity(
     val icon: String = "bank",
     /** شناسه ماسک‌شده کارت/حساب برای نمایش، مثل ****1234 */
     val maskedNumber: String = "",
+    /** شماره حساب. خالی یعنی کاربر وارد نکرده و نباید نمایش داده شود. */
+    val accountNumber: String = "",
+    /** شماره شبا بدون IR. */
+    val iban: String = "",
+    /** شماره ۱۶ رقمی کارت. */
+    val cardNumber: String = "",
+    /** تاریخ انقضای کارت به شکل MM/YY. */
+    val cardExpiry: String = "",
+    /** CVV2 کارت. */
+    val cardCvv2: String = "",
     /** موجودی اولیه اختیاری (ریال). */
     val initialBalanceRial: Long? = null,
     /** زمان ثبت موجودی اولیه. */
@@ -46,6 +56,20 @@ object SmsStatus {
     const val DONE = 5           // تراکنش تأیید/ثبت شد
     const val DISMISSED = 6      // کاربر صرف‌نظر کرد
 }
+
+/**
+ * فرستنده‌ای که کاربر آن را «تبلیغاتی» علامت زده است.
+ * پیامک‌های بعدی این فرستنده بدون مزاحمت و بدون ذخیره متن، کنار گذاشته می‌شوند.
+ */
+@Entity(
+    tableName = "blocked_senders",
+    indices = [Index(value = ["sender"], unique = true)]
+)
+data class BlockedSenderEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sender: String,
+    val createdAt: Long
+)
 
 /** پیامک مالی یا مشکوک به مالی در صف بررسی. */
 @Entity(

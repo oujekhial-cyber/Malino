@@ -3,10 +3,18 @@ package ir.kharjyar.app.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -28,6 +36,8 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.keepAboveKeyboard
 import kotlinx.coroutines.launch
 
 /** ثبت دستی تراکنش — بدون نیاز به هیچ مجوزی کار می‌کند. */
@@ -53,10 +63,23 @@ fun ManualEntryScreen(viewModel: AppViewModel, nav: NavHostController) {
     val active = accounts.filter { !it.archived }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("ثبت دستی تراکنش", style = MaterialTheme.typography.headlineSmall)
+        
+        // میان‌بر به ثبت با جمله فارسی
+        OutlinedButton(
+            onClick = { nav.navigate("quickAdd") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("ثبت سریع با یک جمله")
+        }
 
         if (active.isEmpty()) {
             Text("ابتدا یک حساب معرفی کنید.", color = MaterialTheme.colorScheme.error)
@@ -64,17 +87,13 @@ fun ManualEntryScreen(viewModel: AppViewModel, nav: NavHostController) {
         } else {
             AccountPicker(active, accountId) { accountId = it }
 
-            OutlinedTextField(
+            AmountTextField(
                 value = amountText,
-                onValueChange = { v -> amountText = v },
-                label = { Text("مبلغ (${if (settings.moneyUnit == MoneyUnit.TOMAN) "تومان" else "ریال"})") },
-                supportingText = {
-                    Money.inputToRial(amountText, settings.moneyUnit)?.let {
-                        Text(Money.format(it, settings.moneyUnit))
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                onValueChange = { amountText = it },
+                label = "مبلغ (${if (settings.moneyUnit == MoneyUnit.TOMAN) "تومان" else "ریال"})",
+                supportingText = Money.inputToRial(amountText, settings.moneyUnit)
+                    ?.let { Money.format(it, settings.moneyUnit) },
+                modifier = Modifier.fillMaxWidth()
             )
 
             NaturePicker(nature, direction, onNature = { nature = it }, onDirection = { direction = it })
@@ -84,8 +103,8 @@ fun ManualEntryScreen(viewModel: AppViewModel, nav: NavHostController) {
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("برای چه بود؟") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("خرید/واریز بابت چی بوده؟") },
+                modifier = Modifier.fillMaxWidth().keepAboveKeyboard()
             )
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

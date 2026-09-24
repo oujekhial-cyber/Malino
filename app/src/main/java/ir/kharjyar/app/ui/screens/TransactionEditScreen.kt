@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -35,10 +36,12 @@ import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.db.TransactionEntity
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.keepAboveKeyboard
 import kotlinx.coroutines.launch
 
 /**
- * جزئیات/ویرایش/تکمیل تراکنش. برای پیش‌نویس پیامکی، همین صفحه پنجره «برای چه بود؟» است:
+ * جزئیات/ویرایش/تکمیل تراکنش. برای پیش‌نویس پیامکی، همین صفحه پنجره «خرید/واریز بابت چی بوده؟» است:
  * تأیید (ثبت)، اصلاح، یا «بعداً» (اطلاعات حذف نمی‌شود).
  */
 @Composable
@@ -108,11 +111,11 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
     val amountUnitForInput = if (settings.moneyUnit == MoneyUnit.TOMAN && t.amountRial % 10 != 0L) MoneyUnit.RIAL else settings.moneyUnit
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            if (isPending) "تکمیل تراکنش — برای چه بود؟" else "جزئیات و ویرایش تراکنش",
+            if (isPending) "تکمیل تراکنش — بابت چی بوده؟" else "جزئیات و ویرایش تراکنش",
             style = MaterialTheme.typography.headlineSmall
         )
         if (isPending) {
@@ -135,15 +138,13 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
 
         AccountPicker(accounts.filter { !it.archived || it.id == t.accountId }, accountId) { accountId = it }
 
-        OutlinedTextField(
+        AmountTextField(
             value = amountText,
             onValueChange = { amountText = it },
-            label = { Text("مبلغ (${if (amountUnitForInput == MoneyUnit.TOMAN) "تومان" else "ریال"})") },
-            supportingText = {
-                Money.inputToRial(amountText, amountUnitForInput)?.let { Text(Money.format(it, settings.moneyUnit)) }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            label = "مبلغ (${if (amountUnitForInput == MoneyUnit.TOMAN) "تومان" else "ریال"})",
+            supportingText = Money.inputToRial(amountText, amountUnitForInput)
+                ?.let { Money.format(it, settings.moneyUnit) },
+            modifier = Modifier.fillMaxWidth()
         )
 
         NaturePicker(nature, direction, onNature = { nature = it }, onDirection = { direction = it })
@@ -160,8 +161,8 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("برای چه بود؟") },
-            modifier = Modifier.fillMaxWidth()
+            label = { Text("خرید/واریز بابت چی بوده؟") },
+            modifier = Modifier.fillMaxWidth().keepAboveKeyboard()
         )
 
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

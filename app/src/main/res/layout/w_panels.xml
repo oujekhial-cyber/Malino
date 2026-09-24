@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ریشه ویجت: یک تصویر پس‌زمینه (کارت گرد با رنگ تم و شفافیت کاربر)
+  و روی آن، چیدمان قالب انتخابی.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/w_bg_img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:contentDescription="@null" />
+
+<!--
+  قالب «نواری»: سربرگ بالا (آیکون + نام + ساعت و تاریخ)، سپس دو نوار مقدار.
+  (طرح‌های ۳ و ۴ کاربر)
+-->
+<LinearLayout
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:layoutDirection="rtl"
+    android:padding="14dp">
+
+    <!-- سربرگ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false"
+        android:gravity="center_vertical">
+
+        <!-- ناحیه برنامه: آیکون + نام -->
+        <LinearLayout
+            android:id="@+id/w_app_area"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/w_logo"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/w_ic_wallet"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/w_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="خرج‌یار"
+                android:textStyle="bold"
+                android:textSize="19sp"
+                android:includeFontPadding="false"
+                android:textColor="#E8B4F0" />
+        </LinearLayout>
+
+        <!-- ناحیه ساعت -->
+        <LinearLayout
+            android:id="@+id/w_clock_area"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextClock
+                android:id="@+id/w_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="@null"
+                android:format24Hour="HH:mm"
+                android:textSize="34sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:lines="1"
+                android:textColor="#F7D9FF" />
+
+            <TextView
+                android:id="@+id/w_jalali"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textSize="11sp"
+                android:includeFontPadding="false"
+                android:textColor="#F3E6F2" />
+
+            <TextClock
+                android:id="@+id/w_gregorian"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="d MMM yyyy"
+                android:format24Hour="d MMM yyyy"
+                android:maxLines="1"
+                android:textSize="10sp"
+                android:includeFontPadding="false"
+                android:textColor="#BFAFC9" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/w_title_rule"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="#26FFFFFF" android:contentDescription="@null" />
+
+    <!-- نوار درآمد -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="9dp"
+        android:background="@drawable/w_pill"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:gravity="center_vertical">
+
+        <FrameLayout
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/w_circle">
+            <ImageView
+                android:id="@+id/w_icon_1"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@drawable/w_ic_up"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/w_label_1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="12sp"
+            android:textColor="#F3E6F2" />
+
+        <TextView
+            android:id="@+id/w_value_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <!-- نوار هزینه -->
+    <LinearLayout
+        android:id="@+id/w_row_2"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="7dp"
+        android:background="@drawable/w_pill"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:gravity="center_vertical">
+
+        <FrameLayout
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/w_circle">
+            <ImageView
+                android:id="@+id/w_icon_2"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@drawable/w_ic_down"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/w_label_2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="12sp"
+            android:textColor="#F3E6F2" />
+
+        <TextView
+            android:id="@+id/w_value_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <!-- نوار سوم (مانده حساب) -->
+    <LinearLayout
+        android:id="@+id/w_row_3"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="7dp"
+        android:background="@drawable/w_pill"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:visibility="gone"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/w_label_3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="12sp"
+            android:textColor="#F3E6F2" />
+
+        <TextView
+            android:id="@+id/w_value_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+</LinearLayout>
+</FrameLayout>

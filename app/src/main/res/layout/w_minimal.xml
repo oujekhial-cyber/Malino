@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ریشه ویجت: یک تصویر پس‌زمینه (کارت گرد با رنگ تم و شفافیت کاربر)
+  و روی آن، چیدمان قالب انتخابی.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/w_bg_img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:contentDescription="@null" />
+
+<!-- قالب «مینیمال»: عنوان بالا-راست، مقادیر زیر آن، ساعت بزرگ سمت چپ. (طرح ۲) -->
+<LinearLayout
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:layoutDirection="rtl"
+    android:padding="18dp"
+    android:baselineAligned="false">
+
+    <LinearLayout
+        android:id="@+id/w_app_area"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/w_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="خرج‌یار"
+            android:textStyle="bold"
+            android:textSize="26sp"
+            android:includeFontPadding="false"
+            android:textColor="#C9A4F0" />
+
+        <ImageView
+            android:id="@+id/w_title_rule"
+            android:layout_width="52dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="9dp"
+            android:layout_marginBottom="14dp"
+            android:background="#66C9A4F0" android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:background="@drawable/w_circle">
+                <ImageView
+                    android:id="@+id/w_icon_1"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/w_ic_up"
+                    android:contentDescription="@null" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/w_label_1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="11sp"
+                android:textColor="#F3E6F2" />
+
+            <TextView
+                android:id="@+id/w_value_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="9dp"
+            android:background="#22FFFFFF" android:contentDescription="@null" />
+
+        <LinearLayout
+            android:id="@+id/w_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:background="@drawable/w_circle">
+                <ImageView
+                    android:id="@+id/w_icon_2"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/w_ic_down"
+                    android:contentDescription="@null" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/w_label_2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="11sp"
+                android:textColor="#F3E6F2" />
+
+            <TextView
+                android:id="@+id/w_value_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/w_row_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/w_label_3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="11sp"
+                android:textColor="#F3E6F2" />
+
+            <TextView
+                android:id="@+id/w_value_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ساعت بزرگ سمت چپ -->
+    <LinearLayout
+        android:id="@+id/w_clock_area"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginStart="10dp"
+        android:orientation="vertical"
+        android:gravity="center_vertical|end">
+
+        <TextClock
+            android:id="@+id/w_clock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="@null"
+            android:format24Hour="HH:mm"
+            android:textSize="52sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:lines="1"
+            android:textColor="#FFFFFF" />
+
+        <TextView
+            android:id="@+id/w_jalali"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:maxLines="1"
+            android:textSize="11sp"
+            android:includeFontPadding="false"
+            android:textColor="#CFC2D6" />
+
+        <TextClock
+            android:id="@+id/w_gregorian"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="d MMM yyyy"
+            android:format24Hour="d MMM yyyy"
+            android:maxLines="1"
+            android:textSize="10sp"
+            android:includeFontPadding="false"
+            android:textColor="#A99CB3" />
+    </LinearLayout>
+</LinearLayout>
+</FrameLayout>

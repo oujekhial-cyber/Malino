@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.kharjyar.app.data.db.CategoryEntity
 import ir.kharjyar.app.data.db.CategoryRuleEntity
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.EmptyState
 import kotlinx.coroutines.launch
 
@@ -54,8 +55,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var showNewRule by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("دسته‌بندی‌ها و قوانین", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.padding(4.dp))
+                Spacer(Modifier.padding(4.dp))
         TabRow(selectedTabIndex = tab) {
             Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("دسته‌ها") })
             Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("قوانین خودکار") })
@@ -68,7 +68,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(categories.size) { i ->
                     val c = categories[i]
-                    Card(modifier = Modifier.fillMaxWidth().clickable { editCategory = c }) {
+                    SkinCard(modifier = Modifier.fillMaxWidth().clickable { editCategory = c }) {
                         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(14.dp).background(Color(c.colorArgb), CircleShape))
                             Spacer(Modifier.width(12.dp))
@@ -88,7 +88,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                     items(rules.size) { i ->
                         val r = rules[i]
                         val catName = categories.firstOrNull { it.id == r.categoryId }?.name ?: "؟"
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        SkinCard(modifier = Modifier.fillMaxWidth()) {
                             Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("«${r.keyword}» ← $catName", style = MaterialTheme.typography.bodyLarge)

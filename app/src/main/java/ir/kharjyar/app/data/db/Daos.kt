@@ -47,6 +47,24 @@ interface AccountDao {
 }
 
 @Dao
+interface BlockedSenderDao {
+    @Query("SELECT * FROM blocked_senders ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<BlockedSenderEntity>>
+
+    @Query("SELECT * FROM blocked_senders ORDER BY createdAt DESC")
+    suspend fun allOnce(): List<BlockedSenderEntity>
+
+    @Query("SELECT COUNT(*) > 0 FROM blocked_senders WHERE sender = :sender")
+    suspend fun isBlocked(sender: String): Boolean
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(entity: BlockedSenderEntity): Long
+
+    @Query("DELETE FROM blocked_senders WHERE sender = :sender")
+    suspend fun unblock(sender: String)
+}
+
+@Dao
 interface SmsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIgnore(sms: SmsCandidateEntity): Long
@@ -139,6 +157,14 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun delete(id: Long)
+
+    /** حذف گروهی برای انتخاب چندتایی. */
+    @Query("DELETE FROM transactions WHERE id IN (:ids)")
+    suspend fun deleteAll(ids: List<Long>)
+
+    /** درج دوباره با همان شناسه، برای «بازگرداندن» پس از حذف. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun restore(txs: List<TransactionEntity>)
 
     @Query(
         """SELECT * FROM transactions

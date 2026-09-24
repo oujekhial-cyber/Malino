@@ -22,7 +22,7 @@
 > Task :app:preDebugAndroidTestBuild SKIPPED
 > Task :app:generateDebugAndroidTestResValues FROM-CACHE
 > Task :app:generateDebugAndroidTestLintModel
-> Task :app:extractProguardFiles
+> Task :app:extractProguardFiles UP-TO-DATE
 > Task :app:generateDebugLintReportModel
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
 > Task :app:generateDebugUnitTestLintModel
@@ -35,5 +35,5 @@ Wrote HTML report to file:///home/runner/work/Malino/Malino/app/build/reports/li
 
 > Task :app:lintDebug
 
-BUILD SUCCESSFUL in 54s
-28 actionable tasks: 9 executed, 1 from cache, 18 up-to-date
+BUILD SUCCESSFUL in 59s
+28 actionable tasks: 8 executed, 1 from cache, 19 up-to-date

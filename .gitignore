@@ -10,3 +10,16 @@ captures/
 .cxx/
 *.apk.idsig
 .DS_Store
+theme-concepts/
+gen/
+icons/
+
+# کلید امضا و رمزها — هرگز نباید وارد مخزن شوند
+.keys/
+*.p12
+# استثنا: کلید پشتیبان عمومی که خروجی انتشار را قابل نصب نگه می‌دارد
+!signing/kharjyar-fallback.p12
+*.jks
+*.keystore
+local.properties
+keys-for-you/

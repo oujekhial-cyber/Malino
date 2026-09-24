@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -18,14 +20,81 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // فقط معماری گوشی‌های واقعی؛ x86 مخصوص شبیه‌ساز است و حدود ۷ مگابایت
+        // کتابخانه بومی بی‌مصرف به APK اضافه می‌کرد.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+        // فقط منابع زبان‌های مورد استفاده نگه داشته می‌شوند
+        resourceConfigurations += listOf("fa", "en")
     }
+
+    /**
+     * امضای نسخه انتشار.
+     *
+     * کلید هرگز داخل مخزن نگهداری نمی‌شود. مسیر و رمزها از این منابع خوانده می‌شوند
+     * (به همین ترتیب اولویت):
+     *   ۱) فایل local.properties  ← برای ساخت روی کامپیوتر شخصی
+     *   ۲) متغیرهای محیطی         ← برای ساخت در CI
+     * اگر هیچ‌کدام نبود، امضای انتشار غیرفعال می‌شود و ساخت debug مثل قبل کار می‌کند.
+     */
+    val keystoreProps = Properties().apply {
+        val f = rootProject.file("local.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    fun secret(key: String, env: String): String? =
+        (keystoreProps.getProperty(key) ?: System.getenv(env))?.takeIf { it.isNotBlank() }
+
+    val storeFilePath = secret("kharjyar.storeFile", "KEYSTORE_FILE")
+    val storePw = secret("kharjyar.storePassword", "KEYSTORE_PASSWORD")
+    val keyAliasName = secret("kharjyar.keyAlias", "KEY_ALIAS")
+    val keyPw = secret("kharjyar.keyPassword", "KEY_PASSWORD")
+    val hasOwnKey = storeFilePath != null && storePw != null &&
+        keyAliasName != null && keyPw != null && file(storeFilePath).exists()
+
+    /**
+     * کلید پشتیبان داخل مخزن.
+     *
+     * رمزش عمومی است و راز محسوب نمی‌شود؛ هدفش فقط این است که خروجی انتشار
+     * همیشه «امضاشده و قابل نصب» باشد. APK بدون امضا با خطای
+     * «App not installed as package appears to be invalid» رد می‌شود.
+     *
+     * برای انتشار واقعی، کلید اختصاصی را از طریق Secretها بدهید تا جای این یکی
+     * را بگیرد (مقدار hasOwnKey آن موقع true می‌شود).
+     */
+    val fallbackKey = rootProject.file("signing/kharjyar-fallback.p12")
+    val useFallback = !hasOwnKey && fallbackKey.exists()
+
+    signingConfigs {
+        create("release") {
+            if (hasOwnKey) {
+                storeFile = file(storeFilePath!!)
+                storePassword = storePw
+                keyAlias = keyAliasName
+                keyPassword = keyPw
+            } else if (useFallback) {
+                storeFile = fallbackKey
+                storePassword = "kharjyar"
+                keyAlias = "kharjyar"
+                keyPassword = "kharjyar"
+            }
+            // هر سه طرح امضا: v1 برای سازگاری، v2/v3 برای تأیید سریع‌تر سیستم
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+        }
+    }
+
+    val hasSigning = hasOwnKey || useFallback
 
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            resValue("string", "app_label", "خرج‌یار (نسخه آزمایشی)")
+            resValue("string", "app_label", "خرج‌یار")
         }
         release {
+            if (hasSigning) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             resValue("string", "app_label", "خرج‌یار")
@@ -87,6 +156,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.biometric)
+    implementation(libs.sqlcipher)
+    implementation(libs.androidx.sqlite.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
     implementation(libs.kotlinx.coroutines.android)
