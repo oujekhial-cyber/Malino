@@ -71,6 +71,8 @@ import ir.kharjyar.app.ui.components.EnterCard
 import ir.kharjyar.app.ui.components.GlassSnackbarHost
 import ir.kharjyar.app.ui.components.HeroCard
 import ir.kharjyar.app.ui.components.LineChart
+import androidx.compose.material3.SnackbarResult
+import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.SkinCard
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.ui.text.style.TextOverflow
@@ -93,6 +95,19 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
+
+    /** حذف تراکنش از فهرست «اخیر» با امکان بازگرداندن. */
+    fun deleteWithUndo(tx: ir.kharjyar.app.data.db.TransactionEntity) {
+        scope.launch {
+            viewModel.repo.txDao.delete(tx.id)
+            val res = snackbar.showSnackbar(
+                message = "تراکنش حذف شد",
+                actionLabel = "بازگرداندن",
+                duration = SnackbarDuration.Short
+            )
+            if (res == SnackbarResult.ActionPerformed) viewModel.repo.txDao.restore(listOf(tx))
+        }
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -443,6 +458,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 items(recent.size) { idx ->
                     val tx = recent[idx]
                     EnterCard(4 + idx) {
+                        SwipeActionRow(
+                            onDelete = { deleteWithUndo(tx) },
+                            onEdit = { nav.navigate("tx/${tx.id}") }
+                        ) {
                         SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("tx/${tx.id}") }) {
                             Row(
                                 modifier = Modifier.padding(14.dp),
@@ -481,6 +500,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     color = skin.onBackdrop
                                 )
                             }
+                        }
                         }
                     }
                 }

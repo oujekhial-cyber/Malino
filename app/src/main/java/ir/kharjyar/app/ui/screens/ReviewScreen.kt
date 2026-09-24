@@ -28,6 +28,14 @@ import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.data.db.SmsStatus
 import ir.kharjyar.app.ui.AppViewModel
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.ui.graphics.Color
+import ir.kharjyar.app.data.db.SmsCandidateEntity
+import ir.kharjyar.app.ui.components.GlassSnackbarHost
+import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.EmptyState
 import kotlinx.coroutines.launch
@@ -38,13 +46,38 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
     // فرستنده‌ای که کاربر می‌خواهد تبلیغاتی علامت بزند (برای تأیید)
     var adSender by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+
+    /** صرف‌نظر از یک مورد صف، با امکان بازگرداندن. */
+    fun dismissWithUndo(sms: SmsCandidateEntity) {
+        scope.launch {
+            val previousStatus = sms.status
+            viewModel.repo.smsDao.update(
+                sms.copy(status = SmsStatus.DISMISSED, updatedAt = System.currentTimeMillis())
+            )
+            val res = snackbar.showSnackbar(
+                message = "از این پیامک صرف‌نظر شد",
+                actionLabel = "بازگرداندن",
+                duration = SnackbarDuration.Short
+            )
+            if (res == SnackbarResult.ActionPerformed) {
+                viewModel.repo.smsDao.update(
+                    sms.copy(status = previousStatus, updatedAt = System.currentTimeMillis())
+                )
+            }
+        }
+    }
     val queue by remember {
         viewModel.repo.smsDao.observeByStatus(
             listOf(SmsStatus.RAW, SmsStatus.NEEDS_ACCOUNT, SmsStatus.NEEDS_TEMPLATE, SmsStatus.DRAFT_READY)
         )
     }.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Scaffold(
+        containerColor = Color.Transparent,
+        snackbarHost = { GlassSnackbarHost(snackbar) }
+    ) { padding ->
+    Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
                 Text(
             "هیچ موردی بدون تأیید شما ثبت قطعی نمی‌شود.",
             style = MaterialTheme.typography.bodyMedium,
@@ -63,20 +96,28 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
                         SmsStatus.DRAFT_READY -> "پیش‌نویس آماده — تکمیل و تأیید" to null
                         else -> "در انتظار پردازش" to null
                     }
-                    SkinCard(
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            if (route != null) {
-                                nav.navigate(route)
-                            } else if (sms.status == SmsStatus.DRAFT_READY) {
-                                scope.launch {
-                                    val tx = viewModel.repo.txDao.bySmsId(sms.id)
-                                    if (tx != null) nav.navigate("tx/${tx.id}")
-                                }
-                            } else {
-                                // RAW: پردازش دوباره
-                                scope.launch { viewModel.repo.processSms(sms.id) }
+                    // باز کردن مورد: بسته به وضعیت، صفحه مناسب را می‌آورد
+                    val open: () -> Unit = {
+                        if (route != null) {
+                            nav.navigate(route)
+                        } else if (sms.status == SmsStatus.DRAFT_READY) {
+                            scope.launch {
+                                val tx = viewModel.repo.txDao.bySmsId(sms.id)
+                                if (tx != null) nav.navigate("tx/${tx.id}")
                             }
+                        } else {
+                            // RAW: پردازش دوباره
+                            scope.launch { viewModel.repo.processSms(sms.id) }
                         }
+                    }
+                    SwipeActionRow(
+                        onDelete = { dismissWithUndo(sms) },
+                        onEdit = open,
+                        deleteLabel = "صرف‌نظر",
+                        editLabel = "بررسی"
+                    ) {
+                    SkinCard(
+                        modifier = Modifier.fillMaxWidth().clickable(onClick = open)
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -105,20 +146,16 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     TextButton(onClick = { adSender = sms.sender }) {
                                         Text("تبلیغاتی است")
                                     }
-                                    TextButton(onClick = {
-                                        scope.launch {
-                                            viewModel.repo.smsDao.update(
-                                                sms.copy(status = SmsStatus.DISMISSED, updatedAt = System.currentTimeMillis())
-                                            )
-                                        }
-                                    }) { Text("صرف‌نظر") }
+                                    TextButton(onClick = { dismissWithUndo(sms) }) { Text("صرف‌نظر") }
                                 }
                             }
                         }
                     }
+                    }
                 }
             }
         }
+    }
     }
 
     // ---------- تأیید علامت‌گذاری فرستنده تبلیغاتی ----------
