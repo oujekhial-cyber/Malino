@@ -49,10 +49,34 @@ class BackupManager(
         return payload
     }
 
-    /** جایگزینی کامل داده‌ها؛ در یک تراکنش تا نیمه‌کاره نماند. */
-    suspend fun restore(payload: BackupPayload) {
+    /**
+     * نتیجه بازیابی، برای اطلاع دادن به کاربر.
+     * @param carriedOverSms پیامک‌های بررسی‌نشده‌ای که از بین نرفتند و به صف برگشتند.
+     * @param mergedDuplicates مواردی که چون در خود بکاپ هم بودند دوباره اضافه نشدند.
+     */
+    data class RestoreReport(val carriedOverSms: Int, val mergedDuplicates: Int)
+
+    /**
+     * جایگزینی کامل داده‌ها؛ در یک تراکنش تا نیمه‌کاره نماند.
+     *
+     * استثنا: پیامک‌های «نیازمند بررسی» که هنوز تعیین تکلیف نشده‌اند پاک نمی‌شوند.
+     * این‌ها معمولاً بعد از ساخت بکاپ رسیده‌اند، در هیچ فایلی نیستند و با پاک شدن
+     * برای همیشه از دست می‌رفتند. بر اساس `fingerprint` با صف داخل بکاپ ادغام
+     * می‌شوند تا مورد تکراری در صف نیفتد.
+     */
+    suspend fun restore(payload: BackupPayload): RestoreReport {
         val db = repo.db
+        var report = RestoreReport(0, 0)
         db.withTransaction {
+            // قبل از پاک‌سازی خوانده می‌شود؛ داخل همان تراکنش تا داده‌ای جا نماند
+            val current = repo.smsDao.listByStatus(SmsQueueMerge.UNREVIEWED_STATUSES)
+            val merge = SmsQueueMerge.merge(
+                backupQueue = payload.smsQueue.map { it.toEntity() },
+                currentQueue = current,
+                knownAccountIds = payload.accounts.mapTo(mutableSetOf()) { it.id },
+                knownTemplateIds = payload.templates.mapTo(mutableSetOf()) { it.id }
+            )
+
             db.clearAllTablesInTransaction()
             payload.accounts.forEach { repo.accountDao.insert(it.toEntity()) }
             payload.senders.forEach { repo.accountDao.insertSender(it.toEntity()) }
@@ -61,9 +85,14 @@ class BackupManager(
             payload.templates.forEach { repo.templateDao.insert(it.toEntity()) }
             payload.transferGroups.forEach { repo.transferDao.insert(it.toEntity()) }
             payload.smsQueue.forEach { repo.smsDao.insertIgnore(it.toEntity()) }
+            // صف نگه‌داشته‌شده بعد از صف بکاپ درج می‌شود تا شناسه‌ها با هم تداخل نکنند
+            merge.carriedOver.forEach { repo.smsDao.insertIgnore(it) }
             payload.transactions.forEach { repo.txDao.insert(it.toEntity()) }
+
+            report = RestoreReport(merge.carriedOver.size, merge.duplicates)
         }
         settings.importFromBackup(payload.settings)
+        return report
     }
 }
 

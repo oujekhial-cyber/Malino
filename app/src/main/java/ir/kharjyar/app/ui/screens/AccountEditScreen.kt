@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,7 +51,9 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.AccountSenderEntity
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.core.card.CardScan
 import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.CardScannerDialog
 import ir.kharjyar.app.ui.components.ColorPicker
 import ir.kharjyar.app.ui.components.BankCard
 import ir.kharjyar.app.ui.components.SearchableComboBox
@@ -101,6 +106,8 @@ fun AccountEditScreen(
     var newHint by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var showDelete by remember { mutableStateOf(false) }
+    var showScanner by remember { mutableStateOf(false) }
+    var scanMessage by remember { mutableStateOf<String?>(null) }
     var txCount by remember { mutableStateOf(0) }
 
     LaunchedEffect(accountId) {
@@ -173,6 +180,18 @@ fun AccountEditScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            // خواندن شماره کارت/شبا/انقضا/CVV2 از روی خود کارت؛ همه چیز روی گوشی
+            OutlinedButton(
+                onClick = { scanMessage = null; showScanner = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.PhotoCamera, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("اسکن کارت با دوربین")
+            }
+            scanMessage?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
             NumberTextField(
                 value = cardNumber,
                 onValueChange = { cardNumber = it.filter(Char::isDigit).take(16) },
@@ -344,6 +363,37 @@ fun AccountEditScreen(
                 Text("حذف حساب", color = MaterialTheme.colorScheme.error)
             }
         }
+    }
+
+    if (showScanner) {
+        CardScannerDialog(
+            onDismiss = { showScanner = false },
+            onResult = { result: CardScan ->
+                showScanner = false
+                val filled = mutableListOf<String>()
+                if (result.cardNumber.isNotBlank()) { cardNumber = result.cardNumber; filled += "شماره کارت" }
+                if (result.expiry.isNotBlank()) { cardExpiry = result.expiry; filled += "تاریخ انقضا" }
+                if (result.cvv2.isNotBlank()) { cardCvv2 = result.cvv2; filled += "CVV2" }
+                if (result.iban.isNotBlank()) { iban = result.iban; filled += "شبا" }
+                if (result.accountNumber.isNotBlank()) { accountNumber = result.accountNumber; filled += "شماره حساب" }
+                if (result.bankName.isNotBlank() && bankName.isBlank()) {
+                    bankName = result.bankName; filled += "نام بانک"
+                }
+                // شناسه کوتاه تطبیق پیامک را هم از چهار رقم آخر کارت پر می‌کنیم
+                if (maskedNumber.isBlank() && cardNumber.length == 16) {
+                    maskedNumber = "****" + cardNumber.takeLast(4)
+                }
+                scanMessage = if (filled.isEmpty()) {
+                    "چیزی از کارت خوانده نشد. نور را بیشتر کنید و دوباره امتحان کنید یا دستی وارد کنید."
+                } else {
+                    val tail = if (result.accountNumber.isBlank())
+                        " و شماره حساب را اگر روی کارت نبود دستی وارد کنید."
+                    else "."
+                    "خوانده شد: " + filled.joinToString("، ") + ". " +
+                        "عنوان حساب را خودتان انتخاب کنید" + tail
+                }
+            }
+        )
     }
 
     if (showDelete) {

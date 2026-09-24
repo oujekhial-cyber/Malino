@@ -5,6 +5,14 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!--
+      فقط برای «اسکن کارت بانکی» در صفحه معرفی حساب. تصویر هیچ‌جا ذخیره یا ارسال
+      نمی‌شود؛ خواندن متن با مدل داخل خود برنامه و روی گوشی انجام می‌شود.
+      مجوز در همان لحظه استفاده گرفته می‌شود و برنامه بدون آن هم کامل کار می‌کند.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <!--
       از اندروید ۱۱ دیدِ برنامه‌ها محدود است؛ بدون این بخش resolveActivity

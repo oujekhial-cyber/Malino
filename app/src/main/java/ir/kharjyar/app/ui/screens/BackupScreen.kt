@@ -287,7 +287,9 @@ fun BackupScreen(viewModel: AppViewModel) {
                         "تراکنش‌ها: ${Digits.toPersian(payload.transactions.size.toString())}\n" +
                         "دسته‌ها: ${Digits.toPersian(payload.categories.size.toString())}\n" +
                         "قالب‌ها: ${Digits.toPersian(payload.templates.size.toString())}\n\n" +
-                        "با ادامه، همه داده‌های فعلی با محتوای بکاپ جایگزین می‌شوند."
+                        "با ادامه، همه داده‌های فعلی با محتوای بکاپ جایگزین می‌شوند.\n" +
+                        "تنها استثنا: پیامک‌هایی که هنوز در «نیازمند بررسی» تعیین تکلیف نشده‌اند " +
+                        "حفظ و با صف بکاپ ادغام می‌شوند."
                 )
             },
             confirmButton = {
@@ -295,8 +297,21 @@ fun BackupScreen(viewModel: AppViewModel) {
                     scope.launch {
                         busy = true
                         try {
-                            manager.restore(payload)
-                            message = "بازیابی با موفقیت انجام شد."; isError = false
+                            val report = manager.restore(payload)
+                            message = buildString {
+                                append("بازیابی با موفقیت انجام شد.")
+                                if (report.carriedOverSms > 0) {
+                                    append("\n")
+                                    append(Digits.toPersian(report.carriedOverSms.toString()))
+                                    append(" پیامک بررسی‌نشده حفظ شد و در صف بررسی باقی ماند.")
+                                }
+                                if (report.mergedDuplicates > 0) {
+                                    append("\n")
+                                    append(Digits.toPersian(report.mergedDuplicates.toString()))
+                                    append(" مورد تکراری با صف بکاپ ادغام شد.")
+                                }
+                            }
+                            isError = false
                         } catch (e: Exception) {
                             message = "بازیابی ناموفق بود"; isError = true
                         } finally {
