@@ -10,15 +10,15 @@
       از اندروید ۱۱ دیدِ برنامه‌ها محدود است؛ بدون این بخش resolveActivity
       برای برنامه ساعت همیشه null برمی‌گرداند و لمس ساعت کار نمی‌کند.
     -->
+    <!--
+      برای تشخیص اینکه گوشی برنامه «تبدیل گفتار به متن» دارد یا نه.
+      خودِ ضبط صدا توسط همان برنامه سیستمی انجام می‌شود، بنابراین خرج‌یار
+      به مجوز RECORD_AUDIO نیاز ندارد و همچنان بدون مجوز اینترنت کار می‌کند.
+    -->
     <queries>
         <intent>
-            <action android:name="android.intent.action.SHOW_ALARMS" />
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
-        <intent>
-            <action android:name="android.intent.action.SET_ALARM" />
-        </intent>
-        <package android:name="com.android.deskclock" />
-        <package android:name="com.google.android.deskclock" />
     </queries>
 
     <application

@@ -1,5 +1,9 @@
 package ir.kharjyar.app.ui.screens
 
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -41,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -79,8 +85,48 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     var input by remember { mutableStateOf("") }
     var parsed by remember { mutableStateOf<ParsedTransaction?>(null) }
     var saved by remember { mutableStateOf(false) }
+    var voiceError by remember { mutableStateOf<String?>(null) }
 
     val activeAccounts = accounts.filter { !it.archived }
+    val context = LocalContext.current
+
+    // آیا این گوشی اصلاً برنامه تبدیل گفتار به متن دارد؟
+    val voiceAvailable = remember {
+        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .resolveActivity(context.packageManager) != null
+    }
+
+    /**
+     * تبدیل گفتار به متن با برنامه سیستمی اندروید.
+     * چون ضبط صدا را همان برنامه انجام می‌دهد، خرج‌یار به مجوز میکروفون نیاز ندارد.
+     */
+    val speechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val spoken = result.data
+            ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            ?.firstOrNull()
+            ?.trim()
+        if (!spoken.isNullOrBlank()) {
+            input = spoken
+            voiceError = null
+        }
+    }
+
+    fun startVoice() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "بگویید چه خرید یا واریزی داشتید")
+        }
+        val ok = runCatching { speechLauncher.launch(intent); true }.getOrDefault(false)
+        if (!ok) {
+            voiceError = "تبدیل گفتار به متن در دسترس نیست؛ لطفاً تایپ کنید."
+        }
+    }
 
     fun analyze() {
         parsed = TransactionParser.parse(
@@ -134,9 +180,38 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             onValueChange = { input = it; saved = false },
             label = { Text("چه اتفاقی افتاد؟") },
             placeholder = { Text("۲۵۰ هزار تومن کیک از سوپرمارکت خریدم با حساب روزمره") },
+            trailingIcon = if (!voiceAvailable) null else {
+                {
+                // گفتن به‌جای تایپ کردن
+                Box(
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(skin.accent.copy(alpha = 0.16f))
+                        .clickable { startVoice() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Mic,
+                        contentDescription = "گفتن با صدا",
+                        tint = skin.accent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3
         )
+
+        voiceError?.let { msg ->
+            Text(
+                msg,
+                style = MaterialTheme.typography.bodySmall,
+                color = skin.expenseColor
+            )
+        }
 
         // نمونه‌های آماده
         Text("نمونه‌ها:", style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop.copy(alpha = 0.7f))
