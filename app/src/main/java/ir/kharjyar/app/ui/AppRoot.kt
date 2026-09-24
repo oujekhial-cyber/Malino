@@ -48,8 +48,6 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -268,53 +266,64 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
             containerColor = Color.Transparent,
             modifier = Modifier.imePadding(),
             topBar = {
-                TopAppBar(
-                    title = {
-                        if (currentRoute == "home") {
-                            // سلام و تاریخ در بالای برنامه، کنار منوی همبرگری
-                            Column {
-                                Text(
-                                    greetingByHour(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    todayHeaderLine(),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = skin.onBackdrop.copy(alpha = 0.72f),
-                                    maxLines = 1
-                                )
-                            }
-                        } else {
-                            Text(titleOf(currentRoute))
-                        }
-                    },
-                    // منوی همبرگری سمت راست: در RTL، navigationIcon سمت راست قرار می‌گیرد.
-                    navigationIcon = {
-                        val menuRotation by animateFloatAsState(
-                            targetValue = if (drawerState.isOpen) 90f else 0f,
-                            animationSpec = tween(300),
-                            label = "menuRotation"
-                        )
-                        IconButton(onClick = {
+                // نوار بالای جمع‌وجور (به‌جای TopAppBar استاندارد با ارتفاع ۶۴dp)
+                // تا کارت اصلی بالاتر بیاید و فضای بیشتری برای محتوا بماند.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val menuRotation by animateFloatAsState(
+                        targetValue = if (drawerState.isOpen) 90f else 0f,
+                        animationSpec = tween(300),
+                        label = "menuRotation"
+                    )
+                    // منوی همبرگری سمت راست: در RTL، اولین عنصر ردیف سمت راست می‌نشیند.
+                    IconButton(
+                        onClick = {
                             scope.launch {
                                 if (drawerState.isOpen) drawerState.close() else drawerState.open()
                             }
-                        }) {
-                            Icon(
-                                if (drawerState.isOpen) Icons.Filled.Close else Icons.Filled.Menu,
-                                contentDescription = if (drawerState.isOpen) "بستن منو" else "منو",
-                                modifier = Modifier.graphicsLayer { rotationZ = menuRotation }
+                        },
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Icon(
+                            if (drawerState.isOpen) Icons.Filled.Close else Icons.Filled.Menu,
+                            contentDescription = if (drawerState.isOpen) "بستن منو" else "منو",
+                            tint = skin.onBackdrop,
+                            modifier = Modifier.graphicsLayer { rotationZ = menuRotation }
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    if (currentRoute == "home") {
+                        // سلام و تاریخ در بالای برنامه، کنار منوی همبرگری
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                greetingByHour(),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = skin.onBackdrop,
+                                maxLines = 1
+                            )
+                            Text(
+                                todayHeaderLine(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = skin.onBackdrop.copy(alpha = 0.72f),
+                                maxLines = 1
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = skin.onBackdrop,
-                        navigationIconContentColor = skin.onBackdrop
-                    )
-                )
+                    } else {
+                        Text(
+                            titleOf(currentRoute),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = skin.onBackdrop,
+                            maxLines = 1,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             },
             bottomBar = {
                 if (currentRoute in bottomRoutes) {

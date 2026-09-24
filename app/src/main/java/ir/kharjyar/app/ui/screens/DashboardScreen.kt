@@ -68,6 +68,7 @@ import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
 import ir.kharjyar.app.ui.components.BankCard
 import ir.kharjyar.app.ui.components.EnterCard
+import ir.kharjyar.app.ui.components.GlassSnackbarHost
 import ir.kharjyar.app.ui.components.HeroCard
 import ir.kharjyar.app.ui.components.LineChart
 import ir.kharjyar.app.ui.components.SkinCard
@@ -95,12 +96,13 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     Scaffold(
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { GlassSnackbarHost(snackbar) },
         modifier = Modifier.imePadding()
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+            // فاصله کم بالا تا کارت اصلی درست زیر نوار بالایی بنشیند
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ---------- کارت خلاصه ماه (hero) ----------
@@ -411,15 +413,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             item {
                 EnterCard(3) {
                     SkinCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text("روند ۳۰ روز اخیر", style = MaterialTheme.typography.titleMedium, color = skin.onBackdrop)
-                            Spacer(Modifier.height(12.dp))
+                        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                            Text("روند ۳۰ روز اخیر", style = MaterialTheme.typography.titleSmall, color = skin.onBackdrop)
+                            Spacer(Modifier.height(6.dp))
                             val (income, expense) = buildDailySeries(scopedTx, 30)
                             if (income.all { it == 0L } && expense.all { it == 0L }) {
                                 EmptyState("داده‌ای برای نمودار نیست", "با ثبت اولین تراکنش، نمودار اینجا شکل می‌گیرد")
                             } else {
-                                LineChart(incomeSeries = income, expenseSeries = expense)
-                                Spacer(Modifier.height(8.dp))
+                                // ارتفاع نصف شد تا کارت نمودار جای کمتری بگیرد
+                                LineChart(incomeSeries = income, expenseSeries = expense, height = 78.dp)
+                                Spacer(Modifier.height(6.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                     LegendDot(skin.incomeColor, "واریز")
                                     LegendDot(skin.expenseColor, "برداشت")

@@ -36,11 +36,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,7 +61,9 @@ import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
+import ir.kharjyar.app.ui.components.GlassSnackbarHost
 import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
 
@@ -118,7 +117,7 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     Scaffold(
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbar) }
+        snackbarHost = { GlassSnackbarHost(snackbar) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
 
@@ -236,7 +235,8 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 if (tx.id in selected) selected.remove(tx.id) else selected.add(tx.id)
                             },
                             onOpen = { nav.navigate("tx/${tx.id}") },
-                            onSwipeDelete = { deleteWithUndo(listOf(tx)) }
+                            onSwipeDelete = { deleteWithUndo(listOf(tx)) },
+                            onSwipeEdit = { nav.navigate("tx/${tx.id}") }
                         )
                     }
                 }
@@ -247,7 +247,8 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
 /**
  * یک ردیف تراکنش.
- * کشیدن انگشت آن را حذف می‌کند و نگه‌داشتن، حالت انتخاب چندتایی را باز می‌کند.
+ * کشیدن به یک سمت حذف و به سمت مخالف ویرایش می‌کند؛ نگه‌داشتن، حالت انتخاب
+ * چندتایی را باز می‌کند.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -259,46 +260,14 @@ private fun TransactionRow(
     checked: Boolean,
     onToggle: () -> Unit,
     onOpen: () -> Unit,
-    onSwipeDelete: () -> Unit
+    onSwipeDelete: () -> Unit,
+    onSwipeEdit: () -> Unit
 ) {
-    val skin = LocalAppSkin.current
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value != SwipeToDismissBoxValue.Settled) {
-                onSwipeDelete()
-                true
-            } else false
-        },
-        // فاصله لازم برای حذف: کمی بیش از یک‌سوم عرض تا تصادفی حذف نشود
-        positionalThreshold = { total -> total * 0.38f }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
+    SwipeActionRow(
+        onDelete = onSwipeDelete,
+        onEdit = onSwipeEdit,
         // در حالت انتخاب چندتایی، کشیدن غیرفعال است تا با انتخاب تداخل نکند
-        gesturesEnabled = !selecting,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(72.dp)
-                    .clip(RoundedCornerShape(skin.cardCorner))
-                    .background(skin.expenseColor.copy(alpha = 0.22f))
-                    .padding(horizontal = 22.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = null,
-                        tint = skin.expenseColor,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("حذف", color = skin.expenseColor, style = MaterialTheme.typography.labelLarge)
-                }
-            }
-        }
+        enabled = !selecting
     ) {
         SkinCard(
             modifier = Modifier

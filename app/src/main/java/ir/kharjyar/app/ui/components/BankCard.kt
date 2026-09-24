@@ -226,10 +226,10 @@ fun BankCard(
                 Spacer(Modifier.height(10.dp))
 
                 if (accountNumber.isNotBlank()) {
-                    CardField("شماره حساب", Digits.toPersian(accountNumber), onCard) { onCopy("شماره حساب", accountNumber) }
+                    CardField("شماره حساب", Digits.ltr(Digits.toPersian(accountNumber)), onCard) { onCopy("شماره حساب", accountNumber) }
                 }
                 if (iban.isNotBlank()) {
-                    CardField("شبا", "IR" + Digits.toPersian(iban), onCard) { onCopy("شماره شبا", "IR$iban") }
+                    CardField("شبا", Digits.ltr("IR" + Digits.toPersian(iban)), onCard) { onCopy("شماره شبا", "IR$iban") }
                 }
                 if (expiry.isNotBlank() || cvv2.isNotBlank()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -241,7 +241,7 @@ fun BankCard(
                                     color = onCard.copy(alpha = 0.7f)
                                 )
                                 Text(
-                                    Digits.toPersian(expiry),
+                                    Digits.ltr(Digits.toPersian(expiry)),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = onCard
@@ -256,7 +256,7 @@ fun BankCard(
                                     color = onCard.copy(alpha = 0.7f)
                                 )
                                 Text(
-                                    if (showSecrets) Digits.toPersian(cvv2) else "•••",
+                                    if (showSecrets) Digits.ltr(Digits.toPersian(cvv2)) else "•••",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = onCard
@@ -307,13 +307,18 @@ private fun CardField(
     }
 }
 
-/** گروه‌بندی چهارتایی شماره کارت؛ در حالت مخفی فقط چهار رقم آخر دیده می‌شود. */
+/**
+ * گروه‌بندی چهارتایی شماره کارت؛ در حالت مخفی فقط چهار رقم آخر دیده می‌شود.
+ *
+ * خروجی داخل ایزوله چپ‌به‌راست پیچیده می‌شود تا در چیدمان راست‌به‌چپ، ترتیب
+ * گروه‌ها برعکس دیده نشود (۵۰۲۹ باید سمت چپ‌ترین نباشد بلکه اولین گروه بماند).
+ */
 private fun formatCardNumber(raw: String, reveal: Boolean): String {
     val digits = Digits.normalize(raw).filter { it.isDigit() }
     if (digits.isEmpty()) return ""
     val shown = if (reveal || digits.length <= 4) digits
     else "•".repeat(digits.length - 4) + digits.takeLast(4)
-    return Digits.toPersian(shown.chunked(4).joinToString("  "))
+    return Digits.ltr(Digits.toPersian(shown.chunked(4).joinToString("  ")))
 }
 
 private fun Color.lighten(f: Float) = Color(

@@ -40,6 +40,9 @@ import ir.kharjyar.app.data.db.CategoryEntity
 import ir.kharjyar.app.data.db.CategoryRuleEntity
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.core.text.Digits
+import androidx.compose.runtime.LaunchedEffect
+import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.EmptyState
 import kotlinx.coroutines.launch
 
@@ -53,6 +56,13 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var editCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var showNewCategory by remember { mutableStateOf(false) }
     var showNewRule by remember { mutableStateOf(false) }
+    // دسته در انتظار تأیید حذف (کشیدن انگشت روی کارت)
+    var pendingDelete by remember { mutableStateOf<CategoryEntity?>(null) }
+    var pendingDeleteUsage by remember { mutableStateOf(0) }
+
+    LaunchedEffect(pendingDelete?.id) {
+        pendingDelete?.let { pendingDeleteUsage = viewModel.repo.categoryDao.usageCount(it.id) }
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 Spacer(Modifier.padding(4.dp))
@@ -68,12 +78,19 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(categories.size) { i ->
                     val c = categories[i]
-                    SkinCard(modifier = Modifier.fillMaxWidth().clickable { editCategory = c }) {
-                        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(14.dp).background(Color(c.colorArgb), CircleShape))
-                            Spacer(Modifier.width(12.dp))
-                            Text(c.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                            if (c.archived) Text("بایگانی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    SwipeActionRow(
+                        onDelete = { pendingDelete = c },
+                        onEdit = { editCategory = c },
+                        // حذف دسته تأییدیه دارد، پس ردیف بلافاصله برداشته نمی‌شود
+                        removeOnDelete = false
+                    ) {
+                        SkinCard(modifier = Modifier.fillMaxWidth().clickable { editCategory = c }) {
+                            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(14.dp).background(Color(c.colorArgb), CircleShape))
+                                Spacer(Modifier.width(12.dp))
+                                Text(c.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                                if (c.archived) Text("بایگانی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
@@ -105,6 +122,42 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                 }
             }
         }
+    }
+
+    // ---------- تأیید حذف دسته ----------
+    pendingDelete?.let { cat ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("حذف دسته") },
+            text = {
+                Text(
+                    if (pendingDeleteUsage > 0)
+                        "«${cat.name}» در ${Digits.toPersian(pendingDeleteUsage.toString())} تراکنش استفاده شده است. با حذف، آن تراکنش‌ها بدون دسته می‌شوند (خود تراکنش‌ها پاک نمی‌شوند)."
+                    else "«${cat.name}» حذف شود؟"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        viewModel.repo.categoryDao.detachTransactions(cat.id)
+                        viewModel.repo.categoryDao.deleteRulesOfCategory(cat.id)
+                        viewModel.repo.categoryDao.delete(cat.id)
+                        pendingDelete = null
+                    }
+                }) { Text("حذف", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        scope.launch {
+                            viewModel.repo.categoryDao.update(cat.copy(archived = true))
+                            pendingDelete = null
+                        }
+                    }) { Text("بایگانی") }
+                    TextButton(onClick = { pendingDelete = null }) { Text("انصراف") }
+                }
+            }
+        )
     }
 
     if (showNewCategory || editCategory != null) {

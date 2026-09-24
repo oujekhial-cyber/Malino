@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
@@ -103,11 +104,13 @@ fun LineChart(
     expenseSeries: List<Long>,
     modifier: Modifier = Modifier,
     incomeColor: Color = LocalAppSkin.current.incomeColor,
-    expenseColor: Color = LocalAppSkin.current.expenseColor
+    expenseColor: Color = LocalAppSkin.current.expenseColor,
+    /** ارتفاع ناحیه نمودار. */
+    height: Dp = 160.dp
 ) {
     val skin = LocalAppSkin.current
     val gridColor = skin.onBackdrop.copy(alpha = 0.12f)
-    Canvas(modifier = modifier.fillMaxWidth().height(160.dp)) {
+    Canvas(modifier = modifier.fillMaxWidth().height(height)) {
         val n = maxOf(incomeSeries.size, expenseSeries.size)
         if (n < 2) return@Canvas
         val maxValue = maxOf(incomeSeries.maxOrNull() ?: 0L, expenseSeries.maxOrNull() ?: 0L, 1L)

@@ -310,7 +310,8 @@ private fun FoundRow(label: String, value: String, group: Boolean = false) {
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    Digits.toPersian(if (group) value.chunked(4).joinToString(" ") else value),
+                    // ایزوله چپ‌به‌راست تا در صفحه راست‌به‌چپ، ترتیب گروه‌های عددی برعکس نشود
+                    Digits.ltr(Digits.toPersian(if (group) value.chunked(4).joinToString(" ") else value)),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Icon(

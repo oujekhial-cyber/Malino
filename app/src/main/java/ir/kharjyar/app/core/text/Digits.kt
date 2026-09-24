@@ -47,6 +47,33 @@ object Digits {
         return sb.toString()
     }
 
+    /** آغازگر ایزوله چپ‌به‌راست (نامرئی). */
+    const val LRI = '\u2066'
+
+    /** پایان ایزوله جهت‌دار (نامرئی). */
+    const val PDI = '\u2069'
+
+    /**
+     * رشته را داخل «ایزوله چپ‌به‌راست» می‌گذارد.
+     *
+     * در متن راست‌به‌چپ، گروه‌های عددی که با فاصله از هم جدا شده‌اند برعکس چیده
+     * می‌شوند (مثلاً شماره کارت «۵۰۲۹ ۰۸۱۰ ۸۳۲۴ ۸۶۰۵» به شکل «۸۶۰۵ ۸۳۲۴ ۰۸۱۰ ۵۰۲۹»
+     * دیده می‌شود). این دو نویسه نامرئی، ترتیب داخلی را چپ‌به‌راست نگه می‌دارند
+     * بدون اینکه چینش راست‌چین بقیه متن به‌هم بخورد.
+     */
+    fun ltr(input: String): String =
+        if (input.isEmpty()) input else "$LRI$input$PDI"
+
+    /** حذف نویسه‌های جهت‌دهی از یک رشته (برای مقایسه و کپی). */
+    fun stripBidi(input: String): String = input.filter { it != LRI && it != PDI }
+
+    /**
+     * گروه‌بندی چهارتایی شماره کارت با ترتیب درست در محیط راست‌به‌چپ.
+     * ورودی فقط ارقام لاتین است؛ خروجی آماده نمایش (با ارقام انتخابی کاربر).
+     */
+    fun cardGroups(digits: String, separator: String = "  "): String =
+        ltr(toPersian(digits.chunked(4).joinToString(separator)))
+
     /** تبدیل اجباری به ارقام فارسی، بدون توجه به تنظیم کاربر. */
     fun toPersianAlways(input: String): String {
         val sb = StringBuilder(input.length)
