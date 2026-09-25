@@ -1,5 +1,6 @@
 package ir.kharjyar.app
 
+import ir.kharjyar.app.ui.components.bankAssetKey
 import ir.kharjyar.app.ui.components.bankColorOf
 import ir.kharjyar.app.ui.components.bankShortOf
 import org.junit.Assert.assertEquals
@@ -89,26 +90,36 @@ class SwipeAndBankLogoGuardTest {
     }
 
     @Test
-    fun `every offered bank has its own mark`() {
+    fun `every offered bank has its real logo file`() {
         val screen = source("src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt")
         val listing = screen.substringAfter("private val bankNames = listOf(").substringBefore(")")
         val names = Regex("\"([^\"]+)\"").findAll(listing).map { it.groupValues[1] }.toList()
         assertTrue("فهرست بانک‌ها پیدا نشد", names.size > 20)
         for (name in names) {
             if (name == "سایر") continue
-            assertNotNull("رنگ نشان بانک «$name» تعریف نشده", bankColorOf(name))
-            assertTrue("کوته‌نوشت بانک «$name» خالی است", bankShortOf(name).isNotBlank())
-            assertTrue("کوته‌نوشت بانک «$name» برای دایره نشان بلند است", bankShortOf(name).length <= 5)
+            val key = bankAssetKey(name)
+            assertNotNull("لوگوی بانک «$name» تعریف نشده", key)
+            val file = File("src/main/res/drawable-xxxhdpi/bank_$key.png")
+            assertTrue("فایل لوگوی بانک «$name» ($key) نیست", file.isFile && file.length() > 0)
+            assertNotNull("رنگ بانک «$name» تعریف نشده", bankColorOf(name))
         }
     }
 
     @Test
-    fun `bank mark tolerates the word bank and unknown names`() {
-        assertEquals(bankColorOf("ملت"), bankColorOf("بانک ملت"))
-        assertEquals("ملت", bankShortOf("بانک ملت"))
-        // بانک ناشناس نباید برنامه را بشکند؛ فقط نشان خنثی می‌گیرد
+    fun `bank logo tolerates the word bank and unknown names`() {
+        assertEquals("mellat", bankAssetKey("بانک ملت"))
+        assertEquals("mellat", bankAssetKey("ملت"))
+        assertEquals("melal", bankAssetKey("موسسه اعتباری ملل"))
+        // «صادرات» و «توسعه صادرات» دو بانک جدا هستند
+        assertEquals("saderat", bankAssetKey("بانک صادرات"))
+        assertEquals("toseesaderat", bankAssetKey("بانک توسعه صادرات"))
+        assertEquals("mehriran", bankAssetKey("قرض‌الحسنه مهر"))
+        assertEquals("toseetaavon", bankAssetKey("توسعه تعاون"))
+        // بانک ناشناس نباید برنامه را بشکند؛ فقط نشان ساده می‌گیرد
+        assertEquals(null, bankAssetKey("بانک خیالی"))
         assertEquals(null, bankColorOf("بانک خیالی"))
         assertTrue(bankShortOf("بانک خیالی").isNotEmpty())
+        assertTrue(bankShortOf("سایر").isNotEmpty())
     }
 
     @Test
@@ -119,5 +130,7 @@ class SwipeAndBankLogoGuardTest {
         assertTrue("نشان بانک در فهرست حساب‌ها نیست", accounts.contains("BankLogo("))
         val edit = source("src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt")
         assertTrue("نشان بانک کنار نام بانک در فهرست انتخاب نیست", edit.contains("leadingOf = { BankLogo("))
+        val logo = source("src/main/java/ir/kharjyar/app/ui/components/BankLogo.kt")
+        assertTrue("لوگوی واقعی بانک‌ها استفاده نمی‌شود", logo.contains("painterResource"))
     }
 }

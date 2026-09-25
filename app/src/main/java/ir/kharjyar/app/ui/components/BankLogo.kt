@@ -1,8 +1,11 @@
 package ir.kharjyar.app.ui.components
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -16,95 +19,191 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ir.kharjyar.app.R
 
 /**
- * نشان بانک.
+ * نشان (لوگو) بانک‌ها.
  *
- * این‌ها آرم رسمی بانک‌ها نیستند (استفاده از آرم ثبت‌شده بانک‌ها داخل برنامه
- * مجوز می‌خواهد و فایل تصویری هم حجم اضافه می‌آورد). به‌جایش برای هر بانک یک
- * «نشان» ساخته می‌شود: دایره‌ای با رنگ شناخته‌شده همان بانک و کوته‌نوشت نامش.
- * نتیجه در عمل همان کارکرد آرم را دارد: هر بانک در کارت و در فهرست بانک‌ها
- * با رنگ و نشان خودش شناخته می‌شود.
+ * تصویر خودِ لوگوی رسمی هر بانک داخل برنامه است (`res/drawable-xxxhdpi/bank_*.png`).
+ * لوگوها از مجموعه «Iranian Bank Logos» (amastaneh/IranianBankLogos، پروانه ISC)
+ * گرفته شده‌اند که نسخه منتشرشده روی سایت بانک مرکزی است؛ نوشته نام بانک از زیر
+ * هر لوگو بریده شده تا فقط خودِ نشان بماند و در اندازه کوچک خوانا باشد. مجموع
+ * حجم ۳۲ تصویر حدود ۱۴۰ کیلوبایت است.
+ *
+ * اگر نام بانکی در فهرست نباشد (مثلاً «سایر» یا نام دست‌نویس کاربر)، به‌جای لوگو
+ * یک نشان ساده با رنگ و کوته‌نوشت همان نام ساخته می‌شود.
  */
-private val bankColors: Map<String, Color> = mapOf(
-    "توسعه تعاون" to Color(0xFF00A79D),
-    "ملی" to Color(0xFF1B4F9C),
-    "ملت" to Color(0xFFE5006D),
-    "صادرات" to Color(0xFF0B4EA2),
-    "تجارت" to Color(0xFF00539F),
-    "سپه" to Color(0xFF1F3C88),
-    "کشاورزی" to Color(0xFF0F8A3D),
-    "مسکن" to Color(0xFF0B3D91),
-    "رفاه" to Color(0xFF00795B),
-    "پاسارگاد" to Color(0xFFC9A227),
-    "پارسیان" to Color(0xFFD71920),
-    "سامان" to Color(0xFF0072BC),
-    "اقتصاد نوین" to Color(0xFF00A0AF),
-    "شهر" to Color(0xFFE4002B),
-    "دی" to Color(0xFF16A085),
-    "سینا" to Color(0xFF005BAA),
-    "کارآفرین" to Color(0xFF0F6B3B),
-    "آینده" to Color(0xFF6A1B9A),
-    "گردشگری" to Color(0xFF00B0B9),
-    "ایران زمین" to Color(0xFF2E7D32),
-    "خاورمیانه" to Color(0xFF17375E),
-    "رسالت" to Color(0xFF1E8449),
-    "قرض‌الحسنه مهر" to Color(0xFF0D6E9E),
-    "پست بانک" to Color(0xFFF2A900)
+
+/** کلید فایل لوگو برای هر بانک؛ ترتیب فهرست مهم است (خاص‌ها اول). */
+private val logoKeys: List<Pair<String, String>> = listOf(
+    // نام‌های چندبخشی که نباید با نام کوتاه‌تر اشتباه گرفته شوند
+    "توسعه تعاون" to "toseetaavon",
+    "توسعه صادرات" to "toseesaderat",
+    "ایران زمین" to "iranzamin",
+    "ایران ونزوئلا" to "iranvenezuela",
+    "ایران و ونزوئلا" to "iranvenezuela",
+    "مهر ایران" to "mehriran",
+    "قرض الحسنه مهر" to "mehriran",
+    "صنعت و معدن" to "sanatmadan",
+    "اقتصاد نوین" to "eghtesadnovin",
+    "رفاه کارگران" to "refah",
+    "پست بانک" to "post",
+    // نام‌های تک‌واژه‌ای
+    "ملی" to "melli",
+    "ملت" to "mellat",
+    "ملل" to "melal",
+    "صادرات" to "saderat",
+    "تجارت" to "tejarat",
+    "سپه" to "sepah",
+    "کشاورزی" to "keshavarzi",
+    "مسکن" to "maskan",
+    "رفاه" to "refah",
+    "پاسارگاد" to "pasargad",
+    "پارسیان" to "parsian",
+    "سامان" to "saman",
+    "شهر" to "shahr",
+    "دی" to "day",
+    "سینا" to "sina",
+    "کارآفرین" to "karafarin",
+    "آینده" to "ayandeh",
+    "گردشگری" to "gardeshgari",
+    "خاورمیانه" to "khavarmianeh",
+    "رسالت" to "resalat",
+    "مهر" to "mehriran",
+    "پست" to "post",
+    "انصار" to "ansar",
+    "سرمایه" to "sarmayeh",
+    "حکمت" to "hekmat",
+    "قوامین" to "ghavamin"
 )
 
-/** کوته‌نوشت نام بانک برای نشستن داخل دایره نشان. */
-private val bankShort: Map<String, String> = mapOf(
-    "توسعه تعاون" to "تعاون",
-    "ملی" to "ملی",
-    "ملت" to "ملت",
-    "صادرات" to "صاد",
-    "تجارت" to "تج",
-    "سپه" to "سپه",
-    "کشاورزی" to "کشا",
-    "مسکن" to "مسکن",
-    "رفاه" to "رفاه",
-    "پاسارگاد" to "پاس",
-    "پارسیان" to "پار",
-    "سامان" to "سام",
-    "اقتصاد نوین" to "نوین",
-    "شهر" to "شهر",
-    "دی" to "دی",
-    "سینا" to "سینا",
-    "کارآفرین" to "کار",
-    "آینده" to "آینده",
-    "گردشگری" to "گرد",
-    "ایران زمین" to "ایران",
-    "خاورمیانه" to "خاور",
-    "رسالت" to "رسالت",
-    "قرض‌الحسنه مهر" to "مهر",
-    "پست بانک" to "پست"
+private val logoRes: Map<String, Int> = mapOf(
+    "toseetaavon" to R.drawable.bank_toseetaavon,
+    "toseesaderat" to R.drawable.bank_toseesaderat,
+    "iranzamin" to R.drawable.bank_iranzamin,
+    "iranvenezuela" to R.drawable.bank_iranvenezuela,
+    "mehriran" to R.drawable.bank_mehriran,
+    "sanatmadan" to R.drawable.bank_sanatmadan,
+    "eghtesadnovin" to R.drawable.bank_eghtesadnovin,
+    "refah" to R.drawable.bank_refah,
+    "post" to R.drawable.bank_post,
+    "melli" to R.drawable.bank_melli,
+    "mellat" to R.drawable.bank_mellat,
+    "melal" to R.drawable.bank_melal,
+    "saderat" to R.drawable.bank_saderat,
+    "tejarat" to R.drawable.bank_tejarat,
+    "sepah" to R.drawable.bank_sepah,
+    "keshavarzi" to R.drawable.bank_keshavarzi,
+    "maskan" to R.drawable.bank_maskan,
+    "pasargad" to R.drawable.bank_pasargad,
+    "parsian" to R.drawable.bank_parsian,
+    "saman" to R.drawable.bank_saman,
+    "shahr" to R.drawable.bank_shahr,
+    "day" to R.drawable.bank_day,
+    "sina" to R.drawable.bank_sina,
+    "karafarin" to R.drawable.bank_karafarin,
+    "ayandeh" to R.drawable.bank_ayandeh,
+    "gardeshgari" to R.drawable.bank_gardeshgari,
+    "khavarmianeh" to R.drawable.bank_khavarmianeh,
+    "resalat" to R.drawable.bank_resalat,
+    "ansar" to R.drawable.bank_ansar,
+    "sarmayeh" to R.drawable.bank_sarmayeh,
+    "hekmat" to R.drawable.bank_hekmat,
+    "ghavamin" to R.drawable.bank_ghavamin
+)
+
+/** نام بانک را برای مقایسه ساده می‌کند: بدون «بانک»/«موسسه»، بدون نیم‌فاصله. */
+private fun normalizeBank(bankName: String): String =
+    bankName
+        .replace('\u200c', ' ')
+        .replace('ي', 'ی')
+        .replace('ك', 'ک')
+        .replace("بانک", " ")
+        .replace("موسسه", " ")
+        .replace("مؤسسه", " ")
+        .replace("اعتباری", " ")
+        .replace("الحسنه", " ")
+        .replace("قرض", " قرض ")
+        .split(' ', '\t', '\n')
+        .filter { it.isNotBlank() }
+        .joinToString(" ")
+
+/**
+ * کلید فایل لوگوی بانک (مثلاً `mellat`) یا null اگر بانک شناخته نشود.
+ * بیرون از Compose هم قابل استفاده است، پس تست‌پذیر می‌ماند.
+ */
+fun bankAssetKey(bankName: String): String? {
+    val n = normalizeBank(bankName)
+    if (n.isBlank()) return null
+    for ((needle, key) in logoKeys) {
+        val nn = normalizeBank(needle)
+        if (n == nn || n.contains(nn)) return key
+    }
+    return null
+}
+
+/** شناسه تصویر لوگوی بانک، یا null اگر بانک شناخته نشود. */
+@DrawableRes
+fun bankLogoRes(bankName: String): Int? = bankAssetKey(bankName)?.let { logoRes[it] }
+
+/** رنگ شناخته‌شده بانک؛ برای حلقه دور نشان و نشان جایگزین. */
+private val bankColors: Map<String, Color> = mapOf(
+    "toseetaavon" to Color(0xFF00A79D),
+    "melli" to Color(0xFF1B4F9C),
+    "mellat" to Color(0xFFD12236),
+    "saderat" to Color(0xFF2B1A6B),
+    "tejarat" to Color(0xFF1B3D8F),
+    "sepah" to Color(0xFF1F3C88),
+    "keshavarzi" to Color(0xFF0F8A3D),
+    "maskan" to Color(0xFFF4623A),
+    "refah" to Color(0xFF7A1F7A),
+    "pasargad" to Color(0xFFE8B10D),
+    "parsian" to Color(0xFF8E1B3A),
+    "saman" to Color(0xFF29ABE2),
+    "eghtesadnovin" to Color(0xFF7B1FA2),
+    "shahr" to Color(0xFFE4002B),
+    "day" to Color(0xFF00A3A1),
+    "sina" to Color(0xFF1B3F94),
+    "karafarin" to Color(0xFF1B6B3A),
+    "ayandeh" to Color(0xFF6B4226),
+    "gardeshgari" to Color(0xFFB2182B),
+    "iranzamin" to Color(0xFF8E44AD),
+    "khavarmianeh" to Color(0xFFF39200),
+    "resalat" to Color(0xFF00A0A0),
+    "mehriran" to Color(0xFF7CBB3F),
+    "post" to Color(0xFF0F8A3D),
+    "ansar" to Color(0xFFD9262E),
+    "sarmayeh" to Color(0xFF1B3F60),
+    "melal" to Color(0xFFF07E26),
+    "hekmat" to Color(0xFF1B6BA8),
+    "ghavamin" to Color(0xFF00A651),
+    "sanatmadan" to Color(0xFF1B3D8F),
+    "toseesaderat" to Color(0xFF0F7A3D),
+    "iranvenezuela" to Color(0xFF283593)
 )
 
 /** رنگ شناخته‌شده بانک؛ اگر بانک ناشناس باشد null. */
-fun bankColorOf(bankName: String): Color? {
-    val key = bankName.trim().removePrefix("بانک ").trim()
-    return bankColors[key] ?: bankColors.entries.firstOrNull { key.contains(it.key) }?.value
-}
+fun bankColorOf(bankName: String): Color? = bankAssetKey(bankName)?.let { bankColors[it] }
 
-/** کوته‌نوشت نام بانک؛ برای بانک ناشناس، دو حرف اول نام. */
+/** کوته‌نوشت نام بانک، برای وقتی لوگویی در دست نیست. */
 fun bankShortOf(bankName: String): String {
-    val key = bankName.trim().removePrefix("بانک ").trim()
-    bankShort[key]?.let { return it }
-    bankShort.entries.firstOrNull { key.contains(it.key) }?.let { return it.value }
-    return key.take(3)
+    val n = normalizeBank(bankName)
+    if (n.isBlank()) return ""
+    val first = n.split(' ').first()
+    return if (first.length <= 5) first else first.take(4)
 }
 
 /**
- * نشان دایره‌ای بانک.
+ * نشان بانک: لوگوی رسمی داخل یک دایره سفید.
  *
- * @param bankName نام بانک همان‌طور که کاربر در حساب ثبت کرده است.
- * @param ringColor اگر نشان روی کارت رنگی بنشیند، رنگ حلقه دور آن.
+ * @param ringColor رنگ حلقه دور نشان (مثلاً رنگ خود حساب یا رنگ متن کارت).
  */
 @Composable
 fun BankLogo(
@@ -113,26 +212,45 @@ fun BankLogo(
     size: Dp = 34.dp,
     ringColor: Color? = null
 ) {
-    val base = bankColorOf(bankName)
-    val label = bankShortOf(bankName)
-    val onBadge = if (base != null && base.luminance() > 0.6f) Color(0xFF14121A) else Color.White
+    val res = bankLogoRes(bankName)
+    val ring = (ringColor ?: Color(0xFF9E9E9E)).copy(alpha = if (ringColor != null) 0.75f else 0.35f)
 
+    if (res != null) {
+        Box(
+            modifier = modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(if (ringColor != null) 1.5.dp else 1.dp, ring, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(res),
+                contentDescription = bankName,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        return
+    }
+
+    // بانک ناشناس: نشان ساده با کوته‌نوشت نام
+    val label = bankShortOf(bankName)
+    val base = bankColorOf(bankName)
+    val onBadge = if (base != null && base.luminance() > 0.6f) Color(0xFF14121A) else Color.White
     Box(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
             .background(
-                if (base != null) {
-                    Brush.linearGradient(listOf(base.lighten(0.22f), base.darken(0.18f)))
-                } else {
-                    Brush.linearGradient(listOf(Color(0xFF6E6E78), Color(0xFF3C3C45)))
-                }
+                Brush.linearGradient(
+                    listOf(
+                        (base ?: Color(0xFF6E6E78)).lighten(0.22f),
+                        (base ?: Color(0xFF3C3C45)).darken(0.18f)
+                    )
+                )
             )
-            .border(
-                if (ringColor != null) 1.5.dp else 1.dp,
-                (ringColor ?: onBadge).copy(alpha = if (ringColor != null) 0.75f else 0.4f),
-                CircleShape
-            ),
+            .border(if (ringColor != null) 1.5.dp else 1.dp, ring, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         if (label.isBlank()) {
