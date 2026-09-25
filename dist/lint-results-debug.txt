@@ -336,13 +336,13 @@ espresso = "3.6.1"
    However, you may simply not be aware that a more recent version is
    available, and that is what this lint check helps find.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/BankCard.kt:107: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/BankCard.kt:106: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier,
     ~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Pickers.kt:293: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier
     ~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt:292: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt:315: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier,
     ~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:332: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
@@ -414,10 +414,10 @@ espresso = "3.6.1"
 
    There's a lint quickfix to perform this conversion in the Eclipse plugin.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:93: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:94: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var color by remember { mutableStateOf(DEFAULT_ACCOUNT_COLOR) }
                             ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:111: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:112: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var txCount by remember { mutableStateOf(0) }
                               ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountsScreen.kt:59: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]

@@ -2,11 +2,11 @@
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:mergeReleaseJniLibFolders
 > Task :app:buildKotlinToolingMetadata
-> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :app:mergeReleaseNativeLibs
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateReleaseResValues
 > Task :app:checkReleaseDuplicateClasses
 > Task :app:checkReleaseAarMetadata
-> Task :app:generateReleaseResValues
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:generateReleaseResources
 
@@ -19,9 +19,9 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
+> Task :app:processReleaseManifestForPackage
 > Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractReleaseNativeSymbolTables
-> Task :app:processReleaseManifestForPackage
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:mergeReleaseArtProfile
 > Task :app:extractProguardFiles
@@ -30,9 +30,9 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
 > Task :app:mergeReleaseAssets
-> Task :app:compressReleaseAssets
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:processApplicationManifestReleaseForBundle
+> Task :app:compressReleaseAssets
 > Task :app:collectReleaseDependencies
 > Task :app:sdkReleaseDependencyData
 > Task :app:validateSigningRelease
