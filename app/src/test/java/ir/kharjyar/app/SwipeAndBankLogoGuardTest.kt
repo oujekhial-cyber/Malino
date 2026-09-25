@@ -234,12 +234,13 @@ class SwipeAndBankLogoGuardTest {
     }
 
     @Test
-    fun `deposit and withdraw chips filter the recent list`() {
+    fun `deposit and withdraw chips open the matching transaction list`() {
         val dash = source("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt")
-        assertTrue("فیلتر فهرست اخیر نیست", dash.contains("recentFilter"))
-        assertTrue("چیپ‌ها کلیک‌پذیر نیستند", dash.contains("onClick = { recentFilter ="))
-        assertTrue("فهرست فیلتر نمی‌شود", dash.contains("shownRecent"))
-        assertTrue("راه برگشت به همه تراکنش‌ها نیست", dash.contains("نمایش همه"))
+        assertTrue("میان‌بر واریز نیست", dash.contains("nav.navigate(\"transactions/deposit\")"))
+        assertTrue("میان‌بر برداشت نیست", dash.contains("nav.navigate(\"transactions/withdraw\")"))
+        val tx = source("src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt")
+        assertTrue("فیلتر جهت بانکی نیست", tx.contains("filterDirection"))
+        assertTrue("انتقال‌ها بر اساس جهت فیلتر نمی‌شوند", tx.contains("tx.direction == filterDirection"))
     }
 
     @Test
