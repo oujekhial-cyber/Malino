@@ -256,6 +256,7 @@ fun TransactionsScreen(
                     ) { _, tx ->
                         TransactionRow(
                             tx = tx,
+                            account = accounts.firstOrNull { it.id == tx.accountId },
                             categoryName = categories.firstOrNull { it.id == tx.categoryId }?.name,
                             unit = settings.moneyUnit,
                             selecting = selecting,
@@ -308,6 +309,7 @@ private fun ProfessionalFilterChip(
 @Composable
 private fun TransactionRow(
     tx: TransactionEntity,
+    account: ir.kharjyar.app.data.db.AccountEntity?,
     categoryName: String?,
     unit: ir.kharjyar.app.core.money.MoneyUnit,
     selecting: Boolean,
@@ -358,6 +360,19 @@ private fun TransactionRow(
                                 it,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                    account?.let { acc ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            ir.kharjyar.app.ui.components.BankLogo(bankName = acc.bankName, size = 22.dp)
+                            Text(
+                                acc.title,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }

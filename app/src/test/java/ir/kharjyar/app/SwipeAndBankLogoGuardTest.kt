@@ -201,7 +201,9 @@ class SwipeAndBankLogoGuardTest {
         val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
         // در حالت انتخاب‌شده، دیگر پرسش «این پول چه بود؟» نمایش داده نمی‌شود
         assertTrue(manual.contains("presetTransfer"))
-        assertTrue(manual.contains("TransferDirectionPicker"))
+        assertTrue(manual.contains("مقصد انتقال"))
+        assertTrue(manual.contains("حساب دیگر خودم در خرج‌یار"))
+        assertFalse("انتقال نباید دسته‌بندی بخواهد", manual.contains("presetTransfer) {\n                CategoryPicker"))
     }
 
     @Test

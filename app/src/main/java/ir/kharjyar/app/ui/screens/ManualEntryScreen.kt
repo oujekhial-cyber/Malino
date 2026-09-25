@@ -86,6 +86,9 @@ fun ManualEntryScreen(
         )
     }
     var categoryId by remember { mutableStateOf<Long?>(null) }
+    /** انتقال به یکی از حساب‌های ثبت‌شده خود کاربر یا به شخص دیگر. */
+    var transferToOwn by remember { mutableStateOf(true) }
+    var targetAccountId by remember { mutableStateOf<Long?>(null) }
     var description by remember { mutableStateOf("") }
     // تاریخ و ساعتِ همین لحظهٔ باز شدن فرم؛ کاربر می‌تواند تغییرش دهد
     val now = remember { PersianDate.nowHourMinute() }
@@ -140,35 +143,54 @@ fun ManualEntryScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // در حالت انتقال فقط می‌پرسیم پول از این حساب رفت یا به آن آمد؛
-            // پرسش «این پول چه بود؟» دیگر لازم نیست چون نوع عملیات از همان
-            // پنجره «انتخاب عملیات» مشخص شده است.
             if (presetTransfer) {
-                TransferDirectionPicker(direction) { direction = it }
-            } else if (presetDirection == null) {
-                NaturePicker(
-                    nature = nature,
-                    direction = direction,
-                    onNature = { nature = it },
-                    onDirection = { direction = it }
+                // انتقال دسته‌بندی ندارد؛ فقط مشخص می‌کنیم مقصد یکی از حساب‌های
+                // خود کاربر است یا حساب شخص دیگر.
+                ComboBox(
+                    label = "مقصد انتقال",
+                    options = listOf(true, false),
+                    selected = transferToOwn,
+                    labelOf = { if (it) "حساب دیگر خودم در خرج‌یار" else "حساب شخص دیگر" },
+                    onSelect = { transferToOwn = it; targetAccountId = null }
                 )
-            }
-            CategoryPicker(
-                categories = categories,
-                selectedId = categoryId,
-                nature = nature,
-                onCreate = { name ->
-                    scope.launch {
-                        val id = viewModel.repo.categoryDao.insert(
-                            ir.kharjyar.app.data.db.CategoryEntity(
-                                name = name,
-                                colorArgb = 0xFF6C8AE4
-                            )
-                        )
-                        categoryId = id
-                    }
+                if (transferToOwn) {
+                    val targets = active.filter { it.id != accountId }
+                    ComboBox(
+                        label = "واریز به حساب",
+                        options = targets.map { it.id },
+                        selected = targetAccountId ?: 0L,
+                        labelOf = { id -> targets.firstOrNull { it.id == id }?.let { "${it.title} — ${it.bankName}" } ?: "انتخاب حساب مقصد" },
+                        onSelect = { targetAccountId = it }
+                    )
+                    Text(
+                        "برداشت از حساب مبدأ و واریز به حساب مقصد هم‌زمان ثبت می‌شود.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            ) { categoryId = it }
+            } else {
+                if (presetDirection == null) {
+                    NaturePicker(
+                        nature = nature,
+                        direction = direction,
+                        onNature = { nature = it },
+                        onDirection = { direction = it }
+                    )
+                }
+                CategoryPicker(
+                    categories = categories,
+                    selectedId = categoryId,
+                    nature = nature,
+                    onCreate = { name ->
+                        scope.launch {
+                            val id = viewModel.repo.categoryDao.insert(
+                                ir.kharjyar.app.data.db.CategoryEntity(name = name, colorArgb = 0xFF6C8AE4)
+                            )
+                            categoryId = id
+                        }
+                    }
+                ) { categoryId = it }
+            }
             DatePickerRow(date, hour, minute, onDate = { date = it }, onTime = { h, m -> hour = h; minute = m })
 
             OutlinedTextField(
@@ -195,18 +217,32 @@ fun ManualEntryScreen(
                     when {
                         acc == null -> error = "حساب را انتخاب کنید"
                         amount == null || amount <= 0 -> error = "مبلغ معتبر وارد کنید"
+                        presetTransfer && transferToOwn && targetAccountId == null -> error = "حساب مقصد را انتخاب کنید"
+                        presetTransfer && transferToOwn && targetAccountId == acc -> error = "حساب مبدأ و مقصد نمی‌تواند یکی باشد"
                         else -> {
                             error = null
                             scope.launch {
-                                viewModel.repo.addManualTransaction(
-                                    accountId = acc,
-                                    amountRial = amount,
-                                    direction = direction,
-                                    nature = nature,
-                                    categoryId = categoryId,
-                                    description = description.trim(),
-                                    occurredAt = PersianDate.toMillis(date, hour, minute)
-                                )
+                                val occurredAt = PersianDate.toMillis(date, hour, minute)
+                                if (presetTransfer && transferToOwn) {
+                                    viewModel.repo.addInternalTransfer(
+                                        fromAccountId = acc,
+                                        toAccountId = requireNotNull(targetAccountId),
+                                        amountRial = amount,
+                                        description = description.trim(),
+                                        occurredAt = occurredAt
+                                    )
+                                } else {
+                                    viewModel.repo.addManualTransaction(
+                                        accountId = acc,
+                                        amountRial = amount,
+                                        direction = if (presetTransfer) TxDirection.WITHDRAW else direction,
+                                        nature = nature,
+                                        categoryId = if (presetTransfer) null else categoryId,
+                                        description = description.trim(),
+                                        occurredAt = occurredAt,
+                                        counterparty = if (presetTransfer) "حساب شخص دیگر" else ""
+                                    )
+                                }
                                 ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
                                 nav.popBackStack()
                             }
@@ -259,18 +295,4 @@ private fun DirectionHeader(direction: Int, transfer: Boolean = false) {
             color = skin.onBackdrop
         )
     }
-}
-
-/** در حالت انتقال وجه: پول از این حساب رفت یا به این حساب آمد. */
-@Composable
-private fun TransferDirectionPicker(direction: Int, onDirection: (Int) -> Unit) {
-    ComboBox(
-        label = "جهت انتقال",
-        options = listOf(TxDirection.WITHDRAW, TxDirection.DEPOSIT),
-        selected = direction,
-        labelOf = {
-            if (it == TxDirection.WITHDRAW) "از این حساب رفت" else "به این حساب آمد"
-        },
-        onSelect = onDirection
-    )
 }

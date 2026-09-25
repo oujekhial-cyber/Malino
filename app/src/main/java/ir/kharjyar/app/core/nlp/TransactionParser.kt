@@ -36,7 +36,11 @@ data class ParsedTransaction(
     val dateExplicit: Boolean,
     val confidence: ParseConfidence,
     /** مواردی که پارسر مطمئن نیست و بهتر است کاربر بررسی کند. */
-    val warnings: List<String>
+    val warnings: List<String>,
+    /** حساب مقصد، فقط برای انتقال بین حساب‌های خود کاربر. */
+    val targetAccountId: Long? = null,
+    val targetAccountTitle: String? = null,
+    val transferToOwn: Boolean = false
 ) {
     /** بدون مبلغ یا بدون حساب نمی‌توان ثبت کرد. */
     val isComplete: Boolean get() = amountRial != null && amountRial > 0 && accountId != null
@@ -150,12 +154,26 @@ object TransactionParser {
         }
 
         // ---------- حساب ----------
-        val account = matchAccount(normalized, accounts)
+        val sourceAccount = if (isTransfer) {
+            matchAccountNear(normalized, accounts, listOf("از حساب", "از کارت", "از"))
+                ?: matchAccount(normalized, accounts)
+        } else matchAccount(normalized, accounts)
+        val targetAccount = if (isTransfer) {
+            matchAccountNear(normalized, accounts, listOf("به حساب", "به کارت", "به"), excludeId = sourceAccount?.id)
+        } else null
+        val transferToOwn = isTransfer && targetAccount != null
+        val account = sourceAccount
         if (account == null) {
             warnings.add(
                 if (accounts.isEmpty()) "هنوز حسابی ثبت نکرده‌اید"
                 else "حساب مشخص نشد؛ انتخابش کنید"
             )
+        }
+
+        if (isTransfer && targetAccount == null &&
+            !listOf("دیگران", "شخص دیگر", "حساب دیگری", "برای کسی", "به کسی").any { normalized.contains(it) }
+        ) {
+            warnings.add("مقصد انتقال مشخص نشد؛ انتقال به حساب دیگران در نظر گرفته شد")
         }
 
         // ---------- تاریخ ----------
@@ -192,7 +210,10 @@ object TransactionParser {
             minute = PersianDate.nowHourMinute().second,
             dateExplicit = explicit,
             confidence = confidence,
-            warnings = warnings
+            warnings = warnings,
+            targetAccountId = targetAccount?.id,
+            targetAccountTitle = targetAccount?.title,
+            transferToOwn = transferToOwn
         )
     }
 
@@ -238,6 +259,32 @@ object TransactionParser {
         accounts.forEach { acc ->
             val titleWords = normalize(acc.title).split(" ").filter { it.length >= 3 }
             if (titleWords.any { it in words }) return acc
+        }
+        return null
+    }
+
+    /** حسابی که بعد از یکی از عبارت‌های «از …» یا «به …» آمده است. */
+    private fun matchAccountNear(
+        text: String,
+        accounts: List<ParserAccount>,
+        markers: List<String>,
+        excludeId: Long? = null
+    ): ParserAccount? {
+        val candidates = accounts.filter { it.id != excludeId }
+        for (marker in markers.sortedByDescending { it.length }) {
+            var start = 0
+            while (true) {
+                val index = text.indexOf(marker, start)
+                if (index < 0) break
+                val window = text.substring(index + marker.length).take(50)
+                candidates.sortedByDescending { maxOf(it.title.length, it.bankName.length) }.forEach { account ->
+                    val title = normalize(account.title)
+                    val bank = normalize(account.bankName)
+                    if ((title.isNotBlank() && window.contains(title)) ||
+                        (bank.isNotBlank() && window.contains(bank))) return account
+                }
+                start = index + marker.length
+            }
         }
         return null
     }

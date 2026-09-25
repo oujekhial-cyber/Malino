@@ -51,4 +51,22 @@ class LatestUiRoundGuardTest {
         assertTrue(t.contains("ProfessionalFilterChip"))
         assertTrue(t.contains("پاک کردن"))
     }
+
+    @Test fun `internal transfers create two linked rows without category`() {
+        val repo = source("src/main/java/ir/kharjyar/app/data/Repository.kt")
+        assertTrue(repo.contains("suspend fun addInternalTransfer("))
+        assertTrue(repo.contains("incomplete = false"))
+        assertTrue(repo.contains("direction = TxDirection.DEPOSIT"))
+        assertTrue(repo.contains("direction = TxDirection.WITHDRAW"))
+        assertTrue(repo.contains("categoryId = null"))
+        val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
+        assertTrue(manual.contains("حساب دیگر خودم در خرج‌یار"))
+        assertTrue(manual.contains("حساب شخص دیگر"))
+    }
+
+    @Test fun `transaction rows show bank logo beside account`() {
+        val tx = source("src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt")
+        assertTrue(tx.contains("BankLogo(bankName = acc.bankName"))
+        assertFalse("رنگ حساب نباید کنار نام حساب باشد", tx.contains("Color(acc.colorArgb)"))
+    }
 }

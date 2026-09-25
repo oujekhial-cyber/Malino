@@ -279,15 +279,29 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     val amount = p.amountRial
                     if (accId != null && amount != null) {
                         scope.launch {
-                            viewModel.repo.addManualTransaction(
-                                accountId = accId,
-                                amountRial = amount,
-                                direction = p.direction,
-                                nature = p.nature,
-                                categoryId = p.categoryId,
-                                description = p.description,
-                                occurredAt = PersianDate.toMillis(p.date, p.hour, p.minute)
-                            )
+                            val occurredAt = PersianDate.toMillis(p.date, p.hour, p.minute)
+                            if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER &&
+                                p.transferToOwn && p.targetAccountId != null
+                            ) {
+                                viewModel.repo.addInternalTransfer(
+                                    fromAccountId = accId,
+                                    toAccountId = p.targetAccountId,
+                                    amountRial = amount,
+                                    description = p.description,
+                                    occurredAt = occurredAt
+                                )
+                            } else {
+                                viewModel.repo.addManualTransaction(
+                                    accountId = accId,
+                                    amountRial = amount,
+                                    direction = p.direction,
+                                    nature = p.nature,
+                                    categoryId = if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER) null else p.categoryId,
+                                    description = p.description,
+                                    occurredAt = occurredAt,
+                                    counterparty = if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER) "حساب شخص دیگر" else ""
+                                )
+                            }
                             saved = true
                             input = ""
                             parsed = null
@@ -347,8 +361,22 @@ private fun ResultCard(
             Spacer(Modifier.height(12.dp))
 
             InfoRow("مبلغ", parsed.amountRial?.let { Money.format(it, unit) } ?: "— مشخص نشد", tint)
-            InfoRow("نوع", if (isDeposit) "واریز" else "برداشت", skin.onBackdrop)
-            InfoRow("حساب", parsed.accountTitle ?: "— انتخاب نشده", skin.onBackdrop)
+            InfoRow(
+                "نوع",
+                when (parsed.nature) {
+                    ir.kharjyar.app.data.db.TxNature.TRANSFER -> "انتقال وجه"
+                    else -> if (isDeposit) "واریز" else "برداشت"
+                },
+                skin.onBackdrop
+            )
+            InfoRow("از حساب", parsed.accountTitle ?: "— انتخاب نشده", skin.onBackdrop)
+            if (parsed.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER) {
+                InfoRow(
+                    "به حساب",
+                    if (parsed.transferToOwn) parsed.targetAccountTitle ?: "— انتخاب نشده" else "حساب شخص دیگر",
+                    skin.onBackdrop
+                )
+            }
             InfoRow("دسته", parsed.categoryName ?: "بدون دسته", skin.onBackdrop)
             InfoRow(
                 "تاریخ",

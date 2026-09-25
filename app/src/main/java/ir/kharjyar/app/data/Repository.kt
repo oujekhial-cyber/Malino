@@ -350,6 +350,52 @@ class Repository(val db: KharjYarDatabase) {
         return id
     }
 
+    /**
+     * انتقال بین دو حساب خود کاربر؛ هر دو سمت در یک تراکنش دیتابیس ساخته می‌شوند.
+     * سمت مبدأ برداشت و سمت مقصد واریز است و هر دو یک transferGroupId مشترک دارند.
+     */
+    suspend fun addInternalTransfer(
+        fromAccountId: Long,
+        toAccountId: Long,
+        amountRial: Long,
+        description: String,
+        occurredAt: Long
+    ): Pair<Long, Long> {
+        require(fromAccountId != toAccountId) { "مبدأ و مقصد انتقال یکسان است" }
+        require(amountRial > 0) { "مبلغ انتقال باید مثبت باشد" }
+        var outgoingId = 0L
+        var incomingId = 0L
+        db.withTransaction {
+            val groupId = transferDao.insert(
+                TransferGroupEntity(createdAt = now(), incomplete = false, note = "انتقال دستی بین حساب‌های کاربر")
+            )
+            val common = TransactionEntity(
+                accountId = fromAccountId,
+                amountRial = amountRial,
+                direction = TxDirection.WITHDRAW,
+                nature = TxNature.TRANSFER,
+                categoryId = null,
+                description = description,
+                occurredAt = occurredAt,
+                recordedAt = now(),
+                source = TxSource.MANUAL,
+                status = TxStatus.CONFIRMED,
+                transferGroupId = groupId,
+                userEdited = true
+            )
+            outgoingId = txDao.insert(common.copy(counterparty = "حساب دیگر من"))
+            incomingId = txDao.insert(
+                common.copy(
+                    id = 0,
+                    accountId = toAccountId,
+                    direction = TxDirection.DEPOSIT,
+                    counterparty = "حساب دیگر من"
+                )
+            )
+        }
+        return outgoingId to incomingId
+    }
+
     /** خلاصه مالی یک بازه: انتقال داخلی در جمع درآمد/هزینه حساب نمی‌شود. */
     data class Summary(
         val incomeRial: Long,

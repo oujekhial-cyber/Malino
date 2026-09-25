@@ -79,6 +79,26 @@ class TransactionParserTest {
     }
 
     @Test
+    fun `detects an internal account to account transfer`() {
+        val r = parse("یک میلیون تومن از حساب روزمره به حساب پس‌انداز انتقال دادم")
+        assertEquals(TxNature.TRANSFER, r.nature)
+        assertEquals(1L, r.accountId)
+        assertEquals(2L, r.targetAccountId)
+        assertTrue(r.transferToOwn)
+        assertNull(r.categoryId)
+    }
+
+    @Test
+    fun `detects a transfer to somebody else`() {
+        val r = parse("پانصد هزار تومن از حساب روزمره به حساب دیگران انتقال دادم")
+        assertEquals(TxNature.TRANSFER, r.nature)
+        assertEquals(1L, r.accountId)
+        assertNull(r.targetAccountId)
+        assertFalse(r.transferToOwn)
+        assertNull(r.categoryId)
+    }
+
+    @Test
     fun `detects deposit from verbs`() {
         val r = parse("حقوق این ماه ۲۵ میلیون تومن واریز شد به پس‌انداز")
         assertEquals(TxDirection.DEPOSIT, r.direction)
