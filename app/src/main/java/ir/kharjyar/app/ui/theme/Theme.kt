@@ -1,5 +1,6 @@
 package ir.kharjyar.app.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -351,9 +352,52 @@ private val GoldSkin = AppSkin(
     neonColors = listOf(Color(0xFFF0C368), Color(0xFFD9A441))
 )
 
+// ================================================================ مینیمال روز / شب
+private val MinimalDayScheme = lightColorScheme(
+    primary = Color(0xFF2563EB), onPrimary = Color.White,
+    primaryContainer = Color(0xFFDBEAFE), onPrimaryContainer = Color(0xFF172554),
+    secondary = Color(0xFF475569), onSecondary = Color.White,
+    background = Color(0xFFF8FAFC), onBackground = Color(0xFF0F172A),
+    surface = Color.White, onSurface = Color(0xFF0F172A),
+    surfaceVariant = Color(0xFFF1F5F9), onSurfaceVariant = Color(0xFF475569),
+    outline = Color(0xFFCBD5E1), error = Color(0xFFDC2626), onError = Color.White
+)
+private val MinimalNightScheme = darkColorScheme(
+    primary = Color(0xFF60A5FA), onPrimary = Color(0xFF082F49),
+    primaryContainer = Color(0xFF172554), onPrimaryContainer = Color(0xFFDBEAFE),
+    secondary = Color(0xFF94A3B8), onSecondary = Color(0xFF0F172A),
+    background = Color(0xFF090E17), onBackground = Color(0xFFE2E8F0),
+    surface = Color(0xFF111827), onSurface = Color(0xFFE2E8F0),
+    surfaceVariant = Color(0xFF1E293B), onSurfaceVariant = Color(0xFF94A3B8),
+    outline = Color(0xFF334155), error = Color(0xFFF87171), onError = Color(0xFF450A0A)
+)
+
+private val MinimalDaySkin = AppSkin(
+    id = Palette.MINIMAL_DAY, title = "مینیمال روز", subtitle = "سفید، خلوت و خوانا برای روشنایی روز",
+    dark = false, backgroundColors = listOf(Color(0xFFF8FAFC), Color(0xFFF1F5F9)), backdropBlobs = emptyList(),
+    cardColor = Color.White, cardAlpha = 1f, cardBorderColors = listOf(Color(0xFFCBD5E1)),
+    cardBorderWidth = 1.dp, cardCorner = 16.dp, heroGradient = listOf(Color(0xFFEFF6FF), Color(0xFFDBEAFE)),
+    onHero = Color(0xFF0F172A), fabGradient = listOf(Color(0xFF2563EB), Color(0xFF3B82F6)),
+    accent = Color(0xFF2563EB), incomeColor = Color(0xFF15803D), expenseColor = Color(0xFFDC2626),
+    chartGlow = false, bigNumberColor = Color(0xFF0F172A), onBackdrop = Color(0xFF0F172A),
+    dialogColor = Color.White, navBarColor = Color.White, navSelected = Color(0xFF2563EB),
+    navUnselected = Color(0xFF64748B)
+)
+private val MinimalNightSkin = AppSkin(
+    id = Palette.MINIMAL_NIGHT, title = "مینیمال شب", subtitle = "تیره، آرام و بدون تزئین اضافه",
+    dark = true, backgroundColors = listOf(Color(0xFF090E17), Color(0xFF0F172A)), backdropBlobs = emptyList(),
+    cardColor = Color(0xFF111827), cardAlpha = 1f, cardBorderColors = listOf(Color(0xFF334155)),
+    cardBorderWidth = 1.dp, cardCorner = 16.dp, heroGradient = listOf(Color(0xFF172554), Color(0xFF1E3A5F)),
+    onHero = Color(0xFFE2E8F0), fabGradient = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)),
+    accent = Color(0xFF60A5FA), incomeColor = Color(0xFF4ADE80), expenseColor = Color(0xFFF87171),
+    chartGlow = false, bigNumberColor = Color(0xFFE2E8F0), onBackdrop = Color(0xFFE2E8F0),
+    dialogColor = Color(0xFF111827), navBarColor = Color(0xFF0B1220), navSelected = Color(0xFF60A5FA),
+    navUnselected = Color(0xFF64748B)
+)
+
 /** همه تم‌های موجود، به ترتیب نمایش در تنظیمات. */
 val AllSkins: List<AppSkin> = listOf(
-    SakuraSkin, VioletSkin, LotusSkin, OceanSkin, GoldSkin
+    MinimalDaySkin, MinimalNightSkin, SakuraSkin, VioletSkin, LotusSkin, OceanSkin, GoldSkin
 )
 
 fun skinOf(palette: Palette): AppSkin = when (palette) {
@@ -362,6 +406,8 @@ fun skinOf(palette: Palette): AppSkin = when (palette) {
     Palette.LOTUS -> LotusSkin
     Palette.OCEAN -> OceanSkin
     Palette.GOLD -> GoldSkin
+    Palette.MINIMAL_DAY -> MinimalDaySkin
+    Palette.MINIMAL_NIGHT -> MinimalNightSkin
 }
 
 val LocalAppSkin: ProvidableCompositionLocal<AppSkin> = compositionLocalOf { SakuraSkin }
@@ -373,14 +419,25 @@ fun KharjYarTheme(
     palette: Palette,
     content: @Composable () -> Unit
 ) {
-    // هر تم خودش روشن/تاریک بودن را تعریف می‌کند؛ ThemeMode برای سازگاری نگه داشته شده است.
-    val skin = skinOf(palette)
-    val colorScheme = when (palette) {
+    // خانواده مینیمال واقعاً تطبیقی است: در حالت پیش‌فرض سیستم، شب/روز گوشی
+    // مستقیماً نسخه شب/روز را انتخاب می‌کند. انتخاب روشن/تیره نیز آن را اجبار می‌کند.
+    val wantsDark = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+    }
+    val effectivePalette = if (palette == Palette.MINIMAL_DAY || palette == Palette.MINIMAL_NIGHT) {
+        if (wantsDark) Palette.MINIMAL_NIGHT else Palette.MINIMAL_DAY
+    } else palette
+    val skin = skinOf(effectivePalette)
+    val colorScheme = when (effectivePalette) {
         Palette.SAKURA -> SakuraScheme
         Palette.VIOLET -> VioletScheme
         Palette.LOTUS -> LotusScheme
         Palette.OCEAN -> OceanScheme
         Palette.GOLD -> GoldScheme
+        Palette.MINIMAL_DAY -> MinimalDayScheme
+        Palette.MINIMAL_NIGHT -> MinimalNightScheme
     }
     CompositionLocalProvider(LocalAppSkin provides skin) {
         MaterialTheme(

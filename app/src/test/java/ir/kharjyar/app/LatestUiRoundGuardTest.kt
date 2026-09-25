@@ -69,4 +69,15 @@ class LatestUiRoundGuardTest {
         assertTrue(tx.contains("BankLogo(bankName = acc.bankName"))
         assertFalse("رنگ حساب نباید کنار نام حساب باشد", tx.contains("Color(acc.colorArgb)"))
     }
+
+    @Test fun `minimal day and night themes follow system mode`() {
+        val prefs = source("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt")
+        assertTrue(prefs.contains("MINIMAL_DAY"))
+        assertTrue(prefs.contains("MINIMAL_NIGHT"))
+        val theme = source("src/main/java/ir/kharjyar/app/ui/theme/Theme.kt")
+        assertTrue(theme.contains("isSystemInDarkTheme()"))
+        assertTrue(theme.contains("if (wantsDark) Palette.MINIMAL_NIGHT else Palette.MINIMAL_DAY"))
+        val settings = source("src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt")
+        assertTrue(settings.contains("پیش‌فرض سیستم (تغییر خودکار روز/شب)"))
+    }
 }

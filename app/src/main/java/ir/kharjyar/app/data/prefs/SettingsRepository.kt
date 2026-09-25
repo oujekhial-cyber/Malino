@@ -18,7 +18,11 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 /** تم بصری برنامه. */
-enum class Palette { SAKURA, VIOLET, LOTUS, OCEAN, GOLD }
+enum class Palette {
+    SAKURA, VIOLET, LOTUS, OCEAN, GOLD,
+    /** دو عضو یک خانواده تطبیقی؛ در حالت SYSTEM بر اساس شب/روز گوشی جابه‌جا می‌شوند. */
+    MINIMAL_DAY, MINIMAL_NIGHT
+}
 enum class WidgetContent { TODAY_EXPENSE, MONTH_EXPENSE, SUMMARY, RECENT }
 
 /** سبک نمایش ارقام در کل برنامه و ویجت. */

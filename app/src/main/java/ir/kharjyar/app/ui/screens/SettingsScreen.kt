@@ -50,6 +50,7 @@ import androidx.navigation.NavHostController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.prefs.DigitStyle
+import ir.kharjyar.app.data.prefs.ThemeMode
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
 import android.content.Intent
@@ -91,6 +92,19 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 "تم انتخابی روی پس‌زمینه، کارت‌ها، نمودار، دیالوگ‌ها، نوار پایین و ویجت اعمال می‌شود.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ComboBox(
+                label = "حالت روشنایی",
+                options = ThemeMode.entries,
+                selected = settings.themeMode,
+                labelOf = {
+                    when (it) {
+                        ThemeMode.SYSTEM -> "پیش‌فرض سیستم (تغییر خودکار روز/شب)"
+                        ThemeMode.LIGHT -> "همیشه روشن"
+                        ThemeMode.DARK -> "همیشه تیره"
+                    }
+                },
+                onSelect = { mode -> scope.launch { viewModel.settingsRepo.setThemeMode(mode) } }
             )
             // انتخاب تم از کمبوباکس + پیش‌نمایش تم فعلی
             ComboBox(
