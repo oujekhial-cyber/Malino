@@ -176,6 +176,73 @@ class SwipeAndBankLogoGuardTest {
     }
 
     @Test
+    fun `entry form speaks about the amount, not the direction`() {
+        val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
+        assertTrue(manual.contains("ثبت مبلغی که به حساب واریز شده است"))
+        assertTrue(manual.contains("ثبت مبلغی که از حساب برداشت شده است"))
+        assertFalse("متن قدیمی سربرگ مانده است", manual.contains("پول وارد حساب شد"))
+        // برچسب توضیح برای هر عملیات جداگانه است
+        assertTrue(manual.contains("واریز بابت چه بود؟"))
+        assertTrue(manual.contains("خرید بابت چه بود؟"))
+        assertTrue(manual.contains("انتقال بابت چه بود؟"))
+        assertFalse(manual.contains("خرید/واریز بابت چی بوده؟"))
+    }
+
+    @Test
+    fun `transfer is picked upfront instead of asking what the money was`() {
+        val root = source("src/main/java/ir/kharjyar/app/ui/AppRoot.kt")
+        assertTrue("گزینه انتقال وجه در پنجره نیست", root.contains("انتقال وجه"))
+        assertTrue("عنوان پنجره «انتخاب عملیات» نیست", root.contains("\"انتخاب عملیات\""))
+        assertFalse("متن اضافه پنجره مانده است", root.contains("چه چیزی ثبت کنیم؟"))
+        assertFalse("زیرنویس «پول گرفتم» مانده است", root.contains("پول گرفتم"))
+        assertFalse("زیرنویس «پول دادم» مانده است", root.contains("پول دادم"))
+        assertTrue("مسیر انتقال وجه نیست", root.contains("presetTransfer = dir == \"transfer\""))
+
+        val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
+        // در حالت انتخاب‌شده، دیگر پرسش «این پول چه بود؟» نمایش داده نمی‌شود
+        assertTrue(manual.contains("presetTransfer"))
+        assertTrue(manual.contains("TransferDirectionPicker"))
+    }
+
+    @Test
+    fun `entry form starts at today and now`() {
+        val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
+        assertTrue("ساعت پیش‌فرض همین لحظه نیست", manual.contains("PersianDate.nowHourMinute()"))
+        assertFalse("ساعت ثابت ۱۲ هنوز پیش‌فرض است", manual.contains("mutableStateOf(12)"))
+        val (h, m) = ir.kharjyar.app.core.date.PersianDate.nowHourMinute()
+        assertTrue(h in 0..23)
+        assertTrue(m in 0..59)
+    }
+
+    @Test
+    fun `quick add shortcut shows a microphone`() {
+        val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
+        assertTrue("آیکون میکروفون روی کادر ثبت سریع نیست", manual.contains("Icons.Filled.Mic"))
+    }
+
+    @Test
+    fun `category picker can create a new category`() {
+        val form = source("src/main/java/ir/kharjyar/app/ui/screens/TxForm.kt")
+        assertTrue("گزینه دسته‌بندی جدید نیست", form.contains("+ دسته‌بندی جدید"))
+        assertTrue("امکان ساخت دسته تازه نیست", form.contains("onCreate"))
+        for (screen in listOf("ManualEntryScreen", "TransactionEditScreen")) {
+            assertTrue(
+                "$screen دسته‌بندی جدید را وصل نکرده",
+                source("src/main/java/ir/kharjyar/app/ui/screens/$screen.kt").contains("onCreate = { name ->")
+            )
+        }
+    }
+
+    @Test
+    fun `deposit and withdraw chips filter the recent list`() {
+        val dash = source("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt")
+        assertTrue("فیلتر فهرست اخیر نیست", dash.contains("recentFilter"))
+        assertTrue("چیپ‌ها کلیک‌پذیر نیستند", dash.contains("onClick = { recentFilter ="))
+        assertTrue("فهرست فیلتر نمی‌شود", dash.contains("shownRecent"))
+        assertTrue("راه برگشت به همه تراکنش‌ها نیست", dash.contains("نمایش همه"))
+    }
+
+    @Test
     fun `bank logo tolerates the word bank and unknown names`() {
         assertEquals("mellat", bankAssetKey("بانک ملت"))
         assertEquals("mellat", bankAssetKey("ملت"))

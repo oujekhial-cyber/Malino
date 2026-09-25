@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -427,14 +428,17 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("widgetSettings") { WidgetSettingsScreen(viewModel) }
                 composable("manual") { ManualEntryScreen(viewModel, navController) }
                 composable("manual/{dir}") { entry ->
+                    val dir = entry.arguments?.getString("dir")
                     ManualEntryScreen(
                         viewModel,
                         navController,
-                        presetDirection = when (entry.arguments?.getString("dir")) {
+                        presetDirection = when (dir) {
                             "deposit" -> TxDirection.DEPOSIT
-                            "withdraw" -> TxDirection.WITHDRAW
+                            // انتقال هم به‌طور پیش‌فرض «از این حساب رفت» است
+                            "withdraw", "transfer" -> TxDirection.WITHDRAW
                             else -> null
-                        }
+                        },
+                        presetTransfer = dir == "transfer"
                     )
                 }
                 composable("quickAdd") { QuickAddScreen(viewModel, navController) }
@@ -471,8 +475,9 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
 }
 
 /**
- * پرسش «واریز یا برداشت؟» پیش از باز شدن فرم ثبت تراکنش.
- * با این کار فرم بعدی کوتاه‌تر و بدون گزینه‌های اضافه باز می‌شود.
+ * پنجره «انتخاب عملیات» پیش از باز شدن فرم ثبت تراکنش.
+ * با انتخاب نوع عملیات (واریز، برداشت، انتقال وجه)، فرم بعدی کوتاه‌تر باز می‌شود
+ * و دیگر پرسش «این پول چه بود؟» لازم نیست.
  */
 @Composable
 private fun DirectionChooserDialog(
@@ -494,24 +499,17 @@ private fun DirectionChooserDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    "چه چیزی ثبت کنیم؟",
+                    "انتخاب عملیات",
                     style = MaterialTheme.typography.titleMedium,
                     color = skin.onBackdrop
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "پول وارد حساب شد یا از حساب خارج شد؟",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = skin.onBackdrop.copy(alpha = 0.7f)
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DirectionChoiceCard(
                         title = "واریز",
-                        subtitle = "پول گرفتم",
                         icon = Icons.AutoMirrored.Filled.TrendingUp,
                         tint = skin.incomeColor,
                         modifier = Modifier.weight(1f),
@@ -519,11 +517,17 @@ private fun DirectionChooserDialog(
                     )
                     DirectionChoiceCard(
                         title = "برداشت",
-                        subtitle = "پول دادم",
                         icon = Icons.AutoMirrored.Filled.TrendingDown,
                         tint = skin.expenseColor,
                         modifier = Modifier.weight(1f),
                         onClick = { onPick("withdraw") }
+                    )
+                    DirectionChoiceCard(
+                        title = "انتقال وجه",
+                        icon = Icons.Filled.SwapHoriz,
+                        tint = skin.accent,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onPick("transfer") }
                     )
                 }
                 Spacer(Modifier.height(10.dp))
@@ -544,7 +548,6 @@ private fun DirectionChooserDialog(
 @Composable
 private fun DirectionChoiceCard(
     title: String,
-    subtitle: String,
     icon: ImageVector,
     tint: Color,
     modifier: Modifier = Modifier,
@@ -556,12 +559,12 @@ private fun DirectionChoiceCard(
             .background(tint.copy(alpha = 0.14f))
             .border(1.5.dp, tint.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
             .clickable { onClick() }
-            .padding(vertical = 18.dp),
+            .padding(vertical = 16.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(42.dp)
                 .clip(CircleShape)
                 .background(tint.copy(alpha = 0.22f)),
             contentAlignment = Alignment.Center
@@ -569,11 +572,11 @@ private fun DirectionChoiceCard(
             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text(title, style = MaterialTheme.typography.titleSmall, color = tint)
         Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = LocalAppSkin.current.onBackdrop.copy(alpha = 0.7f)
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            color = tint,
+            maxLines = 1
         )
     }
 }

@@ -7,6 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -128,18 +135,63 @@ fun NaturePicker(
 }
 
 @Composable
-fun CategoryPicker(categories: List<CategoryEntity>, selectedId: Long?, nature: Int, onSelect: (Long?) -> Unit) {
+fun CategoryPicker(
+    categories: List<CategoryEntity>,
+    selectedId: Long?,
+    nature: Int,
+    /** اگر داده شود، گزینه «دسته‌بندی جدید» هم در فهرست می‌آید. */
+    onCreate: ((String) -> Unit)? = null,
+    onSelect: (Long?) -> Unit
+) {
     val visible = categories.filter { !it.archived }
-    // گزینه ۰ به معنی «نامشخص» است
+    var showNew by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf("") }
+
+    // گزینه ۰ به معنی «نامشخص» و گزینه ۱- به معنی «ساختن دسته تازه» است
     ComboBox(
         label = "دسته‌بندی",
-        options = listOf(0L) + visible.map { it.id },
+        options = listOf(0L) + visible.map { it.id } + if (onCreate != null) listOf(-1L) else emptyList(),
         selected = selectedId ?: 0L,
         labelOf = { id ->
-            if (id == 0L) "نامشخص" else visible.firstOrNull { it.id == id }?.name ?: "—"
+            when (id) {
+                0L -> "نامشخص"
+                -1L -> "+ دسته‌بندی جدید"
+                else -> visible.firstOrNull { it.id == id }?.name ?: "—"
+            }
         },
-        onSelect = { id -> onSelect(if (id == 0L) null else id) }
+        onSelect = { id ->
+            when (id) {
+                -1L -> { newName = ""; showNew = true }
+                0L -> onSelect(null)
+                else -> onSelect(id)
+            }
+        }
     )
+
+    if (showNew) {
+        AlertDialog(
+            onDismissRequest = { showNew = false },
+            title = { Text("دسته‌بندی جدید") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("نام دسته (مثل «نان و خواربار»)") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = newName.isNotBlank(),
+                    onClick = {
+                        onCreate?.invoke(newName.trim())
+                        showNew = false
+                    }
+                ) { Text("بساز و انتخاب کن") }
+            },
+            dismissButton = { TextButton(onClick = { showNew = false }) { Text("انصراف") } }
+        )
+    }
 }
 
 @Composable

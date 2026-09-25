@@ -19,6 +19,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.Spacer
@@ -46,6 +48,7 @@ import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.keepAboveKeyboard
 import kotlinx.coroutines.launch
 
@@ -53,13 +56,16 @@ import kotlinx.coroutines.launch
  * ثبت دستی تراکنش — بدون نیاز به هیچ مجوزی کار می‌کند.
  *
  * @param presetDirection اگر کاربر پیش از ورود، «واریز» یا «برداشت» را انتخاب کرده باشد،
- * فرم با همان حالت باز می‌شود و گزینه «جهت بانکی» نمایش داده نمی‌شود تا صفحه شلوغ نشود.
+ * فرم با همان حالت باز می‌شود و پرسش «این پول چه بود؟» اصلاً نمایش داده نمی‌شود.
+ * @param presetTransfer وقتی از دکمه «انتقال وجه» آمده‌ایم؛ ماهیت تراکنش انتقال است و
+ * فقط جهت آن (از این حساب رفت یا به این حساب آمد) پرسیده می‌شود.
  */
 @Composable
 fun ManualEntryScreen(
     viewModel: AppViewModel,
     nav: NavHostController,
-    presetDirection: Int? = null
+    presetDirection: Int? = null,
+    presetTransfer: Boolean = false
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val settings by viewModel.settings.collectAsState()
@@ -71,13 +77,21 @@ fun ManualEntryScreen(
     var amountText by remember { mutableStateOf("") }
     var direction by remember { mutableStateOf(presetDirection ?: TxDirection.WITHDRAW) }
     var nature by remember {
-        mutableStateOf(if (direction == TxDirection.DEPOSIT) TxNature.INCOME else TxNature.EXPENSE)
+        mutableStateOf(
+            when {
+                presetTransfer -> TxNature.TRANSFER
+                direction == TxDirection.DEPOSIT -> TxNature.INCOME
+                else -> TxNature.EXPENSE
+            }
+        )
     }
     var categoryId by remember { mutableStateOf<Long?>(null) }
     var description by remember { mutableStateOf("") }
+    // تاریخ و ساعتِ همین لحظهٔ باز شدن فرم؛ کاربر می‌تواند تغییرش دهد
+    val now = remember { PersianDate.nowHourMinute() }
     var date by remember { mutableStateOf(PersianDate.today()) }
-    var hour by remember { mutableStateOf(12) }
-    var minute by remember { mutableStateOf(0) }
+    var hour by remember { mutableStateOf(now.first) }
+    var minute by remember { mutableStateOf(now.second) }
     var error by remember { mutableStateOf<String?>(null) }
 
     val active = accounts.filter { !it.archived }
@@ -88,7 +102,7 @@ fun ManualEntryScreen(
     ) {
         // سربرگ نوع تراکنش وقتی از دیالوگ «واریز یا برداشت» آمده‌ایم
         if (presetDirection != null) {
-            DirectionHeader(direction)
+            DirectionHeader(direction, presetTransfer)
         }
 
         // میان‌بر به ثبت با جمله فارسی
@@ -97,12 +111,18 @@ fun ManualEntryScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(
-                Icons.Filled.AutoAwesome,
+                Icons.Filled.Mic,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
             Text("ثبت سریع")
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
         }
 
         if (active.isEmpty()) {
@@ -120,20 +140,49 @@ fun ManualEntryScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            NaturePicker(
+            // در حالت انتقال فقط می‌پرسیم پول از این حساب رفت یا به آن آمد؛
+            // پرسش «این پول چه بود؟» دیگر لازم نیست چون نوع عملیات از همان
+            // پنجره «انتخاب عملیات» مشخص شده است.
+            if (presetTransfer) {
+                TransferDirectionPicker(direction) { direction = it }
+            } else if (presetDirection == null) {
+                NaturePicker(
+                    nature = nature,
+                    direction = direction,
+                    onNature = { nature = it },
+                    onDirection = { direction = it }
+                )
+            }
+            CategoryPicker(
+                categories = categories,
+                selectedId = categoryId,
                 nature = nature,
-                direction = direction,
-                onNature = { nature = it },
-                onDirection = { direction = it },
-                showDirection = presetDirection == null
-            )
-            CategoryPicker(categories, categoryId, nature) { categoryId = it }
+                onCreate = { name ->
+                    scope.launch {
+                        val id = viewModel.repo.categoryDao.insert(
+                            ir.kharjyar.app.data.db.CategoryEntity(
+                                name = name,
+                                colorArgb = 0xFF6C8AE4
+                            )
+                        )
+                        categoryId = id
+                    }
+                }
+            ) { categoryId = it }
             DatePickerRow(date, hour, minute, onDate = { date = it }, onTime = { h, m -> hour = h; minute = m })
 
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("خرید/واریز بابت چی بوده؟") },
+                label = {
+                    Text(
+                        when {
+                            nature == TxNature.TRANSFER -> "انتقال بابت چه بود؟"
+                            direction == TxDirection.DEPOSIT -> "واریز بابت چه بود؟"
+                            else -> "خرید بابت چه بود؟"
+                        }
+                    )
+                },
                 modifier = Modifier.fillMaxWidth().keepAboveKeyboard()
             )
 
@@ -170,12 +219,16 @@ fun ManualEntryScreen(
     }
 }
 
-/** نوار کوچک بالای فرم که نشان می‌دهد در حال ثبت واریز است یا برداشت. */
+/** نوار کوچک بالای فرم که نشان می‌دهد چه چیزی در حال ثبت است. */
 @Composable
-private fun DirectionHeader(direction: Int) {
+private fun DirectionHeader(direction: Int, transfer: Boolean = false) {
     val skin = LocalAppSkin.current
     val deposit = direction == TxDirection.DEPOSIT
-    val tint = if (deposit) skin.incomeColor else skin.expenseColor
+    val tint = when {
+        transfer -> skin.accent
+        deposit -> skin.incomeColor
+        else -> skin.expenseColor
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -186,16 +239,38 @@ private fun DirectionHeader(direction: Int) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            if (deposit) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+            when {
+                transfer -> Icons.Filled.SwapHoriz
+                deposit -> Icons.AutoMirrored.Filled.TrendingUp
+                else -> Icons.AutoMirrored.Filled.TrendingDown
+            },
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            if (deposit) "ثبت واریز — پول وارد حساب شد" else "ثبت برداشت — پول از حساب خارج شد",
+            when {
+                transfer -> "ثبت مبلغی که بین حساب‌ها جابه‌جا شده است"
+                deposit -> "ثبت مبلغی که به حساب واریز شده است"
+                else -> "ثبت مبلغی که از حساب برداشت شده است"
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = skin.onBackdrop
         )
     }
+}
+
+/** در حالت انتقال وجه: پول از این حساب رفت یا به این حساب آمد. */
+@Composable
+private fun TransferDirectionPicker(direction: Int, onDirection: (Int) -> Unit) {
+    ComboBox(
+        label = "جهت انتقال",
+        options = listOf(TxDirection.WITHDRAW, TxDirection.DEPOSIT),
+        selected = direction,
+        labelOf = {
+            if (it == TxDirection.WITHDRAW) "از این حساب رفت" else "به این حساب آمد"
+        },
+        onSelect = onDirection
+    )
 }

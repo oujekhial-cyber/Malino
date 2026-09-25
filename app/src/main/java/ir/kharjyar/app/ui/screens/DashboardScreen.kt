@@ -101,6 +101,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
+    // فیلتر فهرست «تراکنش‌های اخیر» با زدن چیپ واریز/برداشت روی کارت‌ها
+    // ۰ = همه، ۱ = فقط واریزها، ۲ = فقط برداشت‌ها
+    var recentFilter by remember { mutableStateOf(0) }
 
     /** حذف تراکنش از فهرست «اخیر» با امکان بازگرداندن. */
     fun deleteWithUndo(tx: ir.kharjyar.app.data.db.TransactionEntity) {
@@ -268,6 +271,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             value = if (amountVisible) Money.format(total.incomeRial, settings.moneyUnit) else "••••",
                                             tint = skin.incomeColor,
                                             deposit = true,
+                                            selected = recentFilter == 1,
+                                            onClick = { recentFilter = if (recentFilter == 1) 0 else 1 },
                                             modifier = Modifier.weight(1f)
                                         )
                                         SummaryChip(
@@ -275,6 +280,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             value = if (amountVisible) Money.format(total.expenseRial, settings.moneyUnit) else "••••",
                                             tint = skin.expenseColor,
                                             deposit = false,
+                                            selected = recentFilter == 2,
+                                            onClick = { recentFilter = if (recentFilter == 2) 0 else 2 },
                                             modifier = Modifier.weight(1f)
                                         )
                                     }
@@ -363,6 +370,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         tint = skin.incomeColor,
                                         deposit = true,
                                         onColor = onCard,
+                                        selected = recentFilter == 1,
+                                        onClick = { recentFilter = if (recentFilter == 1) 0 else 1 },
                                         modifier = Modifier.weight(1f)
                                     )
                                     SummaryChip(
@@ -371,6 +380,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         tint = skin.expenseColor,
                                         deposit = false,
                                         onColor = onCard,
+                                        selected = recentFilter == 2,
+                                        onClick = { recentFilter = if (recentFilter == 2) 0 else 2 },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -478,13 +489,54 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 
             // ---------- تراکنش‌های اخیر ----------
             item {
-                Text("تراکنش‌های اخیر", style = MaterialTheme.typography.titleMedium, color = skin.onBackdrop)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        when (recentFilter) {
+                            1 -> "واریزهای اخیر"
+                            2 -> "برداشت‌های اخیر"
+                            else -> "تراکنش‌های اخیر"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = skin.onBackdrop
+                    )
+                    // با فیلتر فعال، راه برگشت به همه تراکنش‌ها
+                    if (recentFilter != 0) {
+                        Text(
+                            "نمایش همه",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = skin.accent,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { recentFilter = 0 }
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             }
-            if (recent.isEmpty()) {
-                item { EmptyState("تراکنشی ثبت نشده", "از دکمه «ثبت تراکنش» شروع کنید یا منتظر پیامک بانکی بمانید") }
+            val shownRecent = when (recentFilter) {
+                1 -> recent.filter { it.direction == ir.kharjyar.app.data.db.TxDirection.DEPOSIT }
+                2 -> recent.filter { it.direction == ir.kharjyar.app.data.db.TxDirection.WITHDRAW }
+                else -> recent
+            }
+            if (shownRecent.isEmpty()) {
+                item {
+                    EmptyState(
+                        when (recentFilter) {
+                            1 -> "واریزی ثبت نشده"
+                            2 -> "برداشتی ثبت نشده"
+                            else -> "تراکنشی ثبت نشده"
+                        },
+                        if (recentFilter == 0) "از دکمه «ثبت تراکنش» شروع کنید یا منتظر پیامک بانکی بمانید"
+                        else "برای دیدن بقیه تراکنش‌ها «نمایش همه» را بزنید"
+                    )
+                }
             } else {
-                items(recent.size) { idx ->
-                    val tx = recent[idx]
+                items(shownRecent.size) { idx ->
+                    val tx = shownRecent[idx]
                     EnterCard(4 + idx) {
                         SwipeActionRow(
                             onDelete = { deleteWithUndo(tx) },
@@ -554,7 +606,10 @@ private fun SummaryChip(
     deposit: Boolean,
     modifier: Modifier = Modifier,
     /** رنگ متن وقتی چیپ روی کارت بانکی (با رنگ خود حساب) می‌نشیند. */
-    onColor: Color? = null
+    onColor: Color? = null,
+    /** با زدن چیپ، فهرست پایین صفحه فیلتر می‌شود. */
+    onClick: (() -> Unit)? = null,
+    selected: Boolean = false
 ) {
     val skin = LocalAppSkin.current
     val shape = RoundedCornerShape(16.dp)
@@ -566,9 +621,10 @@ private fun SummaryChip(
         modifier = modifier
             .clip(shape)
             // پس‌زمینه کنتراست‌دار نسبت به کارت: روی تم روشن، روشن؛ روی تم تیره، تیره
-            .background(chipBg)
-            // حاشیه نازک هم‌رنگ مقدار، تا چیپ از پس‌زمینه جدا شود
-            .border(1.dp, tint.copy(alpha = 0.55f), shape)
+            .background(if (selected) tint.copy(alpha = 0.22f) else chipBg)
+            // حاشیه نازک هم‌رنگ مقدار؛ در حالت انتخاب‌شده پررنگ‌تر
+            .border(if (selected) 2.dp else 1.dp, tint.copy(alpha = if (selected) 0.95f else 0.55f), shape)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
