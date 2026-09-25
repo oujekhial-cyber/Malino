@@ -68,13 +68,31 @@ data class FieldRule(
 
 object Extractor {
 
-    private val depositWords = listOf("واریز", "افزایش", "انتقال به حساب شما", "دریافت")
-    private val withdrawWords = listOf("برداشت", "خرید", "کسر", "کاهش", "پرداخت", "انتقال از")
+    private val depositWords = listOf(
+        "واریز", "واریزی", "وار.یز", "بستانکار", "افزایش", "دریافت", "عودت", "شارژ",
+        "انتقال به حساب شما", "به حساب شما", "انتقال به", "حواله وارده", "وصول"
+    )
+    private val withdrawWords = listOf(
+        "برداشت", "خرید", "کسر", "کاهش", "پرداخت", "انتقال از", "بدهکار", "حواله صادره",
+        "کارمزد", "قبض", "انتقال وجه از", "خرید اینترنتی", "خرید شارژ"
+    )
 
-    private val amountAnchors = listOf("مبلغ:", "مبلغ", "به مبلغ", "برداشت:", "واریز:", "خرید:", "کسر:", "پرداخت:")
-    private val balanceAnchors = listOf("مانده:", "مانده", "موجودی:", "موجودی")
+    private val amountAnchors = listOf(
+        "مبلغ:", "به مبلغ", "مبلغ", "برداشت:", "واریز:", "خرید:", "کسر:", "پرداخت:",
+        "بدهکار:", "بستانکار:", "بد:", "بس:"
+    )
+    private val balanceAnchors = listOf("مانده:", "مانده", "موجودی:", "موجودی", "باقیمانده")
     private val accountAnchors = listOf("حساب", "کارت", "سپرده", "حساب:", "کارت:")
     private val refAnchors = listOf("پیگیری:", "پیگیری", "مرجع:", "شماره پیگیری", "کد رهگیری")
+
+    /** واژه‌هایی که یعنی مبلغ به تومان نوشته شده است. */
+    private val tomanWords = listOf("تومان", "تومن", "هزارتومان")
+
+    /** شناسه حساب/کارت به شکل ماسک‌شده، هر جای متن. */
+    private val maskedIdPattern = Regex(
+        // 6037****1234 یا ****1234 یا شماره سپرده 1234.56.78901
+        "\\d{2,6}[*٭]{1,8}\\d{2,6}|[*٭]{2,}\\d{3,6}|\\d{3,5}\\.\\d{1,3}\\.\\d{3,9}"
+    )
 
     private val numberPattern = Regex("\\d{1,3}(?:[,،٬]\\d{3})+|\\d+")
     private val datePattern = Regex("(\\d{2,4})[/\\-.](\\d{1,2})[/\\-.](\\d{1,2})")
@@ -82,13 +100,20 @@ object Extractor {
 
     /** استخراج خودکار (heuristic) بدون قالب. */
     fun autoExtract(body: String): ExtractionResult {
-        val text = Digits.normalize(body)
+        // حروف عربی و نیم‌فاصله یکدست می‌شوند تا کلیدواژه‌ها واقعاً پیدا شوند
+        val text = Digits.normalizeForMatch(body)
         val lines = text.split('\n', '\r').map { it.trim() }.filter { it.isNotEmpty() }
 
+        // جهت: نزدیک‌ترین کلیدواژه به ابتدای متن برنده است؛ اگر پیامکی هم
+        // «برداشت» و هم «واریز» داشته باشد (مثل «برداشت و واریز به حساب…»)،
+        // ترتیب ظاهر شدن تصمیم می‌گیرد، نه ترتیب فهرست ما.
         var direction = ExtractedDirection.UNKNOWN
-        for (w in depositWords) if (text.contains(w)) { direction = ExtractedDirection.DEPOSIT; break }
-        if (direction == ExtractedDirection.UNKNOWN) {
-            for (w in withdrawWords) if (text.contains(w)) { direction = ExtractedDirection.WITHDRAW; break }
+        val depositAt = depositWords.mapNotNull { w -> text.indexOf(w).takeIf { it >= 0 } }.minOrNull()
+        val withdrawAt = withdrawWords.mapNotNull { w -> text.indexOf(w).takeIf { it >= 0 } }.minOrNull()
+        direction = when {
+            depositAt != null && (withdrawAt == null || depositAt < withdrawAt) -> ExtractedDirection.DEPOSIT
+            withdrawAt != null -> ExtractedDirection.WITHDRAW
+            else -> ExtractedDirection.UNKNOWN
         }
 
         // مانده: نزدیک‌ترین عدد بعد از لنگر مانده
@@ -110,10 +135,19 @@ object Extractor {
             }
         }
 
+        // اگر هیچ کلیدواژه‌ای نبود، علامت جلوی مبلغ جهت را مشخص می‌کند: 500,000- یا +500,000
+        if (direction == ExtractedDirection.UNKNOWN && amount != null) {
+            direction = signDirection(text, amount!!.second)
+        }
+
         val accountId = findAccountId(text)
         val dateMatch = datePattern.find(text)
         val timeMatch = timePattern.find(text)
         val ref = findNumberAfterAnchors(text, refAnchors)
+
+        // بعضی بانک‌ها مبلغ را به تومان می‌نویسند
+        val toman = tomanWords.any { text.contains(it) }
+        val factor = if (toman) 10L else 1L
 
         val confidence = when {
             amount != null && direction != ExtractedDirection.UNKNOWN && balance != null -> Confidence.HIGH
@@ -122,9 +156,10 @@ object Extractor {
         }
 
         return ExtractionResult(
-            amountRial = amount?.first,
+            amountRial = amount?.first?.times(factor),
+            amountUnit = if (toman) "TOMAN" else "RIAL",
             direction = direction.name,
-            balanceRial = balance?.first,
+            balanceRial = balance?.first?.times(factor),
             accountIdHint = accountId,
             dateText = dateMatch?.value,
             timeText = timeMatch?.value,
@@ -136,7 +171,7 @@ object Extractor {
 
     /** اعمال قواعد یک قالب آموزش‌دیده روی متن. */
     fun applyRules(body: String, rules: List<FieldRule>, amountUnit: String = "RIAL"): ExtractionResult {
-        val text = Digits.normalize(body)
+        val text = Digits.normalizeForMatch(body)
         var amount: Long? = null
         var balance: Long? = null
         var accountId: String? = null
@@ -215,9 +250,9 @@ object Extractor {
     // ---------- internals ----------
 
     private fun extractAfterAnchor(text: String, rule: FieldRule): String? {
-        val idx = text.indexOf(rule.anchor)
+        val idx = text.indexOf(Digits.normalizeForMatch(rule.anchor))
         if (idx < 0) return null
-        val after = text.substring(idx + rule.anchor.length)
+        val after = text.substring(idx + Digits.normalizeForMatch(rule.anchor).length)
         val window = after.take(rule.maxGap + 40)
         return when (rule.valueType) {
             "NUMBER" -> {
@@ -266,7 +301,33 @@ object Extractor {
         return null
     }
 
+    /** واژه‌ای که جهت پیامک را مشخص کرده است (برای پیش‌پرکردن آموزش قالب). */
+    fun directionWordIn(body: String): String? {
+        val text = Digits.normalizeForMatch(body)
+        return (depositWords + withdrawWords)
+            .filter { text.contains(it) }
+            .minByOrNull { text.indexOf(it) }
+    }
+
+    /** جهت از روی علامت مثبت/منفی چسبیده به مبلغ. */
+    private fun signDirection(text: String, amountRange: IntRange): ExtractedDirection {
+        val before = text.substring(maxOf(0, amountRange.first - 2), amountRange.first)
+        val after = text.substring(
+            minOf(text.length, amountRange.last + 1),
+            minOf(text.length, amountRange.last + 3)
+        )
+        return when {
+            before.contains('-') || after.trimStart().startsWith("-") -> ExtractedDirection.WITHDRAW
+            before.contains('+') || after.trimStart().startsWith("+") -> ExtractedDirection.DEPOSIT
+            else -> ExtractedDirection.UNKNOWN
+        }
+    }
+
     private fun findAccountId(text: String): String? {
+        // شکل ماسک‌شده مثل 6037****1234 یا *1234 یا 1234.56.789 هر جای متن
+        maskedIdPattern.find(text)?.let { m ->
+            if (m.value.count(Char::isDigit) >= 4) return m.value.trim()
+        }
         for (anchor in accountAnchors) {
             val idx = text.indexOf(anchor)
             if (idx < 0) continue
@@ -282,8 +343,21 @@ object Extractor {
         if (dateMatch == null) return null
         return runCatching {
             var y = dateMatch.groupValues[1].toInt()
-            val mo = dateMatch.groupValues[2].toInt()
-            val d = dateMatch.groupValues[3].toInt()
+            var mo = dateMatch.groupValues[2].toInt()
+            var d = dateMatch.groupValues[3].toInt()
+            // شکل روز/ماه/سال هم روی بعضی پیامک‌ها دیده می‌شود (12/05/1403)
+            if (y <= 31 && dateMatch.groupValues[3].length == 4) {
+                val realYear = d
+                d = y
+                y = realYear
+            }
+            // تاریخ میلادی روی پیامک‌های بعضی درگاه‌ها
+            if (y in 1900..2100) {
+                val pdg = ir.kharjyar.app.core.date.PersianDate.fromLocalDate(
+                    java.time.LocalDate.of(y, mo, d)
+                )
+                y = pdg.year; mo = pdg.month; d = pdg.day
+            }
             if (y < 100) y += 1400 // 03/05/12 -> 1403
             if (mo !in 1..12 || d !in 1..31) return null
             val pd = ir.kharjyar.app.core.date.PersianDate(y, mo, d)
@@ -300,14 +374,14 @@ object Extractor {
      * برای هر فیلد، متن بلافاصله قبل از مقدار به عنوان لنگر انتخاب می‌شود.
      */
     fun suggestRules(body: String, fieldValues: Map<FieldRole, String>): List<FieldRule> {
-        val text = Digits.normalize(body)
+        val text = Digits.normalizeForMatch(body)
         val rules = mutableListOf<FieldRule>()
         for ((role, rawValue) in fieldValues) {
             if (role == FieldRole.DIRECTION) {
                 rules.add(FieldRule(role.name, anchor = rawValue.substringBefore('|'), valueType = rawValue.substringAfter('|', "WITHDRAW")))
                 continue
             }
-            val value = Digits.normalize(rawValue.trim())
+            val value = Digits.normalizeForMatch(rawValue.trim())
             if (value.isEmpty()) continue
             val idx = text.indexOf(value)
             if (idx <= 0) continue

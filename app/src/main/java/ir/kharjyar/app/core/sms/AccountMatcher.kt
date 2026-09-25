@@ -28,7 +28,7 @@ object AccountMatcher {
 
     fun match(sender: String, body: String, mappings: List<SenderMapping>): AccountMatch {
         val senderNorm = normalizeSender(sender)
-        val bodyNorm = Digits.normalize(body)
+        val bodyNorm = Digits.normalizeForMatch(body)
         val forSender = mappings.filter { normalizeSender(it.sender) == senderNorm }
         if (forSender.isEmpty()) return AccountMatch.Unknown
 

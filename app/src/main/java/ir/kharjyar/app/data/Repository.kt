@@ -130,17 +130,24 @@ class Repository(val db: KharjYarDatabase) {
 
     /** پردازش پیامک وقتی حساب معلوم است (پس از معرفی حساب هم صدا زده می‌شود). */
     suspend fun processWithAccount(sms: SmsCandidateEntity, accountId: Long): ProcessOutcome {
-        // ۲) اعمال قالب‌های آموزش‌دیده این فرستنده
-        val templates = templateDao.enabledForSender(sms.sender)
+        // ۲) اعمال قالب‌های آموزش‌دیده: اول قالب‌های همین فرستنده، و اگر نتیجه
+        // نداد، همه قالب‌های آموزش‌دیده. بانک‌ها گاهی از چند سرشماره پیامک
+        // می‌فرستند و قالبِ یاد گرفته‌شده نباید فقط به یک سرشماره گره بخورد.
         var best: ExtractionResult? = null
         var bestTemplateId: Long? = null
-        for (t in templates) {
-            val rules = FieldRule.listFromJson(t.rulesJson)
-            if (rules.isEmpty()) continue
-            val r = Extractor.applyRules(sms.body, rules, t.amountUnit)
-            if (r.amountRial != null && (best == null || rank(r) > rank(best!!))) {
-                best = r; bestTemplateId = t.id
+        fun tryTemplates(list: List<ir.kharjyar.app.data.db.SmsTemplateEntity>) {
+            for (t in list) {
+                val rules = FieldRule.listFromJson(t.rulesJson)
+                if (rules.isEmpty()) continue
+                val r = Extractor.applyRules(sms.body, rules, t.amountUnit)
+                if (r.amountRial != null && (best == null || rank(r) > rank(best!!))) {
+                    best = r; bestTemplateId = t.id
+                }
             }
+        }
+        tryTemplates(templateDao.enabledForSender(sms.sender))
+        if (best == null || rank(best!!) < 3) {
+            tryTemplates(templateDao.allEnabled().filter { it.sender != sms.sender })
         }
         // ۳) استخراج خودکار به عنوان جایگزین
         val auto = Extractor.autoExtract(sms.body)
@@ -205,6 +212,22 @@ class Repository(val db: KharjYarDatabase) {
             id
         }
         return ProcessOutcome.DraftReady(sms.id, txId)
+    }
+
+    /**
+     * پیامک‌هایی که منتظر قالب مانده‌اند را دوباره پردازش می‌کند.
+     *
+     * بعد از اینکه کاربر یک قالب را آموزش داد، دیگر نباید برای پیامک‌های
+     * هم‌شکلِ در صف، دوباره همان پرسش‌ها تکرار شود.
+     */
+    suspend fun reprocessPending(): Int {
+        var fixed = 0
+        for (sms in smsDao.listByStatus(listOf(SmsStatus.NEEDS_TEMPLATE))) {
+            val accountId = sms.matchedAccountId ?: continue
+            val outcome = processWithAccount(sms, accountId)
+            if (outcome is ProcessOutcome.DraftReady) fixed++
+        }
+        return fixed
     }
 
     private fun rank(r: ExtractionResult): Int = when (r.confidenceEnum()) {

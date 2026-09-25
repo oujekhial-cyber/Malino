@@ -243,6 +243,49 @@ class SwipeAndBankLogoGuardTest {
     }
 
     @Test
+    fun `tapping elsewhere clears the deposit withdraw filter`() {
+        val dash = source("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt")
+        assertTrue("کلیک بیرون فیلتر را برنمی‌دارد", dash.contains("detectTapGestures { recentFilter = 0 }"))
+        assertTrue(
+            "انتخاب کارت فیلتر را برنمی‌دارد",
+            dash.contains("و برداشتن فیلتر واریز/برداشت")
+        )
+        // فیلتر بر اساس جهت است، پس انتقال‌ها هم بسته به جهتشان می‌آیند
+        assertTrue(dash.contains("it.direction == ir.kharjyar.app.data.db.TxDirection.DEPOSIT"))
+        assertTrue(dash.contains("it.direction == ir.kharjyar.app.data.db.TxDirection.WITHDRAW"))
+    }
+
+    @Test
+    fun `copy toast sits above the add button`() {
+        val dash = source("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt")
+        val host = dash.substringAfter("snackbarHost = {").substringBefore("},")
+        assertTrue("پیام کوتاه پشت دکمه ثبت می‌ماند", Regex("padding\\(bottom = \\d{2,}\\.dp\\)").containsMatchIn(host))
+    }
+
+    @Test
+    fun `sms detection does not depend on persian or arabic spelling`() {
+        val digits = source("src/main/java/ir/kharjyar/app/core/text/Digits.kt")
+        assertTrue("نرمال‌سازی حروف عربی نیست", digits.contains("fun normalizeForMatch("))
+        for (path in listOf(
+            "src/main/java/ir/kharjyar/app/core/sms/Extraction.kt",
+            "src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt",
+            "src/main/java/ir/kharjyar/app/core/sms/AccountMatcher.kt"
+        )) {
+            assertTrue("$path از نرمال‌سازی حروف استفاده نمی‌کند", source(path).contains("normalizeForMatch("))
+        }
+    }
+
+    @Test
+    fun `learned templates are reused and pending messages are retried`() {
+        val repo = source("src/main/java/ir/kharjyar/app/data/Repository.kt")
+        assertTrue("قالب‌های سایر سرشماره‌ها امتحان نمی‌شوند", repo.contains("templateDao.allEnabled()"))
+        assertTrue("پردازش دوباره صف وجود ندارد", repo.contains("suspend fun reprocessPending()"))
+        val train = source("src/main/java/ir/kharjyar/app/ui/screens/TemplateTrainScreen.kt")
+        assertTrue("بعد از آموزش، صف دوباره پردازش نمی‌شود", train.contains("reprocessPending()"))
+        assertTrue("فرم آموزش از تشخیص خودکار پر نمی‌شود", train.contains("Extractor.autoExtract(found.body)"))
+    }
+
+    @Test
     fun `bank logo tolerates the word bank and unknown names`() {
         assertEquals("mellat", bankAssetKey("بانک ملت"))
         assertEquals("mellat", bankAssetKey("ملت"))

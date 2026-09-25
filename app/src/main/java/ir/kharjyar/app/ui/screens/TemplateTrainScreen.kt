@@ -58,7 +58,37 @@ fun TemplateTrainScreen(viewModel: AppViewModel, nav: NavHostController, smsId: 
     var preview by remember { mutableStateOf<ir.kharjyar.app.core.sms.ExtractionResult?>(null) }
 
     LaunchedEffect(smsId) {
-        sms = viewModel.repo.smsDao.byId(smsId)
+        val found = viewModel.repo.smsDao.byId(smsId)
+        sms = found
+        // پیش‌پرکردن خودکار: هرچه خودِ برنامه از پیامک فهمیده، از قبل انتخاب
+        // می‌شود تا کاربر فقط تأیید کند، نه اینکه همه چیز را دستی بچیند.
+        if (found != null) {
+            val auto = Extractor.autoExtract(found.body)
+            val body = Digits.normalizeForMatch(found.body)
+            val tokens = Regex("\\d{1,3}(?:[,،٬]\\d{3})+|\\d+").findAll(body).map { it.value }.toList()
+            fun tokenOf(value: Long?): String? {
+                if (value == null) return null
+                val plain = if (auto.amountUnit == "TOMAN") value / 10 else value
+                return tokens.firstOrNull { Digits.parseAmount(it) == plain }
+            }
+            tokenOf(auto.amountRial)?.let { selections[FieldRole.AMOUNT] = it }
+            tokenOf(auto.balanceRial)?.let { selections[FieldRole.BALANCE] = it }
+            auto.accountIdHint?.let { hint ->
+                val digits = hint.filter(Char::isDigit)
+                val token = tokens.firstOrNull { it == digits }
+                    ?: tokens.firstOrNull { digits.endsWith(it) && it.length >= 3 }
+                if (token != null) selections[FieldRole.ACCOUNT_ID] = token
+            }
+            auto.dateText?.let { selections[FieldRole.DATE] = it }
+            auto.timeText?.let { selections[FieldRole.TIME] = it }
+            if (auto.amountUnit == "TOMAN") amountUnit = "TOMAN"
+            when (auto.directionEnum()) {
+                ir.kharjyar.app.core.sms.ExtractedDirection.DEPOSIT -> directionType = "DEPOSIT"
+                ir.kharjyar.app.core.sms.ExtractedDirection.WITHDRAW -> directionType = "WITHDRAW"
+                else -> {}
+            }
+            directionAnchor = Extractor.directionWordIn(found.body) ?: ""
+        }
         loaded = true
     }
     if (!loaded) return
@@ -68,7 +98,9 @@ fun TemplateTrainScreen(viewModel: AppViewModel, nav: NavHostController, smsId: 
         return
     }
 
-    val normalized = Digits.normalize(s.body)
+    // همان نرمال‌سازی‌ای که استخراج‌گر استفاده می‌کند تا انتخاب‌های
+    // پیش‌پرشده دقیقاً با گزینه‌های روی صفحه یکی باشند
+    val normalized = Digits.normalizeForMatch(s.body)
     val numbers = remember(s.body) {
         Regex("\\d{1,3}(?:[,،٬]\\d{3})+|\\d+").findAll(normalized).map { it.value }.distinct().toList()
     }
@@ -81,6 +113,11 @@ fun TemplateTrainScreen(viewModel: AppViewModel, nav: NavHostController, smsId: 
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
                 Text(
+            "آنچه خودکار تشخیص داده شده از قبل انتخاب شده است؛ اگر درست است فقط ذخیره کنید.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
             "فرستنده: ${s.sender}",
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -191,6 +228,9 @@ fun TemplateTrainScreen(viewModel: AppViewModel, nav: NavHostController, smsId: 
                             createdAt = System.currentTimeMillis()
                         )
                     )
+                    // با قالب تازه، همه پیامک‌های منتظرِ قالب دوباره پردازش
+                    // می‌شوند تا همان پرسش‌ها برای پیامک‌های هم‌شکل تکرار نشود
+                    viewModel.repo.reprocessPending()
                     // پردازش دوباره همان پیامک
                     val accountId = s.matchedAccountId
                     val fresh = viewModel.repo.smsDao.byId(s.id)

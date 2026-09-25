@@ -15,7 +15,7 @@ object SmsClassifier {
     private val transactionKeywords = listOf(
         "برداشت", "واریز", "خرید", "انتقال", "کسر", "کارت به کارت", "کارت‌به‌کارت",
         "پرداخت", "حواله", "تراکنش", "کسر شد", "واریز شد", "برداشت شد", "خرید از",
-        "paya", "satna", "پایا", "ساتنا", "قبض"
+        "paya", "satna", "پایا", "ساتنا", "قبض", "بدهکار", "بستانکار", "وصول", "شارژ"
     )
 
     private val balanceKeywords = listOf("مانده", "موجودی", "مانده:", "موجودی:")
@@ -36,7 +36,8 @@ object SmsClassifier {
      * وجود واژه «رمز» یا «مسدود» به‌تنهایی دلیل حذف نیست؛ اگر نشانه تراکنش + مبلغ باشد مالی است.
      */
     fun classify(body: String): SmsKind {
-        val text = Digits.normalize(body).lowercase()
+        // حروف عربی هم یکدست می‌شوند تا «خريد/كسر» عربی هم شناخته شود
+        val text = Digits.normalizeForMatch(body).lowercase()
         val hasTxKeyword = transactionKeywords.any { text.contains(it) }
         val hasBalance = balanceKeywords.any { text.contains(it) }
         val hasAmountLike = Regex("\\d{1,3}([,،٬./]\\d{3})+|\\d{4,}").containsMatchIn(text)

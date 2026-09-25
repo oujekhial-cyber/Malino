@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -50,6 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.AnnotatedString
@@ -120,7 +122,13 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     Scaffold(
         containerColor = Color.Transparent,
-        snackbarHost = { GlassSnackbarHost(snackbar) },
+        // پیام‌های کوتاه (مثل «شماره کارت کپی شد») بالاتر از دکمه گرد ثبت
+        // تراکنش می‌نشینند تا پشت آن پنهان نشوند.
+        snackbarHost = {
+            Box(modifier = Modifier.fillMaxWidth().padding(bottom = 86.dp)) {
+                GlassSnackbarHost(snackbar)
+            }
+        },
         modifier = Modifier.imePadding(),
         // نوار بالا/پایین سیستم یک‌بار در AppRoot اعمال شده؛ تکرارش اینجا باعث
         // حاشیه مرده در بالای صفحه و بالای دکمه‌های پایین می‌شد.
@@ -130,7 +138,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
         // ساخته می‌شوند بدون تأخیر ظاهر می‌شوند.
         ScreenEnterAnimation {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                // کلیک روی هر جای صفحه به‌جز خود ردیف‌ها و چیپ‌ها (که کلیک را
+                // مصرف می‌کنند)، فیلتر واریز/برداشت را برمی‌دارد
+                .pointerInput(recentFilter) {
+                    if (recentFilter != 0) {
+                        detectTapGestures { recentFilter = 0 }
+                    }
+                },
             // بدون فاصله مرده: کارت اصلی درست زیر نوار بالایی و فهرست تا خط نوار پایین
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -343,6 +360,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 modifier = Modifier.width(pageWidth),
                                 onClick = {
                                     // انتخاب کارت = تغییر حساب پیش‌فرض داشبورد
+                                    // و برداشتن فیلتر واریز/برداشت
+                                    recentFilter = 0
                                     scope.launch {
                                         viewModel.settingsRepo.setDefaultAccount(
                                             if (defaultAccount?.id == account.id) null else account.id
