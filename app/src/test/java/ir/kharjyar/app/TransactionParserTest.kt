@@ -89,6 +89,25 @@ class TransactionParserTest {
     }
 
     @Test
+    fun `detects destination when saved title starts with account`() {
+        val customAccounts = listOf(
+            ParserAccount(21L, "توسعه", "توسعه تعاون"),
+            ParserAccount(22L, "حساب روزمره", "ملی")
+        )
+        val r = TransactionParser.parse(
+            "مبلغ پنجاه هزار تومان از حساب توسعه به حساب روزمره خودم انتقال دادم",
+            customAccounts,
+            categories,
+            MoneyUnit.RIAL,
+            today
+        )
+        assertEquals(TxNature.TRANSFER, r.nature)
+        assertEquals(21L, r.accountId)
+        assertEquals(22L, r.targetAccountId)
+        assertTrue(r.transferToOwn)
+    }
+
+    @Test
     fun `detects a transfer to somebody else`() {
         val r = parse("پانصد هزار تومن از حساب روزمره به حساب دیگران انتقال دادم")
         assertEquals(TxNature.TRANSFER, r.nature)

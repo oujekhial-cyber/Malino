@@ -241,10 +241,9 @@ object TransactionParser {
     private fun matchAccount(text: String, accounts: List<ParserAccount>): ParserAccount? {
         if (accounts.isEmpty()) return null
 
-        // عنوان کامل حساب در جمله آمده باشد
+        // عنوان کامل یا ساده‌شده حساب در جمله آمده باشد
         accounts.sortedByDescending { it.title.length }.forEach { acc ->
-            val t = normalize(acc.title)
-            if (t.isNotBlank() && text.contains(t)) return acc
+            if (accountAliases(acc).any { text.contains(it) }) return acc
         }
         // نام بانک، اگر فقط یک حساب از آن بانک باشد
         accounts.sortedByDescending { it.bankName.length }.forEach { acc ->
@@ -263,6 +262,21 @@ object TransactionParser {
         return null
     }
 
+    /** نام‌های قابل تطبیق حساب: عنوان/بانک، با و بدون پیشوندهای رایج. */
+    private fun accountAliases(account: ParserAccount): List<String> =
+        listOf(account.title, account.bankName)
+            .map(::normalize)
+            .flatMap { value ->
+                listOf(
+                    value,
+                    value.removePrefix("حساب ").removePrefix("بانک ").trim(),
+                    value.removeSuffix(" خودم").trim()
+                )
+            }
+            .filter { it.length >= 2 }
+            .distinct()
+            .sortedByDescending { it.length }
+
     /** حسابی که بعد از یکی از عبارت‌های «از …» یا «به …» آمده است. */
     private fun matchAccountNear(
         text: String,
@@ -278,10 +292,14 @@ object TransactionParser {
                 if (index < 0) break
                 val window = text.substring(index + marker.length).take(50)
                 candidates.sortedByDescending { maxOf(it.title.length, it.bankName.length) }.forEach { account ->
-                    val title = normalize(account.title)
-                    val bank = normalize(account.bankName)
-                    if ((title.isNotBlank() && window.contains(title)) ||
-                        (bank.isNotBlank() && window.contains(bank))) return account
+                    // عنوان حساب ممکن است خودش با «حساب» یا «بانک» ذخیره شده باشد؛
+                    // در جمله «به حساب روزمره خودم»، marker عبارت «به حساب» را
+                    // جدا کرده و فقط «روزمره خودم» می‌ماند. پس همه نام‌های
+                    // ساده‌شده را هم بررسی می‌کنیم.
+                    val aliases = accountAliases(account)
+                    if (aliases.any { alias -> alias.isNotBlank() && window.contains(alias) }) {
+                        return account
+                    }
                 }
                 start = index + marker.length
             }
