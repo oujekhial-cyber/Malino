@@ -11,9 +11,9 @@ import org.junit.Test
 class PaletteMigrationTest {
 
     @Test
-    fun `all five palettes are available`() {
+    fun `all seven palettes are available`() {
         assertEquals(
-            listOf("SAKURA", "VIOLET", "LOTUS", "OCEAN", "GOLD"),
+            listOf("SAKURA", "VIOLET", "LOTUS", "OCEAN", "GOLD", "MINIMAL_DAY", "MINIMAL_NIGHT"),
             Palette.entries.map { it.name }
         )
     }
@@ -31,17 +31,15 @@ class PaletteMigrationTest {
     }
 
     @Test
-    fun `every skin carries neon colors and a hero image`() {
-        // همه تم‌ها قاب نئونی و تصویر کارت مخصوص خودشان را دارند
-        assertTrue(AllSkins.all { it.neonColors.size >= 2 })
-        assertTrue(AllSkins.all { it.heroImage != null })
+    fun `decorative skins have art while minimal skins stay minimal`() {
+        val minimal = setOf(Palette.MINIMAL_DAY, Palette.MINIMAL_NIGHT)
+        assertTrue(AllSkins.filter { it.id !in minimal }.all { it.neonColors.size >= 2 && it.heroImage != null })
+        assertTrue(AllSkins.filter { it.id in minimal }.all { it.neonColors.isEmpty() && it.heroImage == null })
     }
 
     @Test
-    fun `there is exactly one light skin among the palettes`() {
-        // تم بنفش تیره به یک تم روشن تبدیل شد؛ بقیه تیره می‌مانند
-        val light = AllSkins.filter { !it.dark }
-        assertEquals(1, light.size)
-        assertEquals(Palette.VIOLET, light.first().id)
+    fun `daylight and minimal day are the two light skins`() {
+        val light = AllSkins.filter { !it.dark }.map { it.id }.toSet()
+        assertEquals(setOf(Palette.VIOLET, Palette.MINIMAL_DAY), light)
     }
 }
