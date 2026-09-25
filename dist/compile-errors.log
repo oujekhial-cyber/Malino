@@ -1,0 +1,2 @@
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:15:43 Cannot access 'val RowColumnParentData?.weight: Float': it is internal in file.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:15:43 Cannot access 'val RowColumnParentData?.weight: Float': it is internal in file.
