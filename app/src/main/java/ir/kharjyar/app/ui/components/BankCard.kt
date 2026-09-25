@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.Icon
@@ -160,19 +159,27 @@ fun BankCard(
                     )
                 }
             }
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(onCard.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (selected) Icons.Filled.Check else Icons.Filled.AccountBalance,
-                    contentDescription = null,
-                    tint = onCard,
-                    modifier = Modifier.size(18.dp)
-                )
+            // نشان بانک: دایره‌ای با رنگ و کوته‌نوشت همان بانک. اگر بانک ناشناس
+            // باشد، نشان خنثی با آیکون بانک نشان داده می‌شود.
+            Box(contentAlignment = Alignment.Center) {
+                BankLogo(bankName = bankName, size = 34.dp, ringColor = onCard)
+                if (selected) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(15.dp)
+                            .clip(CircleShape)
+                            .background(onCard),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = bottom,
+                            modifier = Modifier.size(11.dp)
+                        )
+                    }
+                }
             }
         }
 

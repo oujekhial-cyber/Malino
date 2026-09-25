@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
@@ -35,6 +34,7 @@ import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.BankLogo
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.EmptyState
@@ -86,7 +86,12 @@ fun AccountsScreen(viewModel: AppViewModel, nav: NavHostController) {
                         ) {
                         SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("accountEdit/${a.id}") }) {
                             Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(14.dp).background(Color(a.colorArgb), CircleShape))
+                                // نشان بانک با حلقه‌ای به رنگ خود حساب
+                                BankLogo(
+                                    bankName = a.bankName,
+                                    size = 36.dp,
+                                    ringColor = Color(a.colorArgb)
+                                )
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

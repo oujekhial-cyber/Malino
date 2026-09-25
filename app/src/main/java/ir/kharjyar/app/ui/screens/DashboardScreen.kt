@@ -73,6 +73,7 @@ import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
 import ir.kharjyar.app.ui.components.BankCard
 import ir.kharjyar.app.ui.components.EnterCard
+import ir.kharjyar.app.ui.components.ScreenEnterAnimation
 import ir.kharjyar.app.ui.components.GlassSnackbarHost
 import ir.kharjyar.app.ui.components.HeroCard
 import ir.kharjyar.app.ui.components.LineChart
@@ -120,6 +121,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
         snackbarHost = { GlassSnackbarHost(snackbar) },
         modifier = Modifier.imePadding()
     ) { padding ->
+        // انیمیشن ورود فقط برای نخستین نمایش صفحه؛ ردیف‌هایی که حین اسکرول
+        // ساخته می‌شوند بدون تأخیر ظاهر می‌شوند.
+        ScreenEnterAnimation {
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             // بدون فاصله مرده: کارت اصلی درست زیر نوار بالایی و فهرست تا خط نوار پایین
@@ -559,6 +563,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                 }
             }
+        }
         }
     }
 }

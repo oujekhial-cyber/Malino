@@ -1,5 +1,6 @@
 package ir.kharjyar.app.ui.components
 
+import android.os.SystemClock
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -18,7 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -285,21 +288,47 @@ fun Modifier.neonFrame(
     }
 }
 
-/** انیمیشن ورود کارت‌ها: محو‌شدن + لغزش ملایم از پایین، با تأخیر ترتیبی. */
+/**
+ * زمان (uptime) باز شدن صفحه. کارت‌هایی که بعد از باز شدن صفحه ساخته می‌شوند —
+ * یعنی همان‌هایی که حین اسکرول وارد دید می‌شوند — دیگر انیمیشن ورود بازی
+ * نمی‌کنند و بی‌درنگ دیده می‌شوند. مقدار منفی یعنی صفحه این را تنظیم نکرده است.
+ */
+val LocalScreenEnterTime = compositionLocalOf { -1L }
+
+/** صفحه را علامت می‌زند تا انیمیشن ورود فقط برای نخستین نمایش اجرا شود. */
+@Composable
+fun ScreenEnterAnimation(content: @Composable () -> Unit) {
+    val start = remember { SystemClock.uptimeMillis() }
+    CompositionLocalProvider(LocalScreenEnterTime provides start) { content() }
+}
+
+/**
+ * انیمیشن ورود کارت‌ها: محو‌شدن + لغزش کوتاه از پایین.
+ *
+ * زمان‌ها عمداً کوتاه‌اند (‎۱۷۰/۱۹۰ میلی‌ثانیه با گام ترتیبی ۱۸ میلی‌ثانیه) تا
+ * فهرست تراکنش‌ها «تنبل» به نظر نرسد. اگر کارت حین اسکرول ساخته شود، انیمیشن
+ * اصلاً اجرا نمی‌شود و ردیف فوری سر جایش است.
+ */
 @Composable
 fun EnterCard(
     index: Int = 0,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    var visible by remember { mutableStateOf(false) }
+    val screenStart = LocalScreenEnterTime.current
+    // پنجره کوتاه باز شدن صفحه؛ بعد از آن هر چیزی که ساخته شود یعنی کاربر
+    // دارد اسکرول می‌کند.
+    val firstPaint = remember {
+        screenStart < 0L || SystemClock.uptimeMillis() - screenStart < 450L
+    }
+    var visible by remember { mutableStateOf(!firstPaint) }
     LaunchedEffect(Unit) { visible = true }
-    val delay = (index.coerceIn(0, 8)) * 45
+    val delay = if (firstPaint) (index.coerceIn(0, 6)) * 18 else 0
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = fadeIn(tween(340, delayMillis = delay)) +
-            slideInVertically(tween(380, delayMillis = delay)) { it / 6 }
+        enter = fadeIn(tween(170, delayMillis = delay)) +
+            slideInVertically(tween(190, delayMillis = delay)) { it / 8 }
     ) { content() }
 }
 

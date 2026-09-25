@@ -56,6 +56,7 @@ import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.CardScannerDialog
 import ir.kharjyar.app.ui.components.ColorPicker
 import ir.kharjyar.app.ui.components.BankCard
+import ir.kharjyar.app.ui.components.BankLogo
 import ir.kharjyar.app.ui.components.SearchableComboBox
 import ir.kharjyar.app.ui.components.ColorPickerField
 import ir.kharjyar.app.ui.components.SkinCard
@@ -168,7 +169,9 @@ fun AccountEditScreen(
                 options = bankNames,
                 value = bankName,
                 onValueChange = { bankName = it },
-                placeholder = "حروف اول نام بانک را بنویسید"
+                placeholder = "حروف اول نام بانک را بنویسید",
+                // نشان هر بانک کنار نامش، هم در فیلد و هم در فهرست انتخاب
+                leadingOf = { BankLogo(bankName = it, size = 26.dp) }
             )
             ColorPickerField(color = color, onColorChange = { color = it })
         }

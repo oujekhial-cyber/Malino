@@ -349,7 +349,9 @@ fun SearchableComboBox(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "برای جست‌وجو تایپ کنید"
+    placeholder: String = "برای جست‌وجو تایپ کنید",
+    /** نشان کوچک کنار هر گزینه (مثلاً نشان بانک)؛ اگر null باشد نقطه ساده می‌آید. */
+    leadingOf: (@Composable (String) -> Unit)? = null
 ) {
     val skin = LocalAppSkin.current
     var open by remember { mutableStateOf(false) }
@@ -368,6 +370,9 @@ fun SearchableComboBox(
             label = { Text(label) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            leadingIcon = if (leadingOf != null && value.isNotBlank()) {
+                { leadingOf(value) }
+            } else null,
             trailingIcon = {
                 Icon(
                     Icons.Filled.ArrowDropDown,
@@ -414,15 +419,19 @@ fun SearchableComboBox(
                                         .padding(vertical = 11.dp, horizontal = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (item == value) skin.accent
-                                                else skin.onBackdrop.copy(alpha = 0.28f)
-                                            )
-                                    )
+                                    if (leadingOf != null) {
+                                        leadingOf(item)
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (item == value) skin.accent
+                                                    else skin.onBackdrop.copy(alpha = 0.28f)
+                                                )
+                                        )
+                                    }
                                     Spacer(Modifier.width(10.dp))
                                     Text(
                                         item,
