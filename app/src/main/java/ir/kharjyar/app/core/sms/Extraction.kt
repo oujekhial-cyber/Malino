@@ -88,14 +88,22 @@ object Extractor {
     /** واژه‌هایی که یعنی مبلغ به تومان نوشته شده است. */
     private val tomanWords = listOf("تومان", "تومن", "هزارتومان")
 
-    /** شناسه حساب/کارت به شکل ماسک‌شده، هر جای متن. */
+    /** شناسه حساب/کارت به شکل ماسک‌شده یا شماره سپرده چندبخشی، هر جای متن. */
     private val maskedIdPattern = Regex(
-        // 6037****1234 یا ****1234 یا شماره سپرده 1234.56.78901
-        "\\d{2,6}[*٭]{1,8}\\d{2,6}|[*٭]{2,}\\d{3,6}|\\d{3,5}\\.\\d{1,3}\\.\\d{3,9}"
+        // 6037****1234 یا ****1234 یا 2404.306.5918267.1
+        "\\d{2,6}[*٭]{1,8}\\d{2,6}|[*٭]{2,}\\d{3,6}|\\d{2,5}(?:[.\\-]\\d{1,7}){2,4}"
     )
 
     private val numberPattern = Regex("\\d{1,3}(?:[,،٬]\\d{3})+|\\d+")
+    /** مبلغی که + یا -، قبل یا بعدش آمده؛ الگوی اصلی نمونه‌های واقعی بانک‌ها. */
+    private val signedAmountPattern = Regex(
+        "(?<![\\d.,])([+-]?)\\s*(\\d{1,3}(?:[,،٬]\\d{3})+|\\d{4,})\\s*([+-]?)(?![\\d.,])"
+    )
     private val datePattern = Regex("(\\d{2,4})[/\\-.](\\d{1,2})[/\\-.](\\d{1,2})")
+    /** تاریخ بدون سال: 07/03_01:53 یعنی ماه ۷، روز ۳ سال جاری. */
+    private val shortDatePattern = Regex("(?<![\\d/])(\\d{1,2})[/\\-.](\\d{1,2})(?=\\s*[_-]\\s*\\d{1,2}:)")
+    /** تاریخ فشرده 0127-22:00 یعنی ۲۷ فروردین سال جاری. */
+    private val compactDatePattern = Regex("(?<!\\d)(0[1-9]|1[0-2])([0-3]\\d)(?=\\s*[-_]\\s*\\d{1,2}:)")
     private val timePattern = Regex("(\\d{1,2}):(\\d{2})(?::(\\d{2}))?")
 
     /** استخراج خودکار (heuristic) بدون قالب. */
@@ -119,8 +127,14 @@ object Extractor {
         // مانده: نزدیک‌ترین عدد بعد از لنگر مانده
         val balance = findNumberAfterAnchors(text, balanceAnchors)
 
-        // مبلغ: نزدیک‌ترین عدد بعد از لنگر مبلغ/عمل، که با مانده یکی نباشد
-        var amount = findNumberAfterAnchors(text, amountAnchors, exclude = balance?.second)
+        // مبلغ علامت‌دار (+15,000,000 یا 1,000,000-) قطعی‌ترین نشانه است و
+        // در پیامک‌های بدون هیچ عنوانی هم مبلغ و جهت را هم‌زمان مشخص می‌کند.
+        val signed = findSignedAmount(text, balance?.second)
+        var amount = signed?.let { it.amount to it.range }
+        if (signed != null) direction = signed.direction
+
+        // در نبود علامت: نزدیک‌ترین عدد بعد از لنگر مبلغ/عمل
+        if (amount == null) amount = findNumberAfterAnchors(text, amountAnchors, exclude = balance?.second)
         if (amount == null) {
             // fallback: عدد بزرگ در سطری که کلمه عمل دارد
             for (line in lines) {
@@ -142,6 +156,7 @@ object Extractor {
 
         val accountId = findAccountId(text)
         val dateMatch = datePattern.find(text)
+        val shortDate = findFlexibleDate(text)
         val timeMatch = timePattern.find(text)
         val ref = findNumberAfterAnchors(text, refAnchors)
 
@@ -161,11 +176,12 @@ object Extractor {
             direction = direction.name,
             balanceRial = balance?.first?.times(factor),
             accountIdHint = accountId,
-            dateText = dateMatch?.value,
+            dateText = dateMatch?.value ?: shortDate?.text,
             timeText = timeMatch?.value,
             refNumber = ref?.first?.toString(),
             confidence = confidence.name,
-            occurredAtMillis = parseOccurredAt(dateMatch, timeMatch)
+            occurredAtMillis = shortDate?.let { parseOccurredAt(it, timeMatch) }
+                ?: parseOccurredAt(dateMatch, timeMatch)
         )
     }
 
@@ -301,6 +317,72 @@ object Extractor {
         return null
     }
 
+    private data class SignedAmount(
+        val amount: Long,
+        val range: IntRange,
+        val direction: ExtractedDirection
+    )
+
+    private fun findSignedAmount(text: String, exclude: IntRange?): SignedAmount? {
+        for (m in signedAmountPattern.findAll(text)) {
+            val sign = m.groupValues[1].ifBlank { m.groupValues[3] }
+            if (sign != "+" && sign != "-") continue
+            val numberGroup = m.groups[2] ?: continue
+            val range = numberGroup.range
+            if (exclude != null && rangesOverlap(range, exclude)) continue
+            val amount = Digits.parseAmount(numberGroup.value) ?: continue
+            if (amount < 1_000L) continue
+            return SignedAmount(
+                amount,
+                range,
+                if (sign == "+") ExtractedDirection.DEPOSIT else ExtractedDirection.WITHDRAW
+            )
+        }
+        return null
+    }
+
+    private fun rangesOverlap(a: IntRange, b: IntRange): Boolean =
+        a.first <= b.last && b.first <= a.last
+
+    private data class FlexibleDate(val year: Int, val month: Int, val day: Int, val text: String)
+
+    /** تاریخ کامل، ماه/روز بدون سال، یا MMDD فشرده. */
+    private fun findFlexibleDate(text: String): FlexibleDate? {
+        datePattern.find(text)?.let { m ->
+            var a = m.groupValues[1].toInt()
+            val b = m.groupValues[2].toInt()
+            var c = m.groupValues[3].toInt()
+            if (a <= 31 && m.groupValues[3].length == 4) {
+                val year = c; c = a; a = year
+            }
+            if (a in 1900..2100) {
+                val gregorian = java.time.LocalDate.of(a, b, c)
+                val jalali = ir.kharjyar.app.core.date.PersianDate.fromLocalDate(gregorian)
+                return FlexibleDate(jalali.year, jalali.month, jalali.day, m.value)
+            }
+            if (a < 100) a += 1400
+            return FlexibleDate(a, b, c, m.value)
+        }
+        val currentYear = ir.kharjyar.app.core.date.PersianDate.today().year
+        shortDatePattern.find(text)?.let { m ->
+            return FlexibleDate(currentYear, m.groupValues[1].toInt(), m.groupValues[2].toInt(), m.value)
+        }
+        compactDatePattern.find(text)?.let { m ->
+            return FlexibleDate(currentYear, m.groupValues[1].toInt(), m.groupValues[2].toInt(), m.value)
+        }
+        return null
+    }
+
+    private fun parseOccurredAt(date: FlexibleDate, timeMatch: MatchResult?): Long? = runCatching {
+        if (date.month !in 1..12 || date.day !in 1..31) return null
+        val pd = ir.kharjyar.app.core.date.PersianDate(date.year, date.month, date.day)
+        if (date.day > pd.monthLength()) return null
+        val hour = timeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val minute = timeMatch?.groupValues?.get(2)?.toIntOrNull() ?: 0
+        if (hour !in 0..23 || minute !in 0..59) return null
+        ir.kharjyar.app.core.date.PersianDate.toMillis(pd, hour, minute)
+    }.getOrNull()
+
     /** واژه‌ای که جهت پیامک را مشخص کرده است (برای پیش‌پرکردن آموزش قالب). */
     fun directionWordIn(body: String): String? {
         val text = Digits.normalizeForMatch(body)
@@ -325,9 +407,10 @@ object Extractor {
 
     private fun findAccountId(text: String): String? {
         // شکل ماسک‌شده مثل 6037****1234 یا *1234 یا 1234.56.789 هر جای متن
-        maskedIdPattern.find(text)?.let { m ->
-            if (m.value.count(Char::isDigit) >= 4) return m.value.trim()
-        }
+        maskedIdPattern.findAll(text).firstOrNull { m ->
+            // تاریخ کوتاه مثل 03-10-06 نباید شماره حساب فرض شود
+            m.value.count(Char::isDigit) >= 8
+        }?.let { return it.value.trim() }
         for (anchor in accountAnchors) {
             val idx = text.indexOf(anchor)
             if (idx < 0) continue
