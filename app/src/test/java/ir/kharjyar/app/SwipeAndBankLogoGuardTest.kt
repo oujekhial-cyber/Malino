@@ -26,9 +26,13 @@ class SwipeAndBankLogoGuardTest {
     @Test
     fun `swipe row does not use dismiss box anymore`() {
         val s = source(swipe)
+        // فقط کد بررسی می‌شود؛ متن توضیحات حق دارد از پیاده‌سازی قبلی اسم ببرد
+        val code = s.lines().filterNot { it.trimStart().startsWith("*") || it.trimStart().startsWith("//") }
+            .joinToString("\n")
         // SwipeToDismissBox ردیف را وقتی واقعاً حذف نمی‌شد باز نگه می‌داشت
-        assertFalse("SwipeToDismissBox برگشته است", s.contains("SwipeToDismissBox"))
-        assertFalse("حالت dismiss برگشته است", s.contains("rememberSwipeToDismissBoxState"))
+        assertFalse("SwipeToDismissBox برگشته است", code.contains("SwipeToDismissBox("))
+        assertFalse("حالت dismiss برگشته است", code.contains("rememberSwipeToDismissBoxState"))
+        assertFalse("ایمپورت dismiss box مانده است", code.contains("import androidx.compose.material3.SwipeToDismissBox"))
         assertTrue("کشیدن دستی افقی حذف شده", s.contains("Orientation.Horizontal"))
         assertTrue("جابه‌جایی مطلق (بدون آینه شدن در RTL) حذف شده", s.contains("absoluteOffset"))
     }
