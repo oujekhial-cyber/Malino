@@ -91,11 +91,11 @@ class TransactionParserTest {
     @Test
     fun `detects destination when saved title starts with account`() {
         val customAccounts = listOf(
-            ParserAccount(21L, "توسعه", "توسعه تعاون"),
-            ParserAccount(22L, "حساب روزمره", "ملی")
+            ParserAccount(21L, "حساب حقوق", "بانک مبدأ"),
+            ParserAccount(22L, "حساب روزمره", "بانک مقصد")
         )
         val r = TransactionParser.parse(
-            "مبلغ پنجاه هزار تومان از حساب توسعه به حساب روزمره خودم انتقال دادم",
+            "مبلغ پنجاه هزار تومان از حساب حقوق به حساب روزمره خودم انتقال دادم",
             customAccounts,
             categories,
             MoneyUnit.RIAL,

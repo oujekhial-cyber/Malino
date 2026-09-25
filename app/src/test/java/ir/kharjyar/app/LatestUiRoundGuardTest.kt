@@ -80,4 +80,13 @@ class LatestUiRoundGuardTest {
         val settings = source("src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt")
         assertTrue(settings.contains("پیش‌فرض سیستم (تغییر خودکار روز/شب)"))
     }
+
+    @Test fun `transaction parser does not hardcode any bank name`() {
+        val parser = source("src/main/java/ir/kharjyar/app/core/nlp/TransactionParser.kt")
+        val bankNames = listOf("توسعه تعاون", "ملی", "ملت", "صادرات", "تجارت", "سپه", "پاسارگاد")
+        bankNames.forEach { bank ->
+            assertFalse("نام بانک $bank داخل منطق Parser ثابت شده است", parser.contains("\"$bank\""))
+        }
+        assertTrue("Parser باید حساب‌های خود کاربر را ورودی بگیرد", parser.contains("accounts: List<ParserAccount>"))
+    }
 }
