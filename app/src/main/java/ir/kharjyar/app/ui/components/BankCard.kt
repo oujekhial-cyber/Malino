@@ -14,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -105,7 +106,9 @@ fun BankCard(
     showSecrets: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
-    onCopy: (label: String, value: String) -> Unit = { _, _ -> }
+    onCopy: (label: String, value: String) -> Unit = { _, _ -> },
+    /** محتوای دلخواه زیر مانده؛ برای نمایش خلاصه واریز/برداشت همین حساب. */
+    content: @Composable ColumnScope.() -> Unit = {}
 ) {
     val base = Color(colorArgb)
     // گرادیان از رنگ حساب: روشن‌تر در بالا-راست، تیره‌تر در پایین-چپ
@@ -208,6 +211,8 @@ fun BankCard(
                 )
             }
         }
+
+        content()
 
         // ---------- جزئیات، فقط وقتی کارت انتخاب شده ----------
         AnimatedVisibility(

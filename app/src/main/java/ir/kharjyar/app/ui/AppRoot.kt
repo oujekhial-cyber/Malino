@@ -45,7 +45,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -285,13 +284,18 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                         label = "menuRotation"
                     )
                     // منوی همبرگری سمت راست: در RTL، اولین عنصر ردیف سمت راست می‌نشیند.
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                if (drawerState.isOpen) drawerState.close() else drawerState.open()
-                            }
-                        },
-                        modifier = Modifier.size(40.dp)
+                    // به‌جای IconButton (که دست‌کم ۴۸dp ارتفاع می‌گیرد) یک Box کوچک
+                    // است تا نوار بالا دقیقاً به بلندای متن باشد و محتوا بالاتر بیاید.
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                scope.launch {
+                                    if (drawerState.isOpen) drawerState.close() else drawerState.open()
+                                }
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             if (drawerState.isOpen) Icons.Filled.Close else Icons.Filled.Menu,

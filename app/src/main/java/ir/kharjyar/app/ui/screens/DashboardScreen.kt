@@ -21,9 +21,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Visibility
@@ -51,6 +51,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,7 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import ir.kharjyar.app.core.balance.AccountBalance
-import ir.kharjyar.app.core.balance.BalanceSource
+import ir.kharjyar.app.core.balance.TxSummarizer
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
@@ -120,130 +121,266 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // ---------- کارت خلاصه ماه (hero) ----------
+            // ---------- کیف پول: خلاصه ماه و کارت‌های بانکی در یک نوار ----------
+            // قبلاً «کارت خلاصه» و «ردیف حساب‌ها» دو بخش جدا و زیر هم بودند و صفحه
+            // را شلوغ می‌کردند. حالا یک نوار افقی است: صفحه نخست خلاصه همه حساب‌ها،
+            // و بعد از آن هر حساب یک کارت با خلاصه واریز/برداشت خودش.
             item {
+                val active = accounts.filter { !it.archived }
+                val monthRange = remember { viewModel.repo.currentPersianMonthRange() }
+                val wholeRange = summary.range == AppViewModel.SummaryRange.ALL
+                // خلاصه هر حساب (یا همه حساب‌ها) با همان بازه‌ای که کاربر انتخاب کرده
+                fun rangeSummary(accountId: Long?) =
+                    if (wholeRange) TxSummarizer.summarize(allTx, accountId)
+                    else TxSummarizer.summarize(allTx, accountId, monthRange.first, monthRange.second)
+
                 EnterCard(0) {
-                    HeroCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        neon = settings.cardShine
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // ----- صفحه نخست: خلاصه همه حساب‌ها -----
+                        item {
+                            val total = rangeSummary(null)
+                            val totalRial = active.sumOf { acc -> AccountBalance.estimate(acc, allTx).rial ?: 0L }
+                            HeroCard(
+                                modifier = Modifier
+                                    .fillParentMaxWidth(if (active.isEmpty()) 1f else 0.93f)
+                                    .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
+                                neon = settings.cardShine
                             ) {
-                                // عنوان، خودش کلید تغییر بازه است: «این ماه ⇄ همه»
-                                Row(
-                                    modifier = Modifier
-                                        .weight(1f, fill = false)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .clickable { viewModel.toggleSummaryRange() }
-                                        .padding(end = 6.dp, top = 2.dp, bottom = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    EmbossedText(
-                                        "خلاصه ${summary.monthTitle}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = skin.onHero,
-                                        maxLines = 1
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(
-                                        Icons.Filled.SwapHoriz,
-                                        contentDescription = "تغییر بازه",
-                                        tint = skin.onHero.copy(alpha = 0.85f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                                Text(
-                                    defaultAccount?.title ?: "همه حساب‌ها",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = skin.onHero,
-                                    maxLines = 1,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(heroChipBg(skin))
-                                        .border(
-                                            1.dp,
-                                            skin.onHero.copy(alpha = 0.28f),
-                                            RoundedCornerShape(12.dp)
+                                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // عنوان، خودش کلید تغییر بازه است: «این ماه ⇄ همه»
+                                        Row(
+                                            modifier = Modifier
+                                                .weight(1f, fill = false)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .clickable { viewModel.toggleSummaryRange() }
+                                                .padding(end = 6.dp, top = 2.dp, bottom = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            EmbossedText(
+                                                "خلاصه ${summary.monthTitle}",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = skin.onHero,
+                                                maxLines = 1
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Icon(
+                                                Icons.Filled.SwapHoriz,
+                                                contentDescription = "تغییر بازه",
+                                                tint = skin.onHero.copy(alpha = 0.85f),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                        // نشان «همه حساب‌ها»: با زدنش فیلتر حساب برداشته می‌شود
+                                        Row(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(heroChipBg(skin))
+                                                .border(1.dp, skin.onHero.copy(alpha = 0.28f), RoundedCornerShape(12.dp))
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (defaultAccount == null) {
+                                                Icon(
+                                                    Icons.Filled.Check,
+                                                    contentDescription = null,
+                                                    tint = skin.onHero,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(Modifier.width(4.dp))
+                                            }
+                                            Text(
+                                                "همه حساب‌ها",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = skin.onHero,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        // دکمه چشم برای پنهان/نمایش مبلغ
+                                        Box(
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clip(CircleShape)
+                                                .background(heroChipBg(skin))
+                                                .border(1.dp, skin.onHero.copy(alpha = 0.28f), CircleShape)
+                                                .clickable { scope.launch { viewModel.settingsRepo.setAmountsVisible(!amountVisible) } },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                if (amountVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                                contentDescription = if (amountVisible) "پنهان کردن مبلغ" else "نمایش مبلغ",
+                                                tint = skin.onHero,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(Modifier.width(12.dp))
+                                        Column {
+                                            EmbossedText(
+                                                if (amountVisible) Money.format(total.netRial, settings.moneyUnit) else "••••••••",
+                                                style = MaterialTheme.typography.headlineMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = skin.onHero,
+                                                maxLines = 1,
+                                                depth = 1.25f
+                                            )
+                                            Text(
+                                                if (summary.range == AppViewModel.SummaryRange.MONTH) "خالص این ماه" else "خالص همه تراکنش‌ها",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = skin.onHero.copy(alpha = 0.85f)
+                                            )
+                                        }
+                                    }
+                                    Spacer(Modifier.height(10.dp))
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        SummaryChip(
+                                            label = "واریز",
+                                            value = if (amountVisible) Money.format(total.incomeRial, settings.moneyUnit) else "••••",
+                                            tint = skin.incomeColor,
+                                            deposit = true,
+                                            modifier = Modifier.weight(1f)
                                         )
-                                        .clickable { nav.navigate("settings") }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                                )
+                                        SummaryChip(
+                                            label = "برداشت",
+                                            value = if (amountVisible) Money.format(total.expenseRial, settings.moneyUnit) else "••••",
+                                            tint = skin.expenseColor,
+                                            deposit = false,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    // مجموع مانده حساب‌ها، همان چیزی که پیش‌تر کارت جدا داشت
+                                    if (active.isNotEmpty()) {
+                                        Spacer(Modifier.height(10.dp))
+                                        Text(
+                                            "مجموع مانده برآوردی ${Digits.toPersian(active.size.toString())} حساب: " +
+                                                (if (amountVisible) Money.format(totalRial, settings.moneyUnit) else "••••••"),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = skin.onHero.copy(alpha = 0.9f),
+                                            maxLines = 1
+                                        )
+                                    }
+                                    if (summary.hasDataOutsideRange) {
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            "در این ماه تراکنشی نیست؛ برای دیدن همه، روی عنوان بزنید.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = skin.onHero.copy(alpha = 0.85f)
+                                        )
+                                    }
+                                    if (total.pendingCount > 0) {
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            "به‌جز ${Digits.toPersian(total.pendingCount.toString())} مورد تأییدنشده (در جمع بالا حساب نشده)",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = skin.onHero.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                }
                             }
-                            Spacer(Modifier.height(8.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // دکمه چشم برای پنهان/نمایش مبلغ
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(heroChipBg(skin))
-                                        .border(1.dp, skin.onHero.copy(alpha = 0.28f), CircleShape)
-                                        .clickable { scope.launch { viewModel.settingsRepo.setAmountsVisible(!amountVisible) } },
-                                    contentAlignment = Alignment.Center
+                        }
+
+                        // ----- صفحه‌های بعدی: هر حساب یک کارت، با خلاصه خودش -----
+                        items(active.size) { idx ->
+                            val account = active[idx]
+                            val est = AccountBalance.estimate(account, allTx)
+                            val accSum = rangeSummary(account.id)
+                            // رنگ متن روی کارت، مثل خود BankCard از روشنایی رنگ حساب می‌آید
+                            val onCard = if (Color(account.colorArgb).luminance() > 0.55f) Color(0xFF14121A) else Color.White
+                            BankCard(
+                                title = account.title,
+                                bankName = account.bankName,
+                                colorArgb = account.colorArgb,
+                                balanceText = when {
+                                    !amountVisible -> "••••••"
+                                    est.rial != null -> Money.format(est.rial, settings.moneyUnit)
+                                    else -> "—"
+                                },
+                                balanceHint = "مانده برآوردی",
+                                selected = defaultAccount?.id == account.id,
+                                cardNumber = account.cardNumber,
+                                accountNumber = account.accountNumber,
+                                iban = account.iban,
+                                expiry = account.cardExpiry,
+                                cvv2 = account.cardCvv2,
+                                showSecrets = amountVisible,
+                                modifier = Modifier.fillParentMaxWidth(0.93f),
+                                onClick = {
+                                    // انتخاب کارت = تغییر حساب پیش‌فرض داشبورد
+                                    scope.launch {
+                                        viewModel.settingsRepo.setDefaultAccount(
+                                            if (defaultAccount?.id == account.id) null else account.id
+                                        )
+                                    }
+                                },
+                                onCopy = { label, text ->
+                                    clipboard.setText(AnnotatedString(text))
+                                    scope.launch {
+                                        // پیام کوتاه تأیید؛ خودش بعد از چند ثانیه محو می‌شود
+                                        snackbar.currentSnackbarData?.dismiss()
+                                        snackbar.showSnackbar(
+                                            message = "$label کپی شد",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            ) {
+                                // خلاصه همین حساب، روی خود کارت (ادغام کارت خلاصه و کارت بانکی)
+                                Spacer(Modifier.height(12.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SummaryChip(
+                                        label = "واریز",
+                                        value = if (amountVisible) Money.format(accSum.incomeRial, settings.moneyUnit) else "••••",
+                                        tint = skin.incomeColor,
+                                        deposit = true,
+                                        onColor = onCard,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    SummaryChip(
+                                        label = "برداشت",
+                                        value = if (amountVisible) Money.format(accSum.expenseRial, settings.moneyUnit) else "••••",
+                                        tint = skin.expenseColor,
+                                        deposit = false,
+                                        onColor = onCard,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+
+                        // ----- آخرین صفحه: افزودن حساب -----
+                        item {
+                            SkinCard(
+                                modifier = Modifier
+                                    .fillParentMaxWidth(if (active.isEmpty()) 0.93f else 0.5f)
+                                    .clickable { nav.navigate("accountEdit/0") }
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalArrangement = Arrangement.Center
                                 ) {
-                                    Icon(
-                                        if (amountVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                        contentDescription = if (amountVisible) "پنهان کردن مبلغ" else "نمایش مبلغ",
-                                        tint = skin.onHero,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(Modifier.width(12.dp))
-                                Column {
-                                    EmbossedText(
-                                        if (amountVisible)
-                                            Money.format(summary.incomeRial - summary.expenseRial, settings.moneyUnit)
-                                        else "••••••••",
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = skin.onHero,
-                                        maxLines = 1,
-                                        depth = 1.25f
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(skin.accent.copy(alpha = 0.18f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Filled.Add, contentDescription = null, tint = skin.accent)
+                                    }
+                                    Spacer(Modifier.height(10.dp))
                                     Text(
-                                        if (summary.range == AppViewModel.SummaryRange.MONTH) "خالص این ماه" else "خالص همه تراکنش‌ها",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = skin.onHero.copy(alpha = 0.85f)
+                                        if (active.isEmpty()) "هنوز حسابی معرفی نکرده‌اید — افزودن حساب" else "افزودن حساب",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = skin.onBackdrop
                                     )
                                 }
-                            }
-                            Spacer(Modifier.height(10.dp))
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                SummaryChip(
-                                    label = "واریز",
-                                    value = if (amountVisible) Money.format(summary.incomeRial, settings.moneyUnit) else "••••",
-                                    tint = skin.incomeColor,
-                                    deposit = true,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                SummaryChip(
-                                    label = "برداشت",
-                                    value = if (amountVisible) Money.format(summary.expenseRial, settings.moneyUnit) else "••••",
-                                    tint = skin.expenseColor,
-                                    deposit = false,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            if (summary.hasDataOutsideRange) {
-                                Spacer(Modifier.height(10.dp))
-                                Text(
-                                    "در این ماه تراکنشی نیست؛ برای دیدن همه، روی عنوان بزنید.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = skin.onHero.copy(alpha = 0.85f)
-                                )
-                            }
-                            if (summary.pendingCount > 0) {
-                                Spacer(Modifier.height(10.dp))
-                                Text(
-                                    "به‌جز ${Digits.toPersian(summary.pendingCount.toString())} مورد تأییدنشده (در جمع بالا حساب نشده)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = skin.onHero.copy(alpha = 0.8f)
-                                )
                             }
                         }
                     }
@@ -318,106 +455,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     style = MaterialTheme.typography.titleSmall,
                                     color = skin.onBackdrop
                                 )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ---------- حساب‌ها با مانده برآوردی ----------
-            item {
-                EnterCard(2) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("حساب‌ها", style = MaterialTheme.typography.titleMedium, color = skin.onBackdrop)
-                            Text(
-                                "مدیریت",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = skin.accent,
-                                modifier = Modifier.clickable { nav.navigate("accounts") }.padding(8.dp)
-                            )
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        val active = accounts.filter { !it.archived }
-                        if (active.isEmpty()) {
-                            SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("accountEdit/0") }) {
-                                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Filled.AccountBalance, null, tint = skin.accent)
-                                    Spacer(Modifier.width(12.dp))
-                                    Text(
-                                        "هنوز حسابی معرفی نکرده‌اید — افزودن حساب",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = skin.onBackdrop
-                                    )
-                                }
-                            }
-                        } else {
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                // کارت «همه حساب‌ها»: مجموع همه حساب‌ها
-                                item {
-                                    val totalRial = active.sumOf { acc ->
-                                        AccountBalance.estimate(acc, allTx).rial ?: 0L
-                                    }
-                                    BankCard(
-                                        title = "همه حساب‌ها",
-                                        bankName = "${Digits.toPersian(active.size.toString())} حساب فعال",
-                                        colorArgb = skin.accent.toArgb().toLong() and 0xFFFFFFFFL,
-                                        balanceText = if (amountVisible)
-                                            Money.format(totalRial, settings.moneyUnit) else "••••••",
-                                        balanceHint = "مجموع مانده برآوردی",
-                                        selected = defaultAccount == null,
-                                        modifier = Modifier.width(250.dp),
-                                        onClick = {
-                                            scope.launch { viewModel.settingsRepo.setDefaultAccount(null) }
-                                        }
-                                    )
-                                }
-                                items(active.size) { idx ->
-                                    val account = active[idx]
-                                    val est = AccountBalance.estimate(account, allTx)
-                                    BankCard(
-                                        title = account.title,
-                                        bankName = account.bankName,
-                                        colorArgb = account.colorArgb,
-                                        balanceText = when {
-                                            !amountVisible -> "••••••"
-                                            est.rial != null -> Money.format(est.rial, settings.moneyUnit)
-                                            else -> "—"
-                                        },
-                                        balanceHint = "مانده برآوردی",
-                                        selected = defaultAccount?.id == account.id,
-                                        cardNumber = account.cardNumber,
-                                        accountNumber = account.accountNumber,
-                                        iban = account.iban,
-                                        expiry = account.cardExpiry,
-                                        cvv2 = account.cardCvv2,
-                                        showSecrets = amountVisible,
-                                        modifier = Modifier.width(250.dp),
-                                        onClick = {
-                                            // انتخاب کارت = تغییر حساب پیش‌فرض داشبورد
-                                            scope.launch {
-                                                viewModel.settingsRepo.setDefaultAccount(
-                                                    if (defaultAccount?.id == account.id) null else account.id
-                                                )
-                                            }
-                                        },
-                                        onCopy = { label, text ->
-                                            clipboard.setText(AnnotatedString(text))
-                                            scope.launch {
-                                                // پیام کوتاه تأیید؛ خودش بعد از چند ثانیه محو می‌شود
-                                                snackbar.currentSnackbarData?.dismiss()
-                                                snackbar.showSnackbar(
-                                                    message = "$label کپی شد",
-                                                    duration = SnackbarDuration.Short
-                                                )
-                                            }
-                                        }
-                                    )
-                                }
                             }
                         }
                     }
@@ -523,15 +560,21 @@ private fun SummaryChip(
     value: String,
     tint: Color,
     deposit: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** رنگ متن وقتی چیپ روی کارت بانکی (با رنگ خود حساب) می‌نشیند. */
+    onColor: Color? = null
 ) {
     val skin = LocalAppSkin.current
     val shape = RoundedCornerShape(16.dp)
+    val fg = onColor ?: skin.onHero
+    // روی متن روشن، پس‌زمینه تیره و برعکس؛ تا چیپ روی هر رنگ کارتی خوانا بماند
+    val chipBg = if (onColor == null) heroChipBg(skin)
+        else if (fg.luminance() > 0.5f) Color.Black.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.72f)
     Row(
         modifier = modifier
             .clip(shape)
             // پس‌زمینه کنتراست‌دار نسبت به کارت: روی تم روشن، روشن؛ روی تم تیره، تیره
-            .background(heroChipBg(skin))
+            .background(chipBg)
             // حاشیه نازک هم‌رنگ مقدار، تا چیپ از پس‌زمینه جدا شود
             .border(1.dp, tint.copy(alpha = 0.55f), shape)
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -558,7 +601,7 @@ private fun SummaryChip(
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
-                color = skin.onHero.copy(alpha = 0.92f),
+                color = fg.copy(alpha = 0.92f),
                 maxLines = 1
             )
             EmbossedText(

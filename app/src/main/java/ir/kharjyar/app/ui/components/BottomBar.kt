@@ -96,23 +96,8 @@ fun BottomNavBar(
     val dividerColor = skin.navUnselected.copy(alpha = 0.35f)
 
     Box(modifier = modifier.fillMaxWidth()) {
-        // محو شدن ملایم محتوای صفحه پیش از رسیدن به نوار (بدون پنهان کردن خط مرزی)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            skin.navBarColor.copy(alpha = 0.22f),
-                            skin.navBarColor.copy(alpha = 0.62f),
-                            skin.navBarColor
-                        )
-                    )
-                )
-        )
+        // نوار محوکنندهٔ قبلی (۵۶dp) حذف شد؛ چون مثل یک حاشیه سیاه، محتوای صفحه را
+        // پیش از رسیدن به نوار پنهان می‌کرد. حالا محتوا تا خودِ خط نوار دیده می‌شود.
 
         // بدنه نوار با قوس (بریدگی) دور دکمه مرکزی
         Row(
