@@ -73,6 +73,12 @@ class TransactionParserTest {
     }
 
     @Test
+    fun `description keeps only the meaningful subject`() {
+        val r = parse("امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب روزمره خریدم")
+        assertEquals("کیک از سوپرمارکت", r.description)
+    }
+
+    @Test
     fun `detects deposit from verbs`() {
         val r = parse("حقوق این ماه ۲۵ میلیون تومن واریز شد به پس‌انداز")
         assertEquals(TxDirection.DEPOSIT, r.direction)

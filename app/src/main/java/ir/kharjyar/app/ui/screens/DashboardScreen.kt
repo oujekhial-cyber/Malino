@@ -288,8 +288,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             value = if (amountVisible) Money.format(total.incomeRial, settings.moneyUnit) else "••••",
                                             tint = skin.incomeColor,
                                             deposit = true,
-                                            selected = recentFilter == 1,
-                                            onClick = { recentFilter = if (recentFilter == 1) 0 else 1 },
+                                            selected = false,
+                                            onClick = { nav.navigate("transactions/deposit") },
                                             modifier = Modifier.weight(1f)
                                         )
                                         SummaryChip(
@@ -297,8 +297,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             value = if (amountVisible) Money.format(total.expenseRial, settings.moneyUnit) else "••••",
                                             tint = skin.expenseColor,
                                             deposit = false,
-                                            selected = recentFilter == 2,
-                                            onClick = { recentFilter = if (recentFilter == 2) 0 else 2 },
+                                            selected = false,
+                                            onClick = { nav.navigate("transactions/withdraw") },
                                             modifier = Modifier.weight(1f)
                                         )
                                     }
@@ -389,8 +389,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         tint = skin.incomeColor,
                                         deposit = true,
                                         onColor = onCard,
-                                        selected = recentFilter == 1,
-                                        onClick = { recentFilter = if (recentFilter == 1) 0 else 1 },
+                                        selected = false,
+                                        onClick = { nav.navigate("transactions/deposit") },
                                         modifier = Modifier.weight(1f)
                                     )
                                     SummaryChip(
@@ -399,8 +399,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         tint = skin.expenseColor,
                                         deposit = false,
                                         onColor = onCard,
-                                        selected = recentFilter == 2,
-                                        onClick = { recentFilter = if (recentFilter == 2) 0 else 2 },
+                                        selected = false,
+                                        onClick = { nav.navigate("transactions/withdraw") },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -563,7 +563,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         ) {
                         SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("tx/${tx.id}") }) {
                             Row(
-                                modifier = Modifier.padding(14.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {

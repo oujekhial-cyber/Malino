@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
@@ -89,17 +90,48 @@ fun CategoriesScreen(viewModel: AppViewModel) {
         containerColor = Color.Transparent,
         snackbarHost = { GlassSnackbarHost(snackbar) }
     ) { padding ->
-    Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-                Spacer(Modifier.padding(4.dp))
-        TabRow(selectedTabIndex = tab) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SkinCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Text("دسته‌بندی هوشمند", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "خرج‌ها و درآمدها را مرتب کنید؛ قوانین خودکار دفعه بعد دسته را پیشنهاد می‌دهند.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.padding(3.dp))
+                Text(
+                    "${Digits.toPersian(categories.count { !it.archived }.toString())} دسته فعال  •  ${Digits.toPersian(rules.count { it.enabled }.toString())} قانون فعال",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        TabRow(selectedTabIndex = tab, containerColor = Color.Transparent, divider = {}) {
             Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("دسته‌ها") })
             Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("قوانین خودکار") })
         }
-        Spacer(Modifier.padding(6.dp))
 
         if (tab == 0) {
-            Button(onClick = { showNewCategory = true }) { Text("دسته جدید") }
-            Spacer(Modifier.padding(4.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { showNewCategory = true }, modifier = Modifier.weight(1f)) { Text("+ دسته جدید") }
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val existing = categories.map { it.name }.toSet()
+                            ir.kharjyar.app.data.db.KharjYarDatabase.DEFAULT_CATEGORIES
+                                .filter { it.first !in existing }
+                                .forEach { (name, color, kind) ->
+                                    viewModel.repo.categoryDao.insert(CategoryEntity(name = name, colorArgb = color, kind = kind, builtin = true))
+                                }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) { Text("دسته‌های پیشنهادی") }
+            }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(categories.size) { i ->
                     val c = categories[i]
@@ -110,10 +142,18 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                         removeOnDelete = false
                     ) {
                         SkinCard(modifier = Modifier.fillMaxWidth().clickable { editCategory = c }) {
-                            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(14.dp).background(Color(c.colorArgb), CircleShape))
+                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier.size(38.dp).background(Color(c.colorArgb).copy(alpha = 0.18f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(modifier = Modifier.size(12.dp).background(Color(c.colorArgb), CircleShape))
+                                }
                                 Spacer(Modifier.width(12.dp))
-                                Text(c.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                                Column(Modifier.weight(1f)) {
+                                    Text(c.name, style = MaterialTheme.typography.bodyLarge)
+                                    Text(if (c.builtin) "پیشنهادی خرج‌یار" else "ساخته‌شده توسط شما", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 if (c.archived) Text("بایگانی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }

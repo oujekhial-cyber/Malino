@@ -1,5 +1,6 @@
 package ir.kharjyar.app.ui.screens
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -57,6 +58,7 @@ import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TransactionEntity
+import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
@@ -69,7 +71,11 @@ import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
 
 @Composable
-fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
+fun TransactionsScreen(
+    viewModel: AppViewModel,
+    nav: NavHostController,
+    presetDirection: Int? = null
+) {
     val settings by viewModel.settings.collectAsState()
     val all by viewModel.allTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
@@ -81,6 +87,9 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
     var query by remember { mutableStateOf("") }
     var filterAccount by remember { mutableStateOf<Long?>(null) }
     var filterNature by remember { mutableStateOf<Int?>(null) }
+    // میان‌بر چیپ کارت خانه، واریز/برداشت را بر اساس جهت بانکی فیلتر می‌کند؛
+    // انتقال‌ها هم بسته به جهت خود در نتیجه باقی می‌مانند.
+    var filterDirection by remember(presetDirection) { mutableStateOf(presetDirection) }
     var onlyPending by remember { mutableStateOf(false) }
 
     // انتخاب چندتایی: با نگه‌داشتن روی یک ردیف فعال می‌شود
@@ -95,6 +104,7 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
             }) &&
             (filterAccount == null || tx.accountId == filterAccount) &&
             (filterNature == null || tx.nature == filterNature) &&
+            (filterDirection == null || tx.direction == filterDirection) &&
             (!onlyPending || tx.status == TxStatus.PENDING)
     }
 
@@ -180,37 +190,52 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 )
             }
 
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                item {
-                    FilterChip(
-                        selected = onlyPending,
-                        onClick = { onlyPending = !onlyPending },
-                        label = { Text("تأییدنشده") })
-                }
-                item {
-                    FilterChip(
-                        selected = filterNature == TxNature.EXPENSE,
-                        onClick = { filterNature = if (filterNature == TxNature.EXPENSE) null else TxNature.EXPENSE },
-                        label = { Text("برداشت") })
-                }
-                item {
-                    FilterChip(
-                        selected = filterNature == TxNature.INCOME,
-                        onClick = { filterNature = if (filterNature == TxNature.INCOME) null else TxNature.INCOME },
-                        label = { Text("واریز") })
-                }
-                item {
-                    FilterChip(
-                        selected = filterNature == TxNature.TRANSFER,
-                        onClick = { filterNature = if (filterNature == TxNature.TRANSFER) null else TxNature.TRANSFER },
-                        label = { Text("انتقال") })
-                }
-                items(accounts.size) { i ->
-                    val a = accounts[i]
-                    FilterChip(
-                        selected = filterAccount == a.id,
-                        onClick = { filterAccount = if (filterAccount == a.id) null else a.id },
-                        label = { Text(a.title) })
+            // پنل فیلتر جمع‌وجور و یکدست؛ جهت بانکی از ماهیت (انتقال) جداست
+            SkinCard(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "فیلتر تراکنش‌ها",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = skin.onBackdrop,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (filterDirection != null || filterNature != null || filterAccount != null || onlyPending) {
+                            Text(
+                                "پاک کردن",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = skin.accent,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        filterDirection = null; filterNature = null
+                                        filterAccount = null; onlyPending = false
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        item { ProfessionalFilterChip("همه", filterDirection == null && filterNature == null && !onlyPending) {
+                            filterDirection = null; filterNature = null; onlyPending = false
+                        } }
+                        item { ProfessionalFilterChip("واریز", filterDirection == TxDirection.DEPOSIT, skin.incomeColor) {
+                            filterDirection = if (filterDirection == TxDirection.DEPOSIT) null else TxDirection.DEPOSIT
+                        } }
+                        item { ProfessionalFilterChip("برداشت", filterDirection == TxDirection.WITHDRAW, skin.expenseColor) {
+                            filterDirection = if (filterDirection == TxDirection.WITHDRAW) null else TxDirection.WITHDRAW
+                        } }
+                        item { ProfessionalFilterChip("انتقال", filterNature == TxNature.TRANSFER, skin.accent) {
+                            filterNature = if (filterNature == TxNature.TRANSFER) null else TxNature.TRANSFER
+                        } }
+                        item { ProfessionalFilterChip("تأییدنشده", onlyPending) { onlyPending = !onlyPending } }
+                        items(accounts.size) { i ->
+                            val a = accounts[i]
+                            ProfessionalFilterChip(a.title, filterAccount == a.id) {
+                                filterAccount = if (filterAccount == a.id) null else a.id
+                            }
+                        }
+                    }
                 }
             }
 
@@ -246,6 +271,31 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProfessionalFilterChip(
+    label: String,
+    selected: Boolean,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = Modifier
+            .clip(shape)
+            .background(if (selected) tint.copy(alpha = 0.20f) else Color.Transparent)
+            .border(1.dp, tint.copy(alpha = if (selected) 0.85f else 0.28f), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (selected) {
+            Icon(Icons.Filled.Check, null, tint = tint, modifier = Modifier.size(15.dp))
+            Spacer(Modifier.width(5.dp))
+        }
+        Text(label, style = MaterialTheme.typography.labelMedium, color = if (selected) tint else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

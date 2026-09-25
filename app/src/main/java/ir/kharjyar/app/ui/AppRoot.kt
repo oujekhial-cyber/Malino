@@ -232,12 +232,12 @@ private data class DrawerEntry(
 /** آیتم‌های کشو (همه مقصدها). */
 private val drawerEntries = listOf(
     DrawerEntry("home", "خانه", Icons.Filled.Home),
-    DrawerEntry("quickAdd", "بگو تا بنویسم", Icons.Filled.AutoAwesome),
+    DrawerEntry("quickAdd", "ثبت سریع", Icons.Filled.AutoAwesome),
     DrawerEntry("transactions", "تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("reports", "گزارش‌ها", Icons.Filled.BarChart),
     DrawerEntry("accounts", "حساب‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("categories", "دسته‌بندی‌ها", Icons.Filled.Category),
-    DrawerEntry("review", "نیازمند بررسی", Icons.Filled.RateReview, badge = true),
+    DrawerEntry("review", "پیامک‌های بانکی", Icons.Filled.RateReview, badge = true),
     DrawerEntry("backup", "بکاپ", Icons.Filled.CloudUpload),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
@@ -253,7 +253,7 @@ private fun titleOf(route: String?): String = when {
     route.startsWith("tx/") -> "ویرایش تراکنش"
     route == "manual" -> "ثبت تراکنش"
     route == "manual/{dir}" -> "ثبت تراکنش"
-    route == "quickAdd" -> "بگو تا بنویسم"
+    route == "quickAdd" -> "ثبت سریع"
     route == "widgetSettings" -> "تنظیمات ویجت"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
 }
@@ -423,6 +423,17 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
             ) {
                 composable("home") { DashboardScreen(viewModel, navController) }
                 composable("transactions") { TransactionsScreen(viewModel, navController) }
+                composable("transactions/{direction}") { entry ->
+                    TransactionsScreen(
+                        viewModel,
+                        navController,
+                        presetDirection = when (entry.arguments?.getString("direction")) {
+                            "deposit" -> TxDirection.DEPOSIT
+                            "withdraw" -> TxDirection.WITHDRAW
+                            else -> null
+                        }
+                    )
+                }
                 composable("reports") { ReportsScreen(viewModel) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
                 composable("widgetSettings") { WidgetSettingsScreen(viewModel) }

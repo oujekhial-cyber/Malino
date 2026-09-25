@@ -57,7 +57,7 @@ fun BackupScreen(viewModel: AppViewModel) {
     val skin = LocalAppSkin.current
 
     // ---------- ساخت بکاپ ----------
-    var encrypt by remember { mutableStateOf(true) }
+    var encrypt by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var passwordRepeat by remember { mutableStateOf("") }
 

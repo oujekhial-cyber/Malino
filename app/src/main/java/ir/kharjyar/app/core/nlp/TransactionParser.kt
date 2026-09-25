@@ -83,11 +83,11 @@ object TransactionParser {
             "گوشت", "مرغ", "لبنیات", "شیر", "کیک", "شیرینی", "قنادی", "خوراک", "بقالی"
         ),
         "رستوران و کافه" to listOf("رستوران", "کافه", "کافی‌شاپ", "فست‌فود", "پیتزا", "ساندویچ", "قهوه", "چایخانه", "غذا"),
-        "حمل‌ونقل" to listOf("تاکسی", "اسنپ", "تپسی", "مترو", "اتوبوس", "بنزین", "سوخت", "گازوئیل", "کرایه", "بلیت", "پارکینگ"),
+        "حمل‌ونقل (خودرو)" to listOf("تاکسی", "اسنپ", "تپسی", "مترو", "اتوبوس", "بنزین", "سوخت", "گازوئیل", "کرایه", "بلیت", "پارکینگ"),
         "مسکن و اجاره" to listOf("اجاره", "رهن", "ودیعه", "شارژ ساختمان", "مسکن"),
         "قبوض" to listOf("قبض", "برق", "آب", "گاز", "عوارض", "جریمه"),
         "اینترنت و تلفن" to listOf("اینترنت", "شارژ", "بسته", "همراه اول", "ایرانسل", "رایتل", "مخابرات", "تلفن", "سیم‌کارت"),
-        "درمان" to listOf("دکتر", "پزشک", "دارو", "داروخانه", "بیمارستان", "آزمایش", "دندان", "درمان", "ویزیت"),
+        "درمان و سلامت" to listOf("دکتر", "پزشک", "دارو", "داروخانه", "بیمارستان", "آزمایش", "دندان", "درمان", "ویزیت"),
         "پوشاک" to listOf("لباس", "کفش", "پوشاک", "مانتو", "شلوار", "پیراهن"),
         "آموزش" to listOf("کلاس", "آموزش", "دانشگاه", "مدرسه", "کتاب", "شهریه", "دوره"),
         "تفریح" to listOf("سینما", "تفریح", "سفر", "بازی", "کنسرت", "استخر", "باشگاه"),
@@ -165,7 +165,12 @@ object TransactionParser {
         val category = matchCategory(normalized, categories, nature)
 
         // ---------- شرح ----------
-        val description = buildDescription(text, normalized)
+        val description = buildDescription(
+            original = text,
+            normalized = normalized,
+            account = account,
+            category = category
+        )
 
         val confidence = when {
             amountRial != null && account != null && warnings.isEmpty() -> ParseConfidence.HIGH
@@ -183,8 +188,8 @@ object TransactionParser {
             categoryName = category?.name,
             description = description,
             date = date,
-            hour = 12,
-            minute = 0,
+            hour = PersianDate.nowHourMinute().first,
+            minute = PersianDate.nowHourMinute().second,
             dateExplicit = explicit,
             confidence = confidence,
             warnings = warnings
@@ -274,7 +279,11 @@ object TransactionParser {
         // از روی کلیدواژه‌ها
         categoryHints.forEach { (catName, hints) ->
             if (hints.any { text.contains(it) }) {
-                categories.firstOrNull { normalize(it.name) == normalize(catName) }?.let { return it }
+                categories.firstOrNull {
+                    val existing = normalize(it.name)
+                    val expected = normalize(catName)
+                    existing == expected || existing.substringBefore(" (") == expected.substringBefore(" (")
+                }?.let { return it }
             }
         }
         // انتقال دسته ندارد
@@ -286,17 +295,35 @@ object TransactionParser {
      * شرح: جمله کاربر با حذف بخش‌های ساختاری (مبلغ، واحد، نام حساب).
      * اگر چیز معناداری نماند، خود جمله اصلی برمی‌گردد.
      */
-    private fun buildDescription(original: String, normalized: String): String {
+    private fun buildDescription(
+        original: String,
+        normalized: String,
+        account: ParserAccount?,
+        category: ParserCategory?
+    ): String {
         var s = normalized
-        // حذف عدد و واحد
-        s = s.replace(Regex("\\d+"), " ")
+        // حذف مبلغ و واحد
+        s = s.replace(Regex("\\d+(?:[.,]\\d+)*"), " ")
         (tomanWords + rialWords + listOf("هزار", "میلیون", "میلیارد", "نیم")).forEach {
             s = s.replace(it, " ")
         }
-        listOf("با حساب", "از حساب", "به حساب", "حساب", "کارت").forEach {
-            s = s.replace(it, " ")
-        }
-        s = s.replace(Regex("\\s+"), " ").trim()
-        return if (s.length >= 3) s else original.trim()
+        // عنوان و نام بانک حساب، و نام دسته نباید وارد شرح شوند
+        listOfNotNull(account?.title, account?.bankName, category?.name)
+            .map(::normalize)
+            .filter { it.isNotBlank() }
+            .sortedByDescending { it.length }
+            .forEach { s = s.replace(it, " ") }
+        // اجزای دستوری جمله؛ فقط موضوع واقعی خرید/واریز باقی بماند
+        val structural = listOf(
+            "با حساب", "از حساب", "به حساب", "حساب", "کارت", "بانک",
+            "خریدم", "خرید کردم", "خرید", "پرداختم", "پرداخت کردم", "پرداخت",
+            "دادم", "گرفتم", "دریافت کردم", "واریز شد", "واریز کردم", "واریز",
+            "امروز", "دیروز", "پریروز", "فردا", "این ماه", "این هفته"
+        )
+        structural.sortedByDescending { it.length }.forEach { s = s.replace(it, " ") }
+        s = s.replace(Regex("\\s+"), " ").trim(' ', '،', ',', '-', '_')
+        // شرح کوتاه و معنادار؛ اگر چیزی نماند، شرح را خالی می‌گذاریم نه اینکه
+        // جمله ساختاری و بی‌معنی اولیه را دوباره نمایش دهیم.
+        return if (s.length >= 2) s else ""
     }
 }

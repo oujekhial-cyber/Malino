@@ -89,6 +89,8 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     val activeAccounts = accounts.filter { !it.archived }
     val context = LocalContext.current
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     // آیا این گوشی اصلاً برنامه تبدیل گفتار به متن دارد؟
     val voiceAvailable = remember {
@@ -129,6 +131,9 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     }
 
     fun analyze() {
+        // نتیجه بلافاصله دیده شود، نه اینکه پشت صفحه‌کلید بماند
+        keyboard?.hide()
+        focusManager.clearFocus(force = true)
         parsed = TransactionParser.parse(
             text = input,
             accounts = activeAccounts.map { ParserAccount(it.id, it.title, it.bankName) },
@@ -179,7 +184,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             value = input,
             onValueChange = { input = it; saved = false },
             label = { Text("چه اتفاقی افتاد؟") },
-            placeholder = { Text("۲۵۰ هزار تومن کیک از سوپرمارکت خریدم با حساب روزمره") },
+            placeholder = { Text("امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب بانک ملی خریدم") },
             trailingIcon = {
                 // گفتن به‌جای تایپ کردن
                 Box(
@@ -239,9 +244,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         // نمونه‌های آماده
         Text("نمونه‌ها:", style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop.copy(alpha = 0.7f))
         listOf(
-            "۲۵۰ هزار تومن کیک از سوپرمارکت خریدم با حساب روزمره",
-            "دیروز ۸۰۰ تومن بنزین زدم",
-            "حقوق این ماه ۲۵ میلیون تومن واریز شد"
+            "امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب بانک ملی خریدم"
         ).forEach { sample ->
             Text(
                 sample,
