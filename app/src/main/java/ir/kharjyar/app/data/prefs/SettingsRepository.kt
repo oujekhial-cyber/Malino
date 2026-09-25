@@ -78,6 +78,10 @@ data class AppSettings(
     val widgetLabelSize: Int = 10,
     /** نمایش تاریخ شمسی و میلادی زیر ساعت ویجت. */
     val widgetShowDates: Boolean = true,
+    /** نمایش نام «خرج‌یار» روی ویجت. */
+    val widgetShowTitle: Boolean = true,
+    /** آیا یک‌بار به‌صورت خودکار پیشنهاد افزودن ویجت داده شده است؟ */
+    val widgetAutoPinned: Boolean = false,
     /** جلوگیری از اسکرین‌شات و ضبط صفحه (FLAG_SECURE). */
     val secureScreen: Boolean = true,
     /** ارقام فارسی یا لاتین در کل برنامه و ویجت. */
@@ -121,6 +125,8 @@ class SettingsRepository(private val context: Context) {
         val WIDGET_VALUE_SIZE = intPreferencesKey("widget_value_size")
         val WIDGET_LABEL_SIZE = intPreferencesKey("widget_label_size")
         val WIDGET_DATES = booleanPreferencesKey("widget_dates")
+        val WIDGET_TITLE = booleanPreferencesKey("widget_title")
+        val WIDGET_AUTO_PIN = booleanPreferencesKey("widget_auto_pin")
         val SECURE_SCREEN = booleanPreferencesKey("secure_screen")
         val DIGIT_STYLE = stringPreferencesKey("digit_style")
         val CARD_SHINE = booleanPreferencesKey("card_shine")
@@ -155,6 +161,8 @@ class SettingsRepository(private val context: Context) {
             widgetValueSize = (p[Keys.WIDGET_VALUE_SIZE] ?: 14).coerceIn(9, 30),
             widgetLabelSize = (p[Keys.WIDGET_LABEL_SIZE] ?: 10).coerceIn(7, 22),
             widgetShowDates = p[Keys.WIDGET_DATES] ?: true,
+            widgetShowTitle = p[Keys.WIDGET_TITLE] ?: true,
+            widgetAutoPinned = p[Keys.WIDGET_AUTO_PIN] ?: false,
             secureScreen = p[Keys.SECURE_SCREEN] ?: true,
             digitStyle = enumOf(p[Keys.DIGIT_STYLE], DigitStyle.PERSIAN).also {
                 // پرچم سراسری ارقام همگام با تنظیم کاربر نگه داشته می‌شود
@@ -192,6 +200,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetValueSize(v: Int) = edit { it[Keys.WIDGET_VALUE_SIZE] = v.coerceIn(9, 30) }
     suspend fun setWidgetLabelSize(v: Int) = edit { it[Keys.WIDGET_LABEL_SIZE] = v.coerceIn(7, 22) }
     suspend fun setWidgetShowDates(v: Boolean) = edit { it[Keys.WIDGET_DATES] = v }
+    suspend fun setWidgetShowTitle(v: Boolean) = edit { it[Keys.WIDGET_TITLE] = v }
+    suspend fun setWidgetAutoPinned(v: Boolean) = edit { it[Keys.WIDGET_AUTO_PIN] = v }
     suspend fun setSecureScreen(v: Boolean) = edit { it[Keys.SECURE_SCREEN] = v }
     suspend fun setDigitStyle(v: DigitStyle) = edit { it[Keys.DIGIT_STYLE] = v.name }
     suspend fun setCardShine(v: Boolean) = edit { it[Keys.CARD_SHINE] = v }
@@ -219,6 +229,7 @@ class SettingsRepository(private val context: Context) {
             "widget_value_size" to s.widgetValueSize.toString(),
             "widget_label_size" to s.widgetLabelSize.toString(),
             "widget_dates" to s.widgetShowDates.toString(),
+            "widget_title" to s.widgetShowTitle.toString(),
             "secure_screen" to s.secureScreen.toString(),
             "digit_style" to s.digitStyle.name,
             "card_shine" to s.cardShine.toString()
@@ -238,6 +249,7 @@ class SettingsRepository(private val context: Context) {
             map["widget_value_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_VALUE_SIZE] = it.coerceIn(9, 30) }
             map["widget_label_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_LABEL_SIZE] = it.coerceIn(7, 22) }
             map["widget_dates"]?.let { p[Keys.WIDGET_DATES] = it.toBoolean() }
+            map["widget_title"]?.let { p[Keys.WIDGET_TITLE] = it.toBoolean() }
             map["secure_screen"]?.let { p[Keys.SECURE_SCREEN] = it.toBoolean() }
             map["digit_style"]?.let { v -> runCatching { DigitStyle.valueOf(v) }.getOrNull()?.let { p[Keys.DIGIT_STYLE] = it.name } }
             map["card_shine"]?.let { p[Keys.CARD_SHINE] = it.toBoolean() }

@@ -1,8 +1,6 @@
 package ir.kharjyar.app.ui.screens
 
 import android.Manifest
-import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,21 +50,14 @@ import androidx.navigation.NavHostController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.prefs.DigitStyle
-import ir.kharjyar.app.data.prefs.WidgetContent
-import ir.kharjyar.app.data.prefs.WidgetLayout
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Phone
-import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.ui.components.ComboBox
-import ir.kharjyar.app.ui.components.LabeledSlider
-import ir.kharjyar.app.ui.components.WidgetPreview
 import ir.kharjyar.app.ui.theme.AllSkins
 import ir.kharjyar.app.ui.theme.AppSkin
-import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import kotlinx.coroutines.launch
 
 @Composable
@@ -263,119 +254,14 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
 
         // ---------- ویجت ----------
+        // همه تنظیمات ویجت به صفحه اختصاصی خودش منتقل شد تا این صفحه شلوغ نباشد.
         SectionCard("ویجت صفحه اصلی") {
             Text(
-                "قالب ویجت را انتخاب کنید. هر قالب با رنگ تم فعال برنامه ساخته می‌شود؛ " +
-                    "ساعت و تاریخ‌ها همیشه زنده‌اند و با ساعت گوشی هماهنگ می‌مانند.",
+                "قالب، محتوا، اندازه‌ها و اینکه چه چیزهایی روی ویجت دیده شوند را با پیش‌نمایش زنده تنظیم کنید.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            ComboBox(
-                label = "قالب ویجت",
-                options = WidgetLayout.entries.toList(),
-                selected = settings.widgetLayout,
-                labelOf = { layoutLabel(it) },
-                onSelect = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetLayout(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-
-            ComboBox(
-                label = "محتوای ویجت",
-                options = listOf(
-                    WidgetContent.SUMMARY,
-                    WidgetContent.TODAY_EXPENSE,
-                    WidgetContent.MONTH_EXPENSE,
-                    WidgetContent.RECENT
-                ),
-                selected = settings.widgetContent,
-                labelOf = { contentLabel(it) },
-                onSelect = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetContent(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-
-            // ---------- پیش‌نمایش ----------
-            Text("پیش‌نمایش", style = MaterialTheme.typography.labelLarge)
-            WidgetPreview(
-                layout = settings.widgetLayout,
-                opacity = settings.widgetOpacity,
-                showNumbers = settings.widgetShowNumbers,
-                lines = when (settings.widgetContent) {
-                    WidgetContent.TODAY_EXPENSE -> listOf("برداشت امروز" to "۳,۲۵۰,۰۰۰")
-                    WidgetContent.MONTH_EXPENSE -> listOf("برداشت شهریور" to "۱۸,۴۰۰,۰۰۰")
-                    WidgetContent.RECENT -> listOf("واریز" to "۵,۸۷۰,۰۰۰", "برداشت" to "۱,۲۸۰,۰۰۰")
-                    WidgetContent.SUMMARY -> listOf("واریز شهریور" to "۵,۸۷۰,۰۰۰", "برداشت شهریور" to "۳,۲۵۰,۰۰۰")
-                }
-            )
-
-            // ---------- شیشه‌ای بودن ----------
-            LabeledSlider(
-                label = "میزان شیشه‌ای بودن",
-                value = settings.widgetOpacity,
-                range = 0..100,
-                valueSuffix = "٪",
-                onValueChange = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetOpacity(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-            Text(
-                "عدد کمتر یعنی شیشه‌ای‌تر (تصویر زمینه گوشی بیشتر دیده می‌شود).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("نمایش اعداد در ویجت", style = MaterialTheme.typography.bodyLarge)
-                Switch(
-                    checked = settings.widgetShowNumbers,
-                    onCheckedChange = {
-                        scope.launch {
-                            viewModel.settingsRepo.setWidgetShowNumbers(it)
-                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                        }
-                    }
-                )
-            }
-            if (settings.appLockEnabled) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("نمایش اعداد با وجود قفل برنامه", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "پیش‌فرض: با قفل فعال، اعداد ویجت مخفی‌اند",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = settings.widgetShowNumbersWhenLocked,
-                        onCheckedChange = {
-                            scope.launch {
-                                viewModel.settingsRepo.setWidgetShowNumbersWhenLocked(it)
-                                ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                            }
-                        }
-                    )
-                }
-            }
-
-            OutlinedButton(onClick = {
-                val mgr = AppWidgetManager.getInstance(context)
-                val component = ComponentName(context, KharjYarWidgetReceiver::class.java)
-                if (mgr.isRequestPinAppWidgetSupported) {
-                    mgr.requestPinAppWidget(component, null, null)
-                }
-            }, modifier = Modifier.fillMaxWidth()) { Text("افزودن ویجت به صفحه اصلی (با تأیید لانچر)") }
+            NavRow("تنظیمات ویجت") { nav.navigate("widgetSettings") }
         }
 
         // ---------- سایر ----------
@@ -440,18 +326,6 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 }
             )
 
-            // شماره تماس: با زدن، شماره‌گیر باز می‌شود
-            ContactRow(
-                icon = Icons.Filled.Phone,
-                label = "شماره تماس",
-                value = Digits.toPersian("09399874951"),
-                onClick = {
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:09399874951")))
-                    }
-                }
-            )
-
             Text(
                 "نسخه ۱.۰.۰",
                 style = MaterialTheme.typography.bodySmall,
@@ -482,23 +356,6 @@ private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit
             OutlinedButton(onClick = onRequest) { Text("درخواست") }
         }
     }
-}
-
-/** برچسب فارسی تراز افقی. */
-private fun layoutLabel(l: WidgetLayout): String = when (l) {
-    WidgetLayout.ROYAL -> "لوکس (قاب طلایی، ساعت خیلی بزرگ)"
-    WidgetLayout.MINIMAL -> "مینیمال (عنوان بزرگ، ساعت کنار)"
-    WidgetLayout.PANELS -> "نواری (سربرگ بالا، مقادیر در نوار)"
-    WidgetLayout.STACKED -> "نواری فشرده"
-    WidgetLayout.SPLIT -> "دوبخشی (خط وسط)"
-    WidgetLayout.GLASS -> "شیشه‌ای (با تصویر تم)"
-}
-
-private fun contentLabel(c: WidgetContent): String = when (c) {
-    WidgetContent.SUMMARY -> "خلاصه ماه"
-    WidgetContent.TODAY_EXPENSE -> "برداشت امروز"
-    WidgetContent.MONTH_EXPENSE -> "برداشت ماه"
-    WidgetContent.RECENT -> "آخرین تراکنش‌ها"
 }
 
 /** یک ردیف تماس قابل لمس (ایمیل/تلفن) با آیکون. */

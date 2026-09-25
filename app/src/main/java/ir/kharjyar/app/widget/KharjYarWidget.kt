@@ -46,6 +46,16 @@ import java.util.Locale
  *
  * ساعت و تاریخ میلادی TextClock هستند، پس سیستم‌عامل خودش زنده نگهشان می‌دارد.
  */
+/**
+ * یک ردیف ویجت.
+ *
+ * @param income واریز بودن ردیف: true واریز، false برداشت، null بدون جهت (مثل مانده).
+ * پیش‌تر آیکون ردیف‌ها ثابت بود (ردیف اول واریز، ردیف دوم برداشت) و در حالت
+ * «آخرین تراکنش‌ها» اگر هر دو تراکنش برداشت بودند، یکی‌شان با آیکون واریز
+ * نشان داده می‌شد. حالا آیکون از خودِ ردیف می‌آید.
+ */
+data class WidgetLine(val label: String, val value: String, val income: Boolean? = null)
+
 object WidgetRenderer {
 
     /**
@@ -94,24 +104,29 @@ object WidgetRenderer {
         val defaultAccount = accountId?.let { app.repository.accountDao.byId(it) }
         val balanceLine = defaultAccount?.let { acc ->
             val est = AccountBalance.estimate(acc, app.repository.txDao.allOnce())
-            est.rial?.let { "مانده ${acc.title}" to Money.format(it, settings.moneyUnit) }
+            est.rial?.let { WidgetLine("مانده ${acc.title}", Money.format(it, settings.moneyUnit)) }
         }
 
         val unit = settings.moneyUnit
-        val lines: List<Pair<String, String>> = when (settings.widgetContent) {
+        val lines: List<WidgetLine> = when (settings.widgetContent) {
             WidgetContent.TODAY_EXPENSE ->
-                listOf("برداشت امروز" to Money.format(todaySummary.expenseRial, unit))
+                listOf(WidgetLine("برداشت امروز", Money.format(todaySummary.expenseRial, unit), false))
             WidgetContent.MONTH_EXPENSE ->
-                listOf("برداشت ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit))
+                listOf(WidgetLine("برداشت ${today.monthName()}", Money.format(monthSummary.expenseRial, unit), false))
             WidgetContent.SUMMARY -> listOfNotNull(
-                "واریز ${today.monthName()}" to Money.format(monthSummary.incomeRial, unit),
-                "برداشت ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit),
+                WidgetLine("واریز ${today.monthName()}", Money.format(monthSummary.incomeRial, unit), true),
+                WidgetLine("برداشت ${today.monthName()}", Money.format(monthSummary.expenseRial, unit), false),
                 balanceLine
             )
+            // هر ردیف آیکون خودش را می‌گیرد: واریز یا برداشت همان تراکنش
             WidgetContent.RECENT -> recent.map { tx ->
-                (if (tx.direction == TxDirection.DEPOSIT) "واریز" else "برداشت") to
-                    Money.format(tx.amountRial, unit)
-            }.ifEmpty { listOf("تراکنش اخیر" to "—") }
+                val deposit = tx.direction == TxDirection.DEPOSIT
+                WidgetLine(
+                    if (deposit) "واریز" else "برداشت",
+                    Money.format(tx.amountRial, unit),
+                    deposit
+                )
+            }.ifEmpty { listOf(WidgetLine("تراکنش اخیر", "—")) }
         }
 
         // روز هفته از ساعت واقعی گوشی خوانده می‌شود (today از LocalDate.now می‌آید)
@@ -129,7 +144,9 @@ object WidgetRenderer {
 
         applyBackground(context, views, skin, settings.widgetOpacity, settings.widgetLayout)
         applyColors(views, skin, settings.widgetLayout)
+        applyRowIcons(views, lines, skin)
         applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
+        applyOptions(views, settings)
         applyClickTargets(context, views)
 
         return views
@@ -225,9 +242,7 @@ object WidgetRenderer {
             views.setTextColor(it, big)
         }
 
-        // آیکون درآمد سبز/تم و هزینه قرمز/تم
-        views.setInt(R.id.w_icon_1, "setColorFilter", skin.incomeColor.toArgb())
-        views.setInt(R.id.w_icon_2, "setColorFilter", skin.expenseColor.toArgb())
+        // رنگ آیکون‌ها در applyRowIcons و بر اساس جهت خودِ ردیف تنظیم می‌شود.
 
         // منطقه زمانی ساعت‌ها روی تهران تنظیم می‌شود
         val tz = PersianDate.TEHRAN.id
@@ -236,9 +251,58 @@ object WidgetRenderer {
     }
 
     /** پر کردن متن‌ها و پنهان/آشکار کردن ردیف‌های اضافه. */
+    /**
+     * آیکون هر ردیف بر اساس واریز/برداشت بودن همان ردیف.
+     * قالب‌ها فقط برای دو ردیف اول آیکون دارند.
+     */
+    private fun applyRowIcons(views: RemoteViews, lines: List<WidgetLine>, skin: AppSkin) {
+        val iconIds = listOf(R.id.w_icon_1, R.id.w_icon_2)
+        iconIds.forEachIndexed { i, id ->
+            when (lines.getOrNull(i)?.income) {
+                true -> {
+                    views.setImageViewResource(id, R.drawable.w_ic_up)
+                    views.setInt(id, "setColorFilter", skin.incomeColor.toArgb())
+                }
+                false -> {
+                    views.setImageViewResource(id, R.drawable.w_ic_down)
+                    views.setInt(id, "setColorFilter", skin.expenseColor.toArgb())
+                }
+                null -> {
+                    views.setImageViewResource(id, R.drawable.w_ic_wallet)
+                    views.setInt(id, "setColorFilter", skin.accent.toArgb())
+                }
+            }
+        }
+    }
+
+    /**
+     * عناصر اختیاری و اندازه فونت‌ها، طبق «تنظیمات ویجت».
+     * اگر شناسه‌ای در قالب فعلی نباشد، RemoteViews بی‌صدا از آن می‌گذرد.
+     */
+    private fun applyOptions(views: RemoteViews, settings: ir.kharjyar.app.data.prefs.AppSettings) {
+        val gone = android.view.View.GONE
+        val visible = android.view.View.VISIBLE
+        views.setViewVisibility(R.id.w_title, if (settings.widgetShowTitle) visible else gone)
+        views.setViewVisibility(R.id.w_title_rule, if (settings.widgetShowTitle) visible else gone)
+        views.setViewVisibility(R.id.w_clock, if (settings.widgetShowClock) visible else gone)
+        views.setViewVisibility(R.id.w_jalali, if (settings.widgetShowDates) visible else gone)
+        views.setViewVisibility(R.id.w_gregorian, if (settings.widgetShowDates) visible else gone)
+
+        val sp = TypedValue.COMPLEX_UNIT_SP
+        views.setTextViewTextSize(R.id.w_clock, sp, settings.widgetClockSize.toFloat())
+        views.setTextViewTextSize(R.id.w_jalali, sp, settings.widgetDateSize.toFloat())
+        views.setTextViewTextSize(R.id.w_gregorian, sp, (settings.widgetDateSize - 1).coerceAtLeast(7).toFloat())
+        listOf(R.id.w_value_1, R.id.w_value_2, R.id.w_value_3).forEach {
+            views.setTextViewTextSize(it, sp, settings.widgetValueSize.toFloat())
+        }
+        listOf(R.id.w_label_1, R.id.w_label_2, R.id.w_label_3).forEach {
+            views.setTextViewTextSize(it, sp, settings.widgetLabelSize.toFloat())
+        }
+    }
+
     private fun applyTexts(
         views: RemoteViews,
-        lines: List<Pair<String, String>>,
+        lines: List<WidgetLine>,
         persianDate: String,
         showNumbers: Boolean,
         hideNumbers: Boolean
@@ -257,10 +321,10 @@ object WidgetRenderer {
                 views.setTextViewText(valueIds[i], "")
             } else {
                 rowIds[i]?.let { views.setViewVisibility(it, android.view.View.VISIBLE) }
-                views.setTextViewText(labelIds[i], line.first)
+                views.setTextViewText(labelIds[i], line.label)
                 views.setTextViewText(
                     valueIds[i],
-                    if (showNumbers) line.second else "••••"
+                    if (showNumbers) line.value else "••••"
                 )
             }
         }

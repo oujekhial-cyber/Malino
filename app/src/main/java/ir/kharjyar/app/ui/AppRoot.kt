@@ -108,6 +108,12 @@ import ir.kharjyar.app.ui.screens.SettingsScreen
 import ir.kharjyar.app.ui.screens.TemplateTrainScreen
 import ir.kharjyar.app.ui.screens.TransactionEditScreen
 import ir.kharjyar.app.ui.screens.TransactionsScreen
+import ir.kharjyar.app.ui.screens.WidgetSettingsScreen
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import androidx.compose.ui.platform.LocalContext
+import ir.kharjyar.app.data.prefs.WidgetLayout
+import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import ir.kharjyar.app.ui.theme.KharjYarTheme
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
@@ -128,11 +134,53 @@ fun AppRoot(
                     when {
                         !settings.onboardingDone -> OnboardingScreen(viewModel)
                         locked -> LockScreen(onUnlockRequest = { onRequestBiometric { viewModel.unlock() } })
-                        else -> MainScaffold(viewModel, initialDestination)
+                        else -> {
+                            AutoPinWidget(viewModel, settings)
+                            MainScaffold(viewModel, initialDestination)
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+
+/**
+ * پس از نخستین ورود به برنامه، ویجت «لوکس» یک‌بار به‌صورت خودکار به صفحه اصلی
+ * پیشنهاد می‌شود و به اندازه عرض گوشی درخواست می‌گردد.
+ *
+ * محدودیت اندروید: هیچ برنامه‌ای اجازه ندارد بدون اجازه لانچر ویجت را روی صفحه
+ * اصلی بچسباند؛ تنها راه رسمی `requestPinAppWidget` است که یک تأیید کوتاه نشان
+ * می‌دهد. اگر لانچر پشتیبانی نکند، بی‌سر و صدا از آن می‌گذریم و کاربر می‌تواند
+ * از «تنظیمات ویجت» اقدام کند. این کار فقط یک‌بار انجام می‌شود.
+ */
+@Composable
+private fun AutoPinWidget(viewModel: AppViewModel, settings: ir.kharjyar.app.data.prefs.AppSettings) {
+    val context = LocalContext.current
+    // کلید Unit است تا نوشتن پرچم، خودِ این افکت را وسط کار لغو نکند
+    LaunchedEffect(Unit) {
+        if (settings.widgetAutoPinned) return@LaunchedEffect
+        runCatching {
+            val manager = AppWidgetManager.getInstance(context)
+            val component = ComponentName(context, KharjYarWidgetReceiver::class.java)
+            val already = manager.getAppWidgetIds(component).isNotEmpty()
+            if (already || !manager.isRequestPinAppWidgetSupported) return@runCatching
+            // قالب لوکس به‌عنوان پیش‌فرض این ویجت خودکار
+            viewModel.settingsRepo.setWidgetLayout(WidgetLayout.ROYAL)
+            // درخواست عرض کامل صفحه برای ویجت
+            val metrics = context.resources.displayMetrics
+            val widthDp = (metrics.widthPixels / metrics.density).toInt()
+            val options = android.os.Bundle().apply {
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, widthDp)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, widthDp)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 180)
+            }
+            manager.requestPinAppWidget(component, options, null)
+        }
+        // بدون توجه به نتیجه، این کار فقط یک‌بار انجام می‌شود
+        viewModel.settingsRepo.setWidgetAutoPinned(true)
     }
 }
 
@@ -197,6 +245,7 @@ private fun titleOf(route: String?): String = when {
     route == "manual" -> "ثبت تراکنش"
     route == "manual/{dir}" -> "ثبت تراکنش"
     route == "quickAdd" -> "بگو تا بنویسم"
+    route == "widgetSettings" -> "تنظیمات ویجت"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
 }
 
@@ -367,6 +416,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("transactions") { TransactionsScreen(viewModel, navController) }
                 composable("reports") { ReportsScreen(viewModel) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
+                composable("widgetSettings") { WidgetSettingsScreen(viewModel) }
                 composable("manual") { ManualEntryScreen(viewModel, navController) }
                 composable("manual/{dir}") { entry ->
                     ManualEntryScreen(

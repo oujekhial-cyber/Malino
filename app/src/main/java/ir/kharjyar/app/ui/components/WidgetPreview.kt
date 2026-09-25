@@ -38,21 +38,33 @@ import ir.kharjyar.app.data.prefs.WidgetLayout
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlin.math.roundToInt
 
+/** یک ردیف پیش‌نمایش ویجت؛ `income` جهت آیکون را مشخص می‌کند (null یعنی بدون جهت). */
+data class WidgetPreviewLine(val label: String, val value: String, val income: Boolean? = null)
+
 /**
- * پیش‌نمایش ویجت داخل تنظیمات.
+ * پیش‌نمایش ویجت داخل «تنظیمات ویجت».
  * پشت کارت یک نوار رنگی کشیده می‌شود تا اثر شیشه‌ای بودن واقعاً دیده شود.
+ * همه گزینه‌های اختیاری (عنوان، ساعت، تاریخ‌ها و اندازه فونت‌ها) در پیش‌نمایش
+ * هم اعمال می‌شوند تا کاربر نتیجه را پیش از اعمال روی ویجت واقعی ببیند.
  */
 @Composable
 fun WidgetPreview(
     layout: WidgetLayout,
     opacity: Int,
     showNumbers: Boolean,
-    lines: List<Pair<String, String>>,
-    modifier: Modifier = Modifier
+    lines: List<WidgetPreviewLine>,
+    modifier: Modifier = Modifier,
+    showTitle: Boolean = true,
+    showClock: Boolean = true,
+    showDates: Boolean = true,
+    clockSize: Int = 30,
+    valueSize: Int = 12,
+    labelSize: Int = 10
 ) {
     val skin = LocalAppSkin.current
     val today = PersianDate.today()
     val jalali = "${today.dayOfWeekName()} ${Digits.toPersian(today.day.toString())} ${today.monthName()}"
+    val opts = PreviewOptions(showTitle, showClock, showDates, clockSize, valueSize, labelSize)
 
     Box(
         modifier = modifier
@@ -76,43 +88,56 @@ fun WidgetPreview(
         ) {
             when (layout) {
                 WidgetLayout.PANELS, WidgetLayout.STACKED ->
-                    PanelsPreview(jalali, lines, showNumbers)
+                    PanelsPreview(jalali, lines, showNumbers, opts)
                 WidgetLayout.ROYAL ->
-                    RoyalPreview(jalali, lines, showNumbers)
+                    RoyalPreview(jalali, lines, showNumbers, opts)
                 else ->
-                    SplitPreview(layout, jalali, lines, showNumbers)
+                    SplitPreview(layout, jalali, lines, showNumbers, opts)
             }
         }
     }
 }
+
+/** گزینه‌های نمایشی مشترک بین قالب‌های پیش‌نمایش. */
+private data class PreviewOptions(
+    val showTitle: Boolean,
+    val showClock: Boolean,
+    val showDates: Boolean,
+    val clockSize: Int,
+    val valueSize: Int,
+    val labelSize: Int
+)
 
 /** دوبخشی و مینیمال: مقادیر راست، ساعت چپ. */
 @Composable
 private fun SplitPreview(
     layout: WidgetLayout,
     jalali: String,
-    lines: List<Pair<String, String>>,
-    showNumbers: Boolean
+    lines: List<WidgetPreviewLine>,
+    showNumbers: Boolean,
+    opts: PreviewOptions
 ) {
     val skin = LocalAppSkin.current
     val big = layout == WidgetLayout.MINIMAL
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "خرج‌یار",
-                fontSize = if (big) 20.sp else 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = skin.accent
-            )
-            Spacer(Modifier.height(5.dp))
-            Box(
-                Modifier
-                    .width(44.dp)
-                    .height(1.dp)
-                    .background(skin.onBackdrop.copy(alpha = 0.25f))
-            )
-            Spacer(Modifier.height(8.dp))
-            lines.forEach { (label, value) -> ValueRow(label, value, showNumbers) }
+            if (opts.showTitle) {
+                Text(
+                    "خرج‌یار",
+                    fontSize = if (big) 20.sp else 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = skin.accent
+                )
+                Spacer(Modifier.height(5.dp))
+                Box(
+                    Modifier
+                        .width(44.dp)
+                        .height(1.dp)
+                        .background(skin.onBackdrop.copy(alpha = 0.25f))
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            lines.forEach { ValueRow(it, showNumbers, opts) }
         }
         if (layout != WidgetLayout.MINIMAL) {
             Box(
@@ -123,7 +148,7 @@ private fun SplitPreview(
             )
         }
         Spacer(Modifier.width(12.dp))
-        ClockBlock(jalali, clockSize = if (big) 34 else 30)
+        ClockBlock(jalali, opts, big)
     }
 }
 
@@ -131,30 +156,35 @@ private fun SplitPreview(
 @Composable
 private fun PanelsPreview(
     jalali: String,
-    lines: List<Pair<String, String>>,
-    showNumbers: Boolean
+    lines: List<WidgetPreviewLine>,
+    showNumbers: Boolean,
+    opts: PreviewOptions
 ) {
     val skin = LocalAppSkin.current
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Filled.AccountBalanceWallet,
-                contentDescription = null,
-                tint = skin.accent,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                "خرج‌یار",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = skin.accent,
-                modifier = Modifier.weight(1f)
-            )
-            ClockBlock(jalali, clockSize = 24)
+            if (opts.showTitle) {
+                Icon(
+                    Icons.Filled.AccountBalanceWallet,
+                    contentDescription = null,
+                    tint = skin.accent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "خرج‌یار",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = skin.accent,
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+            ClockBlock(jalali, opts, false)
         }
         Spacer(Modifier.height(8.dp))
-        lines.forEach { (label, value) ->
+        lines.forEach { line ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -164,7 +194,7 @@ private fun PanelsPreview(
                     .padding(horizontal = 10.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ValueRow(label, value, showNumbers)
+                ValueRow(line, showNumbers, opts)
             }
         }
     }
@@ -174,8 +204,9 @@ private fun PanelsPreview(
 @Composable
 private fun RoyalPreview(
     jalali: String,
-    lines: List<Pair<String, String>>,
-    showNumbers: Boolean
+    lines: List<WidgetPreviewLine>,
+    showNumbers: Boolean,
+    opts: PreviewOptions
 ) {
     val skin = LocalAppSkin.current
     Column {
@@ -184,30 +215,31 @@ private fun RoyalPreview(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    Icons.Filled.AccountBalanceWallet,
-                    contentDescription = null,
-                    tint = skin.accent,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.height(4.dp))
-                Text("خرج‌یار", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = skin.accent)
+                if (opts.showTitle) {
+                    Icon(
+                        Icons.Filled.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = skin.accent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text("خرج‌یار", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = skin.accent)
+                }
             }
-            ClockBlock(jalali, clockSize = 36)
+            ClockBlock(jalali, opts, true)
         }
         Spacer(Modifier.height(9.dp))
-        lines.forEachIndexed { i, (label, value) ->
+        lines.forEachIndexed { i, line ->
             if (i > 0) {
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .padding(vertical = 0.dp)
                         .background(skin.accent.copy(alpha = 0.18f))
                 )
                 Spacer(Modifier.height(6.dp))
             }
-            ValueRow(label, value, showNumbers)
+            ValueRow(line, showNumbers, opts)
             Spacer(Modifier.height(4.dp))
         }
     }
@@ -215,29 +247,36 @@ private fun RoyalPreview(
 
 /** بلوک ساعت و تاریخ‌ها. */
 @Composable
-private fun ClockBlock(jalali: String, clockSize: Int) {
+private fun ClockBlock(jalali: String, opts: PreviewOptions, big: Boolean) {
     val skin = LocalAppSkin.current
+    if (!opts.showClock && !opts.showDates) return
+    // اندازه ساعت پیش‌نمایش نسبت به ویجت واقعی کوچک‌تر است تا در کادر جا شود
+    val size = (opts.clockSize * if (big) 0.8f else 0.7f).toInt().coerceIn(12, 46)
     Column(horizontalAlignment = Alignment.End) {
-        Text(
-            Digits.toPersian("20:56"),
-            fontSize = clockSize.sp,
-            fontWeight = FontWeight.Bold,
-            color = skin.bigNumberColor
-        )
-        Text(jalali, fontSize = 10.sp, color = skin.onBackdrop)
-        Text(
-            "22 Sept 2026",
-            fontSize = 9.sp,
-            color = skin.onBackdrop.copy(alpha = 0.7f)
-        )
+        if (opts.showClock) {
+            Text(
+                Digits.toPersian("20:56"),
+                fontSize = size.sp,
+                fontWeight = FontWeight.Bold,
+                color = skin.bigNumberColor
+            )
+        }
+        if (opts.showDates) {
+            Text(jalali, fontSize = 10.sp, color = skin.onBackdrop)
+            Text(
+                "22 Sept 2026",
+                fontSize = 9.sp,
+                color = skin.onBackdrop.copy(alpha = 0.7f)
+            )
+        }
     }
 }
 
-/** یک ردیف برچسب/مقدار با آیکون جهت. */
+/** یک ردیف برچسب/مقدار با آیکون جهت همان ردیف. */
 @Composable
-private fun ValueRow(label: String, value: String, showNumbers: Boolean) {
+private fun ValueRow(line: WidgetPreviewLine, showNumbers: Boolean, opts: PreviewOptions) {
     val skin = LocalAppSkin.current
-    val income = label.contains("واریز") || label.contains("واریز") || label.contains("مانده")
+    val income = line.income
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -250,23 +289,31 @@ private fun ValueRow(label: String, value: String, showNumbers: Boolean) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                if (income) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+                when (income) {
+                    true -> Icons.AutoMirrored.Filled.TrendingUp
+                    false -> Icons.AutoMirrored.Filled.TrendingDown
+                    null -> Icons.Filled.AccountBalanceWallet
+                },
                 contentDescription = null,
-                tint = if (income) skin.incomeColor else skin.expenseColor,
+                tint = when (income) {
+                    true -> skin.incomeColor
+                    false -> skin.expenseColor
+                    null -> skin.accent
+                },
                 modifier = Modifier.size(12.dp)
             )
         }
         Spacer(Modifier.width(7.dp))
         Text(
-            label,
-            fontSize = 10.sp,
+            line.label,
+            fontSize = opts.labelSize.sp,
             color = skin.onBackdrop,
             modifier = Modifier.weight(1f),
             maxLines = 1
         )
         Text(
-            if (showNumbers) value else "••••",
-            fontSize = 11.sp,
+            if (showNumbers) line.value else "••••",
+            fontSize = opts.valueSize.sp,
             fontWeight = FontWeight.Bold,
             color = skin.bigNumberColor,
             maxLines = 1

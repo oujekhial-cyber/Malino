@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -80,6 +84,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import ir.kharjyar.app.ui.components.EmbossedText
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val settings by viewModel.settings.collectAsState()
@@ -134,15 +139,27 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     if (wholeRange) TxSummarizer.summarize(allTx, accountId)
                     else TxSummarizer.summarize(allTx, accountId, monthRange.first, monthRange.second)
 
+                // چرخ‌فلک کارت‌ها: با هر کشیدن انگشت دقیقاً یک کارت وسط صفحه می‌ایستد
+                // (پهنای هر صفحه = عرض فهرست منهای دو لبه، و چسبیدن با snap).
+                val rowState = rememberLazyListState()
+                val peek = 22.dp
+                val pageWidth = (LocalConfiguration.current.screenWidthDp.dp - 32.dp - peek * 2)
+                    .coerceAtLeast(180.dp)
+
                 EnterCard(0) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyRow(
+                        state = rowState,
+                        flingBehavior = rememberSnapFlingBehavior(lazyListState = rowState),
+                        contentPadding = PaddingValues(horizontal = peek),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         // ----- صفحه نخست: خلاصه همه حساب‌ها -----
                         item {
                             val total = rangeSummary(null)
                             val totalRial = active.sumOf { acc -> AccountBalance.estimate(acc, allTx).rial ?: 0L }
                             HeroCard(
                                 modifier = Modifier
-                                    .fillParentMaxWidth(if (active.isEmpty()) 1f else 0.93f)
+                                    .width(pageWidth)
                                     .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
                                 neon = settings.cardShine
                             ) {
@@ -310,7 +327,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 expiry = account.cardExpiry,
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
-                                modifier = Modifier.fillParentMaxWidth(0.93f),
+                                modifier = Modifier.width(pageWidth),
                                 onClick = {
                                     // انتخاب کارت = تغییر حساب پیش‌فرض داشبورد
                                     scope.launch {
@@ -358,7 +375,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         item {
                             SkinCard(
                                 modifier = Modifier
-                                    .fillParentMaxWidth(if (active.isEmpty()) 0.93f else 0.5f)
+                                    .width(if (active.isEmpty()) pageWidth else pageWidth * 0.55f)
                                     .clickable { nav.navigate("accountEdit/0") }
                             ) {
                                 Column(
