@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,7 +18,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,9 +38,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -109,7 +117,8 @@ fun BankCard(
     /** محتوای دلخواه زیر مانده؛ برای نمایش خلاصه واریز/برداشت همین حساب. */
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
-    val base = Color(colorArgb)
+    // رنگ کارت از روی لوگوی بانک؛ برای بانک ناشناس، رنگ ذخیره‌شده خود حساب
+    val base = bankCardColor(bankName, colorArgb)
     // گرادیان از رنگ حساب: روشن‌تر در بالا-راست، تیره‌تر در پایین-چپ
     val top = base.lighten(0.18f)
     val bottom = base.darken(0.32f)
@@ -128,13 +137,33 @@ fun BankCard(
         label = "cardBorderWidth"
     )
 
-    Column(
+    Box(
         modifier = modifier
             .clip(shape)
             .background(Brush.linearGradient(listOf(top, bottom)))
             .border(borderWidth, borderColor, shape)
             .clickable(onClick = onClick)
-            .padding(16.dp)
+    ) {
+        // نشان بانک به‌صورت واترمارک: تک‌رنگ و بسیار کم‌رنگ، در گوشه کارت.
+        // آن‌قدر محو است که خواندن مبلغ و شماره کارت را سخت نمی‌کند.
+        bankLogoRes(bankName)?.let { logo ->
+            Box(modifier = Modifier.matchParentSize(), contentAlignment = Alignment.CenterEnd) {
+                Image(
+                    painter = painterResource(logo),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(onCard),
+                    modifier = Modifier
+                        .fillMaxHeight(0.92f)
+                        .aspectRatio(1f)
+                        .offset(x = 16.dp)
+                        .alpha(0.10f)
+                )
+            }
+        }
+
+    Column(
+        modifier = Modifier.padding(16.dp)
     ) {
         // ---------- ردیف بالا: نام بانک و نشان ----------
         Row(
@@ -279,6 +308,7 @@ fun BankCard(
                 }
             }
         }
+    }
     }
 }
 

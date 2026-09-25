@@ -57,8 +57,8 @@ import ir.kharjyar.app.ui.components.CardScannerDialog
 import ir.kharjyar.app.ui.components.ColorPicker
 import ir.kharjyar.app.ui.components.BankCard
 import ir.kharjyar.app.ui.components.BankLogo
+import ir.kharjyar.app.ui.components.bankCardColorArgb
 import ir.kharjyar.app.ui.components.SearchableComboBox
-import ir.kharjyar.app.ui.components.ColorPickerField
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.NumberTextField
 import ir.kharjyar.app.ui.components.ComboBox
@@ -69,12 +69,21 @@ import kotlinx.coroutines.launch
 /** رنگ پیش‌فرض حساب جدید. */
 private const val DEFAULT_ACCOUNT_COLOR = 0xFF3F51B5
 
-/** «توسعه تعاون» طبق درخواست کاربر اولین گزینه است. */
+/**
+ * فهرست بانک‌ها و مؤسسه‌های اعتباری دارای خدمات بانکی (عضو شتاب).
+ * «توسعه تعاون» طبق درخواست کاربر اولین گزینه است. بانک‌های ادغام‌شده (انصار،
+ * قوامین، حکمت ایرانیان، مهر اقتصاد) هم مانده‌اند چون هنوز کارت و حساب قدیمی
+ * با نام آن‌ها وجود دارد.
+ */
 private val bankNames = listOf(
     "توسعه تعاون",
-    "ملی", "ملت", "صادرات", "تجارت", "سپه", "کشاورزی", "مسکن", "رفاه", "پاسارگاد",
-    "پارسیان", "سامان", "اقتصاد نوین", "شهر", "دی", "سینا", "کارآفرین", "آینده",
-    "گردشگری", "ایران زمین", "خاورمیانه", "رسالت", "قرض‌الحسنه مهر", "پست بانک", "سایر"
+    "ملی", "ملت", "صادرات", "تجارت", "سپه", "کشاورزی", "مسکن", "رفاه", "پست بانک",
+    "توسعه صادرات", "صنعت و معدن", "پاسارگاد", "پارسیان", "سامان", "اقتصاد نوین",
+    "سرمایه", "کارآفرین", "سینا", "شهر", "دی", "آینده", "گردشگری", "ایران زمین",
+    "خاورمیانه", "رسالت", "قرض‌الحسنه مهر", "ایران ونزوئلا", "بلو",
+    "مؤسسه اعتباری ملل", "مؤسسه اعتباری نور",
+    "انصار", "قوامین", "حکمت ایرانیان", "مهر اقتصاد",
+    "سایر"
 )
 
 /** معرفی/ویرایش حساب. id == 0 یعنی حساب جدید. */
@@ -168,16 +177,16 @@ fun AccountEditScreen(
                 label = "نام بانک",
                 options = bankNames,
                 value = bankName,
-                onValueChange = { bankName = it },
+                // رنگ کارت خودش از روی لوگوی همان بانک انتخاب می‌شود
+                onValueChange = { bankName = it; color = bankCardColorArgb(it, color) },
                 placeholder = "حروف اول نام بانک را بنویسید",
                 // نشان هر بانک کنار نامش، هم در فیلد و هم در فهرست انتخاب
                 leadingOf = { BankLogo(bankName = it, size = 26.dp) }
             )
-            ColorPickerField(color = color, onColorChange = { color = it })
         }
 
-        // ---------- شماره‌ها ----------
-        FormSection("شماره‌ها (اختیاری)") {
+        // ---------- اسکن کارت و شماره‌ها ----------
+        FormSection("اسکن کارت") {
             Text(
                 "هر کدام را خالی بگذارید، روی کارت نمایش داده نمی‌شود.",
                 style = MaterialTheme.typography.bodySmall,
@@ -381,6 +390,8 @@ fun AccountEditScreen(
                 if (result.accountNumber.isNotBlank()) { accountNumber = result.accountNumber; filled += "شماره حساب" }
                 if (result.bankName.isNotBlank() && bankName.isBlank()) {
                     bankName = result.bankName; filled += "نام بانک"
+                    // رنگ کارت هم با لوگوی همان بانک هماهنگ می‌شود
+                    color = bankCardColorArgb(bankName, color)
                 }
                 // شناسه کوتاه تطبیق پیامک را هم از چهار رقم آخر کارت پر می‌کنیم
                 if (maskedNumber.isBlank() && cardNumber.length == 16) {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -117,7 +118,10 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     Scaffold(
         containerColor = Color.Transparent,
-        snackbarHost = { GlassSnackbarHost(snackbar) }
+        snackbarHost = { GlassSnackbarHost(snackbar) },
+        // نوار بالا/پایین سیستم یک‌بار در AppRoot اعمال شده؛ اینجا نباید دوباره
+        // فاصله اضافه شود وگرنه صفحه از بالا و پایین حاشیه مرده می‌گیرد.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
 

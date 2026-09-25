@@ -147,27 +147,37 @@ fun AppRoot(
 
 
 /**
- * پس از نخستین ورود به برنامه، ویجت «لوکس» یک‌بار به‌صورت خودکار به صفحه اصلی
- * پیشنهاد می‌شود و به اندازه عرض گوشی درخواست می‌گردد.
+ * ویجت خودکار روی صفحه اصلی گوشی.
  *
- * محدودیت اندروید: هیچ برنامه‌ای اجازه ندارد بدون اجازه لانچر ویجت را روی صفحه
- * اصلی بچسباند؛ تنها راه رسمی `requestPinAppWidget` است که یک تأیید کوتاه نشان
- * می‌دهد. اگر لانچر پشتیبانی نکند، بی‌سر و صدا از آن می‌گذریم و کاربر می‌تواند
- * از «تنظیمات ویجت» اقدام کند. این کار فقط یک‌بار انجام می‌شود.
+ * محدودیت اندروید: هیچ برنامه‌ای اجازه ندارد خودش ویجت را روی صفحه اصلی
+ * بچسباند؛ تنها راه رسمی `requestPinAppWidget` است که یک تأیید کوتاهِ سیستمی
+ * نشان می‌دهد و چسباندن را به لانچر می‌سپارد.
+ *
+ * برای اینکه ویجت واقعاً سر جایش بنشیند، این درخواست در هر بار باز شدن برنامه
+ * تکرار می‌شود تا وقتی که دست‌کم یک نمونه ویجت روی صفحه اصلی وجود داشته باشد؛
+ * بعد از آن دیگر هیچ پیامی نشان داده نمی‌شود. اگر لانچر این قابلیت را نداشته
+ * باشد، بی‌سر و صدا رد می‌شود و کاربر می‌تواند از «تنظیمات ویجت» اقدام کند.
  */
 @Composable
 private fun AutoPinWidget(viewModel: AppViewModel, settings: ir.kharjyar.app.data.prefs.AppSettings) {
     val context = LocalContext.current
-    // کلید Unit است تا نوشتن پرچم، خودِ این افکت را وسط کار لغو نکند
+    // کلید Unit است تا این افکت فقط یک‌بار در هر بار باز شدن برنامه اجرا شود
     LaunchedEffect(Unit) {
-        if (settings.widgetAutoPinned) return@LaunchedEffect
         runCatching {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, KharjYarWidgetReceiver::class.java)
-            val already = manager.getAppWidgetIds(component).isNotEmpty()
-            if (already || !manager.isRequestPinAppWidgetSupported) return@runCatching
-            // قالب لوکس به‌عنوان پیش‌فرض این ویجت خودکار
-            viewModel.settingsRepo.setWidgetLayout(WidgetLayout.ROYAL)
+            // ویجت از قبل روی صفحه اصلی هست؟ کار تمام است.
+            if (manager.getAppWidgetIds(component).isNotEmpty()) {
+                if (!settings.widgetAutoPinned) viewModel.settingsRepo.setWidgetAutoPinned(true)
+                return@runCatching
+            }
+            if (!manager.isRequestPinAppWidgetSupported) return@runCatching
+            // قالب «لوکس» فقط در نخستین تلاش پیشنهاد می‌شود تا انتخاب بعدی
+            // کاربر در تنظیمات ویجت بازنویسی نشود.
+            if (!settings.widgetAutoPinned) {
+                viewModel.settingsRepo.setWidgetLayout(WidgetLayout.ROYAL)
+                viewModel.settingsRepo.setWidgetAutoPinned(true)
+            }
             // درخواست عرض کامل صفحه برای ویجت
             val metrics = context.resources.displayMetrics
             val widthDp = (metrics.widthPixels / metrics.density).toInt()
@@ -179,8 +189,6 @@ private fun AutoPinWidget(viewModel: AppViewModel, settings: ir.kharjyar.app.dat
             }
             manager.requestPinAppWidget(component, options, null)
         }
-        // بدون توجه به نتیجه، این کار فقط یک‌بار انجام می‌شود
-        viewModel.settingsRepo.setWidgetAutoPinned(true)
     }
 }
 

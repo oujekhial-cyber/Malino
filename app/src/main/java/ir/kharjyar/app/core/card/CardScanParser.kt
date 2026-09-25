@@ -71,11 +71,15 @@ object CardScanParser {
         var card = ""
         var ibanValid = ""
         var ibanGuess = ""
+        // همه بلوک‌های رقمی به ترتیب خوانده‌شدن؛ برای کارت‌هایی که شماره را در
+        // چند سطر (مثلاً چهار سطرِ چهاررقمی روی کارت‌های عمودی) چاپ می‌کنند.
+        val groups = mutableListOf<String>()
 
         for (line in text.split('\n')) {
             val marksIban = line.contains("IR", ignoreCase = true) || line.contains("شبا")
             for (piece in DIGIT_RUN.findAll(line)) {
                 val digits = piece.value.filter(Char::isDigit)
+                if (digits.length in 1..16) groups += digits
                 when {
                     digits.length == 24 -> {
                         if (isIbanValid(digits)) {
@@ -91,6 +95,8 @@ object CardScanParser {
             }
         }
 
+        if (card.isBlank()) card = cardFromGroups(groups)
+
         val iban = if (allowIban) ibanValid.ifBlank { ibanGuess } else ""
         return CardScan(
             cardNumber = card,
@@ -104,6 +110,42 @@ object CardScanParser {
 
     /** یک بلوک عدد با جداکننده‌های رایج چاپ روی کارت. */
     private val DIGIT_RUN = Regex("[0-9](?:[0-9 \\-]*[0-9])?")
+
+    /**
+     * شماره کارتی که تکه‌تکه چاپ شده است.
+     *
+     * بعضی کارت‌ها (به‌ویژه کارت‌های عمودی) شماره را در چهار بلوک چهاررقمیِ جدا
+     * می‌نویسند و OCR هر بلوک را یک تکه جداگانه می‌بیند. اینجا تکه‌های پشت‌سرهم
+     * به هم چسبانده می‌شوند و فقط اگر Luhn را رد کنند پذیرفته می‌شوند.
+     */
+    private fun cardFromGroups(groups: List<String>): String {
+        // حالت رایج: چهار بلوک دقیقاً چهاررقمی پشت سر هم
+        for (i in 0..groups.size - 4) {
+            val window = groups.subList(i, i + 4)
+            if (window.all { it.length == 4 }) {
+                val joined = window.joinToString("")
+                // همه کارت‌های شتاب با ۵ یا ۶ شروع می‌شوند؛ این شرط جلوی
+                // چسبیدن چهار عدد بی‌ربط را می‌گیرد.
+                if (joined[0] in '5'..'6' && isLuhnValid(joined)) return joined
+            }
+        }
+        // حالت‌های دیگر (۸+۸ یا ۴+۴+۸ …): علاوه بر Luhn، شش رقم اول هم باید
+        // BIN یک بانک شناخته‌شده باشد تا عدد بی‌ربط جای شماره کارت ننشیند.
+        for (i in groups.indices) {
+            val sb = StringBuilder()
+            for (j in i until groups.size) {
+                if (groups[j].length < 2) break
+                sb.append(groups[j])
+                if (sb.length > 16) break
+                if (sb.length == 16) {
+                    val candidate = sb.toString()
+                    if (isLuhnValid(candidate) && bankOfCard(candidate).isNotBlank()) return candidate
+                    break
+                }
+            }
+        }
+        return ""
+    }
 
     /** اولین پنجره ۱۶ رقمی که Luhn را رد کند (بلوک بلندتر می‌تواند CVV2 چسبیده داشته باشد). */
     private fun firstLuhnWindow(digits: String): String {
@@ -223,8 +265,27 @@ object CardScanParser {
         RegexOption.IGNORE_CASE
     )
 
-    /** فقط با برچسب پذیرفته می‌شود؛ عدد سه رقمی بی‌برچسب می‌تواند هر چیزی باشد. */
-    private fun findCvv2(text: String): String = CVV_RE.find(text)?.groupValues?.get(1) ?: ""
+    /**
+     * اول با برچسب (CVV2/CVC) دنبالش می‌گردیم، چون عدد سه رقمیِ بی‌برچسب می‌تواند
+     * هر چیزی باشد. اگر برچسبی نبود — که روی کارت‌های عمودیِ چهارسطری زیاد پیش
+     * می‌آید — عدد سه/چهار رقمیِ تنها که بلافاصله بعد از تاریخ انقضا آمده باشد
+     * پذیرفته می‌شود.
+     */
+    private fun findCvv2(text: String): String =
+        CVV_RE.find(text)?.groupValues?.get(1) ?: cvv2AfterExpiry(text)
+
+    private val LONE_NUMBER = Regex("^\\s*(\\d{3,4})\\s*$")
+
+    private fun cvv2AfterExpiry(text: String): String {
+        val lines = text.split('\n')
+        for ((i, line) in lines.withIndex()) {
+            if (!EXPIRY_PAIR.containsMatchIn(line)) continue
+            for (j in (i + 1)..minOf(i + 2, lines.lastIndex)) {
+                LONE_NUMBER.find(lines[j])?.let { return it.groupValues[1] }
+            }
+        }
+        return ""
+    }
 
     // ------------------------------------------------------- شماره حساب
 
@@ -263,7 +324,19 @@ object CardScanParser {
         "585947" to "خاورمیانه",
         "504172" to "رسالت",
         "606373" to "قرض‌الحسنه مهر",
-        "627760" to "پست بانک"
+        "627760" to "پست بانک",
+        // بانک‌ها و مؤسسه‌های اعتباری دیگر عضو شتاب
+        "207177" to "توسعه صادرات", "627648" to "توسعه صادرات",
+        "627961" to "صنعت و معدن",
+        "639607" to "سرمایه",
+        "606256" to "مؤسسه اعتباری ملل",
+        "507677" to "مؤسسه اعتباری نور",
+        "628157" to "مؤسسه اعتباری توسعه",
+        "505801" to "کوثر",
+        "627381" to "انصار",
+        "639599" to "قوامین",
+        "636949" to "حکمت ایرانیان",
+        "639370" to "مهر اقتصاد"
     )
 
     fun bankOfCard(cardNumber: String): String =

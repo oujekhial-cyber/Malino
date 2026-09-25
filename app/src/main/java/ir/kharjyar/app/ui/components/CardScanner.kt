@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -94,6 +95,8 @@ fun CardScannerDialog(
     var denied by remember { mutableStateOf(false) }
     var cameraError by remember { mutableStateOf<String?>(null) }
     var torchOn by remember { mutableStateOf(false) }
+    // کارت‌های عمودی (مثل کارت‌های جدید چند بانک) هم باید اسکن شوند
+    var verticalCard by remember { mutableStateOf(false) }
     var scan by remember { mutableStateOf(CardScan()) }
     var camera by remember { mutableStateOf<Camera?>(null) }
 
@@ -188,12 +191,15 @@ fun CardScannerDialog(
             if (granted && cameraError == null) {
                 AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
-                // کادر راهنما با نسبت کارت بانکی
+                // کادر راهنما با نسبت کارت بانکی (افقی یا عمودی)
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .fillMaxWidth(0.9f)
-                        .aspectRatio(1.586f)
+                        .then(
+                            if (verticalCard) Modifier.fillMaxHeight(0.72f)
+                            else Modifier.fillMaxWidth(0.9f)
+                        )
+                        .aspectRatio(if (verticalCard) 1f / 1.586f else 1.586f)
                         .border(2.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(16.dp))
                 )
             }
@@ -208,6 +214,13 @@ fun CardScannerDialog(
                     Icon(Icons.Filled.Close, contentDescription = "بستن", tint = Color.White)
                 }
                 if (granted && cameraError == null) {
+                    // جابه‌جایی بین کارت افقی و عمودی
+                    TextButton(onClick = { verticalCard = !verticalCard }) {
+                        Text(
+                            if (verticalCard) "کارت افقی" else "کارت عمودی",
+                            color = Color.White
+                        )
+                    }
                     IconButton(onClick = { torchOn = !torchOn }) {
                         Icon(
                             if (torchOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
@@ -334,6 +347,17 @@ private class CardAnalyzer(
     private val onText: (String) -> Unit
 ) : ImageAnalysis.Analyzer {
 
+    /**
+     * چرخش اضافه‌ای که به هر فریم داده می‌شود.
+     *
+     * روی کارت عمودی، نوشته‌ها نسبت به دوربین ۹۰ درجه چرخیده‌اند و تشخیص‌دهنده
+     * متن آن‌ها را نمی‌خواند. به‌جای دوبار پردازش هر فریم (که دوربین را کند
+     * می‌کند)، فریم‌ها به نوبت با چرخش ۰، ۹۰ و ۲۷۰ درجه خوانده می‌شوند؛ چون
+     * نتیجه فریم‌ها روی هم انباشته می‌شود، هر دو حالت کارت خوانده می‌شود.
+     */
+    private val rotationCycle = intArrayOf(0, 0, 90, 0, 0, 270)
+    private var frame = 0
+
     @androidx.annotation.OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
         val media = imageProxy.image
@@ -341,7 +365,10 @@ private class CardAnalyzer(
             imageProxy.close()
             return
         }
-        val input = InputImage.fromMediaImage(media, imageProxy.imageInfo.rotationDegrees)
+        val extra = rotationCycle[frame % rotationCycle.size]
+        frame++
+        val rotation = (imageProxy.imageInfo.rotationDegrees + extra) % 360
+        val input = InputImage.fromMediaImage(media, rotation)
         recognizer.process(input)
             // شنونده پیش‌فرض روی رشته اصلی اجرا می‌شود؛ به‌روزرسانی state امن است
             .addOnSuccessListener { result -> onText(result.text) }

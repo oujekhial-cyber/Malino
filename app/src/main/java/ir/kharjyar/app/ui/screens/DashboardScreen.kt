@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -76,12 +77,10 @@ import ir.kharjyar.app.ui.components.EnterCard
 import ir.kharjyar.app.ui.components.ScreenEnterAnimation
 import ir.kharjyar.app.ui.components.GlassSnackbarHost
 import ir.kharjyar.app.ui.components.HeroCard
-import ir.kharjyar.app.ui.components.LineChart
 import androidx.compose.material3.SnackbarResult
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.SkinCard
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.ui.text.style.TextOverflow
 import ir.kharjyar.app.ui.components.EmbossedText
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 
@@ -119,7 +118,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     Scaffold(
         containerColor = Color.Transparent,
         snackbarHost = { GlassSnackbarHost(snackbar) },
-        modifier = Modifier.imePadding()
+        modifier = Modifier.imePadding(),
+        // نوار بالا/پایین سیستم یک‌بار در AppRoot اعمال شده؛ تکرارش اینجا باعث
+        // حاشیه مرده در بالای صفحه و بالای دکمه‌های پایین می‌شد.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         // انیمیشن ورود فقط برای نخستین نمایش صفحه؛ ردیف‌هایی که حین اسکرول
         // ساخته می‌شوند بدون تأخیر ظاهر می‌شوند.
@@ -408,7 +410,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 }
             }
 
-            // ---------- میان‌بر «بگو تا بنویسم» ----------
+            // ---------- میان‌بر «ثبت سریع» ----------
             item {
                 Row(
                     modifier = Modifier
@@ -440,18 +442,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "بگو تا بنویسم",
+                        "ثبت سریع",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = skin.onBackdrop
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "«۲۵۰ هزار تومن نان»",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = skin.onBackdrop.copy(alpha = 0.6f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        color = skin.onBackdrop,
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
@@ -476,30 +470,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     style = MaterialTheme.typography.titleSmall,
                                     color = skin.onBackdrop
                                 )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ---------- نمودار ۳۰ روز اخیر ----------
-            item {
-                EnterCard(3) {
-                    SkinCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                            Text("روند ۳۰ روز اخیر", style = MaterialTheme.typography.titleSmall, color = skin.onBackdrop)
-                            Spacer(Modifier.height(6.dp))
-                            val (income, expense) = buildDailySeries(scopedTx, 30)
-                            if (income.all { it == 0L } && expense.all { it == 0L }) {
-                                EmptyState("داده‌ای برای نمودار نیست", "با ثبت اولین تراکنش، نمودار اینجا شکل می‌گیرد")
-                            } else {
-                                // ارتفاع نصف شد تا کارت نمودار جای کمتری بگیرد
-                                LineChart(incomeSeries = income, expenseSeries = expense, height = 78.dp)
-                                Spacer(Modifier.height(6.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    LegendDot(skin.incomeColor, "واریز")
-                                    LegendDot(skin.expenseColor, "برداشت")
-                                }
                             }
                         }
                     }
@@ -635,16 +605,6 @@ private fun SummaryChip(
                 depth = 0.8f
             )
         }
-    }
-}
-
-@Composable
-private fun LegendDot(color: Color, label: String) {
-    val skin = LocalAppSkin.current
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(10.dp).background(color, CircleShape))
-        Spacer(Modifier.width(6.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop)
     }
 }
 

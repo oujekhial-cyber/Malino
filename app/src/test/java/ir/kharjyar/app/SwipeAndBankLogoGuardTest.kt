@@ -94,15 +94,85 @@ class SwipeAndBankLogoGuardTest {
         val screen = source("src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt")
         val listing = screen.substringAfter("private val bankNames = listOf(").substringBefore(")")
         val names = Regex("\"([^\"]+)\"").findAll(listing).map { it.groupValues[1] }.toList()
-        assertTrue("فهرست بانک‌ها پیدا نشد", names.size > 20)
+        // فهرست باید همه بانک‌ها و مؤسسه‌های اعتباری عضو شتاب را داشته باشد
+        assertTrue("فهرست بانک‌ها کوتاه شده است", names.size >= 35)
         for (name in names) {
             if (name == "سایر") continue
             val key = bankAssetKey(name)
             assertNotNull("لوگوی بانک «$name» تعریف نشده", key)
-            val file = File("src/main/res/drawable-xxxhdpi/bank_$key.png")
-            assertTrue("فایل لوگوی بانک «$name» ($key) نیست", file.isFile && file.length() > 0)
+            val png = File("src/main/res/drawable-xxxhdpi/bank_$key.png")
+            val xml = File("src/main/res/drawable/bank_$key.xml")
+            assertTrue(
+                "فایل لوگوی بانک «$name» ($key) نیست",
+                (png.isFile && png.length() > 0) || (xml.isFile && xml.length() > 0)
+            )
             assertNotNull("رنگ بانک «$name» تعریف نشده", bankColorOf(name))
         }
+    }
+
+    @Test
+    fun `card color follows the bank logo and is not chosen by hand`() {
+        val edit = source("src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt")
+        assertFalse("انتخاب دستی رنگ کارت هنوز در فرم است", edit.contains("ColorPickerField("))
+        assertTrue("رنگ کارت از روی بانک تنظیم نمی‌شود", edit.contains("bankCardColorArgb("))
+        val card = source("src/main/java/ir/kharjyar/app/ui/components/BankCard.kt")
+        assertTrue("رنگ کارت از روی بانک گرفته نمی‌شود", card.contains("bankCardColor(bankName, colorArgb)"))
+        // رنگ هر بانک باید با لوگوی خودش فرق داشته باشد، نه یک رنگ ثابت
+        val distinct = listOf("ملت", "ملی", "پاسارگاد", "سامان", "شهر").mapNotNull { bankColorOf(it) }.distinct()
+        assertEquals(5, distinct.size)
+    }
+
+    @Test
+    fun `bank logo is watermarked on the account card`() {
+        val card = source("src/main/java/ir/kharjyar/app/ui/components/BankCard.kt")
+        assertTrue("واترمارک لوگو روی کارت نیست", card.contains("bankLogoRes(bankName)"))
+        assertTrue("واترمارک باید کم‌رنگ باشد", Regex("alpha\\(0\\.(0|1)\\d*f\\)").containsMatchIn(card))
+    }
+
+    @Test
+    fun `card scanner reads vertical cards`() {
+        val scanner = source("src/main/java/ir/kharjyar/app/ui/components/CardScanner.kt")
+        assertTrue("حالت کارت عمودی نیست", scanner.contains("verticalCard"))
+        assertTrue("فریم‌ها با چرخش‌های مختلف خوانده نمی‌شوند", scanner.contains("rotationCycle"))
+        val parser = source("src/main/java/ir/kharjyar/app/core/card/CardScanParser.kt")
+        assertTrue("شماره کارت چندسطری پشتیبانی نمی‌شود", parser.contains("cardFromGroups"))
+    }
+
+    @Test
+    fun `home screen drops the chart and the old quick add wording`() {
+        val dash = source("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt")
+        assertFalse("نمودار هنوز در صفحه خانه است", dash.contains("LineChart("))
+        assertFalse("متن قدیمی میان‌بر مانده است", dash.contains("بگو تا بنویسم"))
+        assertFalse("مثال «۲۵۰ هزار تومن نان» مانده است", dash.contains("۲۵۰ هزار تومن نان"))
+        assertTrue("میان‌بر «ثبت سریع» نیست", dash.contains("\"ثبت سریع\""))
+        // نمودار باید فقط در صفحه گزارش بماند
+        val reports = source("src/main/java/ir/kharjyar/app/ui/screens/ReportsScreen.kt")
+        assertTrue("نمودار از گزارش‌ها هم حذف شده", reports.contains("LineChart("))
+    }
+
+    @Test
+    fun `home and transactions do not add the system insets twice`() {
+        for (path in listOf(
+            "src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt",
+            "src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt"
+        )) {
+            assertTrue(
+                "$path فاصله نوارهای سیستم را دوباره اضافه می‌کند",
+                source(path).contains("contentWindowInsets = WindowInsets(0, 0, 0, 0)")
+            )
+        }
+    }
+
+    @Test
+    fun `widget keeps asking to be pinned until it is on the home screen`() {
+        val root = source("src/main/java/ir/kharjyar/app/ui/AppRoot.kt")
+        assertTrue("درخواست چسباندن ویجت نیست", root.contains("requestPinAppWidget"))
+        assertTrue("وجود ویجت بررسی نمی‌شود", root.contains("getAppWidgetIds(component).isNotEmpty()"))
+        // دیگر نباید با یک پرچم برای همیشه خاموش شود
+        assertFalse(
+            "درخواست ویجت هنوز فقط یک‌بار انجام می‌شود",
+            root.contains("if (settings.widgetAutoPinned) return@LaunchedEffect")
+        )
     }
 
     @Test

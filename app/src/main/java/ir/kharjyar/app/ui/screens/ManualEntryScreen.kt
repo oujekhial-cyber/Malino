@@ -102,7 +102,7 @@ fun ManualEntryScreen(
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
-            Text("بگو تا بنویسم")
+            Text("ثبت سریع")
         }
 
         if (active.isEmpty()) {

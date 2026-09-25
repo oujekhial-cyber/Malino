@@ -49,11 +49,14 @@ private val logoKeys: List<Pair<String, String>> = listOf(
     "ایران زمین" to "iranzamin",
     "ایران ونزوئلا" to "iranvenezuela",
     "ایران و ونزوئلا" to "iranvenezuela",
+    "مهر اقتصاد" to "mehreghtesad",
     "مهر ایران" to "mehriran",
-    "قرض الحسنه مهر" to "mehriran",
+    "قرض مهر" to "mehriran",
     "صنعت و معدن" to "sanatmadan",
+    "صنعت معدن" to "sanatmadan",
     "اقتصاد نوین" to "eghtesadnovin",
     "رفاه کارگران" to "refah",
+    "حکمت ایرانیان" to "hekmat",
     "پست بانک" to "post",
     // نام‌های تک‌واژه‌ای
     "ملی" to "melli",
@@ -76,12 +79,14 @@ private val logoKeys: List<Pair<String, String>> = listOf(
     "گردشگری" to "gardeshgari",
     "خاورمیانه" to "khavarmianeh",
     "رسالت" to "resalat",
-    "مهر" to "mehriran",
-    "پست" to "post",
-    "انصار" to "ansar",
     "سرمایه" to "sarmayeh",
+    "انصار" to "ansar",
+    "قوامین" to "ghavamin",
     "حکمت" to "hekmat",
-    "قوامین" to "ghavamin"
+    "بلو" to "blu",
+    "نور" to "noor",
+    "مهر" to "mehriran",
+    "پست" to "post"
 )
 
 private val logoRes: Map<String, Int> = mapOf(
@@ -116,7 +121,10 @@ private val logoRes: Map<String, Int> = mapOf(
     "ansar" to R.drawable.bank_ansar,
     "sarmayeh" to R.drawable.bank_sarmayeh,
     "hekmat" to R.drawable.bank_hekmat,
-    "ghavamin" to R.drawable.bank_ghavamin
+    "ghavamin" to R.drawable.bank_ghavamin,
+    "blu" to R.drawable.bank_blu,
+    "noor" to R.drawable.bank_noor,
+    "mehreghtesad" to R.drawable.bank_mehreghtesad
 )
 
 /** نام بانک را برای مقایسه ساده می‌کند: بدون «بانک»/«موسسه»، بدون نیم‌فاصله. */
@@ -186,11 +194,31 @@ private val bankColors: Map<String, Color> = mapOf(
     "ghavamin" to Color(0xFF00A651),
     "sanatmadan" to Color(0xFF1B3D8F),
     "toseesaderat" to Color(0xFF0F7A3D),
-    "iranvenezuela" to Color(0xFF283593)
+    "iranvenezuela" to Color(0xFF283593),
+    "blu" to Color(0xFF4E91E6),
+    "noor" to Color(0xFF0BBBB9),
+    "mehreghtesad" to Color(0xFF029A4C)
 )
 
 /** رنگ شناخته‌شده بانک؛ اگر بانک ناشناس باشد null. */
 fun bankColorOf(bankName: String): Color? = bankAssetKey(bankName)?.let { bankColors[it] }
+
+/**
+ * رنگ کارت یک حساب: رنگ لوگوی بانک. اگر بانک ناشناس باشد، رنگ ذخیره‌شده خود
+ * حساب می‌ماند. با این کار دیگر لازم نیست کاربر رنگ کارت را دستی انتخاب کند.
+ */
+fun bankCardColor(bankName: String, fallbackArgb: Long): Color =
+    bankColorOf(bankName) ?: Color(fallbackArgb)
+
+/** همان `bankCardColor` ولی به شکل ARGB برای ذخیره در پایگاه داده. */
+fun bankCardColorArgb(bankName: String, fallbackArgb: Long): Long {
+    val c = bankColorOf(bankName) ?: return fallbackArgb
+    val a = (c.alpha * 255f).toInt().toLong() and 0xFF
+    val r = (c.red * 255f).toInt().toLong() and 0xFF
+    val g = (c.green * 255f).toInt().toLong() and 0xFF
+    val b = (c.blue * 255f).toInt().toLong() and 0xFF
+    return (a shl 24) or (r shl 16) or (g shl 8) or b
+}
 
 /** کوته‌نوشت نام بانک، برای وقتی لوگویی در دست نیست. */
 fun bankShortOf(bankName: String): String {

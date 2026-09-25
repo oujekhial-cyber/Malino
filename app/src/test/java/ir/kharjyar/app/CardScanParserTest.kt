@@ -174,4 +174,55 @@ class CardScanParserTest {
         assertTrue(parse("").isEmpty)
         assertTrue(parse("بانک نمونه — کارت هدیه").isEmpty)
     }
+
+    @Test
+    fun `reads a vertical card printed in four rows`() {
+        val scan = parse(
+            """
+            بانک ملی ایران
+            6037
+            9912
+            3456
+            7893
+            05/09
+            123
+            """.trimIndent()
+        )
+
+        assertEquals("6037991234567893", scan.cardNumber)
+        assertEquals("09/1405", scan.expiry)
+        assertEquals("123", scan.cvv2)
+        assertEquals("ملی", scan.bankName)
+    }
+
+    @Test
+    fun `two eight digit blocks also make a card number`() {
+        val scan = parse(
+            """
+            60379912
+            34567893
+            """.trimIndent()
+        )
+        assertEquals("6037991234567893", scan.cardNumber)
+    }
+
+    @Test
+    fun `unrelated numbers do not become a card number`() {
+        val scan = parse(
+            """
+            شعبه 1234
+            تلفن 5678
+            کد 9012
+            صندوق 3456
+            """.trimIndent()
+        )
+        assertEquals("", scan.cardNumber)
+    }
+
+    @Test
+    fun `new bins are recognized`() {
+        assertEquals("توسعه صادرات", CardScanParser.bankOfCard("6276481234567890"))
+        assertEquals("سرمایه", CardScanParser.bankOfCard("6396071234567890"))
+        assertEquals("مؤسسه اعتباری ملل", CardScanParser.bankOfCard("6062561234567890"))
+    }
 }

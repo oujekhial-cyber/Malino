@@ -26,7 +26,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.balance.AccountBalance
@@ -35,6 +34,7 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.BankLogo
+import ir.kharjyar.app.ui.components.bankCardColor
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.EmptyState
@@ -90,7 +90,7 @@ fun AccountsScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 BankLogo(
                                     bankName = a.bankName,
                                     size = 36.dp,
-                                    ringColor = Color(a.colorArgb)
+                                    ringColor = bankCardColor(a.bankName, a.colorArgb)
                                 )
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
