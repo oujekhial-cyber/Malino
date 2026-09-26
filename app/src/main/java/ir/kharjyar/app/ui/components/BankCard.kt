@@ -82,6 +82,7 @@ fun BankCard(
         expiry = account.cardExpiry,
         cvv2 = account.cardCvv2,
         showSecrets = !masked,
+        balanceColor = null,
         modifier = modifier,
         onClick = onClick,
         onCopy = onCopy
@@ -111,6 +112,7 @@ fun BankCard(
     expiry: String = "",
     cvv2: String = "",
     showSecrets: Boolean = false,
+    balanceColor: Color? = null,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onCopy: (label: String, value: String) -> Unit = { _, _ -> },
@@ -176,7 +178,7 @@ fun BankCard(
                     title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = onCard,
+                    color = balanceColor ?: onCard,
                     maxLines = 1
                 )
                 if (bankName.isNotBlank()) {

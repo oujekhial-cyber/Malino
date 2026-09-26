@@ -21,9 +21,9 @@ import net.sqlcipher.database.SupportFactory
         CategoryRuleEntity::class,
         BlockedSenderEntity::class,
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
-        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class
+        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, TransactionAttachmentEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -39,6 +39,8 @@ abstract class KharjYarDatabase : RoomDatabase() {
     abstract fun bankBalanceSnapshotDao(): BankBalanceSnapshotDao
     abstract fun noteDao(): NoteDao
     abstract fun loanDao(): LoanDao
+    abstract fun assetDao(): AssetDao
+    abstract fun transactionAttachmentDao(): TransactionAttachmentDao
 
     companion object {
         @Volatile
@@ -53,7 +55,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -122,6 +124,12 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_loan_installments_loanId ON loan_installments(loanId)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_loan_installments_dueAt ON loan_installments(dueAt)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_loan_installments_paid ON loan_installments(paid)")
             }
         }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS assets (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, kind INTEGER NOT NULL, title TEXT NOT NULL, quantity REAL NOT NULL, purchasePriceRial INTEGER NOT NULL, currentValueRial INTEGER NOT NULL, purchasedAt INTEGER NOT NULL, note TEXT NOT NULL, active INTEGER NOT NULL)");db.execSQL("CREATE INDEX IF NOT EXISTS index_assets_kind ON assets(kind)");db.execSQL("CREATE INDEX IF NOT EXISTS index_assets_active ON assets(active)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS asset_trades (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, assetId INTEGER NOT NULL, isSale INTEGER NOT NULL, quantity REAL NOT NULL, amountRial INTEGER NOT NULL, tradedAt INTEGER NOT NULL)");db.execSQL("CREATE INDEX IF NOT EXISTS index_asset_trades_assetId ON asset_trades(assetId)");db.execSQL("CREATE INDEX IF NOT EXISTS index_asset_trades_tradedAt ON asset_trades(tradedAt)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS transaction_attachments (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, transactionId INTEGER NOT NULL, imagePath TEXT NOT NULL, createdAt INTEGER NOT NULL)");db.execSQL("CREATE INDEX IF NOT EXISTS index_transaction_attachments_transactionId ON transaction_attachments(transactionId)")
+        } }
 
         /** دسته‌های اولیه پیش‌فرض. */
         val DEFAULT_CATEGORIES: List<Triple<String, Long, Int>> = listOf(

@@ -1,0 +1,21 @@
+package ir.kharjyar.app.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import ir.kharjyar.app.core.money.Money
+import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.data.db.*
+import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.ComboBox
+import kotlinx.coroutines.launch
+
+@Composable fun AssetsScreen(vm:AppViewModel){val assets by vm.assets.collectAsState();val settings by vm.settings.collectAsState();val scope=rememberCoroutineScope();var kind by remember{mutableStateOf(AssetKind.GOLD)};var title by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("1")};var purchase by remember{mutableStateOf("")};var current by remember{mutableStateOf("")};var goldUsd by remember{mutableStateOf<Double?>(null)};val kinds=listOf(AssetKind.GOLD,AssetKind.VEHICLE,AssetKind.PROPERTY,AssetKind.OTHER)
+ Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("دارایی‌ها",style=MaterialTheme.typography.headlineSmall);ComboBox("نوع دارایی",kinds,kind,{kind=it},labelOf={when(it){AssetKind.GOLD->"طلا";AssetKind.VEHICLE->"خودرو";AssetKind.PROPERTY->"ملک";else->"دارایی دستی"}});if(kind==AssetKind.GOLD){OutlinedButton({scope.launch{goldUsd=ir.kharjyar.app.assets.GoldPriceService.ounceUsd()}},Modifier.fillMaxWidth()){Text("دریافت قیمت جهانی طلا")};goldUsd?.let{Text("هر اونس جهانی: ${"%.2f".format(it)} دلار — ارزش ریالی را با نرخ بازار وارد کنید")}}
+ OutlinedTextField(title,{title=it},label={Text("عنوان دارایی")},modifier=Modifier.fillMaxWidth());OutlinedTextField(quantity,{quantity=Digits.normalize(it)},label={Text(if(kind==AssetKind.GOLD)"وزن/تعداد" else "تعداد")},modifier=Modifier.fillMaxWidth());AmountTextField(purchase,{purchase=it},"قیمت خرید کل",Modifier.fillMaxWidth());AmountTextField(current,{current=it},"ارزش روز",Modifier.fillMaxWidth());Button({scope.launch{vm.repo.db.assetDao().insert(AssetEntity(kind=kind,title=title,quantity=quantity.toDoubleOrNull()?:1.0,purchasePriceRial=Digits.parseAmount(purchase)?:0,currentValueRial=Digits.parseAmount(current)?:0,purchasedAt=System.currentTimeMillis()));title="";purchase="";current=""}},enabled=title.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text("افزودن دارایی")};HorizontalDivider();val totalBuy=assets.filter{it.active}.sumOf{it.purchasePriceRial};val totalNow=assets.filter{it.active}.sumOf{it.currentValueRial};Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp)){Text("ارزش کل: ${Money.format(totalNow,settings.moneyUnit)}");Text("سود/زیان: ${Money.format(totalNow-totalBuy,settings.moneyUnit)}",color=if(totalNow>=totalBuy)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)}};assets.forEach{a->var edited by remember(a.id){mutableStateOf(a.currentValueRial.toString())};Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp)){Text(a.title,style=MaterialTheme.typography.titleMedium);Text("خرید: ${Money.format(a.purchasePriceRial,settings.moneyUnit)}");Text("سود/زیان: ${Money.format(a.currentValueRial-a.purchasePriceRial,settings.moneyUnit)}");AmountTextField(edited,{edited=it},"ارزش روز");Row{Button({scope.launch{vm.repo.db.assetDao().update(a.copy(currentValueRial=Digits.parseAmount(edited)?:a.currentValueRial))}}){Text("بروزرسانی")};TextButton({scope.launch{vm.repo.db.assetDao().insertTrade(AssetTradeEntity(assetId=a.id,isSale=true,quantity=a.quantity,amountRial=a.currentValueRial,tradedAt=System.currentTimeMillis()));vm.repo.db.assetDao().update(a.copy(active=false))}}){Text("ثبت فروش")}}}}}}
+}

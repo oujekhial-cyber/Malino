@@ -51,6 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
@@ -158,7 +159,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             // را شلوغ می‌کردند. حالا یک نوار افقی است: صفحه نخست خلاصه همه حساب‌ها،
             // و بعد از آن هر حساب یک کارت با خلاصه واریز/برداشت خودش.
             item {
-                val active = accounts.filter { !it.archived }
+                val order=settings.dashboardAccountOrder
+                val active = accounts.filter { !it.archived }.sortedBy { a -> order.indexOf(a.id).let { if(it<0) Int.MAX_VALUE else it } }
                 val monthRange = remember { viewModel.repo.currentPersianMonthRange() }
                 val wholeRange = summary.range == AppViewModel.SummaryRange.ALL
                 // خلاصه هر حساب (یا همه حساب‌ها) با همان بازه‌ای که کاربر انتخاب کرده
@@ -344,8 +346,11 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         // ----- صفحه‌های بعدی: هر حساب یک کارت، با خلاصه خودش -----
                         items(active.size) { idx ->
                             val account = active[idx]
+                            var dragDistance by remember(account.id) { mutableStateOf(0f) }
                             val est = AccountBalance.estimate(account, allTx)
                             val accSum = rangeSummary(account.id)
+                            val bankSnapshot = bankBalances.firstOrNull { it.accountId == account.id }
+                            val hasDiscrepancy = est.rial != null && bankSnapshot != null && est.rial != bankSnapshot.balanceRial
                             // رنگ متن روی کارت، مثل خود BankCard از روشنایی رنگ حساب می‌آید
                             val onCard = if (Color(account.colorArgb).luminance() > 0.55f) Color(0xFF14121A) else Color.White
                             BankCard(
@@ -365,7 +370,17 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 expiry = account.cardExpiry,
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
-                                modifier = Modifier.width(pageWidth),
+                                balanceColor = if (hasDiscrepancy) skin.expenseColor else null,
+                                modifier = Modifier.width(pageWidth).pointerInput(account.id, active.map { it.id }) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = { dragDistance = 0f },
+                                        onDrag = { change, amount -> change.consume(); dragDistance += amount.x },
+                                        onDragEnd = {
+                                            val ids=active.map { it.id }.toMutableList();val from=ids.indexOf(account.id)
+                                            val to=when { dragDistance>50f -> (from-1).coerceAtLeast(0); dragDistance< -50f -> (from+1).coerceAtMost(ids.lastIndex); else -> from }
+                                            if(from>=0&&to!=from){ids.removeAt(from);ids.add(to,account.id);scope.launch{viewModel.settingsRepo.setDashboardAccountOrder(ids)}}
+                                        }, onDragCancel = { dragDistance = 0f })
+                                },
                                 onClick = {
                                     // انتخاب کارت = تغییر حساب پیش‌فرض داشبورد
                                     // و برداشتن فیلتر واریز/برداشت
@@ -410,7 +425,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
-                                bankBalances.firstOrNull { it.accountId == account.id }?.let { bankBalance ->
+                                bankSnapshot?.let { bankBalance ->
                                     val estimated = est.rial
                                     Spacer(Modifier.height(8.dp))
                                     Text(

@@ -43,6 +43,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val notes = repo.db.noteDao().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val loans = repo.db.loanDao().observeLoans().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val loanInstallments = repo.db.loanDao().observeInstallments().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val assets = repo.db.assetDao().observeAssets().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val assetTrades = repo.db.assetDao().observeTrades().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val categories: StateFlow<List<CategoryEntity>> = repo.categoryDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

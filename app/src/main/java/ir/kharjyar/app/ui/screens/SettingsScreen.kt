@@ -59,6 +59,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.filled.Email
 import ir.kharjyar.app.ui.components.ComboBox
+import ir.kharjyar.app.ui.components.LabeledSlider
 import ir.kharjyar.app.ui.theme.AllSkins
 import ir.kharjyar.app.ui.theme.AppSkin
 import kotlinx.coroutines.launch
@@ -290,6 +291,9 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
             NavRow("دسته‌بندی‌ها و قوانین") { nav.navigate("categories") }
             NavRow("موارد نیازمند بررسی") { nav.navigate("review") }
             NavRow("بکاپ و بازیابی رمزنگاری‌شده") { nav.navigate("backup") }
+            Text("درصد کارمزد خودکار مغایرت", style = MaterialTheme.typography.labelLarge)
+            LabeledSlider("درصد اعلامی بانک مرکزی", settings.bankFeePercent, 0..100, { v -> scope.launch { viewModel.settingsRepo.setBankFeePercent(v) } }, "٪")
+            Text("اختلاف کوچک مانده تا این درصد از مبلغ تراکنش، کارمزد بانکی در نظر گرفته می‌شود.", style = MaterialTheme.typography.bodySmall)
         }
 
         // ---------- فرستنده‌های تبلیغاتی ----------

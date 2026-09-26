@@ -111,6 +111,7 @@ import ir.kharjyar.app.ui.screens.SettingsScreen
 import ir.kharjyar.app.ui.screens.SmsPasteScreen
 import ir.kharjyar.app.ui.screens.NotesScreen
 import ir.kharjyar.app.ui.screens.LoansScreen
+import ir.kharjyar.app.ui.screens.AssetsScreen
 import ir.kharjyar.app.ui.screens.SmsHistoryImportScreen
 import ir.kharjyar.app.ui.screens.DebtsScreen
 import ir.kharjyar.app.ui.screens.ChecksScreen
@@ -250,6 +251,7 @@ private val drawerEntries = listOf(
     DrawerEntry("debts", "طلب و بدهی", Icons.Filled.AccountBalance),
     DrawerEntry("checks", "مدیریت چک‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("loans", "اقساط و وام‌ها", Icons.Filled.AccountBalance),
+    DrawerEntry("assets", "دارایی‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("notes", "یادداشت‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("backup", "بکاپ", Icons.Filled.CloudUpload),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
@@ -487,6 +489,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("debts") { DebtsScreen(viewModel) }
                 composable("checks") { ChecksScreen(viewModel) }
                 composable("loans") { LoansScreen(viewModel) }
+                composable("assets") { AssetsScreen(viewModel) }
                 composable("notes") { NotesScreen(viewModel) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->

@@ -96,6 +96,7 @@ fun ManualEntryScreen(
     var hour by remember { mutableStateOf(now.first) }
     var minute by remember { mutableStateOf(now.second) }
     var error by remember { mutableStateOf<String?>(null) }
+    var receiptPath by remember { mutableStateOf("") }
 
     val active = accounts.filter { !it.archived }
 
@@ -212,6 +213,7 @@ fun ManualEntryScreen(
                 modifier = Modifier.fillMaxWidth().keepAboveKeyboard()
             )
 
+            ir.kharjyar.app.ui.components.ReceiptImagePicker(receiptPath) { receiptPath = it }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
             Button(
@@ -227,14 +229,14 @@ fun ManualEntryScreen(
                             error = null
                             scope.launch {
                                 val occurredAt = PersianDate.toMillis(date, hour, minute)
-                                if (presetTransfer && transferToOwn) {
+                                val savedTxId = if (presetTransfer && transferToOwn) {
                                     viewModel.repo.addInternalTransfer(
                                         fromAccountId = acc,
                                         toAccountId = requireNotNull(targetAccountId),
                                         amountRial = amount,
                                         description = description.trim(),
                                         occurredAt = occurredAt
-                                    )
+                                    ).first
                                 } else {
                                     viewModel.repo.addManualTransaction(
                                         accountId = acc,
@@ -247,6 +249,9 @@ fun ManualEntryScreen(
                                         counterparty = if (presetTransfer) "حساب شخص دیگر" else ""
                                     )
                                 }
+                                if (receiptPath.isNotBlank()) viewModel.repo.db.transactionAttachmentDao().insert(
+                                    ir.kharjyar.app.data.db.TransactionAttachmentEntity(transactionId=savedTxId,imagePath=receiptPath,createdAt=System.currentTimeMillis())
+                                )
                                 ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
                                 nav.popBackStack()
                             }

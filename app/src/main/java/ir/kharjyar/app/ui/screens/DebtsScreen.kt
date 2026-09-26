@@ -18,7 +18,10 @@ import kotlinx.coroutines.launch
 
 @Composable fun DebtsScreen(vm: AppViewModel) {
     val people by vm.debtPeople.collectAsState(); val debts by vm.debts.collectAsState(); val payments by vm.debtPayments.collectAsState(); val settings by vm.settings.collectAsState(); val scope=rememberCoroutineScope()
-    var person by remember{ mutableStateOf("")}; var title by remember{ mutableStateOf("")}; var amount by remember{ mutableStateOf("")}; var kind by remember{ mutableStateOf(DebtKind.RECEIVABLE)}; var due by remember{ mutableStateOf(PersianDate.today())}
+    var person by remember{ mutableStateOf("")}; var title by remember{ mutableStateOf("")}; var amount by remember{ mutableStateOf("")}; var kind by remember{ mutableStateOf(DebtKind.RECEIVABLE)}; var due by remember{ mutableStateOf(PersianDate.today())}; var filterKind by remember{mutableStateOf<Int?>(null)}; var personQuery by remember{mutableStateOf("")}; var filterFrom by remember{mutableStateOf(PersianDate.today().plusDays(-365))}; var filterTo by remember{mutableStateOf(PersianDate.today().plusDays(365))}
+    val shownDebts=debts.filter { d -> (filterKind==null||d.kind==filterKind) && d.createdAt>=filterFrom.startOfDayMillis() && d.createdAt<filterTo.endOfDayMillisExclusive() && (personQuery.isBlank() || people.firstOrNull{it.id==d.personId}?.name?.contains(personQuery,true)==true) }
+    val totalReceivable=shownDebts.filter{it.kind==DebtKind.RECEIVABLE}.sumOf{d->(d.amountRial-payments.filter{it.debtId==d.id}.sumOf{it.amountRial}).coerceAtLeast(0)}
+    val totalPayable=shownDebts.filter{it.kind==DebtKind.PAYABLE}.sumOf{d->(d.amountRial-payments.filter{it.debtId==d.id}.sumOf{it.amountRial}).coerceAtLeast(0)}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement=Arrangement.spacedBy(12.dp)) {
         TwoWayModeSelector("طلب از دیگران", "بدهی به دیگران", kind==DebtKind.RECEIVABLE, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.error, {kind=DebtKind.RECEIVABLE}, {kind=DebtKind.PAYABLE})
         Text(if(kind==DebtKind.RECEIVABLE) "ثبت طلب" else "ثبت بدهی", style=MaterialTheme.typography.headlineSmall)
@@ -26,7 +29,12 @@ import kotlinx.coroutines.launch
         DateTimeField(due,9,0,{due=it},{_,_->})
         Button({ scope.launch { val p=people.firstOrNull{it.name==person}; val pid=p?.id?:vm.repo.db.debtDao().insertPerson(DebtPersonEntity(name=person,createdAt=System.currentTimeMillis())); vm.repo.db.debtDao().insertDebt(DebtEntity(personId=pid,kind=kind,amountRial=Digits.parseAmount(amount)?:0,title=title,createdAt=System.currentTimeMillis(),dueAt=due.startOfDayMillis(),reminderAt=due.startOfDayMillis())); person="";title="";amount="" } }, enabled=person.isNotBlank()&&(Digits.parseAmount(amount)?:0)>0, modifier=Modifier.fillMaxWidth()){Text(if(kind==DebtKind.RECEIVABLE) "ثبت طلب و یادآور" else "ثبت بدهی و یادآور")}
         HorizontalDivider()
-        debts.forEach { debt -> val paid=payments.filter{it.debtId==debt.id}.sumOf{it.amountRial}; val remain=(debt.amountRial-paid).coerceAtLeast(0); val p=people.firstOrNull{it.id==debt.personId}
+        Text("فیلتر و جمع‌بندی",style=MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){FilterChip(filterKind==null,{filterKind=null},{Text("همه")});FilterChip(filterKind==DebtKind.RECEIVABLE,{filterKind=DebtKind.RECEIVABLE},{Text("طلب")});FilterChip(filterKind==DebtKind.PAYABLE,{filterKind=DebtKind.PAYABLE},{Text("بدهی")})}
+        OutlinedTextField(personQuery,{personQuery=it},label={Text("فیلتر نام شخص")},modifier=Modifier.fillMaxWidth())
+        Text("از تاریخ");DateTimeField(filterFrom,0,0,{filterFrom=it},{_,_->});Text("تا تاریخ");DateTimeField(filterTo,23,59,{filterTo=it},{_,_->})
+        Card(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text("مجموع طلب: ${Money.format(totalReceivable,settings.moneyUnit)}",color=MaterialTheme.colorScheme.primary);Text("مجموع بدهی: ${Money.format(totalPayable,settings.moneyUnit)}",color=MaterialTheme.colorScheme.error)}}
+        shownDebts.forEach { debt -> val paid=payments.filter{it.debtId==debt.id}.sumOf{it.amountRial}; val remain=(debt.amountRial-paid).coerceAtLeast(0); val p=people.firstOrNull{it.id==debt.personId}
             Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp)){Text("${p?.name?:"؟"} — ${debt.title}",style=MaterialTheme.typography.titleMedium);Text((if(debt.kind==DebtKind.RECEIVABLE)"طلب: " else "بدهی: ")+Money.format(debt.amountRial,settings.moneyUnit));Text("مانده: ${Money.format(remain,settings.moneyUnit)}");Text("سررسید: ${debt.dueAt?.let{PersianDate.formatDateTime(it)}?:"—"}"); var pay by remember(debt.id){mutableStateOf("")};ir.kharjyar.app.ui.components.AmountTextField(pay,{pay=it},"مبلغ بازپرداخت مرحله‌ای");Button({scope.launch{val v=Digits.parseAmount(pay)?:return@launch;vm.repo.db.debtDao().insertPayment(DebtPaymentEntity(debtId=debt.id,amountRial=v,paidAt=System.currentTimeMillis()));if(v>=remain)vm.repo.db.debtDao().updateDebt(debt.copy(settled=true))}},enabled=remain>0){Text("ثبت پرداخت")}}}
         }
     }

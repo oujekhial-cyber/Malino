@@ -100,6 +100,8 @@ data class AppSettings(
     val cardShine: Boolean = false,
     /** نمایش مبالغ در کارت خانه (با دکمه چشم عوض می‌شود و ماندگار است). */
     val amountsVisible: Boolean = true,
+    val bankFeePercent: Int = 1,
+    val dashboardAccountOrder: List<Long> = emptyList(),
     /** چیدمان متن‌های ویجت. */
     val widgetTitleAlign: WidgetAlign = WidgetAlign.START,
     val widgetClockAlign: WidgetAlign = WidgetAlign.CENTER,
@@ -147,6 +149,8 @@ class SettingsRepository(private val context: Context) {
         val DIGIT_STYLE = stringPreferencesKey("digit_style")
         val CARD_SHINE = booleanPreferencesKey("card_shine")
         val AMOUNTS_VISIBLE = booleanPreferencesKey("amounts_visible")
+        val BANK_FEE_PERCENT = intPreferencesKey("bank_fee_percent")
+        val DASHBOARD_ACCOUNT_ORDER = stringPreferencesKey("dashboard_account_order")
         val W_TITLE_ALIGN = stringPreferencesKey("w_title_align")
         val W_CLOCK_ALIGN = stringPreferencesKey("w_clock_align")
         val W_LAYOUT = stringPreferencesKey("w_layout")
@@ -192,6 +196,8 @@ class SettingsRepository(private val context: Context) {
             },
             cardShine = p[Keys.CARD_SHINE] ?: false,
             amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
+            bankFeePercent = (p[Keys.BANK_FEE_PERCENT] ?: 1).coerceIn(0, 100),
+            dashboardAccountOrder = p[Keys.DASHBOARD_ACCOUNT_ORDER]?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList(),
             widgetTitleAlign = enumOf(p[Keys.W_TITLE_ALIGN], WidgetAlign.START),
             widgetClockAlign = enumOf(p[Keys.W_CLOCK_ALIGN], WidgetAlign.CENTER),
             widgetTitleVAlign = enumOf(p[Keys.W_TITLE_VALIGN], WidgetVAlign.CENTER),
@@ -241,6 +247,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDigitStyle(v: DigitStyle) = edit { it[Keys.DIGIT_STYLE] = v.name }
     suspend fun setCardShine(v: Boolean) = edit { it[Keys.CARD_SHINE] = v }
     suspend fun setAmountsVisible(v: Boolean) = edit { it[Keys.AMOUNTS_VISIBLE] = v }
+    suspend fun setBankFeePercent(v: Int) = edit { it[Keys.BANK_FEE_PERCENT] = v.coerceIn(0,100) }
+    suspend fun setDashboardAccountOrder(ids: List<Long>) = edit { it[Keys.DASHBOARD_ACCOUNT_ORDER] = ids.joinToString(",") }
     suspend fun setWidgetTitleAlign(v: WidgetAlign) = edit { it[Keys.W_TITLE_ALIGN] = v.name }
     suspend fun setWidgetClockAlign(v: WidgetAlign) = edit { it[Keys.W_CLOCK_ALIGN] = v.name }
     suspend fun setWidgetTitleVAlign(v: WidgetVAlign) = edit { it[Keys.W_TITLE_VALIGN] = v.name }

@@ -342,12 +342,12 @@ fun ReportsScreen(viewModel: AppViewModel) {
             SkinCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Text(
-                        "برداشت بر اساس دسته",
+                        "تفکیک هزینه‌ها بر اساس دسته",
                         style = MaterialTheme.typography.titleMedium,
                         color = skin.onBackdrop
                     )
                     Spacer(Modifier.height(12.dp))
-                    val slices = byCategory.take(6)
+                    val slices = byCategory
                     val total = slices.sumOf { it.second }.coerceAtLeast(1L)
                     Canvas(Modifier.size(210.dp).align(Alignment.CenterHorizontally)) {
                         var start = -90f
