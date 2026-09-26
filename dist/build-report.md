@@ -1,14 +1,20 @@
 # گزارش Build و تست (CI)
 
-- commit: 14b3a04785c12db772bbbee36595e7c82b1366ef
-- تاریخ: 2026-09-26 14:35 UTC
+- commit: 5da7b465dd23c8fb70737a3d5bb56b9673b60071
+- تاریخ: 2026-09-26 14:44 UTC
 - unit tests: failure
-- assembleDebug: failure
+- assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
-- lintDebug: failure
-- assembleRelease: failure
+- lintDebug: success
+- assembleRelease: success
 
 ## خلاصه تست‌های واحد
 ```
-(no test results)
+tests=289 failures=1 errors=0 skipped=0
+FAIL ir.kharjyar.app.ManualSmsAndWidgetEditorGuardTest.widget editor has touch grid and independent visibility controls: java.lang.AssertionError
 ```
+
+## نسخه انتشار
+- حجم: 31M
+- کلید اختصاصی: false
+- امضا: معتبر

@@ -1,2 +1,0 @@
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:44:195 Smart cast to 'android.net.Uri' is impossible, because 'cameraUri' is a delegated property.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:44:195 Smart cast to 'android.net.Uri' is impossible, because 'cameraUri' is a delegated property.
