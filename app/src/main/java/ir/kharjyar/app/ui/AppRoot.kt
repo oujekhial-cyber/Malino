@@ -1,5 +1,6 @@
 package ir.kharjyar.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -269,6 +270,8 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val skin = LocalAppSkin.current
     val accounts by viewModel.accounts.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val context = LocalContext.current
+    var lastBackAt by remember { mutableStateOf(0L) }
 
     LaunchedEffect(initialDestination) {
         initialDestination?.let { navController.navigate(it) }
@@ -292,6 +295,18 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 launchSingleTop = true
                 restoreState = true
             }
+        }
+    }
+
+    // خروج تصادفی ممنوع: در خانه، برگشت اول فقط پیام می‌دهد و برگشت دوم
+    // در فاصله دو ثانیه برنامه را می‌بندد.
+    BackHandler(enabled = currentRoute == "home" && !drawerState.isOpen) {
+        val now = System.currentTimeMillis()
+        if (now - lastBackAt <= 2_000L) {
+            (context as? android.app.Activity)?.finish()
+        } else {
+            lastBackAt = now
+            android.widget.Toast.makeText(context, "برای خروج دوباره دکمه برگشت را بزنید", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

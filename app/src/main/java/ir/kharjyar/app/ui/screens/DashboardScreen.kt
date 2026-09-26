@@ -125,7 +125,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
         // پیام‌های کوتاه (مثل «شماره کارت کپی شد») بالاتر از دکمه گرد ثبت
         // تراکنش می‌نشینند تا پشت آن پنهان نشوند.
         snackbarHost = {
-            Box(modifier = Modifier.fillMaxWidth().padding(bottom = 86.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
                 GlassSnackbarHost(snackbar)
             }
         },
@@ -168,6 +168,15 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 // چرخ‌فلک کارت‌ها: با هر کشیدن انگشت دقیقاً یک کارت وسط صفحه می‌ایستد
                 // (پهنای هر صفحه = عرض فهرست منهای دو لبه، و چسبیدن با snap).
                 val rowState = rememberLazyListState()
+                val snapFling = rememberSnapFlingBehavior(lazyListState = rowState)
+                // سرعت پرتاب محدود می‌شود تا حتی با کشیدن محکم، دو یا سه کارت
+                // یک‌جا رد نشود و کنترل همیشه نزدیک به یک کارت بماند.
+                val controlledFling = remember(snapFling) {
+                    object : androidx.compose.foundation.gestures.FlingBehavior {
+                        override suspend fun androidx.compose.foundation.gestures.ScrollScope.performFling(initialVelocity: Float): Float =
+                            with(snapFling) { performFling(initialVelocity.coerceIn(-1100f, 1100f)) }
+                    }
+                }
                 val peek = 22.dp
                 val pageWidth = (LocalConfiguration.current.screenWidthDp.dp - 32.dp - peek * 2)
                     .coerceAtLeast(180.dp)
@@ -175,7 +184,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 EnterCard(0) {
                     LazyRow(
                         state = rowState,
-                        flingBehavior = rememberSnapFlingBehavior(lazyListState = rowState),
+                        flingBehavior = controlledFling,
                         contentPadding = PaddingValues(horizontal = peek),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
@@ -289,7 +298,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             tint = skin.incomeColor,
                                             deposit = true,
                                             selected = false,
-                                            onClick = { nav.navigate("transactions/deposit") },
                                             modifier = Modifier.weight(1f)
                                         )
                                         SummaryChip(
@@ -298,7 +306,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             tint = skin.expenseColor,
                                             deposit = false,
                                             selected = false,
-                                            onClick = { nav.navigate("transactions/withdraw") },
                                             modifier = Modifier.weight(1f)
                                         )
                                     }
@@ -390,7 +397,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         deposit = true,
                                         onColor = onCard,
                                         selected = false,
-                                        onClick = { nav.navigate("transactions/deposit") },
                                         modifier = Modifier.weight(1f)
                                     )
                                     SummaryChip(
@@ -400,7 +406,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         deposit = false,
                                         onColor = onCard,
                                         selected = false,
-                                        onClick = { nav.navigate("transactions/withdraw") },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }

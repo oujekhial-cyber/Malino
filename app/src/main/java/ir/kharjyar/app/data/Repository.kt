@@ -366,6 +366,11 @@ class Repository(val db: KharjYarDatabase) {
         var outgoingId = 0L
         var incomingId = 0L
         db.withTransaction {
+            val fromTitle = accountDao.byId(fromAccountId)?.title ?: "مبدأ"
+            val toTitle = accountDao.byId(toAccountId)?.title ?: "مقصد"
+            val reason = description.trim().takeIf { it.isNotBlank() }?.let { " — بابت $it" } ?: ""
+            val outgoingDescription = "انتقال به حساب $toTitle$reason"
+            val incomingDescription = "انتقال وجه از حساب $fromTitle$reason"
             val groupId = transferDao.insert(
                 TransferGroupEntity(createdAt = now(), incomplete = false, note = "انتقال دستی بین حساب‌های کاربر")
             )
@@ -375,7 +380,7 @@ class Repository(val db: KharjYarDatabase) {
                 direction = TxDirection.WITHDRAW,
                 nature = TxNature.TRANSFER,
                 categoryId = null,
-                description = description,
+                description = outgoingDescription,
                 occurredAt = occurredAt,
                 recordedAt = now(),
                 source = TxSource.MANUAL,
@@ -389,6 +394,7 @@ class Repository(val db: KharjYarDatabase) {
                     id = 0,
                     accountId = toAccountId,
                     direction = TxDirection.DEPOSIT,
+                    description = incomingDescription,
                     counterparty = "حساب دیگر من"
                 )
             )

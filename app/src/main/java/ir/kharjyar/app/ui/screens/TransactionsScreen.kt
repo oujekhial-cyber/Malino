@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -91,6 +92,7 @@ fun TransactionsScreen(
     // انتقال‌ها هم بسته به جهت خود در نتیجه باقی می‌مانند.
     var filterDirection by remember(presetDirection) { mutableStateOf(presetDirection) }
     var onlyPending by remember { mutableStateOf(false) }
+    var showFilters by remember { mutableStateOf(false) }
 
     // انتخاب چندتایی: با نگه‌داشتن روی یک ردیف فعال می‌شود
     val selected = remember { mutableStateListOf<Long>() }
@@ -190,53 +192,17 @@ fun TransactionsScreen(
                 )
             }
 
-            // پنل فیلتر جمع‌وجور و یکدست؛ جهت بانکی از ماهیت (انتقال) جداست
-            SkinCard(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "فیلتر تراکنش‌ها",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = skin.onBackdrop,
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (filterDirection != null || filterNature != null || filterAccount != null || onlyPending) {
-                            Text(
-                                "پاک کردن",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = skin.accent,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .clickable {
-                                        filterDirection = null; filterNature = null
-                                        filterAccount = null; onlyPending = false
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        item { ProfessionalFilterChip("همه", filterDirection == null && filterNature == null && !onlyPending) {
-                            filterDirection = null; filterNature = null; onlyPending = false
-                        } }
-                        item { ProfessionalFilterChip("واریز", filterDirection == TxDirection.DEPOSIT, skin.incomeColor) {
-                            filterDirection = if (filterDirection == TxDirection.DEPOSIT) null else TxDirection.DEPOSIT
-                        } }
-                        item { ProfessionalFilterChip("برداشت", filterDirection == TxDirection.WITHDRAW, skin.expenseColor) {
-                            filterDirection = if (filterDirection == TxDirection.WITHDRAW) null else TxDirection.WITHDRAW
-                        } }
-                        item { ProfessionalFilterChip("انتقال", filterNature == TxNature.TRANSFER, skin.accent) {
-                            filterNature = if (filterNature == TxNature.TRANSFER) null else TxNature.TRANSFER
-                        } }
-                        item { ProfessionalFilterChip("تأییدنشده", onlyPending) { onlyPending = !onlyPending } }
-                        items(accounts.size) { i ->
-                            val a = accounts[i]
-                            ProfessionalFilterChip(a.title, filterAccount == a.id) {
-                                filterAccount = if (filterAccount == a.id) null else a.id
-                            }
-                        }
-                    }
-                }
+            // به‌جای ردیف شلوغ چیپ‌ها، یک دکمه خلاصه پنجره فیلتر ساده را باز می‌کند.
+            val activeFilterCount = listOf(
+                filterDirection != null, filterNature != null, filterAccount != null, onlyPending
+            ).count { it }
+            androidx.compose.material3.OutlinedButton(
+                onClick = { showFilters = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.FilterList, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(if (activeFilterCount == 0) "فیلتر تراکنش‌ها" else "فیلتر تراکنش‌ها ($activeFilterCount فعال)")
             }
 
             if (filtered.isEmpty()) {
@@ -272,6 +238,45 @@ fun TransactionsScreen(
                 }
             }
         }
+    }
+    if (showFilters) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showFilters = false },
+            title = { Text("فیلتر تراکنش‌ها") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ir.kharjyar.app.ui.components.ComboBox(
+                        label = "نوع گردش",
+                        options = listOf(-1, TxDirection.DEPOSIT, TxDirection.WITHDRAW),
+                        selected = filterDirection ?: -1,
+                        labelOf = { when (it) { TxDirection.DEPOSIT -> "واریز"; TxDirection.WITHDRAW -> "برداشت"; else -> "همه" } },
+                        onSelect = { filterDirection = if (it == -1) null else it }
+                    )
+                    ir.kharjyar.app.ui.components.ComboBox(
+                        label = "ماهیت",
+                        options = listOf(-1, TxNature.INCOME, TxNature.EXPENSE, TxNature.TRANSFER),
+                        selected = filterNature ?: -1,
+                        labelOf = { when (it) { TxNature.INCOME -> "درآمد"; TxNature.EXPENSE -> "هزینه"; TxNature.TRANSFER -> "انتقال"; else -> "همه" } },
+                        onSelect = { filterNature = if (it == -1) null else it }
+                    )
+                    ir.kharjyar.app.ui.components.ComboBox(
+                        label = "حساب",
+                        options = listOf(0L) + accounts.map { it.id },
+                        selected = filterAccount ?: 0L,
+                        labelOf = { id -> if (id == 0L) "همه حساب‌ها" else accounts.firstOrNull { it.id == id }?.title ?: "—" },
+                        onSelect = { filterAccount = if (it == 0L) null else it }
+                    )
+                    androidx.compose.material3.Checkbox(checked = onlyPending, onCheckedChange = { onlyPending = it })
+                    Text("فقط تراکنش‌های تأییدنشده", style = MaterialTheme.typography.bodyMedium)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showFilters = false }) { Text("نمایش نتیجه") } },
+            dismissButton = {
+                TextButton(onClick = {
+                    filterDirection = null; filterNature = null; filterAccount = null; onlyPending = false
+                }) { Text("پاک کردن همه") }
+            }
+        )
     }
 }
 

@@ -2,6 +2,7 @@ package ir.kharjyar.app.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -51,9 +52,12 @@ import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.pdf.PdfExporter
+import ir.kharjyar.app.report.ExcelExporter
+import ir.kharjyar.app.notify.Notifier
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.EmptyState
+import ir.kharjyar.app.ui.components.DateTimeField
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import ir.kharjyar.app.ui.components.LineChart
@@ -62,7 +66,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private enum class RangeKind(val label: String) {
-    DAY("امروز"), WEEK("هفته"), MONTH("ماه شمسی"), YEAR("سال شمسی")
+    DAY("امروز"), WEEK("هفته"), MONTH("ماه"), YEAR("سال"), CUSTOM("دلخواه")
 }
 
 @Composable
@@ -81,12 +85,20 @@ fun ReportsScreen(viewModel: AppViewModel) {
     var exportMessage by remember { mutableStateOf<String?>(null) }
 
     val today = PersianDate.today()
+    var customFromDate by remember { mutableStateOf(today.firstOfMonth()) }
+    var customFromHour by remember { mutableStateOf(0) }
+    var customFromMinute by remember { mutableStateOf(0) }
+    var customToDate by remember { mutableStateOf(today) }
+    var customToHour by remember { mutableStateOf(23) }
+    var customToMinute by remember { mutableStateOf(59) }
     val (from, to) = when (range) {
         RangeKind.DAY -> today.startOfDayMillis() to today.endOfDayMillisExclusive()
         RangeKind.WEEK -> today.plusDays(-6).startOfDayMillis() to today.endOfDayMillisExclusive()
         RangeKind.MONTH -> today.firstOfMonth().startOfDayMillis() to today.lastOfMonth().endOfDayMillisExclusive()
         RangeKind.YEAR -> PersianDate(today.year, 1, 1).startOfDayMillis() to
             PersianDate(today.year, 12, PersianDate.monthLength(today.year, 12)).endOfDayMillisExclusive()
+        RangeKind.CUSTOM -> PersianDate.toMillis(customFromDate, customFromHour, customFromMinute) to
+            (PersianDate.toMillis(customToDate, customToHour, customToMinute) + 60_000L)
     }
 
     val filtered = allTx.filter { tx ->
@@ -149,11 +161,37 @@ fun ReportsScreen(viewModel: AppViewModel) {
                             )
                         }
                     }
+                    Notifier.notifyExportReady(context, uri, "application/pdf")
                     exportMessage = "فایل PDF ذخیره شد. توجه: این فایل رمزنگاری نشده و حاوی اطلاعات مالی است."
                 } catch (e: Exception) {
                     exportMessage = "خطا در ساخت PDF"
                 }
             }
+        }
+    }
+
+    val saveExcel = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    ) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        ExcelExporter.export(filtered.sortedByDescending { it.occurredAt }.map { tx ->
+                            ExcelExporter.Row(
+                                PersianDate.formatDateTime(tx.occurredAt),
+                                accounts.firstOrNull { it.id == tx.accountId }?.title ?: "؟",
+                                when (tx.nature) { TxNature.INCOME -> "واریز"; TxNature.EXPENSE -> "برداشت"; TxNature.TRANSFER -> "انتقال"; else -> "تأییدنشده" },
+                                categories.firstOrNull { it.id == tx.categoryId }?.name ?: "",
+                                tx.description,
+                                Money.format(tx.amountRial, settings.moneyUnit)
+                            )
+                        }, out)
+                    }
+                }
+                Notifier.notifyExportReady(context, uri, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                exportMessage = "فایل Excel ذخیره شد."
+            } catch (_: Exception) { exportMessage = "خطا در ساخت Excel" }
         }
     }
 
@@ -183,6 +221,19 @@ fun ReportsScreen(viewModel: AppViewModel) {
             labelOf = { it.label },
             onSelect = { range = it }
         )
+
+        if (range == RangeKind.CUSTOM) {
+            SkinCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("شروع بازه", style = MaterialTheme.typography.titleSmall)
+                    DateTimeField(customFromDate, customFromHour, customFromMinute,
+                        onDate = { customFromDate = it }, onTime = { h, m -> customFromHour = h; customFromMinute = m })
+                    Text("پایان بازه", style = MaterialTheme.typography.titleSmall)
+                    DateTimeField(customToDate, customToHour, customToMinute,
+                        onDate = { customToDate = it }, onTime = { h, m -> customToHour = h; customToMinute = m })
+                }
+            }
+        }
 
         // ---------- کارت خلاصه ----------
         SkinCard(modifier = Modifier.fillMaxWidth()) {
@@ -296,16 +347,24 @@ fun ReportsScreen(viewModel: AppViewModel) {
                         color = skin.onBackdrop
                     )
                     Spacer(Modifier.height(12.dp))
-                    val maxVal = byCategory.first().second.coerceAtLeast(1L)
-                    byCategory.take(6).forEach { (name, amount, colorArgb) ->
-                        CategoryBar(
-                            name = name,
-                            amountText = Money.format(amount, settings.moneyUnit),
-                            fraction = (amount.toFloat() / maxVal).coerceIn(0.02f, 1f),
-                            share = if (expense > 0) amount.toFloat() / expense else 0f,
-                            color = Color(colorArgb)
-                        )
-                        Spacer(Modifier.height(10.dp))
+                    val slices = byCategory.take(6)
+                    val total = slices.sumOf { it.second }.coerceAtLeast(1L)
+                    Canvas(Modifier.size(210.dp).align(Alignment.CenterHorizontally)) {
+                        var start = -90f
+                        slices.forEach { (_, amount, argb) ->
+                            val sweep = amount.toFloat() / total * 360f
+                            drawArc(Color(argb), start, sweep, useCenter = true)
+                            start += sweep
+                        }
+                        drawCircle(color = skin.backdrop, radius = size.minDimension * 0.24f)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    slices.forEach { (name, amount, colorArgb) ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            ChartLegend(Color(colorArgb), name)
+                            Text(Money.format(amount, settings.moneyUnit), style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(Modifier.height(7.dp))
                     }
                 }
             }
@@ -320,6 +379,11 @@ fun ReportsScreen(viewModel: AppViewModel) {
             Spacer(Modifier.width(8.dp))
             Text("خروجی PDF")
         }
+
+        Button(
+            onClick = { saveExcel.launch("kharjyar-report-${today.format(persianDigits = false).replace("/", "-")}.xlsx") },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("خروجی Excel") }
 
         exportMessage?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = skin.accent)

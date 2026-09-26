@@ -110,7 +110,9 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             ?.firstOrNull()
             ?.trim()
         if (!spoken.isNullOrBlank()) {
-            input = spoken
+            // برخی نسخه‌های موتور گفتار گوگل واژه رایج «سوپرمارکت» را به‌اشتباه
+            // سانسور می‌کنند (س***مارکت). فقط همین الگوی شناخته‌شده را محلی اصلاح می‌کنیم.
+            input = sanitizeSpeechText(spoken)
             voiceError = null
         }
     }
@@ -446,3 +448,9 @@ private fun InfoRow(label: String, value: String, valueColor: androidx.compose.u
         )
     }
 }
+
+
+/** اصلاح خروجی‌های سانسورشده/اشتباه رایج موتور گفتار، بدون تغییر متن‌های دیگر. */
+internal fun sanitizeSpeechText(text: String): String = text
+    .replace(Regex("س\\s*[\\*＊٭•·_\\-]{2,}\\s*مارکت", RegexOption.IGNORE_CASE), "سوپرمارکت")
+    .replace(Regex("سوپر\\s+مارکت"), "سوپرمارکت")
