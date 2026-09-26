@@ -112,7 +112,18 @@ class Repository(val db: KharjYarDatabase) {
         val mappings = accountDao.allSenders().map {
             SenderMapping(it.id, it.accountId, it.sender, it.identifierHint)
         }
-        val match = AccountMatcher.match(sms.sender, sms.body, mappings)
+        val senderMatch = AccountMatcher.match(sms.sender, sms.body, mappings)
+        // اگر نگاشت فرستنده هنوز ساخته نشده یا چند حساب از یک سرشماره پیام می‌گیرند،
+        // شماره کارت/حساب/شبا را مستقیماً از متن با همه حساب‌های ذخیره‌شده تطبیق بده.
+        val numberMatch = ir.kharjyar.app.core.sms.AccountNumberMatcher.match(
+            sms.body,
+            accountDao.allOnce().filter { !it.archived }.map {
+                ir.kharjyar.app.core.sms.MatchableAccount(
+                    it.id, it.maskedNumber, it.accountNumber, it.iban, it.cardNumber
+                )
+            }
+        )
+        val match = if (numberMatch is AccountMatch.Single) numberMatch else senderMatch
         val accountId = when (match) {
             is AccountMatch.Single -> match.accountId
             is AccountMatch.Ambiguous -> {

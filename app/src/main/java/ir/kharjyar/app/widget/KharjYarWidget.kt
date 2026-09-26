@@ -83,6 +83,7 @@ object WidgetRenderer {
         val app = context.applicationContext as KharjYarApp
         val settings = app.settings.current()
         val skin = skinOf(settings.palette)
+        val temperature = ir.kharjyar.app.weather.WeatherService.refresh(context)
 
         val hideNumbers = settings.appLockEnabled && !settings.widgetShowNumbersWhenLocked
         val showNumbers = settings.widgetShowNumbers && !hideNumbers
@@ -146,6 +147,7 @@ object WidgetRenderer {
         applyColors(views, skin, settings.widgetLayout)
         applyRowIcons(views, lines, skin)
         applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
+        views.setTextViewText(R.id.w_title, temperature?.let { "خرج‌یار • $it" } ?: "خرج‌یار")
         applyOptions(views, settings)
         applyClickTargets(context, views)
 

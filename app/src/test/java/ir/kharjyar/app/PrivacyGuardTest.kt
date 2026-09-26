@@ -16,27 +16,13 @@ class PrivacyGuardTest {
     private val manifest = File("src/main/AndroidManifest.xml").readText()
 
     @Test
-    fun `app has no internet permission`() {
-        // تنها حالت مجاز، حذف صریح مجوزی است که کتابخانه‌ها (مثل ML Kit) اضافه می‌کنند
-        manifest.lines()
-            .filter { it.contains("android.permission.INTERNET") }
-            .forEach { line ->
-                assertTrue(
-                    "برنامه نباید مجوز اینترنت بگیرد؛ همه پردازش‌ها باید روی خود گوشی بماند",
-                    line.contains("tools:node=\"remove\"")
-                )
-            }
-    }
-
-    @Test
-    fun `internet permission added by libraries is stripped`() {
-        // ML Kit از طریق play-services-basement مجوز INTERNET را به مانیفست
-        // ادغام‌شده تزریق می‌کند؛ بدون این حذف، برنامه «دسترسی کامل به شبکه» می‌گیرد
-        assertTrue(
-            "حذف صریح مجوز اینترنت باید در مانیفست بماند",
-            manifest.contains("android.permission.INTERNET") &&
-                manifest.contains("tools:node=\"remove\"")
-        )
+    fun `internet and coarse location are declared only for weather`() {
+        assertTrue(manifest.contains("android.permission.INTERNET"))
+        assertTrue(manifest.contains("android.permission.ACCESS_COARSE_LOCATION"))
+        assertFalse("هواشناسی به موقعیت دقیق نیاز ندارد", manifest.contains("android.permission.ACCESS_FINE_LOCATION"))
+        val weather = File("src/main/java/ir/kharjyar/app/weather/WeatherService.kt").readText()
+        assertTrue(weather.contains("api.open-meteo.com"))
+        assertTrue("دمای هوا باید کش شود", weather.contains("weather_cache"))
     }
 
     @Test

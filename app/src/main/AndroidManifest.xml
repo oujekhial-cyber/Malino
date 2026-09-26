@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!--
       فقط برای «اسکن کارت بانکی» در صفحه معرفی حساب. تصویر هیچ‌جا ذخیره یا ارسال
@@ -14,13 +16,7 @@
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
-    <!--
-      کتابخانه تشخیص متن (وابسته به play-services-basement) مجوز INTERNET را به
-      مانیفست ادغام‌شده اضافه می‌کند. مدل OCR داخل خود APK است و به شبکه نیازی
-      ندارد، پس این مجوز صریحاً حذف می‌شود تا وعده «بدون اینترنت» نشکند.
-      گردش‌کار CI مانیفست ادغام‌شده را هم بررسی می‌کند.
-    -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <!-- اینترنت فقط برای دریافت دمای موقعیت گوشی از سرویس هواشناسی استفاده می‌شود. -->
 
     <!--
       از اندروید ۱۱ دیدِ برنامه‌ها محدود است؛ بدون این بخش resolveActivity

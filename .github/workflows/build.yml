@@ -74,8 +74,7 @@ jobs:
           set -o pipefail
           ./gradlew :app:assembleRelease --stacktrace --console=plain 2>&1 | tee release.log
 
-      # مانیفست ادغام‌شده را بررسی می‌کند: کتابخانه‌ها (مثل ML Kit) می‌توانند
-      # مجوز INTERNET را بی‌سروصدا اضافه کنند و وعده آفلاین بودن را بشکنند.
+      # هواشناسی به اینترنت و موقعیت تقریبی نیاز دارد، اما موقعیت دقیق همچنان ممنوع است.
       - name: Privacy check on merged manifest
         id: privacy
         continue-on-error: true
@@ -83,13 +82,13 @@ jobs:
           set -o pipefail
           FOUND=0
           for M in $(find app/build/intermediates -path '*merged_manifest*' -name 'AndroidManifest.xml'); do
-            if grep -q 'android.permission.INTERNET' "$M"; then
-              echo "::error::مجوز INTERNET در مانیفست ادغام‌شده پیدا شد: $M"
+            if grep -q 'android.permission.ACCESS_FINE_LOCATION' "$M"; then
+              echo "::error::مجوز موقعیت دقیق در مانیفست ادغام‌شده پیدا شد: $M"
               FOUND=1
             fi
           done
           if [ "$FOUND" = "1" ]; then exit 1; fi
-          echo "مانیفست ادغام‌شده مجوز اینترنت ندارد"
+          echo "مانیفست فقط از موقعیت تقریبی برای هواشناسی استفاده می‌کند"
 
       - name: Lint debug
         id: lint

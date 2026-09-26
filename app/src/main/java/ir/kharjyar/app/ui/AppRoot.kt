@@ -1,6 +1,11 @@
 package ir.kharjyar.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -120,6 +125,7 @@ import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import ir.kharjyar.app.ui.theme.KharjYarTheme
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
+import ir.kharjyar.app.weather.WeatherService
 
 @Composable
 fun AppRoot(
@@ -273,6 +279,10 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     var lastBackAt by remember { mutableStateOf(0L) }
+    var temperature by remember { mutableStateOf(WeatherService.cached(context)) }
+    val weatherPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) scope.launch { temperature = WeatherService.refresh(context) } }
 
     LaunchedEffect(initialDestination) {
         initialDestination?.let { navController.navigate(it) }
@@ -286,6 +296,16 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
 
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == "home") {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                temperature = WeatherService.refresh(context)
+            } else {
+                weatherPermission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+        }
+    }
+
     // پیش از باز کردن فرم، نوع تراکنش پرسیده می‌شود تا هر صفحه ساده‌تر بماند.
     var showDirectionChooser by rememberSaveable { mutableStateOf(false) }
 
@@ -393,6 +413,14 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                                 todayHeaderLine(),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = skin.onBackdrop.copy(alpha = 0.72f),
+                                maxLines = 1
+                            )
+                        }
+                        temperature?.let {
+                            Text(
+                                "$it دمای محل",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = skin.onBackdrop,
                                 maxLines = 1
                             )
                         }
