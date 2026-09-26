@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 9427ab9737ec906f6318c4f9ba6682b2cfe52c6b
-- تاریخ: 2026-09-26 05:21 UTC
-- unit tests: success
+- commit: c68a1750822c825b9fc4bed29c7ce73ccec90b9e
+- تاریخ: 2026-09-26 05:46 UTC
+- unit tests: failure
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,7 +10,8 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=272 failures=0 errors=0 skipped=0
+tests=273 failures=1 errors=0 skipped=0
+FAIL ir.kharjyar.app.TransactionParserTest.internal transfer description contains only user reason: org.junit.ComparisonFailure: expected:<[]اجاره> but was:<[یک ]اجاره>
 ```
 
 ## نسخه انتشار
