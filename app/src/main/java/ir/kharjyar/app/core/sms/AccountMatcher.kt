@@ -63,6 +63,21 @@ object AccountMatcher {
         return tokens.any { it.isNotEmpty() && it.contains(hintDigits) }
     }
 
+    /** شش رقم پایانی شناسه با حفظ جداکننده‌های بین آن‌ها و بدون ستاره. */
+    fun shortIdentifier(raw: String, digitCount: Int = 6): String {
+        val normalized = Digits.normalize(raw)
+        val reversed = StringBuilder()
+        var digits = 0
+        for (ch in normalized.reversed()) {
+            when {
+                ch.isDigit() && digits < digitCount -> { reversed.append(ch); digits++ }
+                digits in 1 until digitCount && ch in ".-/\\" -> reversed.append(ch)
+                digits >= digitCount -> break
+            }
+        }
+        return reversed.reverse().toString().trim('.', '-', '/', '\\')
+    }
+
     fun normalizeSender(sender: String): String =
         Digits.normalize(sender.trim()).removePrefix("+98").removePrefix("0098").trimStart('0')
 }

@@ -151,8 +151,15 @@ fun AccountEditScreen(
                 OutlinedButton(onClick = {
                     val extracted = ir.kharjyar.app.core.sms.Extractor.autoExtract(sampleSms)
                     extracted.accountIdHint?.let { hint ->
-                        maskedNumber = if (hint.contains('*') || hint.contains('٭')) hint else "****" + hint.filter(Char::isDigit).takeLast(4)
-                        newHint = hint.filter(Char::isDigit).takeLast(6)
+                        val normalizedHint = Digits.normalize(hint).trim()
+                        // شماره حساب دقیقاً با نقطه/خط تیره ذخیره می‌شود؛ حذف جداکننده باعث
+                        // شکست تطبیق قالب بانک‌هایی با شماره سپرده چندبخشی می‌شد.
+                        if (!normalizedHint.contains('*') && !normalizedHint.contains('٭') && normalizedHint.count(Char::isDigit) >= 8) {
+                            accountNumber = normalizedHint
+                        }
+                        maskedNumber = normalizedHint
+                        // ستاره وارد شناسه تطبیق نمی‌شود؛ شش رقم آخر همراه جداکننده‌های میانشان حفظ می‌شود.
+                        newHint = ir.kharjyar.app.core.sms.AccountMatcher.shortIdentifier(normalizedHint)
                     }
                     extracted.balanceRial?.let { initialBalance = it.toString() }
                     bankNames.firstOrNull { it != "سایر" && sampleSms.contains(it) }?.let { bankName = it }

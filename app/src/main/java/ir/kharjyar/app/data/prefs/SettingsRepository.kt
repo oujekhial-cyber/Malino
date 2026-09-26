@@ -84,6 +84,12 @@ data class AppSettings(
     val widgetShowDates: Boolean = true,
     /** نمایش نام «خرج‌یار» روی ویجت. */
     val widgetShowTitle: Boolean = true,
+    val widgetShowWeather: Boolean = true,
+    val widgetPalette: Palette = Palette.MINIMAL_DAY,
+    val widgetTitleSize: Int = 15,
+    val widgetWeatherSize: Int = 12,
+    val widgetWeatherAlign: WidgetAlign = WidgetAlign.CENTER,
+    val widgetWeatherVAlign: WidgetVAlign = WidgetVAlign.TOP,
     /** آیا یک‌بار به‌صورت خودکار پیشنهاد افزودن ویجت داده شده است؟ */
     val widgetAutoPinned: Boolean = false,
     /** جلوگیری از اسکرین‌شات و ضبط صفحه (FLAG_SECURE). */
@@ -130,6 +136,12 @@ class SettingsRepository(private val context: Context) {
         val WIDGET_LABEL_SIZE = intPreferencesKey("widget_label_size")
         val WIDGET_DATES = booleanPreferencesKey("widget_dates")
         val WIDGET_TITLE = booleanPreferencesKey("widget_title")
+        val WIDGET_WEATHER = booleanPreferencesKey("widget_weather")
+        val WIDGET_PALETTE = stringPreferencesKey("widget_palette")
+        val WIDGET_TITLE_SIZE = intPreferencesKey("widget_title_size")
+        val WIDGET_WEATHER_SIZE = intPreferencesKey("widget_weather_size")
+        val W_WEATHER_ALIGN = stringPreferencesKey("w_weather_align")
+        val W_WEATHER_VALIGN = stringPreferencesKey("w_weather_valign")
         val WIDGET_AUTO_PIN = booleanPreferencesKey("widget_auto_pin")
         val SECURE_SCREEN = booleanPreferencesKey("secure_screen")
         val DIGIT_STYLE = stringPreferencesKey("digit_style")
@@ -166,6 +178,12 @@ class SettingsRepository(private val context: Context) {
             widgetLabelSize = (p[Keys.WIDGET_LABEL_SIZE] ?: 10).coerceIn(7, 22),
             widgetShowDates = p[Keys.WIDGET_DATES] ?: true,
             widgetShowTitle = p[Keys.WIDGET_TITLE] ?: true,
+            widgetShowWeather = p[Keys.WIDGET_WEATHER] ?: true,
+            widgetPalette = paletteOf(p[Keys.WIDGET_PALETTE]),
+            widgetTitleSize = (p[Keys.WIDGET_TITLE_SIZE] ?: 15).coerceIn(9, 30),
+            widgetWeatherSize = (p[Keys.WIDGET_WEATHER_SIZE] ?: 12).coerceIn(8, 28),
+            widgetWeatherAlign = enumOf(p[Keys.W_WEATHER_ALIGN], WidgetAlign.CENTER),
+            widgetWeatherVAlign = enumOf(p[Keys.W_WEATHER_VALIGN], WidgetVAlign.TOP),
             widgetAutoPinned = p[Keys.WIDGET_AUTO_PIN] ?: false,
             secureScreen = p[Keys.SECURE_SCREEN] ?: true,
             digitStyle = enumOf(p[Keys.DIGIT_STYLE], DigitStyle.PERSIAN).also {
@@ -205,6 +223,19 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetLabelSize(v: Int) = edit { it[Keys.WIDGET_LABEL_SIZE] = v.coerceIn(7, 22) }
     suspend fun setWidgetShowDates(v: Boolean) = edit { it[Keys.WIDGET_DATES] = v }
     suspend fun setWidgetShowTitle(v: Boolean) = edit { it[Keys.WIDGET_TITLE] = v }
+    suspend fun setWidgetShowWeather(v: Boolean) = edit { it[Keys.WIDGET_WEATHER] = v }
+    suspend fun setWidgetPalette(v: Palette) = edit { it[Keys.WIDGET_PALETTE] = v.name }
+    suspend fun setWidgetTitleSize(v: Int) = edit { it[Keys.WIDGET_TITLE_SIZE] = v.coerceIn(9, 30) }
+    suspend fun setWidgetWeatherSize(v: Int) = edit { it[Keys.WIDGET_WEATHER_SIZE] = v.coerceIn(8, 28) }
+    suspend fun setWidgetWeatherAlign(v: WidgetAlign) = edit { it[Keys.W_WEATHER_ALIGN] = v.name }
+    suspend fun setWidgetWeatherVAlign(v: WidgetVAlign) = edit { it[Keys.W_WEATHER_VALIGN] = v.name }
+    suspend fun resetWidget() = edit { p ->
+        p.remove(Keys.W_LAYOUT); p.remove(Keys.WIDGET_CONTENT); p.remove(Keys.WIDGET_PALETTE)
+        p.remove(Keys.W_TITLE_ALIGN); p.remove(Keys.W_CLOCK_ALIGN); p.remove(Keys.W_TITLE_VALIGN); p.remove(Keys.W_CLOCK_VALIGN)
+        p.remove(Keys.W_WEATHER_ALIGN); p.remove(Keys.W_WEATHER_VALIGN)
+        p.remove(Keys.WIDGET_CLOCK); p.remove(Keys.WIDGET_DATES); p.remove(Keys.WIDGET_TITLE); p.remove(Keys.WIDGET_WEATHER); p.remove(Keys.WIDGET_NUMBERS)
+        p.remove(Keys.WIDGET_OPACITY); p.remove(Keys.WIDGET_CLOCK_SIZE); p.remove(Keys.WIDGET_DATE_SIZE); p.remove(Keys.WIDGET_VALUE_SIZE); p.remove(Keys.WIDGET_LABEL_SIZE); p.remove(Keys.WIDGET_TITLE_SIZE); p.remove(Keys.WIDGET_WEATHER_SIZE)
+    }
     suspend fun setWidgetAutoPinned(v: Boolean) = edit { it[Keys.WIDGET_AUTO_PIN] = v }
     suspend fun setSecureScreen(v: Boolean) = edit { it[Keys.SECURE_SCREEN] = v }
     suspend fun setDigitStyle(v: DigitStyle) = edit { it[Keys.DIGIT_STYLE] = v.name }

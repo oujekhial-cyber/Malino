@@ -82,7 +82,7 @@ object WidgetRenderer {
     suspend fun build(context: Context): RemoteViews {
         val app = context.applicationContext as KharjYarApp
         val settings = app.settings.current()
-        val skin = skinOf(settings.palette)
+        val skin = skinOf(settings.widgetPalette)
         val weather = ir.kharjyar.app.weather.WeatherService.refresh(context)
 
         val hideNumbers = settings.appLockEnabled && !settings.widgetShowNumbersWhenLocked
@@ -146,9 +146,9 @@ object WidgetRenderer {
         applyBackground(context, views, skin, settings.widgetOpacity, settings.widgetLayout)
         applyColors(views, skin, settings.widgetLayout)
         applyRowIcons(views, lines, skin)
-        applyTexts(views, lines, weather?.let { "${it.displayText}  •  $persianDate" } ?: persianDate, showNumbers, hideNumbers)
-        // نام برنامه و هوا دو جزء مستقل‌اند؛ عنوان در گوشه قالب می‌ماند و هوا کنار تاریخ قرار می‌گیرد.
+        applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
         views.setTextViewText(R.id.w_title, "خرج‌یار")
+        views.setTextViewText(R.id.w_weather, weather?.displayText ?: "")
         applyOptions(views, settings)
         applyClickTargets(context, views)
 
@@ -237,6 +237,7 @@ object WidgetRenderer {
         views.setTextColor(R.id.w_clock, big)
         views.setTextColor(R.id.w_jalali, onBg)
         views.setTextColor(R.id.w_gregorian, muted)
+        views.setTextColor(R.id.w_weather, onBg)
 
         listOf(R.id.w_label_1, R.id.w_label_2, R.id.w_label_3).forEach {
             views.setTextColor(it, onBg)
@@ -290,6 +291,7 @@ object WidgetRenderer {
         views.setViewVisibility(R.id.w_clock, if (settings.widgetShowClock) visible else gone)
         views.setViewVisibility(R.id.w_jalali, if (settings.widgetShowDates) visible else gone)
         views.setViewVisibility(R.id.w_gregorian, if (settings.widgetShowDates) visible else gone)
+        views.setViewVisibility(R.id.w_weather, if (settings.widgetShowWeather) visible else gone)
 
         fun gravity(h: ir.kharjyar.app.data.prefs.WidgetAlign, v: ir.kharjyar.app.data.prefs.WidgetVAlign): Int {
             val horizontal = when (h) { ir.kharjyar.app.data.prefs.WidgetAlign.START -> android.view.Gravity.START; ir.kharjyar.app.data.prefs.WidgetAlign.CENTER -> android.view.Gravity.CENTER_HORIZONTAL; ir.kharjyar.app.data.prefs.WidgetAlign.END -> android.view.Gravity.END }
@@ -300,8 +302,11 @@ object WidgetRenderer {
         listOf(R.id.w_clock, R.id.w_jalali, R.id.w_gregorian).forEach {
             views.setInt(it, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
         }
+        views.setInt(R.id.w_weather, "setGravity", gravity(settings.widgetWeatherAlign, settings.widgetWeatherVAlign))
 
         val sp = TypedValue.COMPLEX_UNIT_SP
+        views.setTextViewTextSize(R.id.w_title, sp, settings.widgetTitleSize.toFloat())
+        views.setTextViewTextSize(R.id.w_weather, sp, settings.widgetWeatherSize.toFloat())
         views.setTextViewTextSize(R.id.w_clock, sp, settings.widgetClockSize.toFloat())
         views.setTextViewTextSize(R.id.w_jalali, sp, settings.widgetDateSize.toFloat())
         views.setTextViewTextSize(R.id.w_gregorian, sp, (settings.widgetDateSize - 1).coerceAtLeast(7).toFloat())

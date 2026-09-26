@@ -210,4 +210,14 @@
             android:textColor="#A99CB3" />
     </LinearLayout>
 </LinearLayout>
+    <TextView
+        android:id="@+id/w_weather"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="top|center_horizontal"
+        android:padding="12dp"
+        android:maxLines="1"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF" />
+
 </FrameLayout>

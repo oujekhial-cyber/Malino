@@ -2,308 +2,63 @@ package ir.kharjyar.app.ui.screens
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import ir.kharjyar.app.data.prefs.WidgetContent
-import ir.kharjyar.app.data.prefs.WidgetLayout
-import ir.kharjyar.app.data.prefs.WidgetAlign
-import ir.kharjyar.app.data.prefs.WidgetVAlign
+import ir.kharjyar.app.data.prefs.*
 import ir.kharjyar.app.ui.AppViewModel
-import ir.kharjyar.app.ui.components.ComboBox
-import ir.kharjyar.app.ui.components.LabeledSlider
-import ir.kharjyar.app.ui.components.SkinCard
-import ir.kharjyar.app.ui.components.WidgetPreview
-import ir.kharjyar.app.ui.components.WidgetPreviewLine
+import ir.kharjyar.app.ui.components.*
 import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import ir.kharjyar.app.widget.WidgetUpdater
 import kotlinx.coroutines.launch
 
-/**
- * صفحه مستقل «تنظیمات ویجت».
- *
- * همه گزینه‌های ویجت اینجا جمع شده‌اند و هر تغییر، هم در پیش‌نمایش بالای صفحه
- * و هم بلافاصله روی ویجت واقعی صفحه اصلی اعمال می‌شود.
- */
-@Composable
-fun WidgetSettingsScreen(viewModel: AppViewModel) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val settings by viewModel.settings.collectAsState()
-    var weatherCity by remember { mutableStateOf(ir.kharjyar.app.weather.WeatherService.city(context)) }
+private enum class WidgetElement(val label:String) { TITLE("نام برنامه"), WEATHER("هواشناسی"), CLOCK("ساعت"), DATES("تاریخ‌ها"), VALUES("مبالغ"), LABELS("عنوان مبالغ") }
+private data class WidgetPosition(val h:WidgetAlign,val v:WidgetVAlign,val label:String)
+private val positions=listOf(
+ WidgetPosition(WidgetAlign.START,WidgetVAlign.TOP,"بالا سمت راست"),WidgetPosition(WidgetAlign.CENTER,WidgetVAlign.TOP,"بالا وسط"),WidgetPosition(WidgetAlign.END,WidgetVAlign.TOP,"بالا سمت چپ"),
+ WidgetPosition(WidgetAlign.START,WidgetVAlign.CENTER,"وسط سمت راست"),WidgetPosition(WidgetAlign.CENTER,WidgetVAlign.CENTER,"مرکز"),WidgetPosition(WidgetAlign.END,WidgetVAlign.CENTER,"وسط سمت چپ"),
+ WidgetPosition(WidgetAlign.START,WidgetVAlign.BOTTOM,"پایین سمت راست"),WidgetPosition(WidgetAlign.CENTER,WidgetVAlign.BOTTOM,"پایین وسط"),WidgetPosition(WidgetAlign.END,WidgetVAlign.BOTTOM,"پایین سمت چپ"))
 
-    /** هر تغییر تنظیمات، ویجت‌های روی صفحه اصلی را هم تازه می‌کند. */
-    fun applyChange(block: suspend () -> Unit) {
-        scope.launch {
-            block()
-            WidgetUpdater.requestUpdate(context)
-        }
-    }
-
-    val previewLines: List<WidgetPreviewLine> = when (settings.widgetContent) {
-        WidgetContent.TODAY_EXPENSE ->
-            listOf(WidgetPreviewLine("برداشت امروز", "۳٬۲۵۰٬۰۰۰", false))
-        WidgetContent.MONTH_EXPENSE ->
-            listOf(WidgetPreviewLine("برداشت مهر", "۱۸٬۴۰۰٬۰۰۰", false))
-        WidgetContent.RECENT -> listOf(
-            WidgetPreviewLine("برداشت", "۱٬۲۸۰٬۰۰۰", false),
-            WidgetPreviewLine("برداشت", "۴۹۰٬۰۰۰", false)
-        )
-        WidgetContent.SUMMARY -> listOf(
-            WidgetPreviewLine("واریز مهر", "۵٬۸۷۰٬۰۰۰", true),
-            WidgetPreviewLine("برداشت مهر", "۳٬۲۵۰٬۰۰۰", false)
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // ---------- پیش‌نمایش زنده ----------
-        WidgetCard("پیش‌نمایش") {
-            Text(
-                "هر تغییری که اینجا بدهید، همین‌جا دیده می‌شود و روی ویجت صفحه اصلی هم اعمال می‌گردد.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            WidgetPreview(
-                layout = settings.widgetLayout,
-                opacity = settings.widgetOpacity,
-                showNumbers = settings.widgetShowNumbers,
-                lines = previewLines,
-                showTitle = settings.widgetShowTitle,
-                showClock = settings.widgetShowClock,
-                showDates = settings.widgetShowDates,
-                clockSize = settings.widgetClockSize,
-                valueSize = settings.widgetValueSize,
-                labelSize = settings.widgetLabelSize,
-                editable = true,
-                titleAlign = settings.widgetTitleAlign,
-                titleVAlign = settings.widgetTitleVAlign,
-                clockAlign = settings.widgetClockAlign,
-                clockVAlign = settings.widgetClockVAlign,
-                onTitlePlaced = { h, v -> applyChange { viewModel.settingsRepo.setWidgetTitleAlign(h); viewModel.settingsRepo.setWidgetTitleVAlign(v) } },
-                onClockPlaced = { h, v -> applyChange { viewModel.settingsRepo.setWidgetClockAlign(h); viewModel.settingsRepo.setWidgetClockVAlign(v) } }
-            )
-        }
-
-        WidgetCard("هواشناسی بدون موقعیت مکانی") {
-            Text("شهر را دستی انتخاب کنید؛ خرج‌یار هیچ دسترسی مکانی درخواست نمی‌کند.", style = MaterialTheme.typography.bodySmall)
-            OutlinedTextField(weatherCity, { weatherCity = it }, label = { Text("نام شهر") }, modifier = Modifier.fillMaxWidth())
-            Button(onClick = {
-                ir.kharjyar.app.weather.WeatherService.setCity(context, weatherCity)
-                scope.launch { ir.kharjyar.app.weather.WeatherService.refresh(context); WidgetUpdater.requestUpdate(context) }
-            }, modifier = Modifier.fillMaxWidth()) { Text("ذخیره شهر و بروزرسانی هوا") }
-        }
-
-        // ---------- قالب و محتوا ----------
-        WidgetCard("قالب و محتوا") {
-            ComboBox(
-                label = "قالب ویجت",
-                options = WidgetLayout.entries.toList(),
-                selected = settings.widgetLayout,
-                labelOf = { widgetLayoutLabel(it) },
-                onSelect = { v -> applyChange { viewModel.settingsRepo.setWidgetLayout(v) } }
-            )
-            ComboBox(
-                label = "محتوای ویجت",
-                options = listOf(
-                    WidgetContent.SUMMARY,
-                    WidgetContent.TODAY_EXPENSE,
-                    WidgetContent.MONTH_EXPENSE,
-                    WidgetContent.RECENT
-                ),
-                selected = settings.widgetContent,
-                labelOf = { widgetContentLabel(it) },
-                onSelect = { v -> applyChange { viewModel.settingsRepo.setWidgetContent(v) } }
-            )
-            Text(
-                "قالب با رنگ تم فعال برنامه ساخته می‌شود؛ ساعت و تاریخ میلادی همیشه زنده‌اند.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Text("برای جابه‌جایی، برچسب هر بخش را مستقیماً روی پیش‌نمایش بکشید.", style = MaterialTheme.typography.bodySmall)
-
-        // ---------- چه چیزهایی دیده شود ----------
-        WidgetCard("چه چیزهایی نمایش داده شود") {
-            ToggleRow(
-                title = "نام برنامه",
-                subtitle = "نوشته «خرج‌یار» و خط زیر آن",
-                checked = settings.widgetShowTitle
-            ) { v -> applyChange { viewModel.settingsRepo.setWidgetShowTitle(v) } }
-
-            ToggleRow(
-                title = "ساعت",
-                subtitle = "ساعت زنده گوشی",
-                checked = settings.widgetShowClock
-            ) { v -> applyChange { viewModel.settingsRepo.setWidgetShowClock(v) } }
-
-            ToggleRow(
-                title = "تاریخ شمسی و میلادی",
-                subtitle = "زیر ساعت نشان داده می‌شوند",
-                checked = settings.widgetShowDates
-            ) { v -> applyChange { viewModel.settingsRepo.setWidgetShowDates(v) } }
-
-            ToggleRow(
-                title = "نمایش اعداد",
-                subtitle = "با خاموش بودن، به‌جای مبلغ نقطه‌چین دیده می‌شود",
-                checked = settings.widgetShowNumbers
-            ) { v -> applyChange { viewModel.settingsRepo.setWidgetShowNumbers(v) } }
-
-            if (settings.appLockEnabled) {
-                ToggleRow(
-                    title = "نمایش اعداد با وجود قفل برنامه",
-                    subtitle = "پیش‌فرض: با قفل فعال، اعداد ویجت مخفی‌اند",
-                    checked = settings.widgetShowNumbersWhenLocked
-                ) { v -> applyChange { viewModel.settingsRepo.setWidgetShowNumbersWhenLocked(v) } }
-            }
-        }
-
-        // ---------- اندازه‌ها و شفافیت ----------
-        WidgetCard("اندازه و شفافیت") {
-            LabeledSlider(
-                label = "میزان شیشه‌ای بودن",
-                value = settings.widgetOpacity,
-                range = 0..100,
-                valueSuffix = "٪",
-                onValueChange = { v -> applyChange { viewModel.settingsRepo.setWidgetOpacity(v) } }
-            )
-            Text(
-                "عدد کمتر یعنی شیشه‌ای‌تر (تصویر زمینه گوشی بیشتر دیده می‌شود).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            LabeledSlider(
-                label = "اندازه ساعت",
-                value = settings.widgetClockSize,
-                range = 18..72,
-                onValueChange = { v -> applyChange { viewModel.settingsRepo.setWidgetClockSize(v) } }
-            )
-            LabeledSlider(
-                label = "اندازه تاریخ‌ها",
-                value = settings.widgetDateSize,
-                range = 8..28,
-                onValueChange = { v -> applyChange { viewModel.settingsRepo.setWidgetDateSize(v) } }
-            )
-            LabeledSlider(
-                label = "اندازه مبالغ",
-                value = settings.widgetValueSize,
-                range = 9..30,
-                onValueChange = { v -> applyChange { viewModel.settingsRepo.setWidgetValueSize(v) } }
-            )
-            LabeledSlider(
-                label = "اندازه برچسب‌ها",
-                value = settings.widgetLabelSize,
-                range = 7..22,
-                onValueChange = { v -> applyChange { viewModel.settingsRepo.setWidgetLabelSize(v) } }
-            )
-        }
-
-        // ---------- افزودن ویجت ----------
-        WidgetCard("افزودن ویجت") {
-            Text(
-                "اگر ویجت روی صفحه اصلی نیست، از این دکمه اضافه‌اش کنید. اندروید برای " +
-                    "چسباندن ویجت، یک تأیید کوتاه از لانچر می‌گیرد.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedButton(
-                onClick = {
-                    runCatching {
-                        val mgr = AppWidgetManager.getInstance(context)
-                        val component = ComponentName(context, KharjYarWidgetReceiver::class.java)
-                        if (mgr.isRequestPinAppWidgetSupported) {
-                            mgr.requestPinAppWidget(component, null, null)
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("افزودن ویجت به صفحه اصلی") }
-        }
-    }
+@Composable fun WidgetSettingsScreen(viewModel:AppViewModel){
+ val context=LocalContext.current;val scope=rememberCoroutineScope();val settings by viewModel.settings.collectAsState();var city by remember{mutableStateOf(ir.kharjyar.app.weather.WeatherService.city(context))};var element by remember{mutableStateOf(WidgetElement.TITLE)}
+ fun apply(block:suspend()->Unit){scope.launch{block();WidgetUpdater.requestUpdate(context)}}
+ fun positionOf():WidgetPosition=when(element){WidgetElement.TITLE,WidgetElement.VALUES,WidgetElement.LABELS->positions.first{it.h==settings.widgetTitleAlign&&it.v==settings.widgetTitleVAlign};WidgetElement.WEATHER->positions.first{it.h==settings.widgetWeatherAlign&&it.v==settings.widgetWeatherVAlign};else->positions.first{it.h==settings.widgetClockAlign&&it.v==settings.widgetClockVAlign}}
+ fun size():Int=when(element){WidgetElement.TITLE->settings.widgetTitleSize;WidgetElement.WEATHER->settings.widgetWeatherSize;WidgetElement.CLOCK->settings.widgetClockSize;WidgetElement.DATES->settings.widgetDateSize;WidgetElement.VALUES->settings.widgetValueSize;WidgetElement.LABELS->settings.widgetLabelSize}
+ fun setSize(v:Int)=apply{when(element){WidgetElement.TITLE->viewModel.settingsRepo.setWidgetTitleSize(v);WidgetElement.WEATHER->viewModel.settingsRepo.setWidgetWeatherSize(v);WidgetElement.CLOCK->viewModel.settingsRepo.setWidgetClockSize(v);WidgetElement.DATES->viewModel.settingsRepo.setWidgetDateSize(v);WidgetElement.VALUES->viewModel.settingsRepo.setWidgetValueSize(v);WidgetElement.LABELS->viewModel.settingsRepo.setWidgetLabelSize(v)}}
+ val lines=listOf(WidgetPreviewLine("واریز مهر","۵٬۸۷۰٬۰۰۰",true),WidgetPreviewLine("برداشت مهر","۳٬۲۵۰٬۰۰۰",false))
+ Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+  WidgetCard("پیش‌نمایش"){WidgetPreview(settings.widgetLayout,settings.widgetOpacity,settings.widgetShowNumbers,lines,showTitle=settings.widgetShowTitle,showClock=settings.widgetShowClock,showDates=settings.widgetShowDates,clockSize=settings.widgetClockSize,valueSize=settings.widgetValueSize,labelSize=settings.widgetLabelSize)}
+  WidgetCard("ظاهر ویجت"){
+   ComboBox("تم ویجت",Palette.entries.toList(),settings.widgetPalette,{apply{viewModel.settingsRepo.setWidgetPalette(it)}},labelOf={ir.kharjyar.app.ui.theme.skinOf(it).title})
+   ComboBox("قالب",WidgetLayout.entries.toList(),settings.widgetLayout,{apply{viewModel.settingsRepo.setWidgetLayout(it)}},labelOf={widgetLayoutLabel(it)})
+   ComboBox("محتوا",WidgetContent.entries.toList(),settings.widgetContent,{apply{viewModel.settingsRepo.setWidgetContent(it)}},labelOf={widgetContentLabel(it)})
+   LabeledSlider("شفافیت",settings.widgetOpacity,0..100,"٪"){apply{viewModel.settingsRepo.setWidgetOpacity(it)}}
+  }
+  WidgetCard("تنظیم جزء انتخابی"){
+   ComboBox("جزء ویجت",WidgetElement.entries.toList(),element,{element=it},labelOf={it.label})
+   ComboBox("جای قرارگیری",positions,positionOf(),{p->apply{when(element){WidgetElement.WEATHER->{viewModel.settingsRepo.setWidgetWeatherAlign(p.h);viewModel.settingsRepo.setWidgetWeatherVAlign(p.v)};WidgetElement.TITLE,WidgetElement.VALUES,WidgetElement.LABELS->{viewModel.settingsRepo.setWidgetTitleAlign(p.h);viewModel.settingsRepo.setWidgetTitleVAlign(p.v)};else->{viewModel.settingsRepo.setWidgetClockAlign(p.h);viewModel.settingsRepo.setWidgetClockVAlign(p.v)}}}},labelOf={it.label})
+   LabeledSlider("اندازه ${element.label}",size(),8..72){setSize(it)}
+   when(element){
+    WidgetElement.TITLE->ToggleRow("نمایش نام برنامه","",settings.widgetShowTitle){apply{viewModel.settingsRepo.setWidgetShowTitle(it)}}
+    WidgetElement.WEATHER->ToggleRow("نمایش هواشناسی","مستقل از تاریخ و ساعت",settings.widgetShowWeather){apply{viewModel.settingsRepo.setWidgetShowWeather(it)}}
+    WidgetElement.CLOCK->ToggleRow("نمایش ساعت","",settings.widgetShowClock){apply{viewModel.settingsRepo.setWidgetShowClock(it)}}
+    WidgetElement.DATES->ToggleRow("نمایش تاریخ‌ها","",settings.widgetShowDates){apply{viewModel.settingsRepo.setWidgetShowDates(it)}}
+    else->ToggleRow("نمایش اعداد","",settings.widgetShowNumbers){apply{viewModel.settingsRepo.setWidgetShowNumbers(it)}}
+   }
+  }
+  WidgetCard("هواشناسی") {OutlinedTextField(city,{city=it},label={Text("شهر")},modifier=Modifier.fillMaxWidth());Button({ir.kharjyar.app.weather.WeatherService.setCity(context,city);apply{ir.kharjyar.app.weather.WeatherService.refresh(context)}},Modifier.fillMaxWidth()){Text("ذخیره و بروزرسانی")}}
+  OutlinedButton({apply{viewModel.settingsRepo.resetWidget()}},Modifier.fillMaxWidth()){Text("بازنشانی تنظیمات ویجت به حالت اولیه")}
+  OutlinedButton({val m=AppWidgetManager.getInstance(context);if(m.isRequestPinAppWidgetSupported)m.requestPinAppWidget(ComponentName(context,KharjYarWidgetReceiver::class.java),null,null)},Modifier.fillMaxWidth()){Text("افزودن ویجت به صفحه اصلی")}
+ }
 }
 
-@Composable
-private fun WidgetCard(
-    title: String,
-    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
-) {
-    SkinCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            content()
-        }
-    }
-}
-
-/** یک ردیف کلید روشن/خاموش با توضیح کوتاه. */
-@Composable
-private fun ToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onChange)
-    }
-}
-
-/** برچسب فارسی قالب‌های ویجت. */
-fun widgetLayoutLabel(l: WidgetLayout): String = when (l) {
-    WidgetLayout.ROYAL -> "لوکس (قاب طلایی، ساعت خیلی بزرگ)"
-    WidgetLayout.MINIMAL -> "مینیمال (عنوان بزرگ، ساعت کنار)"
-    WidgetLayout.PANELS -> "نواری (سربرگ بالا، مقادیر در نوار)"
-    WidgetLayout.STACKED -> "نواری فشرده"
-    WidgetLayout.SPLIT -> "دوبخشی (خط وسط)"
-    WidgetLayout.GLASS -> "شیشه‌ای (با تصویر تم)"
-}
-
-/** برچسب فارسی محتوای ویجت. */
-fun widgetContentLabel(c: WidgetContent): String = when (c) {
-    WidgetContent.SUMMARY -> "خلاصه ماه"
-    WidgetContent.TODAY_EXPENSE -> "برداشت امروز"
-    WidgetContent.MONTH_EXPENSE -> "برداشت ماه"
-    WidgetContent.RECENT -> "آخرین تراکنش‌ها"
-}
+@Composable private fun WidgetCard(title:String,content:@Composable ColumnScope.()->Unit){SkinCard(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Text(title,style=MaterialTheme.typography.titleMedium);content()}}}
+@Composable private fun ToggleRow(title:String,subtitle:String,checked:Boolean,onChange:(Boolean)->Unit){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(title);if(subtitle.isNotBlank())Text(subtitle,style=MaterialTheme.typography.bodySmall)};Switch(checked,onChange)}}
+fun widgetLayoutLabel(l:WidgetLayout)=when(l){WidgetLayout.ROYAL->"لوکس";WidgetLayout.MINIMAL->"مینیمال";WidgetLayout.PANELS->"پنل‌ها";WidgetLayout.STACKED->"ستونی";WidgetLayout.SPLIT->"دوبخشی";WidgetLayout.GLASS->"شیشه‌ای"}
+fun widgetContentLabel(c:WidgetContent)=when(c){WidgetContent.SUMMARY->"خلاصه ماه";WidgetContent.TODAY_EXPENSE->"برداشت امروز";WidgetContent.MONTH_EXPENSE->"برداشت ماه";WidgetContent.RECENT->"تراکنش‌های اخیر"}
