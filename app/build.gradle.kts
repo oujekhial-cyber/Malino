@@ -16,8 +16,8 @@ android {
         applicationId = "ir.kharjyar.app"
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -53,16 +53,7 @@ android {
     val hasOwnKey = storeFilePath != null && storePw != null &&
         keyAliasName != null && keyPw != null && file(storeFilePath).exists()
 
-    /**
-     * کلید پشتیبان داخل مخزن.
-     *
-     * رمزش عمومی است و راز محسوب نمی‌شود؛ هدفش فقط این است که خروجی انتشار
-     * همیشه «امضاشده و قابل نصب» باشد. APK بدون امضا با خطای
-     * «App not installed as package appears to be invalid» رد می‌شود.
-     *
-     * برای انتشار واقعی، کلید اختصاصی را از طریق Secretها بدهید تا جای این یکی
-     * را بگیرد (مقدار hasOwnKey آن موقع true می‌شود).
-     */
+    // کلید عمومی فقط برای ساخت آزمایشی است؛ انتشار رسمی باید با Secret اختصاصی امضا شود.
     val fallbackKey = rootProject.file("signing/kharjyar-fallback.p12")
     val useFallback = !hasOwnKey && fallbackKey.exists()
 
