@@ -21,9 +21,9 @@ import net.sqlcipher.database.SupportFactory
         CategoryRuleEntity::class,
         BlockedSenderEntity::class,
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
-        BankBalanceSnapshotEntity::class
+        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -37,6 +37,8 @@ abstract class KharjYarDatabase : RoomDatabase() {
     abstract fun debtDao(): DebtDao
     abstract fun checkDao(): CheckDao
     abstract fun bankBalanceSnapshotDao(): BankBalanceSnapshotDao
+    abstract fun noteDao(): NoteDao
+    abstract fun loanDao(): LoanDao
 
     companion object {
         @Volatile
@@ -51,7 +53,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -107,6 +109,17 @@ abstract class KharjYarDatabase : RoomDatabase() {
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS bank_balance_snapshots (accountId INTEGER NOT NULL PRIMARY KEY, balanceRial INTEGER NOT NULL, messageAt INTEGER NOT NULL, smsSystemId INTEGER NOT NULL)")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, pinned INTEGER NOT NULL, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_updatedAt ON notes(updatedAt)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS loans (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, party TEXT NOT NULL, kind INTEGER NOT NULL, principalRial INTEGER NOT NULL, installmentAmountRial INTEGER NOT NULL, installmentCount INTEGER NOT NULL, startAt INTEGER NOT NULL, nextDueAt INTEGER NOT NULL, reminderDaysBefore INTEGER NOT NULL, note TEXT NOT NULL, closed INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_loans_nextDueAt ON loans(nextDueAt)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS loan_installments (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, loanId INTEGER NOT NULL, number INTEGER NOT NULL, amountRial INTEGER NOT NULL, dueAt INTEGER NOT NULL, paid INTEGER NOT NULL, paidAt INTEGER)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_loan_installments_loanId ON loan_installments(loanId)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_loan_installments_dueAt ON loan_installments(dueAt)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_loan_installments_paid ON loan_installments(paid)")
             }
         }
 

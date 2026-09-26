@@ -109,6 +109,8 @@ import ir.kharjyar.app.ui.screens.ReportsScreen
 import ir.kharjyar.app.ui.screens.ReviewScreen
 import ir.kharjyar.app.ui.screens.SettingsScreen
 import ir.kharjyar.app.ui.screens.SmsPasteScreen
+import ir.kharjyar.app.ui.screens.NotesScreen
+import ir.kharjyar.app.ui.screens.LoansScreen
 import ir.kharjyar.app.ui.screens.SmsHistoryImportScreen
 import ir.kharjyar.app.ui.screens.DebtsScreen
 import ir.kharjyar.app.ui.screens.ChecksScreen
@@ -124,7 +126,6 @@ import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import ir.kharjyar.app.ui.theme.KharjYarTheme
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
-import ir.kharjyar.app.weather.WeatherService
 
 @Composable
 fun AppRoot(
@@ -248,6 +249,8 @@ private val drawerEntries = listOf(
     DrawerEntry("smsHistory", "ورود پیامک‌های قبلی", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("debts", "طلب و بدهی", Icons.Filled.AccountBalance),
     DrawerEntry("checks", "مدیریت چک‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("loans", "اقساط و وام‌ها", Icons.Filled.AccountBalance),
+    DrawerEntry("notes", "یادداشت‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("backup", "بکاپ", Icons.Filled.CloudUpload),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
@@ -281,7 +284,6 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     var lastBackAt by remember { mutableStateOf(0L) }
-    var weather by remember { mutableStateOf(WeatherService.cached(context)) }
 
     LaunchedEffect(initialDestination) {
         initialDestination?.let { navController.navigate(it) }
@@ -295,9 +297,6 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
 
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
-    LaunchedEffect(currentRoute) {
-        if (currentRoute == "home") weather = WeatherService.refresh(context)
-    }
 
     // پیش از باز کردن فرم، نوع تراکنش پرسیده می‌شود تا هر صفحه ساده‌تر بماند.
     var showDirectionChooser by rememberSaveable { mutableStateOf(false) }
@@ -409,14 +408,6 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                                 maxLines = 1
                             )
                         }
-                        weather?.let {
-                            Text(
-                                it.displayText,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = skin.onBackdrop,
-                                maxLines = 1
-                            )
-                        }
                     } else {
                         Text(
                             titleOf(currentRoute),
@@ -495,6 +486,8 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("smsHistory") { SmsHistoryImportScreen(viewModel, navController) }
                 composable("debts") { DebtsScreen(viewModel) }
                 composable("checks") { ChecksScreen(viewModel) }
+                composable("loans") { LoansScreen(viewModel) }
+                composable("notes") { NotesScreen(viewModel) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->
                     AccountEditScreen(viewModel, navController, entry.arguments?.getString("id")?.toLongOrNull() ?: 0L)

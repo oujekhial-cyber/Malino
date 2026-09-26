@@ -37,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -130,6 +131,12 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         if (!ok) {
             voiceError = "تبدیل گفتار به متن در دسترس نیست؛ لطفاً تایپ کنید."
         }
+    }
+
+    // ورود به صفحه «ثبت سریع» بلافاصله موتور گفتار سیستم/گوگل را باز می‌کند؛
+    // خود صفحه نیز پشت آن آماده است و در صورت لغو، تایپ دستی در دسترس می‌ماند.
+    LaunchedEffect(voiceAvailable) {
+        if (voiceAvailable) startVoice()
     }
 
     fun analyze() {
