@@ -11,12 +11,12 @@ class ApkSecurityGuardTest {
 
     @Test fun `manifest excludes high risk capabilities`() {
         listOf("REQUEST_INSTALL_PACKAGES", "QUERY_ALL_PACKAGES", "SYSTEM_ALERT_WINDOW", "MANAGE_EXTERNAL_STORAGE", "BIND_ACCESSIBILITY_SERVICE")
-            .forEach { assertFalse(manifest.contains(it), "High-risk capability found: $it") }
+            .forEach { assertFalse("High-risk capability found: $it", manifest.contains(it)) }
     }
 
     @Test fun `app does not download or execute dynamic code`() {
         listOf("DexClassLoader", "PathClassLoader", "Runtime.getRuntime().exec", "ProcessBuilder(")
-            .forEach { assertFalse(sources.contains(it), "Dynamic execution primitive found: $it") }
+            .forEach { assertFalse("Dynamic execution primitive found: $it", sources.contains(it)) }
         assertTrue(manifest.contains("android:usesCleartextTraffic=\"false\""))
     }
 }
