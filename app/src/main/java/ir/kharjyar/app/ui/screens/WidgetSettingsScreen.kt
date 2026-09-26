@@ -38,12 +38,12 @@ private val positions=listOf(
    ComboBox("تم ویجت",Palette.entries.toList(),settings.widgetPalette,{apply{viewModel.settingsRepo.setWidgetPalette(it)}},labelOf={ir.kharjyar.app.ui.theme.skinOf(it).title})
    ComboBox("قالب",WidgetLayout.entries.toList(),settings.widgetLayout,{apply{viewModel.settingsRepo.setWidgetLayout(it)}},labelOf={widgetLayoutLabel(it)})
    ComboBox("محتوا",WidgetContent.entries.toList(),settings.widgetContent,{apply{viewModel.settingsRepo.setWidgetContent(it)}},labelOf={widgetContentLabel(it)})
-   LabeledSlider("شفافیت",settings.widgetOpacity,0..100,"٪"){apply{viewModel.settingsRepo.setWidgetOpacity(it)}}
+   LabeledSlider("شفافیت",settings.widgetOpacity,0..100,{apply{viewModel.settingsRepo.setWidgetOpacity(it)}},"٪")
   }
   WidgetCard("تنظیم جزء انتخابی"){
    ComboBox("جزء ویجت",WidgetElement.entries.toList(),element,{element=it},labelOf={it.label})
    ComboBox("جای قرارگیری",positions,positionOf(),{p->apply{when(element){WidgetElement.WEATHER->{viewModel.settingsRepo.setWidgetWeatherAlign(p.h);viewModel.settingsRepo.setWidgetWeatherVAlign(p.v)};WidgetElement.TITLE,WidgetElement.VALUES,WidgetElement.LABELS->{viewModel.settingsRepo.setWidgetTitleAlign(p.h);viewModel.settingsRepo.setWidgetTitleVAlign(p.v)};else->{viewModel.settingsRepo.setWidgetClockAlign(p.h);viewModel.settingsRepo.setWidgetClockVAlign(p.v)}}}},labelOf={it.label})
-   LabeledSlider("اندازه ${element.label}",size(),8..72){setSize(it)}
+   LabeledSlider("اندازه ${element.label}",size(),8..72,{setSize(it)})
    when(element){
     WidgetElement.TITLE->ToggleRow("نمایش نام برنامه","",settings.widgetShowTitle){apply{viewModel.settingsRepo.setWidgetShowTitle(it)}}
     WidgetElement.WEATHER->ToggleRow("نمایش هواشناسی","مستقل از تاریخ و ساعت",settings.widgetShowWeather){apply{viewModel.settingsRepo.setWidgetShowWeather(it)}}
