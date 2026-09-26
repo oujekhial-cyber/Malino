@@ -1,4 +1,0 @@
-e: file:///home/runner/work/Malino/Malino/app/src/test/java/ir/kharjyar/app/ApkSecurityGuardTest.kt:14:36 Argument type mismatch: actual type is 'kotlin.Boolean', but 'kotlin.String!' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/test/java/ir/kharjyar/app/ApkSecurityGuardTest.kt:14:59 Argument type mismatch: actual type is 'kotlin.String', but 'kotlin.Boolean' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/test/java/ir/kharjyar/app/ApkSecurityGuardTest.kt:19:36 Argument type mismatch: actual type is 'kotlin.Boolean', but 'kotlin.String!' was expected.
-e: file:///home/runner/work/Malino/Malino/app/src/test/java/ir/kharjyar/app/ApkSecurityGuardTest.kt:19:58 Argument type mismatch: actual type is 'kotlin.String', but 'kotlin.Boolean' was expected.
