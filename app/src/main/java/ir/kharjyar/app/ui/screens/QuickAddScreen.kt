@@ -153,6 +153,10 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        OutlinedButton(onClick = { nav.navigate("smsPaste") }, modifier = Modifier.fillMaxWidth()) {
+            Text("جایگذاری و تحلیل پیامک بانکی")
+        }
+
         // ---------- معرفی ----------
         SkinCard(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {

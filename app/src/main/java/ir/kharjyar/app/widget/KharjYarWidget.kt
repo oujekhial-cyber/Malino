@@ -83,7 +83,7 @@ object WidgetRenderer {
         val app = context.applicationContext as KharjYarApp
         val settings = app.settings.current()
         val skin = skinOf(settings.palette)
-        val temperature = ir.kharjyar.app.weather.WeatherService.refresh(context)
+        val weather = ir.kharjyar.app.weather.WeatherService.refresh(context)
 
         val hideNumbers = settings.appLockEnabled && !settings.widgetShowNumbersWhenLocked
         val showNumbers = settings.widgetShowNumbers && !hideNumbers
@@ -147,7 +147,7 @@ object WidgetRenderer {
         applyColors(views, skin, settings.widgetLayout)
         applyRowIcons(views, lines, skin)
         applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
-        views.setTextViewText(R.id.w_title, temperature?.let { "خرج‌یار • $it" } ?: "خرج‌یار")
+        views.setTextViewText(R.id.w_title, weather?.let { "خرج‌یار • ${it.displayText}" } ?: "خرج‌یار")
         applyOptions(views, settings)
         applyClickTargets(context, views)
 
@@ -289,6 +289,16 @@ object WidgetRenderer {
         views.setViewVisibility(R.id.w_clock, if (settings.widgetShowClock) visible else gone)
         views.setViewVisibility(R.id.w_jalali, if (settings.widgetShowDates) visible else gone)
         views.setViewVisibility(R.id.w_gregorian, if (settings.widgetShowDates) visible else gone)
+
+        fun gravity(h: ir.kharjyar.app.data.prefs.WidgetAlign, v: ir.kharjyar.app.data.prefs.WidgetVAlign): Int {
+            val horizontal = when (h) { ir.kharjyar.app.data.prefs.WidgetAlign.START -> android.view.Gravity.START; ir.kharjyar.app.data.prefs.WidgetAlign.CENTER -> android.view.Gravity.CENTER_HORIZONTAL; ir.kharjyar.app.data.prefs.WidgetAlign.END -> android.view.Gravity.END }
+            val vertical = when (v) { ir.kharjyar.app.data.prefs.WidgetVAlign.TOP -> android.view.Gravity.TOP; ir.kharjyar.app.data.prefs.WidgetVAlign.CENTER -> android.view.Gravity.CENTER_VERTICAL; ir.kharjyar.app.data.prefs.WidgetVAlign.BOTTOM -> android.view.Gravity.BOTTOM }
+            return horizontal or vertical
+        }
+        views.setInt(R.id.w_title, "setGravity", gravity(settings.widgetTitleAlign, settings.widgetTitleVAlign))
+        listOf(R.id.w_clock, R.id.w_jalali, R.id.w_gregorian).forEach {
+            views.setInt(it, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
+        }
 
         val sp = TypedValue.COMPLEX_UNIT_SP
         views.setTextViewTextSize(R.id.w_clock, sp, settings.widgetClockSize.toFloat())

@@ -13,18 +13,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.data.prefs.WidgetContent
 import ir.kharjyar.app.data.prefs.WidgetLayout
+import ir.kharjyar.app.data.prefs.WidgetAlign
+import ir.kharjyar.app.data.prefs.WidgetVAlign
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.LabeledSlider
@@ -46,6 +53,8 @@ fun WidgetSettingsScreen(viewModel: AppViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settings by viewModel.settings.collectAsState()
+    var weatherCity by remember { mutableStateOf(ir.kharjyar.app.weather.WeatherService.city(context)) }
+    var selectedPanel by remember { mutableStateOf("title") }
 
     /** هر تغییر تنظیمات، ویجت‌های روی صفحه اصلی را هم تازه می‌کند. */
     fun applyChange(block: suspend () -> Unit) {
@@ -99,6 +108,15 @@ fun WidgetSettingsScreen(viewModel: AppViewModel) {
             )
         }
 
+        WidgetCard("هواشناسی بدون موقعیت مکانی") {
+            Text("شهر را دستی انتخاب کنید؛ خرج‌یار هیچ دسترسی مکانی درخواست نمی‌کند.", style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(weatherCity, { weatherCity = it }, label = { Text("نام شهر") }, modifier = Modifier.fillMaxWidth())
+            Button(onClick = {
+                ir.kharjyar.app.weather.WeatherService.setCity(context, weatherCity)
+                scope.launch { ir.kharjyar.app.weather.WeatherService.refresh(context); WidgetUpdater.requestUpdate(context) }
+            }, modifier = Modifier.fillMaxWidth()) { Text("ذخیره شهر و بروزرسانی هوا") }
+        }
+
         // ---------- قالب و محتوا ----------
         WidgetCard("قالب و محتوا") {
             ComboBox(
@@ -125,6 +143,29 @@ fun WidgetSettingsScreen(viewModel: AppViewModel) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        WidgetCard("جای‌گذاری لمسی اجزای ویجت") {
+            Text("ابتدا جزء را لمس کنید، سپس خانه مقصد را در شبکه بزنید. پیش‌نمایش و ویجت فوراً بروزرسانی می‌شوند.", style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton({ selectedPanel = "title" }, Modifier.weight(1f)) { Text(if (selectedPanel == "title") "✓ نام و مبالغ" else "نام و مبالغ") }
+                OutlinedButton({ selectedPanel = "clock" }, Modifier.weight(1f)) { Text(if (selectedPanel == "clock") "✓ ساعت و تاریخ" else "ساعت و تاریخ") }
+            }
+            val hs = listOf(WidgetAlign.START, WidgetAlign.CENTER, WidgetAlign.END)
+            val vs = listOf(WidgetVAlign.TOP, WidgetVAlign.CENTER, WidgetVAlign.BOTTOM)
+            vs.forEach { v ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    hs.forEach { h ->
+                        OutlinedButton(onClick = {
+                            applyChange {
+                                if (selectedPanel == "title") { viewModel.settingsRepo.setWidgetTitleAlign(h); viewModel.settingsRepo.setWidgetTitleVAlign(v) }
+                                else { viewModel.settingsRepo.setWidgetClockAlign(h); viewModel.settingsRepo.setWidgetClockVAlign(v) }
+                            }
+                        }, modifier = Modifier.weight(1f)) { Text("●") }
+                    }
+                }
+            }
+            Text("بالا/وسط/پایین × راست/وسط/چپ", style = MaterialTheme.typography.labelSmall)
         }
 
         // ---------- چه چیزهایی دیده شود ----------

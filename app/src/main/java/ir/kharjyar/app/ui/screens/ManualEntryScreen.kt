@@ -103,6 +103,10 @@ fun ManualEntryScreen(
         modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        OutlinedButton(onClick = { nav.navigate("smsPaste") }, modifier = Modifier.fillMaxWidth()) {
+            Text("جایگذاری و تحلیل پیامک بانکی")
+        }
+
         // سربرگ نوع تراکنش وقتی از دیالوگ «واریز یا برداشت» آمده‌ایم
         if (presetDirection != null) {
             DirectionHeader(direction, presetTransfer)

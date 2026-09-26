@@ -1,11 +1,6 @@
 package ir.kharjyar.app.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -113,6 +108,7 @@ import ir.kharjyar.app.ui.screens.OnboardingScreen
 import ir.kharjyar.app.ui.screens.ReportsScreen
 import ir.kharjyar.app.ui.screens.ReviewScreen
 import ir.kharjyar.app.ui.screens.SettingsScreen
+import ir.kharjyar.app.ui.screens.SmsPasteScreen
 import ir.kharjyar.app.ui.screens.TemplateTrainScreen
 import ir.kharjyar.app.ui.screens.TransactionEditScreen
 import ir.kharjyar.app.ui.screens.TransactionsScreen
@@ -279,10 +275,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     var lastBackAt by remember { mutableStateOf(0L) }
-    var temperature by remember { mutableStateOf(WeatherService.cached(context)) }
-    val weatherPermission = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) scope.launch { temperature = WeatherService.refresh(context) } }
+    var weather by remember { mutableStateOf(WeatherService.cached(context)) }
 
     LaunchedEffect(initialDestination) {
         initialDestination?.let { navController.navigate(it) }
@@ -297,13 +290,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     LaunchedEffect(currentRoute) {
-        if (currentRoute == "home") {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                temperature = WeatherService.refresh(context)
-            } else {
-                weatherPermission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-            }
-        }
+        if (currentRoute == "home") weather = WeatherService.refresh(context)
     }
 
     // پیش از باز کردن فرم، نوع تراکنش پرسیده می‌شود تا هر صفحه ساده‌تر بماند.
@@ -416,9 +403,9 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                                 maxLines = 1
                             )
                         }
-                        temperature?.let {
+                        weather?.let {
                             Text(
-                                "$it دمای محل",
+                                it.displayText,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = skin.onBackdrop,
                                 maxLines = 1
@@ -497,6 +484,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                     )
                 }
                 composable("quickAdd") { QuickAddScreen(viewModel, navController) }
+                composable("smsPaste") { SmsPasteScreen(viewModel, navController) }
                 composable("review") { ReviewScreen(viewModel, navController) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->

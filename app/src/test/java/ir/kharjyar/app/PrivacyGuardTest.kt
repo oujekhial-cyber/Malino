@@ -16,10 +16,10 @@ class PrivacyGuardTest {
     private val manifest = File("src/main/AndroidManifest.xml").readText()
 
     @Test
-    fun `internet and coarse location are declared only for weather`() {
+    fun `weather uses manually selected city without location permission`() {
         assertTrue(manifest.contains("android.permission.INTERNET"))
-        assertTrue(manifest.contains("android.permission.ACCESS_COARSE_LOCATION"))
-        assertFalse("هواشناسی به موقعیت دقیق نیاز ندارد", manifest.contains("android.permission.ACCESS_FINE_LOCATION"))
+        assertFalse("هواشناسی نباید به موقعیت تقریبی دسترسی داشته باشد", manifest.contains("android.permission.ACCESS_COARSE_LOCATION"))
+        assertFalse("هواشناسی نباید به موقعیت دقیق دسترسی داشته باشد", manifest.contains("android.permission.ACCESS_FINE_LOCATION"))
         val weather = File("src/main/java/ir/kharjyar/app/weather/WeatherService.kt").readText()
         assertTrue(weather.contains("api.open-meteo.com"))
         assertTrue("دمای هوا باید کش شود", weather.contains("weather_cache"))

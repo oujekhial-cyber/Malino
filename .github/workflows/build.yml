@@ -82,13 +82,13 @@ jobs:
           set -o pipefail
           FOUND=0
           for M in $(find app/build/intermediates -path '*merged_manifest*' -name 'AndroidManifest.xml'); do
-            if grep -q 'android.permission.ACCESS_FINE_LOCATION' "$M"; then
-              echo "::error::مجوز موقعیت دقیق در مانیفست ادغام‌شده پیدا شد: $M"
+            if grep -Eq 'android.permission.ACCESS_(FINE|COARSE)_LOCATION' "$M"; then
+              echo "::error::مجوز موقعیت مکانی در مانیفست ادغام‌شده پیدا شد: $M"
               FOUND=1
             fi
           done
           if [ "$FOUND" = "1" ]; then exit 1; fi
-          echo "مانیفست فقط از موقعیت تقریبی برای هواشناسی استفاده می‌کند"
+          echo "مانیفست هیچ مجوز موقعیت مکانی ندارد"
 
       - name: Lint debug
         id: lint
