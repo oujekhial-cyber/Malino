@@ -165,6 +165,14 @@ fun HeroCard(
             modifier = Modifier
                 .clip(shape)
                 .background(Brush.linearGradient(skin.heroGradient))
+                .then(
+                    if (!skin.dark) Modifier.border(
+                        width = skin.cardBorderWidth.coerceAtLeast(1.dp),
+                        color = skin.cardBorderColors.firstOrNull()?.copy(alpha = 0.72f)
+                            ?: MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                        shape = shape
+                    ) else Modifier
+                )
         ) {
             skin.heroImage?.let { res ->
                 Image(

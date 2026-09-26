@@ -376,8 +376,10 @@ private val MinimalDaySkin = AppSkin(
     id = Palette.MINIMAL_DAY, title = "مینیمال روز", subtitle = "سفید، خلوت و خوانا برای روشنایی روز",
     dark = false, backgroundColors = listOf(Color(0xFFF8FAFC), Color(0xFFF1F5F9)), backdropBlobs = emptyList(),
     cardColor = Color.White, cardAlpha = 1f, cardBorderColors = listOf(Color(0xFFCBD5E1)),
-    cardBorderWidth = 1.dp, cardCorner = 16.dp, heroGradient = listOf(Color(0xFFEFF6FF), Color(0xFFDBEAFE)),
-    onHero = Color(0xFF0F172A), fabGradient = listOf(Color(0xFF2563EB), Color(0xFF3B82F6)),
+    cardBorderWidth = 1.dp, cardCorner = 18.dp,
+    // کارت اصلی روز روشن و تمیز است؛ آبی فقط ته‌رنگ دارد تا اعداد تخت و تیره واضح بمانند.
+    heroGradient = listOf(Color(0xFFFFFFFF), Color(0xFFF5F9FF), Color(0xFFE8F1FF)),
+    onHero = Color(0xFF10233F), fabGradient = listOf(Color(0xFF2563EB), Color(0xFF3B82F6)),
     accent = Color(0xFF2563EB), incomeColor = Color(0xFF15803D), expenseColor = Color(0xFFDC2626),
     chartGlow = false, bigNumberColor = Color(0xFF0F172A), onBackdrop = Color(0xFF0F172A),
     dialogColor = Color.White, navBarColor = Color.White, navSelected = Color(0xFF2563EB),

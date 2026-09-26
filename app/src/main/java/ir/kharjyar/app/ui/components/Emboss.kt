@@ -13,6 +13,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 /**
  * متن «برجسته» (اِمباس) برای کارت اصلی صفحه خانه.
@@ -30,6 +31,22 @@ fun EmbossedText(
     maxLines: Int = Int.MAX_VALUE,
     depth: Float = 1f
 ) {
+    val skin = LocalAppSkin.current
+    // در تم روشن، لایه‌های تیره/روشن دور اعداد شبیه سایه کثیف دیده می‌شوند.
+    // تایپوگرافی روز عمداً کاملاً تخت و شارپ است؛ برجستگی فقط برای کارت‌های تیره می‌ماند.
+    if (!skin.dark) {
+        Text(
+            text = text,
+            modifier = modifier,
+            style = style.copy(shadow = null),
+            color = color,
+            fontWeight = fontWeight,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis
+        )
+        return
+    }
+
     val shadow = Color.Black.copy(alpha = 0.45f * depth)
     val light = Color.White.copy(alpha = 0.34f * depth)
     val glow = style.copy(
