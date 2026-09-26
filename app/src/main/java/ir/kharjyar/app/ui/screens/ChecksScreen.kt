@@ -41,7 +41,7 @@ import java.io.File
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
         Text("چک‌ها",style=MaterialTheme.typography.headlineSmall);Row{FilterChip(direction==CheckDirection.ISSUED,{direction=CheckDirection.ISSUED},{Text("صادرشده")});Spacer(Modifier.width(8.dp));FilterChip(direction==CheckDirection.RECEIVED,{direction=CheckDirection.RECEIVED},{Text("دریافت‌شده")})}
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton({ val f=File(context.cacheDir,"check-camera.jpg"); cameraUri=androidx.core.content.FileProvider.getUriForFile(context,"${context.packageName}.files",f); camera.launch(cameraUri) },Modifier.weight(1f)){Text("دوربین")}
+            OutlinedButton({ val f=File(context.cacheDir,"check-camera.jpg"); val uri=androidx.core.content.FileProvider.getUriForFile(context,"${context.packageName}.files",f); cameraUri=uri; camera.launch(uri) },Modifier.weight(1f)){Text("دوربین")}
             OutlinedButton({picker.launch("image/*")},Modifier.weight(1f)){Text("گالری")}
         }
         if(imagePath.isNotBlank()) Text("✓ تصویر خوانده شد؛ لطفاً اطلاعات تکمیل‌شده را بررسی کنید.",color=MaterialTheme.colorScheme.primary)
