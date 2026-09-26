@@ -146,8 +146,9 @@ object WidgetRenderer {
         applyBackground(context, views, skin, settings.widgetOpacity, settings.widgetLayout)
         applyColors(views, skin, settings.widgetLayout)
         applyRowIcons(views, lines, skin)
-        applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
-        views.setTextViewText(R.id.w_title, weather?.let { "خرج‌یار • ${it.displayText}" } ?: "خرج‌یار")
+        applyTexts(views, lines, weather?.let { "${it.displayText}  •  $persianDate" } ?: persianDate, showNumbers, hideNumbers)
+        // نام برنامه و هوا دو جزء مستقل‌اند؛ عنوان در گوشه قالب می‌ماند و هوا کنار تاریخ قرار می‌گیرد.
+        views.setTextViewText(R.id.w_title, "خرج‌یار")
         applyOptions(views, settings)
         applyClickTargets(context, views)
 

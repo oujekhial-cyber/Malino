@@ -20,9 +20,10 @@ import net.sqlcipher.database.SupportFactory
         CategoryEntity::class,
         CategoryRuleEntity::class,
         BlockedSenderEntity::class,
-        DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class
+        DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
+        BankBalanceSnapshotEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -35,6 +36,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
     abstract fun blockedSenderDao(): BlockedSenderDao
     abstract fun debtDao(): DebtDao
     abstract fun checkDao(): CheckDao
+    abstract fun bankBalanceSnapshotDao(): BankBalanceSnapshotDao
 
     companion object {
         @Volatile
@@ -49,7 +51,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -99,6 +101,12 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_debt_payments_debtId ON debt_payments(debtId)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_debt_payments_paidAt ON debt_payments(paidAt)")
                 db.execSQL("CREATE TABLE IF NOT EXISTS checks (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, direction INTEGER NOT NULL, amountRial INTEGER NOT NULL, counterparty TEXT NOT NULL, bankName TEXT NOT NULL, sayadId TEXT NOT NULL, serialNumber TEXT NOT NULL, accountId INTEGER, issuedAt INTEGER NOT NULL, dueAt INTEGER NOT NULL, reminderAt INTEGER, status INTEGER NOT NULL, imagePath TEXT NOT NULL, note TEXT NOT NULL)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_checks_dueAt ON checks(dueAt)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_checks_accountId ON checks(accountId)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_checks_status ON checks(status)")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS bank_balance_snapshots (accountId INTEGER NOT NULL PRIMARY KEY, balanceRial INTEGER NOT NULL, messageAt INTEGER NOT NULL, smsSystemId INTEGER NOT NULL)")
             }
         }
 

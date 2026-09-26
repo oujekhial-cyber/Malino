@@ -4,12 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -24,8 +26,15 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -35,8 +44,10 @@ import androidx.compose.ui.unit.sp
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.prefs.WidgetLayout
-import ir.kharjyar.app.ui.theme.LocalAppSkin
+import ir.kharjyar.app.data.prefs.WidgetAlign
+import ir.kharjyar.app.data.prefs.WidgetVAlign
 import kotlin.math.roundToInt
+import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 /** یک ردیف پیش‌نمایش ویجت؛ `income` جهت آیکون را مشخص می‌کند (null یعنی بدون جهت). */
 data class WidgetPreviewLine(val label: String, val value: String, val income: Boolean? = null)
@@ -59,7 +70,14 @@ fun WidgetPreview(
     showDates: Boolean = true,
     clockSize: Int = 30,
     valueSize: Int = 12,
-    labelSize: Int = 10
+    labelSize: Int = 10,
+    editable: Boolean = false,
+    titleAlign: WidgetAlign = WidgetAlign.START,
+    titleVAlign: WidgetVAlign = WidgetVAlign.TOP,
+    clockAlign: WidgetAlign = WidgetAlign.END,
+    clockVAlign: WidgetVAlign = WidgetVAlign.TOP,
+    onTitlePlaced: ((WidgetAlign, WidgetVAlign) -> Unit)? = null,
+    onClockPlaced: ((WidgetAlign, WidgetVAlign) -> Unit)? = null
 ) {
     val skin = LocalAppSkin.current
     val today = PersianDate.today()
@@ -93,6 +111,10 @@ fun WidgetPreview(
                     RoyalPreview(jalali, lines, showNumbers, opts)
                 else ->
                     SplitPreview(layout, jalali, lines, showNumbers, opts)
+            }
+            if (editable) {
+                DraggablePreviewElement("نام و مبالغ", titleAlign, titleVAlign, skin.accent, onTitlePlaced)
+                DraggablePreviewElement("ساعت و تاریخ", clockAlign, clockVAlign, skin.incomeColor, onClockPlaced)
             }
         }
     }
@@ -360,4 +382,10 @@ fun LabeledSlider(
             )
         )
     }
+}
+
+@Composable private fun BoxScope.DraggablePreviewElement(label:String,h:WidgetAlign,v:WidgetVAlign,color:Color,onPlaced:((WidgetAlign,WidgetVAlign)->Unit)?) {
+ var dx by remember(h,v){mutableStateOf(0f)};var dy by remember(h,v){mutableStateOf(0f)}
+ val align=when(v){WidgetVAlign.TOP->when(h){WidgetAlign.START->Alignment.TopStart;WidgetAlign.CENTER->Alignment.TopCenter;WidgetAlign.END->Alignment.TopEnd};WidgetVAlign.CENTER->when(h){WidgetAlign.START->Alignment.CenterStart;WidgetAlign.CENTER->Alignment.Center;WidgetAlign.END->Alignment.CenterEnd};WidgetVAlign.BOTTOM->when(h){WidgetAlign.START->Alignment.BottomStart;WidgetAlign.CENTER->Alignment.BottomCenter;WidgetAlign.END->Alignment.BottomEnd}}
+ Text(label,color=Color.White,fontSize=9.sp,modifier=Modifier.align(align).offset{IntOffset(dx.roundToInt(),dy.roundToInt())}.clip(RoundedCornerShape(8.dp)).background(color.copy(alpha=.88f)).padding(5.dp).pointerInput(Unit){detectDragGestures(onDragEnd={val nh=when{dx>35->WidgetAlign.END;dx< -35->WidgetAlign.START;else->WidgetAlign.CENTER};val nv=when{dy>25->WidgetVAlign.BOTTOM;dy< -25->WidgetVAlign.TOP;else->WidgetVAlign.CENTER};onPlaced?.invoke(nh,nv);dx=0f;dy=0f}){change,drag->change.consume();dx+=drag.x;dy+=drag.y}})
 }

@@ -26,6 +26,11 @@ object SmsClassifier {
         "کد ورود", "کد اعتبارسنجی", "این کد را در اختیار", "رمز دوم پویا"
     )
 
+    private val securityNoticeKeywords = listOf(
+        "ورود به همراه بانک", "ورود به اینترنت بانک", "ورود موفق", "تلاش برای ورود",
+        "رمز ورود اشتباه", "رمز اشتباه", "نام کاربری", "دستگاه جدید", "نشست کاربری"
+    )
+
     private val promoKeywords = listOf(
         "تخفیف", "جشنواره", "قرعه کشی", "قرعه‌کشی", "اقساط ویژه", "کلیک کنید",
         "لغو11", "لغو 11", "پیشنهاد ویژه", "تبلیغ"
@@ -42,9 +47,13 @@ object SmsClassifier {
         val hasBalance = balanceKeywords.any { text.contains(it) }
         val hasAmountLike = Regex("\\d{1,3}([,،٬./]\\d{3})+|\\d{4,}").containsMatchIn(text)
         val isOtp = otpKeywords.any { text.contains(it) }
+        val isSecurityNotice = securityNoticeKeywords.any { text.contains(it) }
         val isPromo = promoKeywords.any { text.contains(it) }
 
-        // پیامک تراکنش واقعی حتی اگر هشدار امنیتی/واژه «رمز» داشته باشد
+        // اعلان‌های امنیتی و ورود، حتی اگر عدد یا واژه‌هایی مثل «برداشت ناموفق» داشته باشند، تراکنش نیستند.
+        if (isSecurityNotice && !hasBalance) return SmsKind.NON_FINANCIAL
+
+        // پیامک تراکنش واقعی حتی اگر هشدار عمومی هم در ادامه داشته باشد
         if (hasTxKeyword && hasAmountLike) return SmsKind.FINANCIAL_LIKELY
 
         // OTP خالص بدون نشانه تراکنش

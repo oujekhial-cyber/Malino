@@ -39,6 +39,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val debts = repo.db.debtDao().observeDebts().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val debtPayments = repo.db.debtDao().observePayments().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val checks = repo.db.checkDao().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val bankBalances = repo.db.bankBalanceSnapshotDao().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val categories: StateFlow<List<CategoryEntity>> = repo.categoryDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

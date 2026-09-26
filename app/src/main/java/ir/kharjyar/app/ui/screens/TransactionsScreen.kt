@@ -93,6 +93,7 @@ fun TransactionsScreen(
     var filterDirection by remember(presetDirection) { mutableStateOf(presetDirection) }
     var onlyPending by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<List<TransactionEntity>>(emptyList()) }
 
     // انتخاب چندتایی: با نگه‌داشتن روی یک ردیف فعال می‌شود
     val selected = remember { mutableStateListOf<Long>() }
@@ -169,7 +170,7 @@ fun TransactionsScreen(
                     TextButton(onClick = {
                         val items = all.filter { it.id in selected }
                         selected.clear()
-                        deleteWithUndo(items)
+                        pendingDelete = items
                     }) {
                         Icon(
                             Icons.Filled.Delete,
@@ -231,7 +232,7 @@ fun TransactionsScreen(
                                 if (tx.id in selected) selected.remove(tx.id) else selected.add(tx.id)
                             },
                             onOpen = { nav.navigate("tx/${tx.id}") },
-                            onSwipeDelete = { deleteWithUndo(listOf(tx)) },
+                            onSwipeDelete = { pendingDelete = listOf(tx) },
                             onSwipeEdit = { nav.navigate("tx/${tx.id}") }
                         )
                     }
@@ -276,6 +277,15 @@ fun TransactionsScreen(
                     filterDirection = null; filterNature = null; filterAccount = null; onlyPending = false
                 }) { Text("پاک کردن همه") }
             }
+        )
+    }
+    if (pendingDelete.isNotEmpty()) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingDelete = emptyList() },
+            title = { Text("حذف تراکنش") },
+            text = { Text(if (pendingDelete.size == 1) "آیا این تراکنش حذف شود؟" else "آیا ${pendingDelete.size} تراکنش انتخاب‌شده حذف شوند؟") },
+            confirmButton = { TextButton(onClick = { val values = pendingDelete; pendingDelete = emptyList(); deleteWithUndo(values) }) { Text("حذف") } },
+            dismissButton = { TextButton(onClick = { pendingDelete = emptyList() }) { Text("لغو") } }
         )
     }
 }

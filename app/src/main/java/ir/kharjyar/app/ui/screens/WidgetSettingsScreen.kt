@@ -54,7 +54,6 @@ fun WidgetSettingsScreen(viewModel: AppViewModel) {
     val scope = rememberCoroutineScope()
     val settings by viewModel.settings.collectAsState()
     var weatherCity by remember { mutableStateOf(ir.kharjyar.app.weather.WeatherService.city(context)) }
-    var selectedPanel by remember { mutableStateOf("title") }
 
     /** هر تغییر تنظیمات، ویجت‌های روی صفحه اصلی را هم تازه می‌کند. */
     fun applyChange(block: suspend () -> Unit) {
@@ -104,7 +103,14 @@ fun WidgetSettingsScreen(viewModel: AppViewModel) {
                 showDates = settings.widgetShowDates,
                 clockSize = settings.widgetClockSize,
                 valueSize = settings.widgetValueSize,
-                labelSize = settings.widgetLabelSize
+                labelSize = settings.widgetLabelSize,
+                editable = true,
+                titleAlign = settings.widgetTitleAlign,
+                titleVAlign = settings.widgetTitleVAlign,
+                clockAlign = settings.widgetClockAlign,
+                clockVAlign = settings.widgetClockVAlign,
+                onTitlePlaced = { h, v -> applyChange { viewModel.settingsRepo.setWidgetTitleAlign(h); viewModel.settingsRepo.setWidgetTitleVAlign(v) } },
+                onClockPlaced = { h, v -> applyChange { viewModel.settingsRepo.setWidgetClockAlign(h); viewModel.settingsRepo.setWidgetClockVAlign(v) } }
             )
         }
 
@@ -145,28 +151,7 @@ fun WidgetSettingsScreen(viewModel: AppViewModel) {
             )
         }
 
-        WidgetCard("جای‌گذاری لمسی اجزای ویجت") {
-            Text("ابتدا جزء را لمس کنید، سپس خانه مقصد را در شبکه بزنید. پیش‌نمایش و ویجت فوراً بروزرسانی می‌شوند.", style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton({ selectedPanel = "title" }, Modifier.weight(1f)) { Text(if (selectedPanel == "title") "✓ نام و مبالغ" else "نام و مبالغ") }
-                OutlinedButton({ selectedPanel = "clock" }, Modifier.weight(1f)) { Text(if (selectedPanel == "clock") "✓ ساعت و تاریخ" else "ساعت و تاریخ") }
-            }
-            val hs = listOf(WidgetAlign.START, WidgetAlign.CENTER, WidgetAlign.END)
-            val vs = listOf(WidgetVAlign.TOP, WidgetVAlign.CENTER, WidgetVAlign.BOTTOM)
-            vs.forEach { v ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    hs.forEach { h ->
-                        OutlinedButton(onClick = {
-                            applyChange {
-                                if (selectedPanel == "title") { viewModel.settingsRepo.setWidgetTitleAlign(h); viewModel.settingsRepo.setWidgetTitleVAlign(v) }
-                                else { viewModel.settingsRepo.setWidgetClockAlign(h); viewModel.settingsRepo.setWidgetClockVAlign(v) }
-                            }
-                        }, modifier = Modifier.weight(1f)) { Text("●") }
-                    }
-                }
-            }
-            Text("بالا/وسط/پایین × راست/وسط/چپ", style = MaterialTheme.typography.labelSmall)
-        }
+        Text("برای جابه‌جایی، برچسب هر بخش را مستقیماً روی پیش‌نمایش بکشید.", style = MaterialTheme.typography.bodySmall)
 
         // ---------- چه چیزهایی دیده شود ----------
         WidgetCard("چه چیزهایی نمایش داده شود") {

@@ -95,6 +95,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val recent by viewModel.scopedRecent.collectAsState()
     val reviewCount by viewModel.reviewCount.collectAsState()
     val allTx by viewModel.allTransactions.collectAsState()
+    val bankBalances by viewModel.bankBalances.collectAsState()
     val scopedTx by viewModel.scopedTransactions.collectAsState()
     val defaultAccount by viewModel.defaultAccount.collectAsState()
     val skin = LocalAppSkin.current
@@ -408,6 +409,23 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         selected = false,
                                         modifier = Modifier.weight(1f)
                                     )
+                                }
+                                bankBalances.firstOrNull { it.accountId == account.id }?.let { bankBalance ->
+                                    val estimated = est.rial
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        "مانده آخرین پیامک بانک: " + if (amountVisible) Money.format(bankBalance.balanceRial, settings.moneyUnit) else "••••••",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = onCard.copy(alpha = 0.92f)
+                                    )
+                                    if (estimated != null && estimated != bankBalance.balanceRial) {
+                                        Text(
+                                            "مغایرت ${Money.format(kotlin.math.abs(estimated - bankBalance.balanceRial), settings.moneyUnit)} — یافتن تراکنش ثبت‌نشده",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = skin.expenseColor,
+                                            modifier = Modifier.clickable { nav.navigate("smsHistory") }
+                                        )
+                                    }
                                 }
                             }
                         }
