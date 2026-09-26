@@ -1,9 +1,9 @@
 package ir.kharjyar.app
 
 import java.io.File
-import kotlin.test.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import org.junit.Test
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 
 class ApkSecurityGuardTest {
     private val manifest = File("src/main/AndroidManifest.xml").readText()
