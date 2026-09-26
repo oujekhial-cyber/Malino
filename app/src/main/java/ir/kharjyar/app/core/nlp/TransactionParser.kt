@@ -395,7 +395,9 @@ object TransactionParser {
         targetAccount: ParserAccount?,
         category: ParserCategory?
     ): String {
-        var s = normalized
+        // اگر کاربر «بابت ...» گفته باشد، شرح دقیقاً از متن بعد از «بابت» ساخته می‌شود؛
+        // در نتیجه مبلغ و مشخصات مبدأ/مقصد که پیش از آن آمده‌اند وارد دلیل انتقال نمی‌شوند.
+        var s = if (normalized.contains("بابت")) normalized.substringAfter("بابت") else normalized
         // حذف مبلغ و واحد
         s = s.replace(Regex("\\d+(?:[.,]\\d+)*"), " ")
         (tomanWords + rialWords + listOf("هزار", "میلیون", "میلیارد", "نیم")).forEach {
