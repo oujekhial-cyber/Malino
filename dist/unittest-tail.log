@@ -14,21 +14,21 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
-> Task :app:checkDebugAarMetadata
 > Task :app:generateDebugResValues
+> Task :app:checkDebugAarMetadata
 > Task :app:mapDebugSourceSetPaths
 > Task :app:generateDebugResources
 > Task :app:packageDebugResources
+> Task :app:mergeDebugResources
 > Task :app:createDebugCompatibleScreenManifests
 > Task :app:extractDeepLinksDebug
-> Task :app:mergeDebugResources
 > Task :app:parseDebugLocalResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
-> Task :app:processDebugManifestForPackage
-> Task :app:javaPreCompileDebug
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:processDebugManifestForPackage
 > Task :app:javaPreCompileDebugUnitTest
+> Task :app:javaPreCompileDebug
 > Task :app:processDebugResources
 > Task :app:kspDebugKotlin
 > Task :app:compileDebugKotlin
@@ -42,5 +42,5 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:processDebugUnitTestJavaRes
 > Task :app:testDebugUnitTest
 
-BUILD SUCCESSFUL in 2m 52s
+BUILD SUCCESSFUL in 2m 56s
 25 actionable tasks: 25 executed

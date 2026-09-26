@@ -450,13 +450,13 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:285: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var color by remember { mutableStateOf(existing?.colorArgb ?: categoryColors[0]) }
                             ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:27: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:32: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var direction by remember{mutableStateOf(CheckDirection.ISSUED)};var amount by remember{mutableStateOf("")};var party by remember{mutableStateOf("")};var bank by remember{mutableStateOf("")};var sayad by remember{mutableStateOf("")};var serial by remember{mutableStateOf("")};var due by remember{mutableStateOf(PersianDate.today())};var imagePath by remember{mutableStateOf("")}
                               ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:109: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var recentFilter by remember { mutableStateOf(0) }
                                    ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:20: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:21: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var person by remember{ mutableStateOf("")}; var title by remember{ mutableStateOf("")}; var amount by remember{ mutableStateOf("")}; var kind by remember{ mutableStateOf(DebtKind.RECEIVABLE)}; var due by remember{ mutableStateOf(PersianDate.today())}
                                                                                                                                                                 ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:78: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
