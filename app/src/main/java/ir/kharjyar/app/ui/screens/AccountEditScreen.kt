@@ -119,6 +119,7 @@ fun AccountEditScreen(
     var showScanner by remember { mutableStateOf(false) }
     var scanMessage by remember { mutableStateOf<String?>(null) }
     var txCount by remember { mutableStateOf(0) }
+    var sampleSms by remember { mutableStateOf("") }
 
     LaunchedEffect(accountId) {
         if (accountId > 0) {
@@ -143,6 +144,23 @@ fun AccountEditScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         
+        if (accountId == 0L) {
+            FormSection("تکمیل خودکار از آخرین پیامک بانک") {
+                Text("متن آخرین پیامک همین حساب را جایگذاری کنید؛ عنوان حساب همچنان انتخاب خودتان است.", style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(sampleSms, { sampleSms = it }, label = { Text("متن پیامک") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedButton(onClick = {
+                    val extracted = ir.kharjyar.app.core.sms.Extractor.autoExtract(sampleSms)
+                    extracted.accountIdHint?.let { hint ->
+                        maskedNumber = if (hint.contains('*') || hint.contains('٭')) hint else "****" + hint.filter(Char::isDigit).takeLast(4)
+                        newHint = hint.filter(Char::isDigit).takeLast(6)
+                    }
+                    extracted.balanceRial?.let { initialBalance = it.toString() }
+                    bankNames.firstOrNull { it != "سایر" && sampleSms.contains(it) }?.let { bankName = it }
+                    scanMessage = "اطلاعات قابل تشخیص از پیامک در فرم قرار گرفت"
+                }, enabled = sampleSms.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("تحلیل و تکمیل فرم") }
+            }
+        }
+
         // ---------- پیش‌نمایش زنده کارت ----------
         BankCard(
             account = AccountEntity(

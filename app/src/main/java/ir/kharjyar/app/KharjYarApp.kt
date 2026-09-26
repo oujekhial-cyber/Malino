@@ -27,6 +27,11 @@ class KharjYarApp : Application() {
         super.onCreate()
         createNotificationChannels()
         observeDataForWidget()
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "obligation-reminders",
+            androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+            androidx.work.PeriodicWorkRequestBuilder<ir.kharjyar.app.work.ObligationReminderWorker>(12, java.util.concurrent.TimeUnit.HOURS).build()
+        )
     }
 
     /**

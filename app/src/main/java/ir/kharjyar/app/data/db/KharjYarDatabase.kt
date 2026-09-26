@@ -19,9 +19,10 @@ import net.sqlcipher.database.SupportFactory
         TransferGroupEntity::class,
         CategoryEntity::class,
         CategoryRuleEntity::class,
-        BlockedSenderEntity::class
+        BlockedSenderEntity::class,
+        DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -32,6 +33,8 @@ abstract class KharjYarDatabase : RoomDatabase() {
     abstract fun transferDao(): TransferDao
     abstract fun categoryDao(): CategoryDao
     abstract fun blockedSenderDao(): BlockedSenderDao
+    abstract fun debtDao(): DebtDao
+    abstract fun checkDao(): CheckDao
 
     companion object {
         @Volatile
@@ -46,7 +49,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -84,6 +87,18 @@ abstract class KharjYarDatabase : RoomDatabase() {
                         "ALTER TABLE `accounts` ADD COLUMN `$col` TEXT NOT NULL DEFAULT ''"
                     )
                 }
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS debt_people (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL, note TEXT NOT NULL, createdAt INTEGER NOT NULL)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS debts (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, personId INTEGER NOT NULL, kind INTEGER NOT NULL, amountRial INTEGER NOT NULL, title TEXT NOT NULL, createdAt INTEGER NOT NULL, dueAt INTEGER, reminderAt INTEGER, settled INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_debts_personId ON debts(personId)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_debts_dueAt ON debts(dueAt)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS debt_payments (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, debtId INTEGER NOT NULL, amountRial INTEGER NOT NULL, paidAt INTEGER NOT NULL, note TEXT NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_debt_payments_debtId ON debt_payments(debtId)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_debt_payments_paidAt ON debt_payments(paidAt)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS checks (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, direction INTEGER NOT NULL, amountRial INTEGER NOT NULL, counterparty TEXT NOT NULL, bankName TEXT NOT NULL, sayadId TEXT NOT NULL, serialNumber TEXT NOT NULL, accountId INTEGER, issuedAt INTEGER NOT NULL, dueAt INTEGER NOT NULL, reminderAt INTEGER, status INTEGER NOT NULL, imagePath TEXT NOT NULL, note TEXT NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_checks_dueAt ON checks(dueAt)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_checks_accountId ON checks(accountId)"); db.execSQL("CREATE INDEX IF NOT EXISTS index_checks_status ON checks(status)")
             }
         }
 

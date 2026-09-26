@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.size
@@ -72,6 +74,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
     var smsGranted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED)
     }
+    var showAbout by remember { mutableStateOf(false) }
     var notifGranted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
     }
@@ -311,41 +314,32 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
         SectionCard("حریم خصوصی") {
             Text(
-                "خرج‌یار فقط پیامک‌های دریافتی جدید را (با اجازه شما) بررسی می‌کند و فقط پیامک‌های مالی را نگه می‌دارد. رمزهای یک‌بارمصرف و پیامک‌های شخصی ذخیره نمی‌شوند. همه داده‌ها فقط روی همین گوشی هستند؛ برنامه اینترنت ندارد و هیچ اطلاعاتی به جایی ارسال نمی‌شود.",
+                "خرج‌یار فقط با اجازه شما پیامک‌های مالی را بررسی می‌کند؛ رمزهای یک‌بارمصرف و پیامک‌های شخصی ذخیره نمی‌شوند. اطلاعات مالی، تصاویر چک و دفتر بدهی روی همین گوشی می‌مانند و برای سازنده ارسال نمی‌شوند. اینترنت فقط برای دریافت هواشناسی شهر انتخابی استفاده می‌شود.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        // ---------- پشتیبانی ----------
-        SectionCard("پشتیبانی و ارتباط با ما") {
-            Text(
-                "برای گزارش مشکل، پیشنهاد یا راهنمایی با ما در تماس باشید.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // ایمیل: با زدن، برنامه ایمیل باز می‌شود
-            ContactRow(
-                icon = Icons.Filled.Email,
-                label = "ایمیل",
-                value = "fasasoftrrr@gmail.com",
-                onClick = {
-                    runCatching {
-                        context.startActivity(
-                            Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:fasasoftrrr@gmail.com"))
-                                .putExtra(Intent.EXTRA_SUBJECT, "خرج‌یار")
-                        )
-                    }
-                }
-            )
-
-            Text(
-                "نسخه ۱.۰.۰",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        SectionCard("درباره ما") {
+            NavRow("ارتباط با سازنده و اطلاعات برنامه") { showAbout = true }
         }
+    }
+    if (showAbout) {
+        AlertDialog(
+            onDismissRequest = { showAbout = false },
+            title = { Text("درباره خرج‌یار") },
+            text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ContactRow(Icons.Filled.Email, "ایمیل", "fasasoftrrr@gmail.com") {
+                    runCatching { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:fasasoftrrr@gmail.com"))) }
+                }
+                Text("واتساپ — لینک به‌زودی", style = MaterialTheme.typography.bodyMedium)
+                Text("روبیکا — لینک به‌زودی", style = MaterialTheme.typography.bodyMedium)
+                HorizontalDivider()
+                Text("نسخه ۱.۰.۰")
+                Text("حریم خصوصی: اطلاعات مالی، پیامک‌ها، تصاویر چک و دفتر بدهی در فضای خصوصی و رمزنگاری‌شده برنامه نگهداری می‌شوند. هیچ داده مالی برای سازنده ارسال نمی‌شود. اینترنت فقط برای هواشناسی شهر انتخابی استفاده می‌شود.", style = MaterialTheme.typography.bodySmall)
+            } },
+            confirmButton = { TextButton({ showAbout = false }) { Text("بستن") } }
+        )
     }
 }
 

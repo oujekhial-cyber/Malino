@@ -109,6 +109,9 @@ import ir.kharjyar.app.ui.screens.ReportsScreen
 import ir.kharjyar.app.ui.screens.ReviewScreen
 import ir.kharjyar.app.ui.screens.SettingsScreen
 import ir.kharjyar.app.ui.screens.SmsPasteScreen
+import ir.kharjyar.app.ui.screens.SmsHistoryImportScreen
+import ir.kharjyar.app.ui.screens.DebtsScreen
+import ir.kharjyar.app.ui.screens.ChecksScreen
 import ir.kharjyar.app.ui.screens.TemplateTrainScreen
 import ir.kharjyar.app.ui.screens.TransactionEditScreen
 import ir.kharjyar.app.ui.screens.TransactionsScreen
@@ -242,6 +245,9 @@ private val drawerEntries = listOf(
     DrawerEntry("accounts", "حساب‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("categories", "دسته‌بندی‌ها", Icons.Filled.Category),
     DrawerEntry("review", "پیامک‌های بانکی", Icons.Filled.RateReview, badge = true),
+    DrawerEntry("smsHistory", "ورود پیامک‌های قبلی", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("debts", "طلب و بدهی", Icons.Filled.AccountBalance),
+    DrawerEntry("checks", "مدیریت چک‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("backup", "بکاپ", Icons.Filled.CloudUpload),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
@@ -486,6 +492,9 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("quickAdd") { QuickAddScreen(viewModel, navController) }
                 composable("smsPaste") { SmsPasteScreen(viewModel, navController) }
                 composable("review") { ReviewScreen(viewModel, navController) }
+                composable("smsHistory") { SmsHistoryImportScreen(viewModel, navController) }
+                composable("debts") { DebtsScreen(viewModel) }
+                composable("checks") { ChecksScreen(viewModel) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->
                     AccountEditScreen(viewModel, navController, entry.arguments?.getString("id")?.toLongOrNull() ?: 0L)
