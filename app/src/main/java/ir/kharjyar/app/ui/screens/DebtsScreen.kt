@@ -13,15 +13,16 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.*
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.DateTimeField
+import ir.kharjyar.app.ui.components.TwoWayModeSelector
 import kotlinx.coroutines.launch
 
 @Composable fun DebtsScreen(vm: AppViewModel) {
     val people by vm.debtPeople.collectAsState(); val debts by vm.debts.collectAsState(); val payments by vm.debtPayments.collectAsState(); val settings by vm.settings.collectAsState(); val scope=rememberCoroutineScope()
     var person by remember{ mutableStateOf("")}; var title by remember{ mutableStateOf("")}; var amount by remember{ mutableStateOf("")}; var kind by remember{ mutableStateOf(DebtKind.RECEIVABLE)}; var due by remember{ mutableStateOf(PersianDate.today())}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text("طلب‌ها و بدهی‌ها", style=MaterialTheme.typography.headlineSmall)
+        TwoWayModeSelector("طلب از دیگران", "بدهی به دیگران", kind==DebtKind.RECEIVABLE, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.error, {kind=DebtKind.RECEIVABLE}, {kind=DebtKind.PAYABLE})
+        Text(if(kind==DebtKind.RECEIVABLE) "ثبت طلب" else "ثبت بدهی", style=MaterialTheme.typography.headlineSmall)
         OutlinedTextField(person,{person=it},label={Text("نام شخص")},modifier=Modifier.fillMaxWidth()); OutlinedTextField(title,{title=it},label={Text("عنوان/توضیح")},modifier=Modifier.fillMaxWidth()); ir.kharjyar.app.ui.components.AmountTextField(amount,{amount=it},"مبلغ به ریال",Modifier.fillMaxWidth())
-        Row { FilterChip(kind==DebtKind.RECEIVABLE,{kind=DebtKind.RECEIVABLE},{Text("طلب من")}); Spacer(Modifier.width(8.dp)); FilterChip(kind==DebtKind.PAYABLE,{kind=DebtKind.PAYABLE},{Text("بدهی من")}) }
         DateTimeField(due,9,0,{due=it},{_,_->})
         Button({ scope.launch { val p=people.firstOrNull{it.name==person}; val pid=p?.id?:vm.repo.db.debtDao().insertPerson(DebtPersonEntity(name=person,createdAt=System.currentTimeMillis())); vm.repo.db.debtDao().insertDebt(DebtEntity(personId=pid,kind=kind,amountRial=Digits.parseAmount(amount)?:0,title=title,createdAt=System.currentTimeMillis(),dueAt=due.startOfDayMillis(),reminderAt=due.startOfDayMillis())); person="";title="";amount="" } }, enabled=person.isNotBlank()&&(Digits.parseAmount(amount)?:0)>0, modifier=Modifier.fillMaxWidth()){Text(if(kind==DebtKind.RECEIVABLE) "ثبت طلب و یادآور" else "ثبت بدهی و یادآور")}
         HorizontalDivider()
