@@ -438,7 +438,7 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountsScreen.kt:59: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var pendingDeleteTxCount by remember { mutableStateOf(0) }
                                            ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppRoot.kt:283: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppRoot.kt:286: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var lastBackAt by remember { mutableStateOf(0L) }
                                  ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:60: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
@@ -459,6 +459,9 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:21: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var person by remember{ mutableStateOf("")}; var title by remember{ mutableStateOf("")}; var amount by remember{ mutableStateOf("")}; var kind by remember{ mutableStateOf(DebtKind.RECEIVABLE)}; var due by remember{ mutableStateOf(PersianDate.today())}
                                                                                                                                                                 ~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:20: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+@Composable fun LoansScreen(vm:AppViewModel){val loans by vm.loans.collectAsState();val installments by vm.loanInstallments.collectAsState();val settings by vm.settings.collectAsState();val scope=rememberCoroutineScope();var kind by remember{mutableStateOf(LoanKind.BORROWED)};var title by remember{mutableStateOf("")};var party by remember{mutableStateOf("")};var principal by remember{mutableStateOf("")};var payment by remember{mutableStateOf("")};var count by remember{mutableStateOf("12")};var firstDue by remember{mutableStateOf(PersianDate.today().plusDays(30))}
+                                                                                                                                                                                                                                                  ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:78: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var direction by remember { mutableStateOf(presetDirection ?: TxDirection.WITHDRAW) }
                                 ~~~~~~~~~~~~~~
