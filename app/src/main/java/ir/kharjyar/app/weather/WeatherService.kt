@@ -31,12 +31,12 @@ object WeatherService {
             val requested = city(context)
             val q = URLEncoder.encode(requested, "UTF-8")
             val geo = get("https://geocoding-api.open-meteo.com/v1/search?name=$q&count=1&language=fa&format=json")
-            val lat = Regex("\"latitude\"\s*:\s*(-?\d+(?:\.\d+)?)").find(geo)?.groupValues?.get(1) ?: error("city")
-            val lon = Regex("\"longitude\"\s*:\s*(-?\d+(?:\.\d+)?)").find(geo)?.groupValues?.get(1) ?: error("city")
-            val resolved = Regex("\"name\"\s*:\s*\"([^\"]+)\"").find(geo)?.groupValues?.get(1) ?: requested
+            val lat = Regex(""""latitude"\s*:\s*(-?\d+(?:\.\d+)?)""").find(geo)?.groupValues?.get(1) ?: error("city")
+            val lon = Regex(""""longitude"\s*:\s*(-?\d+(?:\.\d+)?)""").find(geo)?.groupValues?.get(1) ?: error("city")
+            val resolved = Regex(""""name"\s*:\s*"([^"]+)"""").find(geo)?.groupValues?.get(1) ?: requested
             val json = get("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code&timezone=auto")
-            val value = Regex("\"temperature_2m\"\s*:\s*(-?\d+(?:\.\d+)?)").find(json)?.groupValues?.get(1)?.toDoubleOrNull() ?: error("temperature")
-            val code = Regex("\"weather_code\"\s*:\s*(\d+)").find(json)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val value = Regex(""""temperature_2m"\s*:\s*(-?\d+(?:\.\d+)?)""").find(json)?.groupValues?.get(1)?.toDoubleOrNull() ?: error("temperature")
+            val code = Regex(""""weather_code"\s*:\s*(\d+)""").find(json)?.groupValues?.get(1)?.toIntOrNull() ?: 0
             val info = WeatherInfo("${value.toInt()}°", resolved, iconFor(code))
             prefs.edit().putString("temperature", info.temperature).putString("resolved_city", info.city)
                 .putString("icon", info.icon).putLong("updated", System.currentTimeMillis()).apply()
