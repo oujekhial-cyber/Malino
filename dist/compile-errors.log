@@ -1,0 +1,12 @@
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:41:57 Argument type mismatch: actual type is 'kotlin.String', but 'kotlin.Function1<kotlin.Int, kotlin.Unit>' was expected.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:41:61 Argument type mismatch: actual type is 'kotlin.Function0<kotlin.Unit>', but 'androidx.compose.ui.Modifier' was expected.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:41:108 Unresolved reference 'it'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:46:51 No value passed for parameter 'onValueChange'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:46:57 Argument type mismatch: actual type is 'kotlin.Function0<kotlin.Unit>', but 'androidx.compose.ui.Modifier' was expected.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:46:66 Unresolved reference 'it'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:41:57 Argument type mismatch: actual type is 'kotlin.String', but 'kotlin.Function1<kotlin.Int, kotlin.Unit>' was expected.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:41:61 Argument type mismatch: actual type is 'kotlin.Function0<kotlin.Unit>', but 'androidx.compose.ui.Modifier' was expected.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:41:108 Unresolved reference 'it'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:46:51 No value passed for parameter 'onValueChange'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:46:57 Argument type mismatch: actual type is 'kotlin.Function0<kotlin.Unit>', but 'androidx.compose.ui.Modifier' was expected.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt:46:66 Unresolved reference 'it'.
