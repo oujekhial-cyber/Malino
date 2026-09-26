@@ -236,10 +236,10 @@ class SwipeAndBankLogoGuardTest {
     }
 
     @Test
-    fun `deposit and withdraw chips open the matching transaction list`() {
+    fun `deposit and withdraw figures are not clickable`() {
         val dash = source("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt")
-        assertTrue("میان‌بر واریز نیست", dash.contains("nav.navigate(\"transactions/deposit\")"))
-        assertTrue("میان‌بر برداشت نیست", dash.contains("nav.navigate(\"transactions/withdraw\")"))
+        assertFalse("رقم واریز نباید کلیک‌پذیر باشد", dash.contains("nav.navigate(\"transactions/deposit\")"))
+        assertFalse("رقم برداشت نباید کلیک‌پذیر باشد", dash.contains("nav.navigate(\"transactions/withdraw\")"))
         val tx = source("src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt")
         assertTrue("فیلتر جهت بانکی نیست", tx.contains("filterDirection"))
         assertTrue("انتقال‌ها بر اساس جهت فیلتر نمی‌شوند", tx.contains("tx.direction == filterDirection"))

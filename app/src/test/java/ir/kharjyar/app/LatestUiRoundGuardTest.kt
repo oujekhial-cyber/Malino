@@ -22,10 +22,10 @@ class LatestUiRoundGuardTest {
         assertFalse(q.contains("حقوق این ماه ۲۵ میلیون تومن واریز شد"))
     }
 
-    @Test fun `home summary chips open filtered transaction screen`() {
+    @Test fun `home summary figures have no navigation reaction`() {
         val d = source("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt")
-        assertTrue(d.contains("nav.navigate(\"transactions/deposit\")"))
-        assertTrue(d.contains("nav.navigate(\"transactions/withdraw\")"))
+        assertFalse(d.contains("nav.navigate(\"transactions/deposit\")"))
+        assertFalse(d.contains("nav.navigate(\"transactions/withdraw\")"))
         val t = source("src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt")
         assertTrue(t.contains("filterDirection"))
         assertTrue(t.contains("tx.direction == filterDirection"))
