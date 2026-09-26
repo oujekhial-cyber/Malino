@@ -369,7 +369,7 @@ class Repository(val db: KharjYarDatabase) {
             val fromTitle = accountDao.byId(fromAccountId)?.title ?: "مبدأ"
             val toTitle = accountDao.byId(toAccountId)?.title ?: "مقصد"
             val reason = description.trim().takeIf { it.isNotBlank() }?.let { " — بابت $it" } ?: ""
-            val outgoingDescription = "انتقال به حساب $toTitle$reason"
+            val outgoingDescription = "انتقال وجه به حساب $toTitle$reason"
             val incomingDescription = "انتقال وجه از حساب $fromTitle$reason"
             val groupId = transferDao.insert(
                 TransferGroupEntity(createdAt = now(), incomplete = false, note = "انتقال دستی بین حساب‌های کاربر")

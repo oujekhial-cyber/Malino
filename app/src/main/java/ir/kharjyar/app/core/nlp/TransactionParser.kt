@@ -213,6 +213,7 @@ object TransactionParser {
             original = text,
             normalized = normalized,
             account = account,
+            targetAccount = targetAccount,
             category = category
         )
 
@@ -391,6 +392,7 @@ object TransactionParser {
         original: String,
         normalized: String,
         account: ParserAccount?,
+        targetAccount: ParserAccount?,
         category: ParserCategory?
     ): String {
         var s = normalized
@@ -400,8 +402,11 @@ object TransactionParser {
             s = s.replace(it, " ")
         }
         // عنوان و نام بانک حساب، و نام دسته نباید وارد شرح شوند
-        listOfNotNull(account?.title, account?.bankName, category?.name)
-            .map(::normalize)
+        listOfNotNull(
+            account?.title, account?.bankName,
+            targetAccount?.title, targetAccount?.bankName,
+            category?.name
+        ).map(::normalize)
             .filter { it.isNotBlank() }
             .sortedByDescending { it.length }
             .forEach { s = s.replace(it, " ") }
@@ -410,7 +415,8 @@ object TransactionParser {
             "با حساب", "از حساب", "به حساب", "حساب", "کارت", "بانک",
             "خریدم", "خرید کردم", "خرید", "پرداختم", "پرداخت کردم", "پرداخت",
             "دادم", "گرفتم", "دریافت کردم", "واریز شد", "واریز کردم", "واریز",
-            "امروز", "دیروز", "پریروز", "فردا", "این ماه", "این هفته"
+            "انتقال وجه دادم", "انتقال وجه کردم", "انتقال دادم", "منتقل کردم", "انتقال وجه", "انتقال",
+            "بابت", "امروز", "دیروز", "پریروز", "فردا", "این ماه", "این هفته"
         )
         structural.sortedByDescending { it.length }.forEach { s = s.replace(it, " ") }
         s = s.replace(Regex("\\s+"), " ").trim(' ', '،', ',', '-', '_')

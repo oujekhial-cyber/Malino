@@ -89,6 +89,12 @@ class TransactionParserTest {
     }
 
     @Test
+    fun `internal transfer description contains only user reason`() {
+        val r = parse("یک میلیون تومن از حساب روزمره به حساب پس‌انداز بابت اجاره انتقال دادم")
+        assertEquals("اجاره", r.description)
+    }
+
+    @Test
     fun `detects destination when saved title starts with account`() {
         val customAccounts = listOf(
             ParserAccount(21L, "حساب حقوق", "بانک مبدأ"),
