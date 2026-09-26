@@ -356,7 +356,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
                             drawArc(Color(argb), start, sweep, useCenter = true)
                             start += sweep
                         }
-                        drawCircle(color = skin.backdrop, radius = size.minDimension * 0.24f)
+                        drawCircle(color = skin.cardColor, radius = size.minDimension * 0.24f)
                     }
                     Spacer(Modifier.height(12.dp))
                     slices.forEach { (name, amount, colorArgb) ->
