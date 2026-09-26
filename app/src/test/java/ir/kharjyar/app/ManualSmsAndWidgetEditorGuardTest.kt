@@ -22,9 +22,10 @@ class ManualSmsAndWidgetEditorGuardTest {
         assertTrue(weather.contains("☁️"))
     }
 
-    @Test fun `widget editor has touch grid and independent visibility controls`() {
+    @Test fun `widget editor drags elements on preview and has independent visibility controls`() {
         val screen = File("src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt").readText()
-        assertTrue(screen.contains("جای‌گذاری لمسی اجزای ویجت"))
+        val preview = File("src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt").readText()
+        assertTrue(preview.contains("detectDragGestures"))
         assertTrue(screen.contains("setWidgetTitleAlign"))
         assertTrue(screen.contains("setWidgetClockVAlign"))
         assertTrue(screen.contains("setWidgetShowTitle"))
