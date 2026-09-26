@@ -254,7 +254,7 @@ private val drawerEntries = listOf(
     DrawerEntry("loans", "اقساط و وام‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("assets", "دارایی‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("notes", "یادداشت‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
-    DrawerEntry("reminders", "یادآورها", Icons.Filled.Notifications),
+    DrawerEntry("reminders", "یادآورها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("backup", "بکاپ", Icons.Filled.CloudUpload),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
