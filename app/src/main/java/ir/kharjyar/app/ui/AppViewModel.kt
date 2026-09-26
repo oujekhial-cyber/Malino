@@ -34,11 +34,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
     val accounts: StateFlow<List<AccountEntity>> = repo.accountDao.observeAll()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val debtPeople = repo.db.debtDao().observePeople().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val debts = repo.db.debtDao().observeDebts().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val debtPayments = repo.db.debtDao().observePayments().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val checks = repo.db.checkDao().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val categories: StateFlow<List<CategoryEntity>> = repo.categoryDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
