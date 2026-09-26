@@ -14,6 +14,8 @@ class ObligationReminderWorker(context: Context, params: WorkerParameters) : Cor
         val debts = app.database.debtDao().dueReminders(until)
         val checks = app.database.checkDao().dueReminders(until)
         val installments = app.database.loanDao().due(until)
+        val lifeReminders = app.database.reminderDao().due(System.currentTimeMillis())
+        lifeReminders.forEach { ir.kharjyar.app.work.LifeReminderWorker.schedule(applicationContext, it.id, System.currentTimeMillis()) }
         if (debts.isEmpty() && checks.isEmpty() && installments.isEmpty()) return Result.success()
         if (android.os.Build.VERSION.SDK_INT < 33 || androidx.core.content.ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             val text = listOfNotNull(debts.takeIf { it.isNotEmpty() }?.let { "${it.size} طلب/بدهی" }, checks.takeIf { it.isNotEmpty() }?.let { "${it.size} چک" }, installments.takeIf { it.isNotEmpty() }?.let { "${it.size} قسط" }).joinToString(" و ")
