@@ -700,7 +700,7 @@ private fun DrawerBody(
                     Column {
                         Text("خرج‌یار", style = MaterialTheme.typography.titleMedium, color = skin.onHero)
                         Text(
-                            "دستیار خرج و دخل شما",
+                            "دستیار دخل و خرج شما",
                             style = MaterialTheme.typography.bodySmall,
                             color = skin.onHero.copy(alpha = 0.85f)
                         )

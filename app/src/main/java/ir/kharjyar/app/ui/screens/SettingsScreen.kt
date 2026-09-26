@@ -82,6 +82,9 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { smsGranted = it }
     val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { notifGranted = it }
+    fun openPermissionSettings() {
+        context.startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -200,8 +203,8 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
         // ---------- مجوزها ----------
         SectionCard("مجوزها و اعلان") {
-            PermissionRow("دریافت پیامک", smsGranted) { smsPermission.launch(Manifest.permission.RECEIVE_SMS) }
-            PermissionRow("ارسال اعلان", notifGranted) { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
+            PermissionRow("دریافت پیامک", smsGranted, { smsPermission.launch(Manifest.permission.RECEIVE_SMS) }, ::openPermissionSettings)
+            PermissionRow("ارسال اعلان", notifGranted && notifEnabled, { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }, ::openPermissionSettings)
             if (!notifEnabled) {
                 Text("اعلان‌های برنامه در تنظیمات دستگاه خاموش است.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
@@ -272,7 +275,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
         // ---------- ویجت ----------
         // همه تنظیمات ویجت به صفحه اختصاصی خودش منتقل شد تا این صفحه شلوغ نباشد.
-        SectionCard("ویجت صفحه اصلی") {
+        SectionCard("ویجت") {
             Text(
                 "قالب، محتوا، اندازه‌ها و اینکه چه چیزهایی روی ویجت دیده شوند را با پیش‌نمایش زنده تنظیم کنید.",
                 style = MaterialTheme.typography.bodySmall,
@@ -355,14 +358,10 @@ private fun SectionCard(title: String, content: @Composable androidx.compose.fou
 }
 
 @Composable
-private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit) {
+private fun PermissionRow(label: String, granted: Boolean, onEnable: () -> Unit, onDisable: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.bodyLarge)
-        if (granted) {
-            Text("فعال", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-        } else {
-            OutlinedButton(onClick = onRequest) { Text("درخواست") }
-        }
+        Column { Text(label, style = MaterialTheme.typography.bodyLarge); Text(if (granted) "فعال" else "غیرفعال", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        Switch(checked = granted, onCheckedChange = { enabled -> if (enabled) onEnable() else onDisable() })
     }
 }
 

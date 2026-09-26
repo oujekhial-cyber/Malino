@@ -10,7 +10,7 @@ import java.net.URL
 /** هواشناسی شهر انتخابی کاربر؛ بدون دسترسی به موقعیت گوشی. */
 object WeatherService {
     private const val PREFS = "weather_cache"
-    data class WeatherInfo(val temperature: String, val city: String, val icon: String) {
+    data class WeatherInfo(val temperature: String, val city: String, val icon: String, val code: Int = 0) {
         val displayText get() = "$icon $city $temperature"
     }
 
@@ -21,7 +21,7 @@ object WeatherService {
     fun cached(context: Context): WeatherInfo? {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val temp = p.getString("temperature", null) ?: return null
-        return WeatherInfo(temp, p.getString("resolved_city", city(context)) ?: city(context), p.getString("icon", "☀️") ?: "☀️")
+        return WeatherInfo(temp, p.getString("resolved_city", city(context)) ?: city(context), p.getString("icon", "☀️") ?: "☀️", p.getInt("code", 0))
     }
 
     suspend fun refresh(context: Context): WeatherInfo? = withContext(Dispatchers.IO) {
@@ -37,9 +37,9 @@ object WeatherService {
             val json = get("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code&timezone=auto")
             val value = Regex(""""temperature_2m"\s*:\s*(-?\d+(?:\.\d+)?)""").find(json)?.groupValues?.get(1)?.toDoubleOrNull() ?: error("temperature")
             val code = Regex(""""weather_code"\s*:\s*(\d+)""").find(json)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-            val info = WeatherInfo("${value.toInt()}°", resolved, iconFor(code))
+            val info = WeatherInfo("${value.toInt()}°", resolved, iconFor(code), code)
             prefs.edit().putString("temperature", info.temperature).putString("resolved_city", info.city)
-                .putString("icon", info.icon).putLong("updated", System.currentTimeMillis()).apply()
+                .putString("icon", info.icon).putInt("code", code).putLong("updated", System.currentTimeMillis()).apply()
             info
         }.getOrElse { cached(context) }
     }

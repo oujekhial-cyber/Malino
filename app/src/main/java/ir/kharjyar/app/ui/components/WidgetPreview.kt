@@ -375,6 +375,7 @@ fun LabeledSlider(
             value = value.toFloat(),
             onValueChange = { onValueChange(it.roundToInt()) },
             valueRange = range.first.toFloat()..range.last.toFloat(),
+            modifier = Modifier.fillMaxWidth().height(28.dp),
             colors = SliderDefaults.colors(
                 thumbColor = skin.accent,
                 activeTrackColor = skin.accent,

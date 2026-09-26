@@ -148,7 +148,16 @@ object WidgetRenderer {
         applyRowIcons(views, lines, skin)
         applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
         views.setTextViewText(R.id.w_title, "خرج‌یار")
-        views.setTextViewText(R.id.w_weather, weather?.displayText ?: "")
+        views.setTextViewText(R.id.w_weather, weather?.let { "${it.city}  ${it.temperature}" } ?: "")
+        val weatherIcon = when (weather?.code ?: 0) {
+            0, 1, 2 -> R.drawable.weather_sun
+            3, in 45..48 -> R.drawable.weather_cloud
+            in 51..67, in 80..82 -> R.drawable.weather_rain
+            in 71..77, in 85..86 -> R.drawable.weather_snow
+            in 95..99 -> R.drawable.weather_storm
+            else -> R.drawable.weather_cloud
+        }
+        views.setTextViewCompoundDrawables(R.id.w_weather, weatherIcon, 0, 0, 0)
         applyOptions(views, settings)
         applyClickTargets(context, views)
 
@@ -291,7 +300,7 @@ object WidgetRenderer {
         views.setViewVisibility(R.id.w_clock, if (settings.widgetShowClock) visible else gone)
         views.setViewVisibility(R.id.w_jalali, if (settings.widgetShowDates) visible else gone)
         views.setViewVisibility(R.id.w_gregorian, if (settings.widgetShowDates) visible else gone)
-        views.setViewVisibility(R.id.w_weather, if (settings.widgetShowWeather) visible else gone)
+        views.setViewVisibility(R.id.w_weather, if (settings.widgetShowDates) visible else gone)
 
         fun gravity(h: ir.kharjyar.app.data.prefs.WidgetAlign, v: ir.kharjyar.app.data.prefs.WidgetVAlign): Int {
             val horizontal = when (h) { ir.kharjyar.app.data.prefs.WidgetAlign.START -> android.view.Gravity.START; ir.kharjyar.app.data.prefs.WidgetAlign.CENTER -> android.view.Gravity.CENTER_HORIZONTAL; ir.kharjyar.app.data.prefs.WidgetAlign.END -> android.view.Gravity.END }
@@ -302,11 +311,12 @@ object WidgetRenderer {
         listOf(R.id.w_clock, R.id.w_jalali, R.id.w_gregorian).forEach {
             views.setInt(it, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
         }
-        views.setInt(R.id.w_weather, "setGravity", gravity(settings.widgetWeatherAlign, settings.widgetWeatherVAlign))
+        views.setInt(R.id.w_weather, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
+        views.setViewPadding(R.id.w_weather, 12, 74, 12, 4)
 
         val sp = TypedValue.COMPLEX_UNIT_SP
         views.setTextViewTextSize(R.id.w_title, sp, settings.widgetTitleSize.toFloat())
-        views.setTextViewTextSize(R.id.w_weather, sp, settings.widgetWeatherSize.toFloat())
+        views.setTextViewTextSize(R.id.w_weather, sp, settings.widgetDateSize.toFloat())
         views.setTextViewTextSize(R.id.w_clock, sp, settings.widgetClockSize.toFloat())
         views.setTextViewTextSize(R.id.w_jalali, sp, settings.widgetDateSize.toFloat())
         views.setTextViewTextSize(R.id.w_gregorian, sp, (settings.widgetDateSize - 1).coerceAtLeast(7).toFloat())

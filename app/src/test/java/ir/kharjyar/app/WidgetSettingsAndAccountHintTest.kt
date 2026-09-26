@@ -22,8 +22,8 @@ class WidgetSettingsAndAccountHintTest {
   val s=File("src/main/java/ir/kharjyar/app/ui/screens/WidgetSettingsScreen.kt").readText()
   assertTrue(s.contains("جزء ویجت"));assertTrue(s.contains("جای قرارگیری"));assertTrue(s.contains("بازنشانی تنظیمات ویجت"));assertTrue(s.contains("تم ویجت"))
  }
- @Test fun `weather has independent widget view and settings`() {
+ @Test fun `weather has graphical view under date controls`() {
   val renderer=File("src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt").readText()
-  assertTrue(renderer.contains("R.id.w_weather"));assertTrue(renderer.contains("widgetWeatherSize"));assertTrue(renderer.contains("widgetWeatherAlign"))
+  assertTrue(renderer.contains("R.id.w_weather"));assertTrue(renderer.contains("setTextViewCompoundDrawables"));assertTrue(renderer.contains("widgetDateSize"));assertTrue(renderer.contains("widgetShowDates"))
  }
 }

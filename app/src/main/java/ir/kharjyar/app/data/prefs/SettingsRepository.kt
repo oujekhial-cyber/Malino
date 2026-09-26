@@ -93,7 +93,7 @@ data class AppSettings(
     /** آیا یک‌بار به‌صورت خودکار پیشنهاد افزودن ویجت داده شده است؟ */
     val widgetAutoPinned: Boolean = false,
     /** جلوگیری از اسکرین‌شات و ضبط صفحه (FLAG_SECURE). */
-    val secureScreen: Boolean = true,
+    val secureScreen: Boolean = false,
     /** ارقام فارسی یا لاتین در کل برنامه و ویجت. */
     val digitStyle: DigitStyle = DigitStyle.PERSIAN,
     /** حرکت آرام هاله نور شیشه‌ای روی کارت‌های صفحه خانه. */
@@ -185,7 +185,7 @@ class SettingsRepository(private val context: Context) {
             widgetWeatherAlign = enumOf(p[Keys.W_WEATHER_ALIGN], WidgetAlign.CENTER),
             widgetWeatherVAlign = enumOf(p[Keys.W_WEATHER_VALIGN], WidgetVAlign.TOP),
             widgetAutoPinned = p[Keys.WIDGET_AUTO_PIN] ?: false,
-            secureScreen = p[Keys.SECURE_SCREEN] ?: true,
+            secureScreen = p[Keys.SECURE_SCREEN] ?: false,
             digitStyle = enumOf(p[Keys.DIGIT_STYLE], DigitStyle.PERSIAN).also {
                 // پرچم سراسری ارقام همگام با تنظیم کاربر نگه داشته می‌شود
                 ir.kharjyar.app.core.text.Digits.usePersianDigits = it == DigitStyle.PERSIAN

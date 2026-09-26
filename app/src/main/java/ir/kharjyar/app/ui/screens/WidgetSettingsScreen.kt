@@ -18,7 +18,7 @@ import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import ir.kharjyar.app.widget.WidgetUpdater
 import kotlinx.coroutines.launch
 
-private enum class WidgetElement(val label:String) { TITLE("نام برنامه"), WEATHER("هواشناسی"), CLOCK("ساعت"), DATES("تاریخ‌ها"), VALUES("مبالغ"), LABELS("عنوان مبالغ") }
+private enum class WidgetElement(val label:String) { TITLE("نام برنامه"), CLOCK("ساعت"), DATES("تاریخ‌ها"), VALUES("مبالغ"), LABELS("عنوان مبالغ") }
 private data class WidgetPosition(val h:WidgetAlign,val v:WidgetVAlign,val label:String)
 private val positions=listOf(
  WidgetPosition(WidgetAlign.START,WidgetVAlign.TOP,"بالا سمت راست"),WidgetPosition(WidgetAlign.CENTER,WidgetVAlign.TOP,"بالا وسط"),WidgetPosition(WidgetAlign.END,WidgetVAlign.TOP,"بالا سمت چپ"),
@@ -28,9 +28,9 @@ private val positions=listOf(
 @Composable fun WidgetSettingsScreen(viewModel:AppViewModel){
  val context=LocalContext.current;val scope=rememberCoroutineScope();val settings by viewModel.settings.collectAsState();var city by remember{mutableStateOf(ir.kharjyar.app.weather.WeatherService.city(context))};var element by remember{mutableStateOf(WidgetElement.TITLE)}
  fun apply(block:suspend()->Unit){scope.launch{block();WidgetUpdater.requestUpdate(context)}}
- fun positionOf():WidgetPosition=when(element){WidgetElement.TITLE,WidgetElement.VALUES,WidgetElement.LABELS->positions.first{it.h==settings.widgetTitleAlign&&it.v==settings.widgetTitleVAlign};WidgetElement.WEATHER->positions.first{it.h==settings.widgetWeatherAlign&&it.v==settings.widgetWeatherVAlign};else->positions.first{it.h==settings.widgetClockAlign&&it.v==settings.widgetClockVAlign}}
- fun size():Int=when(element){WidgetElement.TITLE->settings.widgetTitleSize;WidgetElement.WEATHER->settings.widgetWeatherSize;WidgetElement.CLOCK->settings.widgetClockSize;WidgetElement.DATES->settings.widgetDateSize;WidgetElement.VALUES->settings.widgetValueSize;WidgetElement.LABELS->settings.widgetLabelSize}
- fun setSize(v:Int)=apply{when(element){WidgetElement.TITLE->viewModel.settingsRepo.setWidgetTitleSize(v);WidgetElement.WEATHER->viewModel.settingsRepo.setWidgetWeatherSize(v);WidgetElement.CLOCK->viewModel.settingsRepo.setWidgetClockSize(v);WidgetElement.DATES->viewModel.settingsRepo.setWidgetDateSize(v);WidgetElement.VALUES->viewModel.settingsRepo.setWidgetValueSize(v);WidgetElement.LABELS->viewModel.settingsRepo.setWidgetLabelSize(v)}}
+ fun positionOf():WidgetPosition=when(element){WidgetElement.TITLE,WidgetElement.VALUES,WidgetElement.LABELS->positions.first{it.h==settings.widgetTitleAlign&&it.v==settings.widgetTitleVAlign};else->positions.first{it.h==settings.widgetClockAlign&&it.v==settings.widgetClockVAlign}}
+ fun size():Int=when(element){WidgetElement.TITLE->settings.widgetTitleSize;WidgetElement.CLOCK->settings.widgetClockSize;WidgetElement.DATES->settings.widgetDateSize;WidgetElement.VALUES->settings.widgetValueSize;WidgetElement.LABELS->settings.widgetLabelSize}
+ fun setSize(v:Int)=apply{when(element){WidgetElement.TITLE->viewModel.settingsRepo.setWidgetTitleSize(v);WidgetElement.CLOCK->viewModel.settingsRepo.setWidgetClockSize(v);WidgetElement.DATES->viewModel.settingsRepo.setWidgetDateSize(v);WidgetElement.VALUES->viewModel.settingsRepo.setWidgetValueSize(v);WidgetElement.LABELS->viewModel.settingsRepo.setWidgetLabelSize(v)}}
  val lines=listOf(WidgetPreviewLine("واریز مهر","۵٬۸۷۰٬۰۰۰",true),WidgetPreviewLine("برداشت مهر","۳٬۲۵۰٬۰۰۰",false))
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
   WidgetCard("پیش‌نمایش"){WidgetPreview(settings.widgetLayout,settings.widgetOpacity,settings.widgetShowNumbers,lines,showTitle=settings.widgetShowTitle,showClock=settings.widgetShowClock,showDates=settings.widgetShowDates,clockSize=settings.widgetClockSize,valueSize=settings.widgetValueSize,labelSize=settings.widgetLabelSize)}
@@ -42,11 +42,10 @@ private val positions=listOf(
   }
   WidgetCard("تنظیم جزء انتخابی"){
    ComboBox("جزء ویجت",WidgetElement.entries.toList(),element,{element=it},labelOf={it.label})
-   ComboBox("جای قرارگیری",positions,positionOf(),{p->apply{when(element){WidgetElement.WEATHER->{viewModel.settingsRepo.setWidgetWeatherAlign(p.h);viewModel.settingsRepo.setWidgetWeatherVAlign(p.v)};WidgetElement.TITLE,WidgetElement.VALUES,WidgetElement.LABELS->{viewModel.settingsRepo.setWidgetTitleAlign(p.h);viewModel.settingsRepo.setWidgetTitleVAlign(p.v)};else->{viewModel.settingsRepo.setWidgetClockAlign(p.h);viewModel.settingsRepo.setWidgetClockVAlign(p.v)}}}},labelOf={it.label})
+   ComboBox("جای قرارگیری",positions,positionOf(),{p->apply{when(element){WidgetElement.TITLE,WidgetElement.VALUES,WidgetElement.LABELS->{viewModel.settingsRepo.setWidgetTitleAlign(p.h);viewModel.settingsRepo.setWidgetTitleVAlign(p.v)};else->{viewModel.settingsRepo.setWidgetClockAlign(p.h);viewModel.settingsRepo.setWidgetClockVAlign(p.v)}}}},labelOf={it.label})
    LabeledSlider("اندازه ${element.label}",size(),8..72,{setSize(it)})
    when(element){
     WidgetElement.TITLE->ToggleRow("نمایش نام برنامه","",settings.widgetShowTitle){apply{viewModel.settingsRepo.setWidgetShowTitle(it)}}
-    WidgetElement.WEATHER->ToggleRow("نمایش هواشناسی","مستقل از تاریخ و ساعت",settings.widgetShowWeather){apply{viewModel.settingsRepo.setWidgetShowWeather(it)}}
     WidgetElement.CLOCK->ToggleRow("نمایش ساعت","",settings.widgetShowClock){apply{viewModel.settingsRepo.setWidgetShowClock(it)}}
     WidgetElement.DATES->ToggleRow("نمایش تاریخ‌ها","",settings.widgetShowDates){apply{viewModel.settingsRepo.setWidgetShowDates(it)}}
     else->ToggleRow("نمایش اعداد","",settings.widgetShowNumbers){apply{viewModel.settingsRepo.setWidgetShowNumbers(it)}}
