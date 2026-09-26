@@ -2,8 +2,8 @@
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:mergeReleaseJniLibFolders
 > Task :app:buildKotlinToolingMetadata
-> Task :app:mergeReleaseNativeLibs
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:mergeReleaseNativeLibs
 > Task :app:checkReleaseDuplicateClasses
 > Task :app:checkReleaseAarMetadata
 > Task :app:generateReleaseResValues
@@ -17,11 +17,11 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:parseReleaseLocalResources FROM-CACHE
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease FROM-CACHE
+> Task :app:extractReleaseNativeSymbolTables
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
-> Task :app:extractReleaseNativeSymbolTables
 > Task :app:javaPreCompileRelease FROM-CACHE
-> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:processReleaseManifestForPackage
 > Task :app:mergeReleaseArtProfile
 > Task :app:extractProguardFiles
@@ -46,8 +46,8 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:compileReleaseJavaWithJavac
 > Task :app:mergeReleaseGeneratedProguardFiles
 > Task :app:processReleaseJavaRes
-> Task :app:mergeReleaseJavaResource
 > Task :app:expandReleaseArtProfileWildcards
+> Task :app:mergeReleaseJavaResource
 > Task :app:minifyReleaseWithR8
 > Task :app:compileReleaseArtProfile
 > Task :app:shrinkReleaseRes
@@ -57,5 +57,5 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 2m 26s
+BUILD SUCCESSFUL in 2m 24s
 48 actionable tasks: 45 executed, 3 from cache
