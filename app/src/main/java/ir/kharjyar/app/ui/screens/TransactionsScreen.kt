@@ -71,6 +71,7 @@ import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsScreen(
     viewModel: AppViewModel,
