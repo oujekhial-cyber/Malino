@@ -8,9 +8,9 @@ import java.io.File
 class LatestUiRoundGuardTest {
     private fun source(path: String) = File(path).readText()
 
-    @Test fun `review is named bank messages`() {
+    @Test fun `review is named unchecked bank messages`() {
         val root = source("src/main/java/ir/kharjyar/app/ui/AppRoot.kt")
-        assertTrue(root.contains("DrawerEntry(\"review\", \"پیامک‌های بانکی\""))
+        assertTrue(root.contains("DrawerEntry(\"review\", \"پیامک‌های بررسی‌نشده\""))
     }
 
     @Test fun `quick analysis hides keyboard and has one requested sample`() {
