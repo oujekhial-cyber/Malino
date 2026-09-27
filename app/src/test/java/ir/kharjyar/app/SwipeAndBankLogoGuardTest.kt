@@ -145,9 +145,9 @@ class SwipeAndBankLogoGuardTest {
         assertFalse("متن قدیمی میان‌بر مانده است", dash.contains("بگو تا بنویسم"))
         assertFalse("مثال «۲۵۰ هزار تومن نان» مانده است", dash.contains("۲۵۰ هزار تومن نان"))
         assertTrue("میان‌بر «ثبت سریع» نیست", dash.contains("\"ثبت سریع\""))
-        // نمودار باید فقط در صفحه گزارش بماند
+        // بنا بر درخواست جدید، نمودار روند از صفحه گزارش نیز حذف شده است
         val reports = source("src/main/java/ir/kharjyar/app/ui/screens/ReportsScreen.kt")
-        assertTrue("نمودار از گزارش‌ها هم حذف شده", reports.contains("LineChart("))
+        assertFalse("نمودار روند هنوز در گزارش‌ها است", reports.contains("LineChart("))
     }
 
     @Test

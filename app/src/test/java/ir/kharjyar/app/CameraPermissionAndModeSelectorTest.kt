@@ -16,7 +16,7 @@ class CameraPermissionAndModeSelectorTest {
     @Test fun `debt and check modes use prominent selector at top`() {
         val debt = File("src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt").readText()
         val check = File("src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt").readText()
-        assertTrue(debt.contains("TwoWayModeSelector(\"طلب از دیگران\""))
-        assertTrue(check.contains("TwoWayModeSelector(\"چک صادرشده\""))
+        assertTrue(debt.contains("ثبت طلب") && debt.contains("ثبت بدهی"))
+        assertTrue(check.contains("ثبت چک دریافت‌شده") && check.contains("ثبت چک صادرشده"))
     }
 }
