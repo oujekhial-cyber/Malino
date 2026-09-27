@@ -21,9 +21,9 @@ import net.sqlcipher.database.SupportFactory
         CategoryRuleEntity::class,
         BlockedSenderEntity::class,
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
-        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class
+        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, CivicMessageEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -42,6 +42,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
     abstract fun assetDao(): AssetDao
     abstract fun transactionAttachmentDao(): TransactionAttachmentDao
     abstract fun reminderDao(): ReminderDao
+    abstract fun civicDao(): CivicDao
 
     companion object {
         @Volatile
@@ -56,7 +57,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -136,6 +137,17 @@ abstract class KharjYarDatabase : RoomDatabase() {
             db.execSQL("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, note TEXT NOT NULL, nextAt INTEGER NOT NULL, repeatType INTEGER NOT NULL, repeatInterval INTEGER NOT NULL, enabled INTEGER NOT NULL, createdAt INTEGER NOT NULL, lastNotifiedAt INTEGER)")
             db.execSQL("CREATE INDEX IF NOT EXISTS index_reminders_nextAt ON reminders(nextAt)")
             db.execSQL("CREATE INDEX IF NOT EXISTS index_reminders_enabled ON reminders(enabled)")
+        } }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS user_profiles (id INTEGER NOT NULL PRIMARY KEY, username TEXT NOT NULL, displayName TEXT NOT NULL, imagePath TEXT NOT NULL, remoteId TEXT, syncPending INTEGER NOT NULL, updatedAt INTEGER NOT NULL)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_user_profiles_username ON user_profiles(username)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS covered_people (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, relation TEXT NOT NULL, nationalId TEXT NOT NULL, insuranceProvider TEXT NOT NULL, policyNumber TEXT NOT NULL, policyExpiresAt INTEGER, note TEXT NOT NULL)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_covered_people_name ON covered_people(name)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS vehicles (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, ownerId INTEGER, title TEXT NOT NULL, plate TEXT NOT NULL)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_vehicles_ownerId ON vehicles(ownerId)");db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_vehicles_plate ON vehicles(plate)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS civic_messages (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, kind INTEGER NOT NULL, sender TEXT NOT NULL, body TEXT NOT NULL, receivedAt INTEGER NOT NULL, fingerprint TEXT NOT NULL, personId INTEGER, vehicleId INTEGER, read INTEGER NOT NULL)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_civic_messages_fingerprint ON civic_messages(fingerprint)");db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_kind ON civic_messages(kind)");db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_receivedAt ON civic_messages(receivedAt)");db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_personId ON civic_messages(personId)");db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_vehicleId ON civic_messages(vehicleId)")
         } }
 
         /** دسته‌های اولیه پیش‌فرض. */

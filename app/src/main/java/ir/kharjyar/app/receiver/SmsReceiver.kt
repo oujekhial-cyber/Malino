@@ -37,6 +37,18 @@ class SmsReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // پیامک‌های خدمات شهروندی مستقل از تراکنش‌های بانکی نگهداری می‌شوند.
+                ir.kharjyar.app.core.sms.CivicSmsClassifier.classify(sender, body)?.let { kind ->
+                    app.database.civicDao().insertMessage(
+                        ir.kharjyar.app.data.db.CivicMessageEntity(
+                            kind = kind,
+                            sender = sender,
+                            body = body,
+                            receivedAt = receivedAt,
+                            fingerprint = ir.kharjyar.app.core.sms.CivicSmsClassifier.fingerprint(sender, body, receivedAt)
+                        )
+                    )
+                }
                 val result = app.repository.ingestSms(sender, body, receivedAt)
                 val smsId = result.smsId
                 if (smsId != null && !result.duplicate) {

@@ -75,6 +75,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.asImageBitmap
+import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -121,6 +123,8 @@ import ir.kharjyar.app.ui.screens.TemplateTrainScreen
 import ir.kharjyar.app.ui.screens.TransactionEditScreen
 import ir.kharjyar.app.ui.screens.TransactionsScreen
 import ir.kharjyar.app.ui.screens.WidgetSettingsScreen
+import ir.kharjyar.app.ui.screens.CivicCenterScreen
+import ir.kharjyar.app.ui.screens.ProfileScreen
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import androidx.compose.ui.platform.LocalContext
@@ -254,6 +258,7 @@ private val drawerEntries = listOf(
     DrawerEntry("loans", "اقساط و وام‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("assets", "دارایی‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("reminders", "یادآورها", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("civicCenter", "قبوض و جرائم مالی", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
 
@@ -274,6 +279,7 @@ private fun titleOf(route: String?): String = when {
     route == "settings/permissions" -> "مجوزها و اعلان‌ها"
     route == "settings/security" -> "امنیت"
     route == "settings/bankFee" -> "درصد کارمزد بانکی"
+    route == "profile" -> "پروفایل کاربری"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
 }
 
@@ -289,6 +295,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val accounts by viewModel.accounts.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
+    val userProfile by viewModel.repo.db.civicDao().observeProfile().collectAsState(initial = null)
     var lastBackAt by remember { mutableStateOf(0L) }
 
     LaunchedEffect(initialDestination) {
@@ -349,10 +356,12 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                     reviewCount = reviewCount,
                     accountCount = accounts.count { !it.archived },
                     defaultAccountName = accounts.firstOrNull { it.id == settings.defaultAccountId }?.title,
+                    userProfile = userProfile,
                     onNavigate = { route ->
                         scope.launch { drawerState.close() }
                         go(route)
-                    }
+                    },
+                    onProfile = { scope.launch { drawerState.close() }; go("profile") }
                 )
             }
         }
@@ -497,6 +506,8 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("assets") { AssetsScreen(viewModel) }
                 composable("notes") { NotesScreen(viewModel) }
                 composable("reminders") { RemindersScreen(viewModel) }
+                composable("civicCenter") { CivicCenterScreen(viewModel) }
+                composable("profile") { ProfileScreen(viewModel) }
                 composable("blockedSenders") { BlockedSendersScreen(viewModel) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->
@@ -645,7 +656,9 @@ private fun DrawerBody(
     reviewCount: Int,
     accountCount: Int,
     defaultAccountName: String?,
-    onNavigate: (String) -> Unit
+    userProfile: ir.kharjyar.app.data.db.UserProfileEntity?,
+    onNavigate: (String) -> Unit,
+    onProfile: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -684,30 +697,12 @@ private fun DrawerBody(
                     .padding(horizontal = 16.dp, vertical = 16.dp)
                     .graphicsLayer { alpha = headerAlpha }
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(alpha = 0.22f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Filled.AccountBalance,
-                            contentDescription = null,
-                            tint = skin.onHero,
-                            modifier = Modifier.size(24.dp)
-                        )
+                Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onProfile).padding(4.dp),verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(52.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.22f)),contentAlignment = Alignment.Center) {
+                        userProfile?.imagePath?.takeIf { it.isNotBlank() }?.let { path -> BitmapFactory.decodeFile(path)?.asImageBitmap() }?.let { bitmap -> Image(bitmap,null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop) } ?: Icon(Icons.Filled.AccountBalance,null,tint=skin.onHero,modifier=Modifier.size(26.dp))
                     }
                     Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text("خرج‌یار", style = MaterialTheme.typography.titleMedium, color = skin.onHero)
-                        Text(
-                            "دستیار دخل و خرج شما",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = skin.onHero.copy(alpha = 0.85f)
-                        )
-                    }
+                    Column { Text(userProfile?.displayName?.ifBlank { userProfile.username } ?: "ساخت پروفایل",style=MaterialTheme.typography.titleMedium,color=skin.onHero);Text(userProfile?.let{"@${it.username}"} ?: "برای افزودن نام کاربری و عکس لمس کنید",style=MaterialTheme.typography.bodySmall,color=skin.onHero.copy(alpha=0.85f)) }
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(

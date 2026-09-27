@@ -1,0 +1,21 @@
+package ir.kharjyar.app.ui.screens
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.data.db.*
+import ir.kharjyar.app.ui.AppViewModel
+import kotlinx.coroutines.launch
+
+@Composable fun CivicCenterScreen(vm:AppViewModel){val dao=vm.repo.db.civicDao();val messages by dao.observeMessages().collectAsState(initial=emptyList());val people by dao.observePeople().collectAsState(initial=emptyList());val vehicles by dao.observeVehicles().collectAsState(initial=emptyList());val scope=rememberCoroutineScope();var filter by remember{mutableIntStateOf(-1)};var showPerson by remember{mutableStateOf(false)};var showVehicle by remember{mutableStateOf(false)};var personName by remember{mutableStateOf("")};var relation by remember{mutableStateOf("")};var insurer by remember{mutableStateOf("")};var policy by remember{mutableStateOf("")};var vehicleTitle by remember{mutableStateOf("")};var plate by remember{mutableStateOf("")};var owner by remember{mutableStateOf<Long?>(null)}
+ Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("قبوض و جرائم مالی",style=MaterialTheme.typography.headlineSmall);Text("پیامک‌های راهور، قبوض آب و برق و گاز، بیمه و عدل‌ایران به‌صورت خودکار و فقط روی گوشی دسته‌بندی می‌شوند.",style=MaterialTheme.typography.bodySmall);Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf(-1 to "همه",CivicMessageKind.TRAFFIC_FINE to "جرائم",CivicMessageKind.UTILITY_BILL to "قبوض",CivicMessageKind.INSURANCE to "بیمه",CivicMessageKind.ADLIRAN to "عدل‌ایران").forEach{(id,label)->FilterChip(filter==id,{filter=id},{Text(label)})}}
+ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton({showPerson=!showPerson}){Text("افراد تحت پوشش")};OutlinedButton({showVehicle=!showVehicle}){Text("پلاک‌ها")}}
+ if(showPerson){Card(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("افزودن فرد تحت پوشش");OutlinedTextField(personName,{personName=it},label={Text("نام")});OutlinedTextField(relation,{relation=it},label={Text("نسبت")});OutlinedTextField(insurer,{insurer=it},label={Text("شرکت/سازمان بیمه")});OutlinedTextField(policy,{policy=it},label={Text("شماره بیمه‌نامه")});Button({scope.launch{dao.insertPerson(CoveredPersonEntity(name=personName,relation=relation,insuranceProvider=insurer,policyNumber=policy));personName="";relation="";insurer="";policy=""}}){Text("ثبت فرد")};people.forEach{Text("${it.name} — ${it.relation} — ${it.insuranceProvider}")}}}}
+ if(showVehicle){Card(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("افزودن وسیله نقلیه");OutlinedTextField(vehicleTitle,{vehicleTitle=it},label={Text("عنوان خودرو")});OutlinedTextField(plate,{plate=it},label={Text("شماره پلاک")});if(people.isNotEmpty()){Text("مالک");Row{people.forEach{p->FilterChip(owner==p.id,{owner=p.id},{Text(p.name)})}}};Button({scope.launch{dao.insertVehicle(VehicleEntity(ownerId=owner,title=vehicleTitle,plate=plate));vehicleTitle="";plate=""}}){Text("ثبت پلاک")};vehicles.forEach{v->Text("${v.title} — ${v.plate}")}}}}
+ val shown=messages.filter{filter<0||it.kind==filter};if(shown.isEmpty())Text("هنوز پیامک مرتبطی دریافت نشده است.");shown.forEach{m->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(when(m.kind){CivicMessageKind.TRAFFIC_FINE->"جریمه راهنمایی و رانندگی";CivicMessageKind.UTILITY_BILL->"قبض خدماتی";CivicMessageKind.INSURANCE->"بیمه";else->"اطلاع‌رسانی عدل‌ایران"},style=MaterialTheme.typography.titleMedium);Text("${m.sender} • ${PersianDate.formatDateTime(m.receivedAt)}",style=MaterialTheme.typography.bodySmall);Text(m.body);Row{if(!m.read)TextButton({scope.launch{dao.updateMessage(m.copy(read=true))}}){Text("خواندم")};TextButton({scope.launch{dao.deleteMessage(m.id)}}){Text("حذف",color=MaterialTheme.colorScheme.error)}}}}}
+ }
+}
