@@ -30,6 +30,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Button
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
@@ -52,6 +54,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
+import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.prefs.DigitStyle
 import ir.kharjyar.app.data.prefs.ThemeMode
 import ir.kharjyar.app.ui.AppViewModel
@@ -60,7 +63,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.filled.Email
 import ir.kharjyar.app.ui.components.ComboBox
-import ir.kharjyar.app.ui.components.LabeledSlider
 import ir.kharjyar.app.ui.theme.AllSkins
 import ir.kharjyar.app.ui.theme.AppSkin
 import kotlinx.coroutines.launch
@@ -94,16 +96,19 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
     ) {
         
         if (section == null) {
-            SettingsMenuRow("ظاهر و تم") { nav.navigate("settings/appearance") }
+            SettingsMenuRow("قالب‌ها") { nav.navigate("settings/appearance") }
             SettingsMenuRow("حساب پیش‌فرض") { nav.navigate("settings/account") }
             SettingsMenuRow("نمایش اعداد و واحد پول") { nav.navigate("settings/numbers") }
             SettingsMenuRow("مجوزها و اعلان‌ها") { nav.navigate("settings/permissions") }
             SettingsMenuRow("امنیت") { nav.navigate("settings/security") }
             SettingsMenuRow("ویجت") { nav.navigate("widgetSettings") }
             SettingsMenuRow("داده‌ها و پشتیبان‌گیری") { nav.navigate("settings/data") }
-            SettingsMenuRow("فرستنده‌های تبلیغاتی") { nav.navigate("blockedSenders") }
-            SettingsMenuRow("حریم خصوصی") { nav.navigate("settings/privacy") }
-            SettingsMenuRow("درباره ما") { nav.navigate("settings/about") }
+            SettingsMenuRow("درصد کارمزد بانکی") { nav.navigate("settings/bankFee") }
+            SettingsInfoGroup(
+                onPromotionalSms = { nav.navigate("blockedSenders") },
+                onPrivacy = { nav.navigate("settings/privacy") },
+                onAbout = { nav.navigate("settings/about") }
+            )
         }
 
         // ---------- تم ----------
@@ -224,7 +229,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
 
         // ---------- مجوزها ----------
         if (section == "permissions") {
-        SectionCard("مجوزها و اعلان") {
+        SectionCard("مجوزها و اعلان‌ها") {
             PermissionRow("دریافت پیامک", smsGranted, { smsPermission.launch(Manifest.permission.RECEIVE_SMS) }, ::openPermissionSettings)
             PermissionRow("ارسال اعلان", notifGranted && notifEnabled, { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }, ::openPermissionSettings)
             if (!notifEnabled) {
@@ -298,19 +303,6 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
         }
         }
 
-        // ---------- ویجت ----------
-        // همه تنظیمات ویجت به صفحه اختصاصی خودش منتقل شد تا این صفحه شلوغ نباشد.
-        if (section == "widget") {
-        SectionCard("ویجت") {
-            Text(
-                "قالب، محتوا، اندازه‌ها و اینکه چه چیزهایی روی ویجت دیده شوند را با پیش‌نمایش زنده تنظیم کنید.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            NavRow("تنظیمات ویجت") { nav.navigate("widgetSettings") }
-        }
-        }
-
         // ---------- سایر ----------
         if (section == "data") {
         SectionCard("داده و ابزار") {
@@ -318,10 +310,45 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
             NavRow("دسته‌بندی‌ها و قوانین") { nav.navigate("categories") }
             NavRow("موارد نیازمند بررسی") { nav.navigate("review") }
             NavRow("پشتیبان‌گیری و بازیابی") { nav.navigate("backup") }
-            Text("درصد کارمزد خودکار مغایرت", style = MaterialTheme.typography.labelLarge)
-            LabeledSlider("درصد اعلامی بانک مرکزی", settings.bankFeePercent, 0..100, { v -> scope.launch { viewModel.settingsRepo.setBankFeePercent(v) } }, "٪")
-            Text("اختلاف کوچک مانده تا این درصد از مبلغ تراکنش، کارمزد بانکی در نظر گرفته می‌شود.", style = MaterialTheme.typography.bodySmall)
         }
+        }
+
+        if (section == "bankFee") {
+            var feeInput by remember(settings.bankFeePercent) { mutableStateOf(settings.bankFeePercent.toString().trimEnd('0').trimEnd('.')) }
+            var feeSaved by remember { mutableStateOf(false) }
+            SectionCard("درصد کارمزد بانکی") {
+                Text(
+                    "کارمزد بانکی مبلغی است که بانک برای انجام خدماتی مانند انتقال وجه، کارت‌به‌کارت یا بعضی پرداخت‌ها از حساب کسر می‌کند. گاهی این مبلغ با تأخیر در پیامک بانکی دیده می‌شود و باعث اختلاف جزئی بین مانده واقعی بانک و مانده محاسبه‌شده برنامه می‌شود.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "درصد اعلام‌شده بانک مرکزی یا بانک خود را دستی وارد کنید. خرج‌یار فقط اختلاف‌های کوچک تا این درصد از مبلغ تراکنش را به‌عنوان کارمزد احتمالی ثبت می‌کند. مقدار صفر، تشخیص خودکار کارمزد را غیرفعال می‌کند.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = feeInput,
+                    onValueChange = { value ->
+                        feeInput = Digits.normalize(value).filter { it.isDigit() || it == '.' }.take(6)
+                        feeSaved = false
+                    },
+                    label = { Text("درصد کارمزد") },
+                    suffix = { Text("٪") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = {
+                        val value = feeInput.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f
+                        feeInput = value.toString().trimEnd('0').trimEnd('.')
+                        scope.launch { viewModel.settingsRepo.setBankFeePercent(value) }
+                        feeSaved = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("ذخیره درصد کارمزد") }
+                if (feeSaved) Text("درصد کارمزد ذخیره شد.", color = MaterialTheme.colorScheme.primary)
+            }
         }
 
         if (section == "senders") {
@@ -424,5 +451,34 @@ private fun SettingsMenuRow(label: String, onClick: () -> Unit) {
             Text(label, style = MaterialTheme.typography.titleMedium)
             Text("‹", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         }
+    }
+}
+
+@Composable
+private fun SettingsInfoGroup(
+    onPromotionalSms: () -> Unit,
+    onPrivacy: () -> Unit,
+    onAbout: () -> Unit
+) {
+    SkinCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth()) {
+            SettingsGroupedItem("پیامک‌های تبلیغاتی", onPromotionalSms)
+            HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+            SettingsGroupedItem("حریم خصوصی", onPrivacy)
+            HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+            SettingsGroupedItem("درباره ما", onAbout)
+        }
+    }
+}
+
+@Composable
+private fun SettingsGroupedItem(label: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 17.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.titleMedium)
+        Text("‹", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
     }
 }

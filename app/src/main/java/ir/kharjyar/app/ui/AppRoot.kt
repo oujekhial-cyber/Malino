@@ -270,6 +270,10 @@ private fun titleOf(route: String?): String = when {
     route == "manual/{dir}" -> "ثبت تراکنش"
     route == "quickAdd" -> "ثبت سریع"
     route == "widgetSettings" -> "تنظیمات ویجت"
+    route == "settings/appearance" -> "قالب‌ها"
+    route == "settings/permissions" -> "مجوزها و اعلان‌ها"
+    route == "settings/security" -> "امنیت"
+    route == "settings/bankFee" -> "درصد کارمزد بانکی"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
 }
 

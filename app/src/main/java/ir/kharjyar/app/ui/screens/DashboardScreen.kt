@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.shape.CircleShape
@@ -70,6 +71,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import ir.kharjyar.app.core.balance.AccountBalance
 import ir.kharjyar.app.core.balance.TxSummarizer
 import ir.kharjyar.app.core.date.PersianDate
@@ -353,9 +357,23 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         }
 
                         // ----- صفحه‌های بعدی: هر حساب یک کارت، با خلاصه خودش -----
-                        items(active.size) { idx ->
+                        items(active.size, key = { active[it].id }) { idx ->
                             val account = active[idx]
-                            var dragDistance by remember(account.id) { mutableStateOf(0f) }; var isDragging by remember(account.id) { mutableStateOf(false) }
+                            var dragX by remember(account.id) { mutableStateOf(0f) }
+                            var dragY by remember(account.id) { mutableStateOf(0f) }
+                            var isDragging by remember(account.id) { mutableStateOf(false) }
+                            var returnJob by remember(account.id) { mutableStateOf<Job?>(null) }
+                            fun returnToSlot() {
+                                returnJob?.cancel()
+                                val startX = dragX; val startY = dragY
+                                returnJob = scope.launch {
+                                    Animatable(0f).animateTo(1f, spring(dampingRatio = 0.72f, stiffness = 420f)) {
+                                        dragX = startX * (1f - value)
+                                        dragY = startY * (1f - value)
+                                    }
+                                    dragX = 0f; dragY = 0f; isDragging = false
+                                }
+                            }
                             val est = AccountBalance.estimate(account, allTx)
                             val accSum = rangeSummary(account.id)
                             val bankSnapshot = bankBalances.firstOrNull { it.accountId == account.id }
@@ -380,16 +398,42 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
                                 balanceColor = if (hasDiscrepancy) skin.expenseColor else null,
-                                modifier = Modifier.width(pageWidth).graphicsLayer { translationX = dragDistance; scaleX = if(isDragging) 1.04f else 1f; scaleY = if(isDragging) 1.04f else 1f }.zIndex(if(isDragging) 2f else 0f).pointerInput(account.id, active.map { it.id }) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = { dragDistance = 0f; isDragging = true },
-                                        onDrag = { change, amount -> change.consume(); dragDistance += amount.x; val ids=active.map { it.id }.toMutableList();val from=ids.indexOf(account.id);val threshold=size.width*0.45f;if(from>=0&&kotlin.math.abs(dragDistance)>threshold){val to=if(dragDistance>0)(from-1).coerceAtLeast(0) else (from+1).coerceAtMost(ids.lastIndex);if(to!=from){ids.removeAt(from);ids.add(to,account.id);dragDistance=0f;scope.launch{viewModel.settingsRepo.setDashboardAccountOrder(ids)}}} },
-                                        onDragEnd = {
-                                            isDragging = false; val ids=active.map { it.id }.toMutableList();val from=ids.indexOf(account.id)
-                                            val to=when { dragDistance>50f -> (from-1).coerceAtLeast(0); dragDistance< -50f -> (from+1).coerceAtMost(ids.lastIndex); else -> from }
-                                            if(from>=0&&to!=from){ids.removeAt(from);ids.add(to,account.id);scope.launch{viewModel.settingsRepo.setDashboardAccountOrder(ids)}}
-                                        ; dragDistance = 0f }, onDragCancel = { dragDistance = 0f; isDragging = false })
-                                },
+                                modifier = Modifier
+                                    .width(pageWidth)
+                                    .animateItemPlacement(animationSpec = spring(dampingRatio = 0.78f, stiffness = 360f))
+                                    .graphicsLayer {
+                                        translationX = dragX
+                                        translationY = dragY
+                                        scaleX = if (isDragging) 0.94f else 1f
+                                        scaleY = if (isDragging) 0.94f else 1f
+                                        shadowElevation = if (isDragging) 22.dp.toPx() else 0f
+                                        clip = false
+                                    }
+                                    .zIndex(if (isDragging) 100f else 0f)
+                                    .pointerInput(account.id, active.map { it.id }) {
+                                        detectDragGesturesAfterLongPress(
+                                            onDragStart = {
+                                                returnJob?.cancel(); dragX = 0f; dragY = 0f; isDragging = true
+                                            },
+                                            onDrag = { change, amount ->
+                                                change.consume(); dragX += amount.x; dragY += amount.y
+                                                // فقط مؤلفه افقی ترتیب را عوض می‌کند؛ حرکت عمودی کاملاً آزاد است.
+                                                val ids = active.map { it.id }.toMutableList()
+                                                val from = ids.indexOf(account.id)
+                                                val threshold = size.width * 0.42f
+                                                if (from >= 0 && kotlin.math.abs(dragX) > threshold) {
+                                                    val to = if (dragX > 0) (from - 1).coerceAtLeast(0) else (from + 1).coerceAtMost(ids.lastIndex)
+                                                    if (to != from) {
+                                                        ids.removeAt(from); ids.add(to, account.id)
+                                                        dragX = if (dragX > 0) dragX - threshold else dragX + threshold
+                                                        scope.launch { viewModel.settingsRepo.setDashboardAccountOrder(ids) }
+                                                    }
+                                                }
+                                            },
+                                            onDragEnd = { returnToSlot() },
+                                            onDragCancel = { returnToSlot() }
+                                        )
+                                    },
                                 onClick = {
                                     // انتخاب کارت = تغییر حساب پیش‌فرض داشبورد
                                     // و برداشتن فیلتر واریز/برداشت
