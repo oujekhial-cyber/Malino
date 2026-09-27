@@ -491,7 +491,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             "مغایرت ${Money.format(kotlin.math.abs(estimated - bankBalance.balanceRial), settings.moneyUnit)} — یافتن تراکنش ثبت‌نشده",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = skin.expenseColor,
-                                            modifier = Modifier.clickable { nav.navigate("smsHistory") }
+                                            modifier = Modifier.clickable { nav.navigate("reviewImport") }
                                         )
                                     }
                                 }

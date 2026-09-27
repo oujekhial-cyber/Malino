@@ -41,7 +41,8 @@ class LatestUiRoundGuardTest {
         assertTrue(c.contains("دسته‌بندی هوشمند"))
         assertTrue(c.contains("دسته‌های پیشنهادی"))
         val db = source("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt")
-        assertTrue(db.contains("حمل‌ونقل (خودرو)"))
+        assertTrue(db.contains("Triple(\"حمل و نقل و خودرو\""))
+        assertTrue(db.contains("Consolidate all former built-in transport/vehicle variants"))
         assertTrue(db.contains("سود و سرمایه‌گذاری"))
     }
 

@@ -118,6 +118,7 @@ import ir.kharjyar.app.ui.screens.BlockedSendersScreen
 import ir.kharjyar.app.ui.screens.LoansScreen
 import ir.kharjyar.app.ui.screens.AssetsScreen
 import ir.kharjyar.app.ui.screens.SmsHistoryImportScreen
+import ir.kharjyar.app.ui.screens.BankSmsHubScreen
 import ir.kharjyar.app.ui.screens.DebtsScreen
 import ir.kharjyar.app.ui.screens.ChecksScreen
 import ir.kharjyar.app.ui.screens.TemplateTrainScreen
@@ -254,7 +255,6 @@ private val drawerEntries = listOf(
     DrawerEntry("accounts", "حساب‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("categories", "دسته‌بندی‌ها", Icons.Filled.Category),
     DrawerEntry("review", "پیامک‌های بررسی‌نشده", Icons.Filled.RateReview, badge = true),
-    DrawerEntry("smsHistory", "ورود پیامک‌های بانکی", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("debts", "طلب و بدهی", Icons.Filled.AccountBalance),
     DrawerEntry("checks", "مدیریت چک‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("loans", "اقساط و وام‌ها", Icons.Filled.AccountBalance),
@@ -502,8 +502,8 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 }
                 composable("quickAdd") { QuickAddScreen(viewModel, navController) }
                 composable("smsPaste") { SmsPasteScreen(viewModel, navController) }
-                composable("review") { ReviewScreen(viewModel, navController) }
-                composable("smsHistory") { SmsHistoryImportScreen(viewModel, navController) }
+                composable("review") { BankSmsHubScreen(viewModel, navController) }
+                composable("reviewImport") { BankSmsHubScreen(viewModel, navController, initialTab = 1) }
                 composable("debts") { DebtsScreen(viewModel) }
                 composable("checks") { ChecksScreen(viewModel) }
                 composable("loans") { LoansScreen(viewModel) }

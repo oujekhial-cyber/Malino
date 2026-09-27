@@ -18,6 +18,12 @@ class ExcelExporterTest {
             }
         }
         assertTrue(entries.keys.contains("xl/workbook.xml"))
-        assertTrue(entries.getValue("xl/worksheets/sheet1.xml").contains("سوپرمارکت &amp; خانه"))
+        assertTrue(entries.keys.contains("xl/styles.xml"))
+        val sheet = entries.getValue("xl/worksheets/sheet1.xml")
+        assertTrue(sheet.contains("سوپرمارکت &amp; خانه"))
+        assertTrue(sheet.contains("dimension ref=\"A1:F2\""))
+        assertTrue(sheet.contains("topLeftCell=\"A1\""))
+        assertTrue(sheet.contains("activeCell=\"A1\""))
+        assertTrue(sheet.contains("<c r=\"A1\"") && sheet.contains("<c r=\"F2\""))
     }
 }

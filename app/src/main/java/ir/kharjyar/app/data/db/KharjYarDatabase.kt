@@ -165,12 +165,27 @@ abstract class KharjYarDatabase : RoomDatabase() {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_vehicle_oil_services_nextDueAt ON vehicle_oil_services(nextDueAt)")
         } }
 
+        /** نمونه قوانین متداول ایران؛ کاربر می‌تواند آن‌ها را خاموش، ویرایش یا حذف کند. */
+        val DEFAULT_IRAN_RULES: List<Pair<String, String>> = listOf(
+            "اسنپ" to "حمل و نقل و خودرو", "تپسی" to "حمل و نقل و خودرو",
+            "بنزین" to "حمل و نقل و خودرو", "پارکینگ" to "حمل و نقل و خودرو",
+            "افق کوروش" to "خوراک و سوپرمارکت", "جانبو" to "خوراک و سوپرمارکت",
+            "رفاه" to "خوراک و سوپرمارکت", "شهروند" to "خوراک و سوپرمارکت",
+            "اسنپ‌فود" to "رستوران و کافه", "رستوران" to "رستوران و کافه",
+            "دیجی‌کالا" to "خرید آنلاین", "ترب" to "خرید آنلاین",
+            "داروخانه" to "درمان و سلامت", "بیمارستان" to "درمان و سلامت",
+            "همراه اول" to "اینترنت و تلفن", "ایرانسل" to "اینترنت و تلفن",
+            "رایتل" to "اینترنت و تلفن", "مخابرات" to "اینترنت و تلفن",
+            "قبض برق" to "قبوض", "قبض آب" to "قبوض", "قبض گاز" to "قبوض",
+            "بیمه ایران" to "بیمه", "تأمین اجتماعی" to "بیمه",
+            "حقوق" to "حقوق", "کارمزد" to "کارمزد بانکی"
+        )
+
         /** دسته‌های اولیه پیش‌فرض. */
         val DEFAULT_CATEGORIES: List<Triple<String, Long, Int>> = listOf(
             Triple("خوراک و سوپرمارکت", 0xFF4CAF50, CategoryKind.EXPENSE),
             Triple("رستوران و کافه", 0xFFFF7043, CategoryKind.EXPENSE),
-            Triple("حمل‌ونقل (خودرو)", 0xFF29B6F6, CategoryKind.EXPENSE),
-            Triple("تعمیر و نگهداری خودرو", 0xFF26C6DA, CategoryKind.EXPENSE),
+            Triple("حمل و نقل و خودرو", 0xFF29B6F6, CategoryKind.EXPENSE),
             Triple("مسکن و اجاره", 0xFF8D6E63, CategoryKind.EXPENSE),
             Triple("لوازم خانه", 0xFF8D8AC7, CategoryKind.EXPENSE),
             Triple("قبوض", 0xFFFFA726, CategoryKind.EXPENSE),
@@ -201,6 +216,31 @@ abstract class KharjYarDatabase : RoomDatabase() {
                     db.execSQL(
                         "INSERT INTO categories (name, colorArgb, kind, archived, builtin) VALUES (?, ?, ?, 0, 1)",
                         arrayOf(name, color or 0xFF000000, kind)
+                    )
+                }
+            }
+
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                // Consolidate all former built-in transport/vehicle variants into one active
+                // category while preserving IDs referenced by historical transactions.
+                val variants = arrayOf("حمل‌ونقل", "حمل و نقل", "حمل‌ونقل (خودرو)", "تعمیر و نگهداری خودرو", "حمل و نقل و خودرو")
+                db.execSQL(
+                    "UPDATE categories SET archived = 1 WHERE builtin = 1 AND name IN (?, ?, ?, ?, ?)",
+                    variants
+                )
+                db.execSQL(
+                    "UPDATE categories SET name = ?, archived = 0 WHERE id = (SELECT MIN(id) FROM categories WHERE builtin = 1 AND name IN (?, ?, ?, ?, ?))",
+                    arrayOf("حمل و نقل و خودرو", *variants)
+                )
+                // Add each recommendation once on fresh and existing installations. Explicit
+                // user-created rules retain higher priority (10 versus these suggestions' 0).
+                for ((keyword, categoryName) in DEFAULT_IRAN_RULES) {
+                    db.execSQL(
+                        "INSERT INTO category_rules (keyword, categoryId, enabled, priority, createdByUser, createdAt) " +
+                            "SELECT ?, id, 1, 0, 0, ? FROM categories c WHERE c.name = ? AND c.archived = 0 " +
+                            "AND NOT EXISTS (SELECT 1 FROM category_rules r WHERE r.keyword = ? AND r.categoryId = c.id)",
+                        arrayOf(keyword, 0L, categoryName, keyword)
                     )
                 }
             }

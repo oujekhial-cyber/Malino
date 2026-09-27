@@ -60,7 +60,6 @@ import ir.kharjyar.app.ui.components.EmptyState
 import ir.kharjyar.app.ui.components.DateTimeField
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.theme.LocalAppSkin
-import ir.kharjyar.app.ui.components.LineChart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -176,7 +175,8 @@ fun ReportsScreen(viewModel: AppViewModel) {
         if (uri != null) scope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                    val out = requireNotNull(context.contentResolver.openOutputStream(uri)) { "Cannot open Excel destination" }
+                    out.use {
                         ExcelExporter.export(filtered.sortedByDescending { it.occurredAt }.map { tx ->
                             ExcelExporter.Row(
                                 PersianDate.formatDateTime(tx.occurredAt),
@@ -186,7 +186,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
                                 tx.description,
                                 Money.format(tx.amountRial, settings.moneyUnit)
                             )
-                        }, out)
+                        }, it)
                     }
                 }
                 Notifier.notifyExportReady(context, uri, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -312,28 +312,6 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     },
                     onSelect = { filterCategory = if (it == 0L) null else it }
                 )
-            }
-        }
-
-        // ---------- نمودار روند ----------
-        SkinCard(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    "روند واریز و برداشت",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = skin.onBackdrop
-                )
-                Spacer(Modifier.height(12.dp))
-                if (incomeSeries.all { it == 0L } && expenseSeries.all { it == 0L }) {
-                    EmptyState("داده‌ای در این بازه نیست", "بازه یا فیلترها را تغییر دهید")
-                } else {
-                    LineChart(incomeSeries = incomeSeries, expenseSeries = expenseSeries)
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ChartLegend(skin.incomeColor, "واریز")
-                        ChartLegend(skin.expenseColor, "برداشت")
-                    }
-                }
             }
         }
 

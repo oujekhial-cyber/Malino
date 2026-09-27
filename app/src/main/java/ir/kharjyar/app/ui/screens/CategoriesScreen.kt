@@ -163,7 +163,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             Button(onClick = { showNewRule = true }) { Text("قانون جدید") }
             Spacer(Modifier.padding(4.dp))
             if (rules.isEmpty()) {
-                EmptyState("قانونی تعریف نشده", "مثال: هر تراکنشی که «اسنپ» دارد در دسته حمل‌ونقل پیشنهاد شود")
+                EmptyState("قانونی تعریف نشده", "مثال: هر تراکنشی که «کافه» دارد در دسته رستوران و کافه پیشنهاد شود")
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(rules.size) { i ->
@@ -177,6 +177,11 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                             Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("«${r.keyword}» ← $catName", style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        if (r.createdByUser) "قانون ساخته‌شده توسط شما" else "نمونه پیشنهادی متداول در ایران",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                                 Switch(checked = r.enabled, onCheckedChange = { on ->
                                     scope.launch { viewModel.repo.categoryDao.updateRule(r.copy(enabled = on)) }
