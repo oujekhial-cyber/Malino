@@ -342,7 +342,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                     onClick = {
                         val value = feeInput.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f
                         feeInput = value.toString().trimEnd('0').trimEnd('.')
-                        scope.launch { viewModel.settingsRepo.setBankFeePercent(value) }
+                        scope.launch { viewModel.settingsRepo.setBankFeePercent(value.toInt()) }
                         feeSaved = true
                     },
                     modifier = Modifier.fillMaxWidth()
