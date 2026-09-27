@@ -21,9 +21,9 @@ import net.sqlcipher.database.SupportFactory
         CategoryRuleEntity::class,
         BlockedSenderEntity::class,
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
-        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, CivicMessageEntity::class
+        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, VehicleOilServiceEntity::class, CivicMessageEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -57,7 +57,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -157,6 +157,12 @@ abstract class KharjYarDatabase : RoomDatabase() {
             db.execSQL("ALTER TABLE checks ADD COLUMN chequeAccountNumber TEXT NOT NULL DEFAULT ''")
             db.execSQL("ALTER TABLE checks ADD COLUMN chequeIban TEXT NOT NULL DEFAULT ''")
             db.execSQL("ALTER TABLE checks ADD COLUMN amountInWords TEXT NOT NULL DEFAULT ''")
+        } }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS vehicle_oil_services (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, vehicleId INTEGER NOT NULL, servicedAt INTEGER NOT NULL, currentKm INTEGER NOT NULL, nextKm INTEGER NOT NULL, nextDueAt INTEGER NOT NULL, oilType TEXT NOT NULL, note TEXT NOT NULL, reminderId INTEGER)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_vehicle_oil_services_vehicleId ON vehicle_oil_services(vehicleId)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_vehicle_oil_services_nextDueAt ON vehicle_oil_services(nextDueAt)")
         } }
 
         /** دسته‌های اولیه پیش‌فرض. */

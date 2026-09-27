@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
@@ -125,6 +126,7 @@ import ir.kharjyar.app.ui.screens.TransactionsScreen
 import ir.kharjyar.app.ui.screens.WidgetSettingsScreen
 import ir.kharjyar.app.ui.screens.CivicCenterScreen
 import ir.kharjyar.app.ui.screens.ProfileScreen
+import ir.kharjyar.app.ui.screens.VehiclesScreen
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import androidx.compose.ui.platform.LocalContext
@@ -259,6 +261,7 @@ private val drawerEntries = listOf(
     DrawerEntry("assets", "دارایی‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("reminders", "یادآورها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("civicCenter", "قبوض و جرائم مالی", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("vehicles", "وسایل نقلیه", Icons.Filled.DirectionsCar),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
 
@@ -508,6 +511,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("notes") { NotesScreen(viewModel) }
                 composable("reminders") { RemindersScreen(viewModel) }
                 composable("civicCenter") { CivicCenterScreen(viewModel) }
+                composable("vehicles") { VehiclesScreen(viewModel) }
                 composable("profile") { ProfileScreen(viewModel) }
                 composable("blockedSenders") { BlockedSendersScreen(viewModel) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }

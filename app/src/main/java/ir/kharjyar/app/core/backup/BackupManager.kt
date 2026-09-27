@@ -22,16 +22,32 @@ class BackupManager(
             senders = repo.accountDao.allSenders().map { BSender.of(it) },
             categories = repo.categoryDao.allOnce().map { BCategory.of(it) },
             rules = repo.categoryDao.allRulesOnce().map { BRule.of(it) },
-            templates = repo.templateDao.allOnce().map { BTemplate.of(it) },
+            templates = emptyList(), // قالب‌های تشخیص پیامک عمداً وارد بکاپ نمی‌شوند
             transactions = repo.txDao.allOnce().map { BTransaction.of(it) },
             transferGroups = repo.transferDao.allOnce().map { BTransferGroup.of(it) },
             smsQueue = repo.smsDao.allOnce().map { BSms.of(it) },
+            blockedSenders = repo.blockedSenderDao.allOnce().map { BBlockedSender.of(it) },
+            debtPeople = repo.db.debtDao().allPeopleOnce(), debts = repo.db.debtDao().allDebtsOnce(), debtPayments = repo.db.debtDao().allPaymentsOnce(),
+            checks = repo.db.checkDao().allOnce(), bankBalances = repo.db.bankBalanceSnapshotDao().allOnce(), notes = repo.db.noteDao().allOnce(),
+            loans = repo.db.loanDao().allLoansOnce(), installments = repo.db.loanDao().allInstallmentsOnce(), assets = repo.db.assetDao().allAssetsOnce(),
+            assetTrades = repo.db.assetDao().allTradesOnce(), attachments = repo.db.transactionAttachmentDao().allOnce(), reminders = repo.db.reminderDao().allOnce(),
+            profiles = repo.db.civicDao().allProfilesOnce(), coveredPeople = repo.db.civicDao().allPeopleOnce(), vehicles = repo.db.civicDao().allVehiclesOnce(),
+            oilServices = repo.db.civicDao().allOilServicesOnce(), civicMessages = repo.db.civicDao().allMessagesOnce(),
+            privateFiles = collectPrivateFiles(repo.db.checkDao().allOnce().map { it.imagePath } + repo.db.transactionAttachmentDao().allOnce().map { it.imagePath } + repo.db.civicDao().allProfilesOnce().map { it.imagePath }),
             settings = settings.exportForBackup()
         )
         val json = payload.toJson().toByteArray(Charsets.UTF_8)
         return if (password == null) BackupCrypto.packPlain(json)
         else BackupCrypto.encrypt(json, password)
     }
+
+    private fun collectPrivateFiles(paths: List<String>): List<BPrivateFile> = paths.filter { it.isNotBlank() }.distinct().mapNotNull { path ->
+        runCatching { val file=java.io.File(path); if(!file.isFile) return@runCatching null; BPrivateFile(path,android.util.Base64.encodeToString(file.readBytes(),android.util.Base64.NO_WRAP)) }.getOrNull()
+    }
+
+    private fun restorePrivateFiles(files: List<BPrivateFile>) { files.forEach { item ->
+        runCatching { if(!item.path.contains("/ir.kharjyar.app/") || !item.path.contains("/files/")) return@runCatching; val file=java.io.File(item.path);file.parentFile?.mkdirs();file.writeBytes(android.util.Base64.decode(item.base64,android.util.Base64.NO_WRAP)) }
+    } }
 
     /** آیا فایل انتخاب‌شده برای باز شدن به رمز نیاز دارد؟ */
     fun needsPassword(fileBytes: ByteArray): Boolean = BackupCrypto.isEncrypted(fileBytes)
@@ -70,11 +86,12 @@ class BackupManager(
         db.withTransaction {
             // قبل از پاک‌سازی خوانده می‌شود؛ داخل همان تراکنش تا داده‌ای جا نماند
             val current = repo.smsDao.listByStatus(SmsQueueMerge.UNREVIEWED_STATUSES)
+            val existingTemplateIds = repo.templateDao.allOnce().mapTo(mutableSetOf()) { it.id }
             val merge = SmsQueueMerge.merge(
-                backupQueue = payload.smsQueue.map { it.toEntity() },
+                backupQueue = payload.smsQueue.map { it.toEntity().let { sms -> if (sms.matchedTemplateId in existingTemplateIds) sms else sms.copy(matchedTemplateId = null) } },
                 currentQueue = current,
                 knownAccountIds = payload.accounts.mapTo(mutableSetOf()) { it.id },
-                knownTemplateIds = payload.templates.mapTo(mutableSetOf()) { it.id }
+                knownTemplateIds = existingTemplateIds
             )
 
             db.clearAllTablesInTransaction()
@@ -82,12 +99,19 @@ class BackupManager(
             payload.senders.forEach { repo.accountDao.insertSender(it.toEntity()) }
             payload.categories.forEach { repo.categoryDao.insert(it.toEntity()) }
             payload.rules.forEach { repo.categoryDao.insertRule(it.toEntity()) }
-            payload.templates.forEach { repo.templateDao.insert(it.toEntity()) }
             payload.transferGroups.forEach { repo.transferDao.insert(it.toEntity()) }
             payload.smsQueue.forEach { repo.smsDao.insertIgnore(it.toEntity()) }
             // صف نگه‌داشته‌شده بعد از صف بکاپ درج می‌شود تا شناسه‌ها با هم تداخل نکنند
             merge.carriedOver.forEach { repo.smsDao.insertIgnore(it) }
             payload.transactions.forEach { repo.txDao.insert(it.toEntity()) }
+            payload.blockedSenders.forEach { repo.blockedSenderDao.insertIgnore(it.toEntity()) }
+            payload.debtPeople.forEach { repo.db.debtDao().insertPerson(it) }; payload.debts.forEach { repo.db.debtDao().insertDebt(it) }; payload.debtPayments.forEach { repo.db.debtDao().insertPayment(it) }
+            payload.checks.forEach { repo.db.checkDao().insert(it) }; payload.bankBalances.forEach { repo.db.bankBalanceSnapshotDao().upsert(it) }; payload.notes.forEach { repo.db.noteDao().insert(it) }
+            payload.loans.forEach { repo.db.loanDao().insertLoan(it) }; if(payload.installments.isNotEmpty()) repo.db.loanDao().insertInstallments(payload.installments)
+            payload.assets.forEach { repo.db.assetDao().insert(it) }; payload.assetTrades.forEach { repo.db.assetDao().insertTrade(it) }; payload.attachments.forEach { repo.db.transactionAttachmentDao().insert(it) }
+            payload.reminders.forEach { repo.db.reminderDao().insert(it) }; payload.profiles.forEach { repo.db.civicDao().saveProfile(it) }; payload.coveredPeople.forEach { repo.db.civicDao().insertPerson(it) }
+            payload.vehicles.forEach { repo.db.civicDao().insertVehicle(it) }; payload.oilServices.forEach { repo.db.civicDao().insertOilService(it) }; payload.civicMessages.forEach { repo.db.civicDao().insertMessage(it) }
+            restorePrivateFiles(payload.privateFiles)
 
             report = RestoreReport(merge.carriedOver.size, merge.duplicates)
         }
@@ -99,10 +123,27 @@ class BackupManager(
 /** پاک‌سازی جدول‌ها داخل تراکنش (clearAllTables خودش تراکنش می‌سازد و اینجا قابل استفاده نیست). */
 private suspend fun ir.kharjyar.app.data.db.KharjYarDatabase.clearAllTablesInTransaction() {
     openHelper.writableDatabase.apply {
+        execSQL("DELETE FROM vehicle_oil_services")
+        execSQL("DELETE FROM civic_messages")
+        execSQL("DELETE FROM vehicles")
+        execSQL("DELETE FROM covered_people")
+        execSQL("DELETE FROM user_profiles")
+        execSQL("DELETE FROM reminders")
+        execSQL("DELETE FROM transaction_attachments")
+        execSQL("DELETE FROM asset_trades")
+        execSQL("DELETE FROM assets")
+        execSQL("DELETE FROM loan_installments")
+        execSQL("DELETE FROM loans")
+        execSQL("DELETE FROM notes")
+        execSQL("DELETE FROM bank_balance_snapshots")
+        execSQL("DELETE FROM checks")
+        execSQL("DELETE FROM debt_payments")
+        execSQL("DELETE FROM debts")
+        execSQL("DELETE FROM debt_people")
+        execSQL("DELETE FROM blocked_senders")
         execSQL("DELETE FROM transactions")
         execSQL("DELETE FROM transfer_groups")
         execSQL("DELETE FROM sms_candidates")
-        execSQL("DELETE FROM sms_templates")
         execSQL("DELETE FROM category_rules")
         execSQL("DELETE FROM categories")
         execSQL("DELETE FROM account_senders")

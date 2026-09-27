@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 class KharjYarApp : Application() {
 
@@ -27,6 +28,13 @@ class KharjYarApp : Application() {
         super.onCreate()
         createNotificationChannels()
         observeDataForWidget()
+        // پیامک‌های قبلی که به‌علت ناشناخته‌بودن سرشماره حساب نگرفته‌اند، پس از
+        // به‌روزرسانی قواعد بانک دوباره پردازش می‌شوند.
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            repository.reprocessPendingAccounts().filterIsInstance<Repository.ProcessOutcome.DraftReady>().forEach {
+                ir.kharjyar.app.notify.Notifier.notifyDraftReady(this@KharjYarApp, it.smsId, it.txId)
+            }
+        }
         androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "obligation-reminders",
             androidx.work.ExistingPeriodicWorkPolicy.UPDATE,

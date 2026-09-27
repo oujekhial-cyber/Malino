@@ -115,15 +115,27 @@ class Repository(val db: KharjYarDatabase) {
         val senderMatch = AccountMatcher.match(sms.sender, sms.body, mappings)
         // اگر نگاشت فرستنده هنوز ساخته نشده یا چند حساب از یک سرشماره پیام می‌گیرند،
         // شماره کارت/حساب/شبا را مستقیماً از متن با همه حساب‌های ذخیره‌شده تطبیق بده.
+        val activeAccounts = accountDao.allOnce().filter { !it.archived }
         val numberMatch = ir.kharjyar.app.core.sms.AccountNumberMatcher.match(
             sms.body,
-            accountDao.allOnce().filter { !it.archived }.map {
+            activeAccounts.map {
                 ir.kharjyar.app.core.sms.MatchableAccount(
                     it.id, it.maskedNumber, it.accountNumber, it.iban, it.cardNumber
                 )
             }
         )
-        val match = if (numberMatch is AccountMatch.Single) numberMatch else senderMatch
+        // سرشماره‌های نام‌دار بانک: فقط وقتی دقیقاً یک حساب از همان بانک وجود دارد
+        // به‌صورت خودکار انتخاب می‌شوند؛ با چند حساب هرگز حدس خطرناک نمی‌زنیم.
+        val inferredBank = ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sms.sender)
+        val bankIds = inferredBank?.let { bank -> activeAccounts.filter { ir.kharjyar.app.core.sms.BankSenderResolver.sameBank(it.bankName, bank) }.map { it.id }.distinct() }.orEmpty()
+        val bankMatch: AccountMatch = when(bankIds.size){1->AccountMatch.Single(bankIds.single());in 2..Int.MAX_VALUE->AccountMatch.Ambiguous(bankIds);else->AccountMatch.Unknown}
+        val match = when {
+            numberMatch is AccountMatch.Single -> numberMatch
+            senderMatch is AccountMatch.Single -> senderMatch
+            numberMatch is AccountMatch.Ambiguous -> numberMatch
+            senderMatch is AccountMatch.Ambiguous -> senderMatch
+            else -> bankMatch
+        }
         val accountId = when (match) {
             is AccountMatch.Single -> match.accountId
             is AccountMatch.Ambiguous -> {
@@ -136,6 +148,11 @@ class Repository(val db: KharjYarDatabase) {
             }
         }
 
+        // پس از تطبیق امن، فرستنده برای پیامک‌های بعدی همین حساب یاد گرفته می‌شود.
+        if (mappings.none { it.accountId == accountId && AccountMatcher.normalizeSender(it.sender) == AccountMatcher.normalizeSender(sms.sender) }) {
+            val hint = Extractor.autoExtract(sms.body).accountIdHint?.let { AccountMatcher.shortIdentifier(it) }.orEmpty()
+            accountDao.insertSender(ir.kharjyar.app.data.db.AccountSenderEntity(accountId = accountId, sender = sms.sender, identifierHint = hint))
+        }
         return processWithAccount(sms, accountId)
     }
 
@@ -223,6 +240,15 @@ class Repository(val db: KharjYarDatabase) {
             id
         }
         return ProcessOutcome.DraftReady(sms.id, txId)
+    }
+
+    /** تلاش دوباره برای پیامک‌های بی‌حساب پس از اضافه‌شدن نگاشت‌ها یا پشتیبانی بانک جدید. */
+    suspend fun reprocessPendingAccounts(): List<ProcessOutcome> {
+        val results = mutableListOf<ProcessOutcome>()
+        for (sms in smsDao.listByStatus(listOf(SmsStatus.RAW, SmsStatus.NEEDS_ACCOUNT))) {
+            results += processSms(sms.id)
+        }
+        return results
     }
 
     /**

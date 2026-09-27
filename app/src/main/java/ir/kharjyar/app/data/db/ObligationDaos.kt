@@ -4,6 +4,9 @@ import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao interface DebtDao {
+    @Query("SELECT * FROM debt_people") suspend fun allPeopleOnce():List<DebtPersonEntity>
+    @Query("SELECT * FROM debts") suspend fun allDebtsOnce():List<DebtEntity>
+    @Query("SELECT * FROM debt_payments") suspend fun allPaymentsOnce():List<DebtPaymentEntity>
     @Query("SELECT * FROM debt_people ORDER BY name") fun observePeople(): Flow<List<DebtPersonEntity>>
     @Query("SELECT * FROM debts ORDER BY settled, dueAt") fun observeDebts(): Flow<List<DebtEntity>>
     @Query("SELECT * FROM debt_payments ORDER BY paidAt DESC") fun observePayments(): Flow<List<DebtPaymentEntity>>
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM debts WHERE settled = 0 AND reminderAt IS NOT NULL AND reminderAt <= :until") suspend fun dueReminders(until: Long): List<DebtEntity>
 }
 @Dao interface CheckDao {
+    @Query("SELECT * FROM checks") suspend fun allOnce():List<CheckEntity>
     @Query("SELECT * FROM checks ORDER BY status, dueAt") fun observeAll(): Flow<List<CheckEntity>>
     @Insert suspend fun insert(v: CheckEntity): Long
     @Update suspend fun update(v: CheckEntity)

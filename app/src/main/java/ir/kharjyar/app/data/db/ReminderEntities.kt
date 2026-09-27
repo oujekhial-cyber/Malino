@@ -1,5 +1,6 @@
 package ir.kharjyar.app.data.db
 
+import kotlinx.serialization.Serializable
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
@@ -13,6 +14,7 @@ object ReminderRepeat {
 }
 
 @Entity(tableName = "reminders", indices = [Index("nextAt"), Index("enabled")])
+@Serializable
 data class ReminderEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
@@ -28,6 +30,7 @@ data class ReminderEntity(
 
 @Dao
 interface ReminderDao {
+    @Query("SELECT * FROM reminders") suspend fun allOnce():List<ReminderEntity>
     @Query("SELECT * FROM reminders ORDER BY enabled DESC, nextAt") fun observeAll(): Flow<List<ReminderEntity>>
     @Query("SELECT * FROM reminders WHERE id=:id") suspend fun get(id: Long): ReminderEntity?
     @Query("SELECT * FROM reminders WHERE enabled=1 AND nextAt<=:until") suspend fun due(until: Long): List<ReminderEntity>
