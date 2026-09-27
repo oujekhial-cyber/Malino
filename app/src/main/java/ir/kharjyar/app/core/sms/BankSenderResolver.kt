@@ -21,5 +21,10 @@ object BankSenderResolver {
         "BLUBANK" to "بلو بانک"
     )
     fun bankName(sender:String):String? { val key=Digits.normalize(sender).uppercase().filter(Char::isLetterOrDigit);return aliases.entries.firstOrNull{key==it.key||key.contains(it.key)}?.value }
-    fun sameBank(saved:String,inferred:String):Boolean { fun n(v:String)=Digits.normalizeForMatch(v).replace("بانک","").replace("موسسه","").replace("مؤسسه","").filter(Char::isLetterOrDigit);return n(saved)==n(inferred) }
+    fun sameBank(saved:String,inferred:String):Boolean {
+        fun normalized(value:String):String = Digits.normalizeForMatch(value)
+            .replace("بانک", "").replace("موسسه", "").replace("مؤسسه", "")
+            .filter(Char::isLetterOrDigit)
+        return normalized(saved) == normalized(inferred)
+    }
 }
