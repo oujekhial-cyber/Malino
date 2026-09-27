@@ -14,19 +14,32 @@
 > Task :app:processDebugManifest UP-TO-DATE
 > Task :app:processDebugManifestForPackage UP-TO-DATE
 > Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
 > Task :app:javaPreCompileDebug UP-TO-DATE
 > Task :app:preDebugAndroidTestBuild SKIPPED
 > Task :app:generateDebugAndroidTestResValues FROM-CACHE
 > Task :app:extractProguardFiles UP-TO-DATE
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
 
-> Task :app:kspDebugKotlin FAILED
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:23:1 Expecting a top level declaration
+> Task :app:compileDebugKotlin FAILED
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:128:20 Cannot infer type for this parameter. Please specify it explicitly.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:128:24 Cannot infer type for this parameter. Please specify it explicitly.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:9 Unresolved reference 'AlertDialog'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:76 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:107 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:169 Unresolved reference 'TextButton'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:171 Unresolved reference 'TextButton'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:230 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:264 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:304 Unresolved reference 'TextButton'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:306 Unresolved reference 'TextButton'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:129:345 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:22:60 Unresolved reference 'align'.
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':app:kspDebugKotlin'.
+Execution failed for task ':app:compileDebugKotlin'.
 > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
    > Compilation error. See log for more details
 
@@ -36,5 +49,5 @@ Execution failed for task ':app:kspDebugKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 3s
-17 actionable tasks: 1 executed, 1 from cache, 15 up-to-date
+BUILD FAILED in 7s
+18 actionable tasks: 1 executed, 1 from cache, 16 up-to-date
