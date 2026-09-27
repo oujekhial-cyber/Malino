@@ -1,19 +1,14 @@
 # گزارش Build و تست (CI)
 
-- commit: e911df61dcb08ddd92efa89d037ddf20571a9860
-- تاریخ: 2026-09-27 14:56 UTC
-- unit tests: success
-- assembleDebug: success
+- commit: 6549d6fdff4a4b8c994624083d3c5347b0060e6a
+- تاریخ: 2026-09-27 16:13 UTC
+- unit tests: failure
+- assembleDebug: failure
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
-- lintDebug: success
-- assembleRelease: success
+- lintDebug: failure
+- assembleRelease: failure
 
 ## خلاصه تست‌های واحد
 ```
-tests=320 failures=0 errors=0 skipped=0
+(no test results)
 ```
-
-## نسخه انتشار
-- حجم: 31M
-- کلید اختصاصی: false
-- امضا: معتبر
