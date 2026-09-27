@@ -34,6 +34,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,7 +66,7 @@ import ir.kharjyar.app.ui.theme.AppSkin
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
+fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: String? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settings by viewModel.settings.collectAsState()
@@ -92,7 +93,21 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         
+        if (section == null) {
+            SettingsMenuRow("ظاهر و تم") { nav.navigate("settings/appearance") }
+            SettingsMenuRow("حساب پیش‌فرض") { nav.navigate("settings/account") }
+            SettingsMenuRow("نمایش اعداد و واحد پول") { nav.navigate("settings/numbers") }
+            SettingsMenuRow("مجوزها و اعلان‌ها") { nav.navigate("settings/permissions") }
+            SettingsMenuRow("امنیت") { nav.navigate("settings/security") }
+            SettingsMenuRow("ویجت") { nav.navigate("widgetSettings") }
+            SettingsMenuRow("داده‌ها و پشتیبان‌گیری") { nav.navigate("settings/data") }
+            SettingsMenuRow("فرستنده‌های تبلیغاتی") { nav.navigate("blockedSenders") }
+            SettingsMenuRow("حریم خصوصی") { nav.navigate("settings/privacy") }
+            SettingsMenuRow("درباره ما") { nav.navigate("settings/about") }
+        }
+
         // ---------- تم ----------
+        if (section == "appearance") {
         SectionCard("ظاهر و تم") {
             Text("تم برنامه", style = MaterialTheme.typography.labelLarge)
             Text(
@@ -147,8 +162,10 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 )
             }
         }
+        }
 
         // ---------- حساب پیش‌فرض ----------
+        if (section == "account") {
         SectionCard("حساب پیش‌فرض") {
             Text(
                 "با انتخاب حساب پیش‌فرض، داشبورد و ویجت به‌صورت پیش‌فرض اطلاعات همان حساب را نشان می‌دهند.",
@@ -172,8 +189,10 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 }
             )
         }
+        }
 
         // ---------- پول ----------
+        if (section == "numbers") {
         SectionCard("نمایش اعداد و واحد پول") {
             ComboBox(
                 label = "واحد نمایش پول",
@@ -201,8 +220,10 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        }
 
         // ---------- مجوزها ----------
+        if (section == "permissions") {
         SectionCard("مجوزها و اعلان") {
             PermissionRow("دریافت پیامک", smsGranted, { smsPermission.launch(Manifest.permission.RECEIVE_SMS) }, ::openPermissionSettings)
             PermissionRow("ارسال اعلان", notifGranted && notifEnabled, { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }, ::openPermissionSettings)
@@ -215,8 +236,10 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        }
 
         // ---------- امنیت ----------
+        if (section == "security") {
         SectionCard("امنیت") {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -273,9 +296,11 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        }
 
         // ---------- ویجت ----------
         // همه تنظیمات ویجت به صفحه اختصاصی خودش منتقل شد تا این صفحه شلوغ نباشد.
+        if (section == "widget") {
         SectionCard("ویجت") {
             Text(
                 "قالب، محتوا، اندازه‌ها و اینکه چه چیزهایی روی ویجت دیده شوند را با پیش‌نمایش زنده تنظیم کنید.",
@@ -284,8 +309,10 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
             )
             NavRow("تنظیمات ویجت") { nav.navigate("widgetSettings") }
         }
+        }
 
         // ---------- سایر ----------
+        if (section == "data") {
         SectionCard("داده و ابزار") {
             NavRow("مدیریت حساب‌ها") { nav.navigate("accounts") }
             NavRow("دسته‌بندی‌ها و قوانین") { nav.navigate("categories") }
@@ -295,9 +322,13 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
             LabeledSlider("درصد اعلامی بانک مرکزی", settings.bankFeePercent, 0..100, { v -> scope.launch { viewModel.settingsRepo.setBankFeePercent(v) } }, "٪")
             Text("اختلاف کوچک مانده تا این درصد از مبلغ تراکنش، کارمزد بانکی در نظر گرفته می‌شود.", style = MaterialTheme.typography.bodySmall)
         }
+        }
 
+        if (section == "senders") {
         SectionCard("پیامک‌ها") { NavRow("فرستنده‌های تبلیغاتی") { nav.navigate("blockedSenders") } }
+        }
 
+        if (section == "privacy") {
         SectionCard("حریم خصوصی") {
             Text(
                 "خرج‌یار فقط با اجازه شما پیامک‌های مالی را بررسی می‌کند؛ رمزهای یک‌بارمصرف و پیامک‌های شخصی ذخیره نمی‌شوند. اطلاعات مالی، تصاویر چک و دفتر بدهی روی همین گوشی می‌مانند و برای سازنده ارسال نمی‌شوند. اینترنت فقط برای دریافت هواشناسی شهر انتخابی استفاده می‌شود.",
@@ -305,10 +336,9 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-
-        SectionCard("درباره ما") {
-            NavRow("ارتباط با سازنده و اطلاعات برنامه") { showAbout = true }
         }
+
+        if (section == "about") { LaunchedEffect(Unit) { showAbout = true } }
     }
     if (showAbout) {
         AlertDialog(
@@ -384,5 +414,15 @@ private fun NavRow(label: String, onClick: () -> Unit) {
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge)
         Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SettingsMenuRow(label: String, onClick: () -> Unit) {
+    SkinCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 17.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.titleMedium)
+            Text("‹", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+        }
     }
 }

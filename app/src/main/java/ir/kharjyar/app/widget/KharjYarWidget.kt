@@ -312,7 +312,7 @@ object WidgetRenderer {
             views.setInt(it, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
         }
         views.setInt(R.id.w_weather, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
-        views.setViewPadding(R.id.w_weather, 12, 42, 12, 4)
+        views.setViewPadding(R.id.w_weather, 0, 0, 0, 0)
 
         val sp = TypedValue.COMPLEX_UNIT_SP
         views.setTextViewTextSize(R.id.w_title, sp, settings.widgetTitleSize.toFloat())

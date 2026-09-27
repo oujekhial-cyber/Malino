@@ -466,6 +466,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 }
                 composable("reports") { ReportsScreen(viewModel) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
+                composable("settings/{section}") { back -> SettingsScreen(viewModel, navController, back.arguments?.getString("section")) }
                 composable("widgetSettings") { WidgetSettingsScreen(viewModel) }
                 composable("manual") { ManualEntryScreen(viewModel, navController) }
                 composable("manual/{dir}") { entry ->
