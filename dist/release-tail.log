@@ -5,8 +5,8 @@
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :app:checkReleaseDuplicateClasses
 > Task :app:mergeReleaseNativeLibs
-> Task :app:checkReleaseAarMetadata
 > Task :app:generateReleaseResValues
+> Task :app:checkReleaseAarMetadata
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:generateReleaseResources
 
@@ -60,5 +60,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 2m 30s
+BUILD SUCCESSFUL in 2m 35s
 48 actionable tasks: 45 executed, 3 from cache

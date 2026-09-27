@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 1cd0239a618e54f1800af90a6d58c2c1557831d2
-- تاریخ: 2026-09-27 12:26 UTC
-- unit tests: failure
+- commit: aa343b304e7ffe4087c67179d59e1f50984ef2d1
+- تاریخ: 2026-09-27 12:36 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,8 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=319 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.SettingsPolishGuardTest.requested Persian labels are corrected: java.lang.AssertionError
+tests=319 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
