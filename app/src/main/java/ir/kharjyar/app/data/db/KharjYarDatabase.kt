@@ -23,7 +23,7 @@ import net.sqlcipher.database.SupportFactory
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
         BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, CivicMessageEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -57,7 +57,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -148,6 +148,15 @@ abstract class KharjYarDatabase : RoomDatabase() {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_vehicles_ownerId ON vehicles(ownerId)");db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_vehicles_plate ON vehicles(plate)")
             db.execSQL("CREATE TABLE IF NOT EXISTS civic_messages (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, kind INTEGER NOT NULL, sender TEXT NOT NULL, body TEXT NOT NULL, receivedAt INTEGER NOT NULL, fingerprint TEXT NOT NULL, personId INTEGER, vehicleId INTEGER, read INTEGER NOT NULL)")
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_civic_messages_fingerprint ON civic_messages(fingerprint)");db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_kind ON civic_messages(kind)");db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_receivedAt ON civic_messages(receivedAt)");db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_personId ON civic_messages(personId)");db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_vehicleId ON civic_messages(vehicleId)")
+        } }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE checks ADD COLUMN issuerName TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE checks ADD COLUMN receiverName TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE checks ADD COLUMN nationalId TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE checks ADD COLUMN chequeAccountNumber TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE checks ADD COLUMN chequeIban TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE checks ADD COLUMN amountInWords TEXT NOT NULL DEFAULT ''")
         } }
 
         /** دسته‌های اولیه پیش‌فرض. */

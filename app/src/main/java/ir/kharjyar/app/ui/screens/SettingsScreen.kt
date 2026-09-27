@@ -92,22 +92,23 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
 
     Column(
         modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         
         if (section == null) {
             SettingsMenuRow("قالب‌ها") { nav.navigate("settings/appearance") }
-            SettingsMenuRow("حساب پیش‌فرض") { nav.navigate("settings/account") }
+            SettingsMenuRow("مدیریت حساب") { nav.navigate("settings/account") }
             SettingsMenuRow("نمایش اعداد و واحد پول") { nav.navigate("settings/numbers") }
             SettingsMenuRow("مجوزها و اعلان‌ها") { nav.navigate("settings/permissions") }
             SettingsMenuRow("امنیت") { nav.navigate("settings/security") }
             SettingsMenuRow("ویجت") { nav.navigate("widgetSettings") }
-            SettingsMenuRow("داده‌ها و پشتیبان‌گیری") { nav.navigate("settings/data") }
+            SettingsMenuRow("پشتیبان‌گیری و بازیابی") { nav.navigate("backup") }
+            SettingsMenuRow("دسته‌بندی‌ها") { nav.navigate("categories") }
             SettingsMenuRow("درصد کارمزد بانکی") { nav.navigate("settings/bankFee") }
             SettingsInfoGroup(
                 onPromotionalSms = { nav.navigate("blockedSenders") },
                 onPrivacy = { nav.navigate("settings/privacy") },
-                onAbout = { nav.navigate("settings/about") }
+                onAbout = { showAbout = true }
             )
         }
 
@@ -171,7 +172,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
 
         // ---------- حساب پیش‌فرض ----------
         if (section == "account") {
-        SectionCard("حساب پیش‌فرض") {
+        SectionCard("مدیریت حساب") {
             Text(
                 "با انتخاب حساب پیش‌فرض، داشبورد و ویجت به‌صورت پیش‌فرض اطلاعات همان حساب را نشان می‌دهند.",
                 style = MaterialTheme.typography.bodySmall,
@@ -193,6 +194,8 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                     }
                 }
             )
+            HorizontalDivider()
+            NavRow("مدیریت حساب‌ها") { nav.navigate("accounts") }
         }
         }
 
@@ -303,16 +306,6 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
         }
         }
 
-        // ---------- سایر ----------
-        if (section == "data") {
-        SectionCard("داده و ابزار") {
-            NavRow("مدیریت حساب‌ها") { nav.navigate("accounts") }
-            NavRow("دسته‌بندی‌ها و قوانین") { nav.navigate("categories") }
-            NavRow("موارد نیازمند بررسی") { nav.navigate("review") }
-            NavRow("پشتیبان‌گیری و بازیابی") { nav.navigate("backup") }
-        }
-        }
-
         if (section == "bankFee") {
             var feeInput by remember(settings.bankFeePercent) { mutableStateOf(settings.bankFeePercent.toString().trimEnd('0').trimEnd('.')) }
             var feeSaved by remember { mutableStateOf(false) }
@@ -365,7 +358,6 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
         }
         }
 
-        if (section == "about") { LaunchedEffect(Unit) { showAbout = true } }
     }
     if (showAbout) {
         AlertDialog(
@@ -447,7 +439,7 @@ private fun NavRow(label: String, onClick: () -> Unit) {
 @Composable
 private fun SettingsMenuRow(label: String, onClick: () -> Unit) {
     SkinCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 17.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.titleMedium)
             Text("‹", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         }
@@ -474,7 +466,7 @@ private fun SettingsInfoGroup(
 @Composable
 private fun SettingsGroupedItem(label: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 17.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 13.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -55,7 +55,7 @@ enum class WidgetVAlign { TOP, CENTER, BOTTOM }
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val palette: Palette = Palette.SAKURA,
+    val palette: Palette = Palette.MINIMAL_DAY,
     val moneyUnit: MoneyUnit = MoneyUnit.RIAL,
     val appLockEnabled: Boolean = false,
     val lockTimeoutSeconds: Int = 60,
@@ -305,7 +305,7 @@ class SettingsRepository(private val context: Context) {
 
     /** نگاشت پالت‌های قدیمی (اقیانوس/جنگل/…) به تم‌های جدید. */
     private fun paletteOf(name: String?): Palette =
-        name?.let { runCatching { Palette.valueOf(it) }.getOrNull() } ?: Palette.SAKURA
+        name?.let { runCatching { Palette.valueOf(it) }.getOrNull() } ?: Palette.MINIMAL_DAY
 
     private inline fun <reified T : Enum<T>> enumOf(name: String?, default: T): T =
         name?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default

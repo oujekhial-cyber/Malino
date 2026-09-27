@@ -278,6 +278,7 @@ private fun titleOf(route: String?): String = when {
     route == "settings/appearance" -> "قالب‌ها"
     route == "settings/permissions" -> "مجوزها و اعلان‌ها"
     route == "settings/security" -> "امنیت"
+    route == "settings/account" -> "مدیریت حساب"
     route == "settings/bankFee" -> "درصد کارمزد بانکی"
     route == "profile" -> "پروفایل کاربری"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
@@ -730,7 +731,7 @@ private fun DrawerBody(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 10.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
             drawerEntries.forEachIndexed { index, entry ->
                 // ورود پلکانی آیتم‌ها هنگام باز شدن کشو
@@ -815,7 +816,7 @@ private fun DrawerRow(
                 ) else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 11.dp, vertical = 11.dp),
+            .padding(horizontal = 11.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // نوار نشانگر انتخاب

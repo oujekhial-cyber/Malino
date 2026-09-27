@@ -367,7 +367,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 returnJob?.cancel()
                                 val startX = dragX; val startY = dragY
                                 returnJob = scope.launch {
-                                    Animatable(0f).animateTo(1f, spring(dampingRatio = 0.72f, stiffness = 420f)) {
+                                    Animatable(0f).animateTo(1f, spring(dampingRatio = 0.86f, stiffness = 190f)) {
                                         dragX = startX * (1f - value)
                                         dragY = startY * (1f - value)
                                     }
@@ -400,7 +400,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 balanceColor = if (hasDiscrepancy) skin.expenseColor else null,
                                 modifier = Modifier
                                     .width(pageWidth)
-                                    .animateItemPlacement(animationSpec = spring(dampingRatio = 0.78f, stiffness = 360f))
+                                    .animateItemPlacement(animationSpec = spring(dampingRatio = 0.88f, stiffness = 170f))
                                     .graphicsLayer {
                                         translationX = dragX
                                         translationY = dragY

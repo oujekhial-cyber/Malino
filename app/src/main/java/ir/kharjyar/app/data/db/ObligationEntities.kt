@@ -20,5 +20,7 @@ data class CheckEntity(
     val direction: Int, val amountRial: Long, val counterparty: String,
     val bankName: String = "", val sayadId: String = "", val serialNumber: String = "",
     val accountId: Long? = null, val issuedAt: Long, val dueAt: Long, val reminderAt: Long?,
-    val status: Int = CheckStatus.PENDING, val imagePath: String = "", val note: String = ""
+    val status: Int = CheckStatus.PENDING, val imagePath: String = "", val note: String = "",
+    val issuerName: String = "", val receiverName: String = "", val nationalId: String = "",
+    val chequeAccountNumber: String = "", val chequeIban: String = "", val amountInWords: String = ""
 )
