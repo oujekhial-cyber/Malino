@@ -704,6 +704,7 @@ private fun DrawerBody(
                     Spacer(Modifier.width(10.dp))
                     Column { Text(userProfile?.displayName?.ifBlank { userProfile.username } ?: "ساخت پروفایل",style=MaterialTheme.typography.titleMedium,color=skin.onHero);Text(userProfile?.let{"@${it.username}"} ?: "برای افزودن نام کاربری و عکس لمس کنید",style=MaterialTheme.typography.bodySmall,color=skin.onHero.copy(alpha=0.85f)) }
                 }
+                Text("دستیار دخل و خرج شما", style = MaterialTheme.typography.labelSmall, color = skin.onHero.copy(alpha = 0.82f))
                 Spacer(Modifier.height(14.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
