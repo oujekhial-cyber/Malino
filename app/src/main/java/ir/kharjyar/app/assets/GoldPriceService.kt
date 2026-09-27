@@ -5,7 +5,26 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** قیمت لحظه‌ای جهانی هر اونس طلا؛ برای اطلاع کاربر، ارزش ریالی همچنان دستی است. */
+/** نرخ هر گرم طلای ۱۸ عیار بازار ایران به ریال، از صفحه عمومی TGJU. */
 object GoldPriceService {
- suspend fun ounceUsd():Double?=withContext(Dispatchers.IO){runCatching{val c=URL("https://api.gold-api.com/price/XAU").openConnection() as HttpURLConnection;c.connectTimeout=8000;c.readTimeout=8000;val t=c.inputStream.bufferedReader().use{it.readText()};c.disconnect();Regex("\"price\"\\s*:\\s*(\\d+(?:\\.\\d+)?)").find(t)?.groupValues?.get(1)?.toDoubleOrNull()}.getOrNull()}
+    suspend fun gram18Rial(): Long? = withContext(Dispatchers.IO) { runCatching {
+        val c = URL("https://www.tgju.org/profile/geram18/today").openConnection() as HttpURLConnection
+        c.connectTimeout = 8_000; c.readTimeout = 8_000
+        c.setRequestProperty("User-Agent", "KharjYar/1.0 Android")
+        val html = c.inputStream.bufferedReader().use { it.readText() }; c.disconnect()
+        val aroundRate = Regex("نرخ فعلی[^0-9۰-۹]{0,120}([0-9۰-۹][0-9۰-۹,٬]{4,})").find(html)?.groupValues?.get(1)
+        aroundRate?.map { when(it) { in '۰'..'۹' -> ('0'.code + it.code - '۰'.code).toChar(); '٬', ',' -> null; else -> it } }?.filterNotNull()?.joinToString("")?.toLongOrNull()
+    }.getOrNull() }
+}
+
+object IranianGoldCalculator {
+    /** مالیات فقط روی اجرت و سود محاسبه می‌شود، نه اصل طلا. */
+    fun newGold(weightGram: Double, gram18Rial: Long, wagePercent: Double, profitPercent: Double, vatPercent: Double): Long {
+        val principal = weightGram * gram18Rial
+        val wage = principal * wagePercent / 100.0
+        val profit = (principal + wage) * profitPercent / 100.0
+        val vat = (wage + profit) * vatPercent / 100.0
+        return (principal + wage + profit + vat).toLong()
+    }
+    fun rawOrUsed(weightGram: Double, gram18Rial: Long): Long = (weightGram * gram18Rial).toLong()
 }

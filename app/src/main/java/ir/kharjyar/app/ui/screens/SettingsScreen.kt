@@ -290,34 +290,13 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
             NavRow("مدیریت حساب‌ها") { nav.navigate("accounts") }
             NavRow("دسته‌بندی‌ها و قوانین") { nav.navigate("categories") }
             NavRow("موارد نیازمند بررسی") { nav.navigate("review") }
-            NavRow("بکاپ و بازیابی رمزنگاری‌شده") { nav.navigate("backup") }
+            NavRow("پشتیبان‌گیری و بازیابی") { nav.navigate("backup") }
             Text("درصد کارمزد خودکار مغایرت", style = MaterialTheme.typography.labelLarge)
             LabeledSlider("درصد اعلامی بانک مرکزی", settings.bankFeePercent, 0..100, { v -> scope.launch { viewModel.settingsRepo.setBankFeePercent(v) } }, "٪")
             Text("اختلاف کوچک مانده تا این درصد از مبلغ تراکنش، کارمزد بانکی در نظر گرفته می‌شود.", style = MaterialTheme.typography.bodySmall)
         }
 
-        // ---------- فرستنده‌های تبلیغاتی ----------
-        if (blockedSenders.isNotEmpty()) {
-            SectionCard("فرستنده‌های تبلیغاتی") {
-                Text(
-                    "پیام‌های این فرستنده‌ها نادیده گرفته می‌شوند. برای برگرداندن، حذفشان کنید.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                blockedSenders.forEach { blocked ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(blocked.sender, style = MaterialTheme.typography.bodyLarge)
-                        TextButton(onClick = {
-                            scope.launch { viewModel.repo.unblockSender(blocked.sender) }
-                        }) { Text("برگرداندن") }
-                    }
-                }
-            }
-        }
+        SectionCard("پیامک‌ها") { NavRow("فرستنده‌های تبلیغاتی") { nav.navigate("blockedSenders") } }
 
         SectionCard("حریم خصوصی") {
             Text(

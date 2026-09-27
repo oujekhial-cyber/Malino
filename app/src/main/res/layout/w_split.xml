@@ -34,7 +34,7 @@
         android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:gravity="center_vertical">
+        android:gravity="top|end">
 
         <TextView
             android:id="@+id/w_title"

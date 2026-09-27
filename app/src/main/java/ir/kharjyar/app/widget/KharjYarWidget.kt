@@ -157,7 +157,7 @@ object WidgetRenderer {
             in 95..99 -> R.drawable.weather_storm
             else -> R.drawable.weather_cloud
         }
-        views.setTextViewCompoundDrawables(R.id.w_weather, weatherIcon, 0, 0, 0)
+        views.setTextViewCompoundDrawables(R.id.w_weather, 0, 0, 0, weatherIcon)
         applyOptions(views, settings)
         applyClickTargets(context, views)
 
@@ -312,7 +312,7 @@ object WidgetRenderer {
             views.setInt(it, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
         }
         views.setInt(R.id.w_weather, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
-        views.setViewPadding(R.id.w_weather, 12, 74, 12, 4)
+        views.setViewPadding(R.id.w_weather, 12, 42, 12, 4)
 
         val sp = TypedValue.COMPLEX_UNIT_SP
         views.setTextViewTextSize(R.id.w_title, sp, settings.widgetTitleSize.toFloat())

@@ -59,11 +59,13 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import ir.kharjyar.app.core.balance.AccountBalance
@@ -108,6 +110,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     // فیلتر فهرست «تراکنش‌های اخیر» با زدن چیپ واریز/برداشت روی کارت‌ها
     // ۰ = همه، ۱ = فقط واریزها، ۲ = فقط برداشت‌ها
     var recentFilter by remember { mutableStateOf(0) }
+    var pendingDelete by remember { mutableStateOf<ir.kharjyar.app.data.db.TransactionEntity?>(null) }
 
     /** حذف تراکنش از فهرست «اخیر» با امکان بازگرداندن. */
     fun deleteWithUndo(tx: ir.kharjyar.app.data.db.TransactionEntity) {
@@ -120,6 +123,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             )
             if (res == SnackbarResult.ActionPerformed) viewModel.repo.txDao.restore(listOf(tx))
         }
+    }
+
+    pendingDelete?.let { tx ->
+        AlertDialog(onDismissRequest = { pendingDelete = null }, title = { Text("حذف تراکنش") }, text = { Text("آیا از حذف این تراکنش مطمئن هستید؟") }, confirmButton = { TextButton({ pendingDelete = null; deleteWithUndo(tx) }) { Text("حذف", color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton({ pendingDelete = null }) { Text("انصراف") } })
     }
 
     Scaffold(
@@ -346,7 +353,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         // ----- صفحه‌های بعدی: هر حساب یک کارت، با خلاصه خودش -----
                         items(active.size) { idx ->
                             val account = active[idx]
-                            var dragDistance by remember(account.id) { mutableStateOf(0f) }
+                            var dragDistance by remember(account.id) { mutableStateOf(0f) }; var isDragging by remember(account.id) { mutableStateOf(false) }
                             val est = AccountBalance.estimate(account, allTx)
                             val accSum = rangeSummary(account.id)
                             val bankSnapshot = bankBalances.firstOrNull { it.accountId == account.id }
@@ -371,15 +378,15 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
                                 balanceColor = if (hasDiscrepancy) skin.expenseColor else null,
-                                modifier = Modifier.width(pageWidth).pointerInput(account.id, active.map { it.id }) {
+                                modifier = Modifier.width(pageWidth).graphicsLayer { translationX = dragDistance; scaleX = if(isDragging) 1.04f else 1f; scaleY = if(isDragging) 1.04f else 1f }.zIndex(if(isDragging) 2f else 0f).pointerInput(account.id, active.map { it.id }) {
                                     detectDragGesturesAfterLongPress(
-                                        onDragStart = { dragDistance = 0f },
-                                        onDrag = { change, amount -> change.consume(); dragDistance += amount.x },
+                                        onDragStart = { dragDistance = 0f; isDragging = true },
+                                        onDrag = { change, amount -> change.consume(); dragDistance += amount.x; val ids=active.map { it.id }.toMutableList();val from=ids.indexOf(account.id);val threshold=size.width*0.45f;if(from>=0&&kotlin.math.abs(dragDistance)>threshold){val to=if(dragDistance>0)(from-1).coerceAtLeast(0) else (from+1).coerceAtMost(ids.lastIndex);if(to!=from){ids.removeAt(from);ids.add(to,account.id);dragDistance=0f;scope.launch{viewModel.settingsRepo.setDashboardAccountOrder(ids)}}} },
                                         onDragEnd = {
-                                            val ids=active.map { it.id }.toMutableList();val from=ids.indexOf(account.id)
+                                            isDragging = false; val ids=active.map { it.id }.toMutableList();val from=ids.indexOf(account.id)
                                             val to=when { dragDistance>50f -> (from-1).coerceAtLeast(0); dragDistance< -50f -> (from+1).coerceAtMost(ids.lastIndex); else -> from }
                                             if(from>=0&&to!=from){ids.removeAt(from);ids.add(to,account.id);scope.launch{viewModel.settingsRepo.setDashboardAccountOrder(ids)}}
-                                        }, onDragCancel = { dragDistance = 0f })
+                                        ; dragDistance = 0f }, onDragCancel = { dragDistance = 0f; isDragging = false })
                                 },
                                 onClick = {
                                     // انتخاب کارت = تغییر حساب پیش‌فرض داشبورد
@@ -596,7 +603,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     val tx = shownRecent[idx]
                     EnterCard(4 + idx) {
                         SwipeActionRow(
-                            onDelete = { deleteWithUndo(tx) },
+                            onDelete = { pendingDelete = tx },
                             onEdit = { nav.navigate("tx/${tx.id}") }
                         ) {
                         SkinCard(modifier = Modifier.fillMaxWidth().clickable { nav.navigate("tx/${tx.id}") }) {

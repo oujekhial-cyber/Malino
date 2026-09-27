@@ -111,6 +111,7 @@ import ir.kharjyar.app.ui.screens.SettingsScreen
 import ir.kharjyar.app.ui.screens.SmsPasteScreen
 import ir.kharjyar.app.ui.screens.NotesScreen
 import ir.kharjyar.app.ui.screens.RemindersScreen
+import ir.kharjyar.app.ui.screens.BlockedSendersScreen
 import ir.kharjyar.app.ui.screens.LoansScreen
 import ir.kharjyar.app.ui.screens.AssetsScreen
 import ir.kharjyar.app.ui.screens.SmsHistoryImportScreen
@@ -242,20 +243,17 @@ private data class DrawerEntry(
 /** آیتم‌های کشو (همه مقصدها). */
 private val drawerEntries = listOf(
     DrawerEntry("home", "خانه", Icons.Filled.Home),
-    DrawerEntry("quickAdd", "ثبت سریع", Icons.Filled.AutoAwesome),
     DrawerEntry("transactions", "تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("reports", "گزارش‌ها", Icons.Filled.BarChart),
     DrawerEntry("accounts", "حساب‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("categories", "دسته‌بندی‌ها", Icons.Filled.Category),
-    DrawerEntry("review", "پیامک‌های بانکی", Icons.Filled.RateReview, badge = true),
-    DrawerEntry("smsHistory", "ورود پیامک‌های قبلی", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("review", "پیامک‌های بررسی‌نشده", Icons.Filled.RateReview, badge = true),
+    DrawerEntry("smsHistory", "ورود پیامک‌های بانکی", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("debts", "طلب و بدهی", Icons.Filled.AccountBalance),
     DrawerEntry("checks", "مدیریت چک‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("loans", "اقساط و وام‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("assets", "دارایی‌ها", Icons.Filled.AccountBalance),
-    DrawerEntry("notes", "یادداشت‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("reminders", "یادآورها", Icons.AutoMirrored.Filled.ReceiptLong),
-    DrawerEntry("backup", "بکاپ", Icons.Filled.CloudUpload),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
 
@@ -494,6 +492,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("assets") { AssetsScreen(viewModel) }
                 composable("notes") { NotesScreen(viewModel) }
                 composable("reminders") { RemindersScreen(viewModel) }
+                composable("blockedSenders") { BlockedSendersScreen(viewModel) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->
                     AccountEditScreen(viewModel, navController, entry.arguments?.getString("id")?.toLongOrNull() ?: 0L)

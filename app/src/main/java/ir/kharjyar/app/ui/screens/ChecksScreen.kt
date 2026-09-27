@@ -22,7 +22,7 @@ import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.*
 import ir.kharjyar.app.ui.AppViewModel
-import ir.kharjyar.app.ui.components.DateTimeField
+import ir.kharjyar.app.ui.components.PersianDateField
 import ir.kharjyar.app.ui.components.TwoWayModeSelector
 import kotlinx.coroutines.launch
 import java.io.File
@@ -55,8 +55,8 @@ import java.io.File
         }
         if(cameraPermissionError) Text("برای اسکن چک، اجازه دوربین را فعال کنید.",color=MaterialTheme.colorScheme.error)
         if(imagePath.isNotBlank()) Text("✓ تصویر خوانده شد؛ لطفاً اطلاعات تکمیل‌شده را بررسی کنید.",color=MaterialTheme.colorScheme.primary)
-        OutlinedTextField(party,{party=it},label={Text("طرف حساب")},modifier=Modifier.fillMaxWidth());ir.kharjyar.app.ui.components.AmountTextField(amount,{amount=it},"مبلغ ریال",Modifier.fillMaxWidth());OutlinedTextField(bank,{bank=it},label={Text("بانک")},modifier=Modifier.fillMaxWidth());OutlinedTextField(sayad,{sayad=it},label={Text("شناسه صیادی")},modifier=Modifier.fillMaxWidth());OutlinedTextField(serial,{serial=it},label={Text("سریال چک")},modifier=Modifier.fillMaxWidth());DateTimeField(due,9,0,{due=it},{_,_->})
+        OutlinedTextField(party,{party=it},label={Text("طرف حساب")},modifier=Modifier.fillMaxWidth());ir.kharjyar.app.ui.components.AmountTextField(amount,{amount=it},"مبلغ ریال",Modifier.fillMaxWidth());OutlinedTextField(bank,{bank=it},label={Text("بانک")},modifier=Modifier.fillMaxWidth());OutlinedTextField(sayad,{sayad=it},label={Text("شناسه صیادی")},modifier=Modifier.fillMaxWidth());OutlinedTextField(serial,{serial=it},label={Text("سریال چک")},modifier=Modifier.fillMaxWidth());PersianDateField(due,{due=it})
         Button({scope.launch{vm.repo.db.checkDao().insert(CheckEntity(direction=direction,amountRial=Digits.parseAmount(amount)?:0,counterparty=party,bankName=bank,sayadId=sayad,serialNumber=serial,issuedAt=System.currentTimeMillis(),dueAt=due.startOfDayMillis(),reminderAt=due.startOfDayMillis(),imagePath=imagePath));amount="";party="";sayad="";serial="";imagePath=""}},enabled=party.isNotBlank()&&(Digits.parseAmount(amount)?:0)>0,modifier=Modifier.fillMaxWidth()){Text(if(direction==CheckDirection.ISSUED) "ثبت چک صادرشده و یادآور" else "ثبت چک دریافت‌شده و یادآور")}
-        HorizontalDivider();checks.forEach{c->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp)){Text((if(c.direction==CheckDirection.ISSUED)"صادره برای " else "دریافتی از ")+c.counterparty,style=MaterialTheme.typography.titleMedium);Text(Money.format(c.amountRial,settings.moneyUnit));Text("سررسید: ${PersianDate.formatDateTime(c.dueAt)}");Row{TextButton({scope.launch{vm.repo.db.checkDao().update(c.copy(status=CheckStatus.CLEARED))}}){Text("وصول/پاس شد")};TextButton({scope.launch{vm.repo.db.checkDao().update(c.copy(status=CheckStatus.BOUNCED))}}){Text("برگشت خورد")}}}}}
+        HorizontalDivider();checks.forEach{c->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp)){Text((if(c.direction==CheckDirection.ISSUED)"صادره برای " else "دریافتی از ")+c.counterparty,style=MaterialTheme.typography.titleMedium);Text(Money.format(c.amountRial,settings.moneyUnit));Text("سررسید: ${PersianDate.fromMillis(c.dueAt).format()}");Row{TextButton({scope.launch{vm.repo.db.checkDao().update(c.copy(status=CheckStatus.CLEARED))}}){Text("وصول/پاس شد")};TextButton({scope.launch{vm.repo.db.checkDao().update(c.copy(status=CheckStatus.BOUNCED))}}){Text("برگشت خورد")}}}}}
     }
 }
