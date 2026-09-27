@@ -32,6 +32,7 @@ private const val ENTRY_VEHICLE=11
  FloatingActionButton({chooser=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن پروفایل")}
  if(chooser)AlertDialog(onDismissRequest={chooser=false},title={Text("چه موردی ثبت شود؟")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Button({chooser=false;entry=ENTRY_PERSON},Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF1B8F52))){Text("فرد تحت پوشش")};Button({chooser=false;entry=ENTRY_VEHICLE},Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFFD33B45))){Text("وسیله نقلیه و پلاک")}}},confirmButton={})
 }
+}
 
 @Composable private fun CivicSummary(label:String,count:Int,color:Color,modifier:Modifier){Card(modifier,colors=CardDefaults.cardColors(containerColor=color.copy(.10f))){Column(Modifier.fillMaxWidth().padding(12.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(Digits.toPersian(count.toString()),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold,color=color);Text(label)}}}
 private fun civicAccent(kind:Int)=when(kind){CivicMessageKind.TRAFFIC_FINE->Color(0xFFD33B45);CivicMessageKind.UTILITY_BILL->Color(0xFF1B8F52);CivicMessageKind.INSURANCE->Color(0xFF367BD6);else->Color(0xFF8254B8)}

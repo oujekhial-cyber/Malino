@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
  FloatingActionButton({chooser=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن یادآور")}
  if(chooser)AlertDialog(onDismissRequest={chooser=false},title={Text("نوع یادآور را انتخاب کنید")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Button({chooser=false;entryRepeat=ReminderRepeat.ONCE},Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF1B8F52))){Text("یادآور یک‌باره")};Button({chooser=false;entryRepeat=ReminderRepeat.MONTHLY},Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFFD33B45))){Text("یادآور تکرارشونده")}}},confirmButton={})
 }
+}
 
 @Composable private fun ReminderSummary(label:String,count:Int,color:Color,modifier:Modifier){Card(modifier,colors=CardDefaults.cardColors(containerColor=color.copy(.10f))){Column(Modifier.fillMaxWidth().padding(12.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(Digits.toPersian(count.toString()),style=MaterialTheme.typography.headlineSmall,color=color,fontWeight=FontWeight.Bold);Text(label)}}}
 private fun repeatLabel(type:Int,interval:Int)=when(type){ReminderRepeat.ONCE->"بدون تکرار";ReminderRepeat.DAILY->"تکرار روزانه";ReminderRepeat.WEEKLY->"تکرار هفتگی";ReminderRepeat.MONTHLY->"تکرار ماهانه";ReminderRepeat.YEARLY->"تکرار سالانه";else->"هر ${Digits.toPersian(interval.toString())} روز یک‌بار"}
