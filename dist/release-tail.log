@@ -6,8 +6,8 @@
 > Task :app:generateReleaseResValues
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:generateReleaseResources
-> Task :app:checkReleaseAarMetadata
 > Task :app:checkReleaseDuplicateClasses
+> Task :app:checkReleaseAarMetadata
 > Task :app:mergeReleaseNativeLibs
 > Task :app:packageReleaseResources
 > Task :app:parseReleaseLocalResources FROM-CACHE
@@ -15,24 +15,24 @@
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
-> Task :app:javaPreCompileRelease FROM-CACHE
 
 > Task :app:stripReleaseDebugSymbols
 Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libimage_processing_util_jni.so, libmlkit_google_ocr_pipeline.so, libsqlcipher.so.
 
-> Task :app:processReleaseManifestForPackage
+> Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractReleaseNativeSymbolTables
-> Task :app:extractProguardFiles
+> Task :app:processReleaseManifestForPackage
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:mergeReleaseArtProfile
+> Task :app:extractProguardFiles
 > Task :app:mergeReleaseStartupProfile
 > Task :app:mergeReleaseShaders
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
 > Task :app:mergeReleaseAssets
-> Task :app:mergeReleaseArtProfile
-> Task :app:compressReleaseAssets
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:processApplicationManifestReleaseForBundle
+> Task :app:compressReleaseAssets
 > Task :app:collectReleaseDependencies
 > Task :app:sdkReleaseDependencyData
 > Task :app:validateSigningRelease
