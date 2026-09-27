@@ -1,7 +1,0 @@
-e: The daemon has terminated unexpectedly on startup attempt #1 with error code: 0. The daemon process output:
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/BankSmsHubScreen.kt:5:43 Cannot access 'val RowColumnParentData?.weight: Float': it is internal in file.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/BankSmsHubScreen.kt:21:24 Unresolved reference 'rememberSaveable'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:280:36 This material API is experimental and is likely to change or to be removed in the future.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/BankSmsHubScreen.kt:5:43 Cannot access 'val RowColumnParentData?.weight: Float': it is internal in file.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/BankSmsHubScreen.kt:21:24 Unresolved reference 'rememberSaveable'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:280:36 This material API is experimental and is likely to change or to be removed in the future.
