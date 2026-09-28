@@ -53,11 +53,13 @@ object SmsClassifier {
         // اعلان‌های امنیتی و ورود، حتی اگر عدد یا واژه‌هایی مثل «برداشت ناموفق» داشته باشند، تراکنش نیستند.
         if (isSecurityNotice && !hasBalance) return SmsKind.NON_FINANCIAL
 
-        // پیامک تراکنش واقعی حتی اگر هشدار عمومی هم در ادامه داشته باشد
-        if (hasTxKeyword && hasAmountLike) return SmsKind.FINANCIAL_LIKELY
-
-        // OTP خالص بدون نشانه تراکنش
+        // پیامک رمز پویا ممکن است نام فروشگاه، مبلغ و واژه «خرید/پرداخت» هم داشته
+        // باشد، اما وقوع تراکنش را اعلام نمی‌کند. بنابراین OTP همیشه پیش از قواعد
+        // مبلغ و کلیدواژه کنار گذاشته می‌شود.
         if (isOtp) return SmsKind.NON_FINANCIAL
+
+        // پیامک تراکنش قطعی: کلیدواژه مالی همراه مبلغ
+        if (hasTxKeyword && hasAmountLike) return SmsKind.FINANCIAL_LIKELY
 
         // تبلیغ بدون نشانه تراکنش
         if (isPromo && !hasTxKeyword) return SmsKind.NON_FINANCIAL

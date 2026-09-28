@@ -45,7 +45,7 @@ class SmsReceiver : BroadcastReceiver() {
                             app.database.civicDao().allVehiclesOnce()
                         )
                     } else null
-                    app.database.civicDao().insertMessage(
+                    val civicMessageId = app.database.civicDao().insertMessage(
                         ir.kharjyar.app.data.db.CivicMessageEntity(
                             kind = kind,
                             sender = sender,
@@ -55,6 +55,15 @@ class SmsReceiver : BroadcastReceiver() {
                             vehicleId = vehicleId
                         )
                     )
+                    if (kind == ir.kharjyar.app.data.db.CivicMessageKind.TRAFFIC_FINE && civicMessageId > 0) {
+                        val vehicleTitle = vehicleId?.let { id -> app.database.civicDao().allVehiclesOnce().firstOrNull { it.id == id }?.let { "${it.title} (${it.plate})" } }
+                        ir.kharjyar.app.notify.Notifier.notifyTrafficFine(
+                            context,
+                            civicMessageId,
+                            vehicleTitle,
+                            ir.kharjyar.app.core.sms.TrafficFineParser.amountRial(body)
+                        )
+                    }
                 }
                 val result = app.repository.ingestSms(sender, body, receivedAt)
                 val smsId = result.smsId

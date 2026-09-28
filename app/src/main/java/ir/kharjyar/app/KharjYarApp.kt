@@ -40,6 +40,15 @@ class KharjYarApp : Application() {
             androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
             androidx.work.PeriodicWorkRequestBuilder<ir.kharjyar.app.work.ObligationReminderWorker>(12, java.util.concurrent.TimeUnit.HOURS).build()
         )
+        // دما و وضعیت روز/شب حتی وقتی برنامه باز نیست، هر دو ساعت تازه می‌شود.
+        val weatherRequest = androidx.work.PeriodicWorkRequestBuilder<ir.kharjyar.app.work.WeatherWidgetWorker>(2, java.util.concurrent.TimeUnit.HOURS)
+            .setConstraints(androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build())
+            .build()
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "widget-weather-refresh",
+            androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+            weatherRequest
+        )
     }
 
     /**

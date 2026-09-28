@@ -10,7 +10,7 @@ import java.net.URL
 /** هواشناسی شهر انتخابی کاربر؛ بدون دسترسی به موقعیت گوشی. */
 object WeatherService {
     private const val PREFS = "weather_cache"
-    data class WeatherInfo(val temperature: String, val city: String, val icon: String, val code: Int = 0) {
+    data class WeatherInfo(val temperature: String, val city: String, val icon: String, val code: Int = 0, val isDay: Boolean = true) {
         val displayText get() = "$icon $city $temperature"
     }
 
@@ -21,12 +21,12 @@ object WeatherService {
     fun cached(context: Context): WeatherInfo? {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val temp = p.getString("temperature", null) ?: return null
-        return WeatherInfo(temp, p.getString("resolved_city", city(context)) ?: city(context), p.getString("icon", "☀️") ?: "☀️", p.getInt("code", 0))
+        return WeatherInfo(temp, p.getString("resolved_city", city(context)) ?: city(context), p.getString("icon", "☀️") ?: "☀️", p.getInt("code", 0), p.getBoolean("is_day", true))
     }
 
-    suspend fun refresh(context: Context): WeatherInfo? = withContext(Dispatchers.IO) {
+    suspend fun refresh(context: Context, force: Boolean = false): WeatherInfo? = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (System.currentTimeMillis() - prefs.getLong("updated", 0L) < 6 * 60 * 60 * 1000L) return@withContext cached(context)
+        if (!force && System.currentTimeMillis() - prefs.getLong("updated", 0L) < 2 * 60 * 60 * 1000L) return@withContext cached(context)
         runCatching {
             val requested = city(context)
             val q = URLEncoder.encode(requested, "UTF-8")
@@ -34,12 +34,13 @@ object WeatherService {
             val lat = Regex(""""latitude"\s*:\s*(-?\d+(?:\.\d+)?)""").find(geo)?.groupValues?.get(1) ?: error("city")
             val lon = Regex(""""longitude"\s*:\s*(-?\d+(?:\.\d+)?)""").find(geo)?.groupValues?.get(1) ?: error("city")
             val resolved = Regex(""""name"\s*:\s*"([^"]+)"""").find(geo)?.groupValues?.get(1) ?: requested
-            val json = get("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code&timezone=auto")
+            val json = get("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code,is_day&timezone=auto")
             val value = Regex(""""temperature_2m"\s*:\s*(-?\d+(?:\.\d+)?)""").find(json)?.groupValues?.get(1)?.toDoubleOrNull() ?: error("temperature")
             val code = Regex(""""weather_code"\s*:\s*(\d+)""").find(json)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-            val info = WeatherInfo("${value.toInt()}°", resolved, iconFor(code), code)
+            val isDay = Regex(""""is_day"\s*:\s*(\d+)""").find(json)?.groupValues?.get(1) != "0"
+            val info = WeatherInfo("${value.toInt()}°", resolved, iconFor(code, isDay), code, isDay)
             prefs.edit().putString("temperature", info.temperature).putString("resolved_city", info.city)
-                .putString("icon", info.icon).putInt("code", code).putLong("updated", System.currentTimeMillis()).apply()
+                .putString("icon", info.icon).putInt("code", code).putBoolean("is_day", isDay).putLong("updated", System.currentTimeMillis()).apply()
             info
         }.getOrElse { cached(context) }
     }
@@ -49,8 +50,8 @@ object WeatherService {
         return connection.inputStream.bufferedReader().use { it.readText() }.also { connection.disconnect() }
     }
 
-    internal fun iconFor(code: Int): String = when (code) {
-        0 -> "☀️"; 1, 2 -> "🌤️"; 3 -> "☁️"; in 45..48 -> "🌫️"
+    internal fun iconFor(code: Int, isDay: Boolean = true): String = when (code) {
+        0 -> if (isDay) "☀️" else "🌙"; 1, 2 -> if (isDay) "🌤️" else "☾☁"; 3 -> "☁️"; in 45..48 -> "🌫️"
         in 51..67, in 80..82 -> "🌧️"; in 71..77, in 85..86 -> "🌨️"; in 95..99 -> "⛈️"; else -> "🌡️"
     }
 }

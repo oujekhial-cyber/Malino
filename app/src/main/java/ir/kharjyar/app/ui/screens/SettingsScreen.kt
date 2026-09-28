@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Slider
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -149,6 +150,34 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                     }
                 }
             )
+            var fontScaleDraft by remember(settings.appFontScale) { mutableStateOf(settings.appFontScale.toFloat()) }
+            HorizontalDivider()
+            Text("اندازه متن و اعداد", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "اندازه نوشته‌ها و همه اعداد برنامه را متناسب با دید خود تنظیم کنید.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SkinCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("کوچک", style = MaterialTheme.typography.labelSmall)
+                        Text("نمونه ۱۲۳٬۴۵۶", style = MaterialTheme.typography.titleMedium)
+                        Text("بزرگ", style = MaterialTheme.typography.titleLarge)
+                    }
+                    Slider(
+                        value = fontScaleDraft,
+                        onValueChange = { fontScaleDraft = it },
+                        valueRange = 85f..130f,
+                        steps = 8,
+                        onValueChangeFinished = { scope.launch { viewModel.settingsRepo.setAppFontScale(fontScaleDraft.toInt()) } }
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("${Digits.toPersian(fontScaleDraft.toInt().toString())}٪", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                        TextButton(onClick = { fontScaleDraft = 100f; scope.launch { viewModel.settingsRepo.setAppFontScale(100) } }) { Text("اندازه استاندارد") }
+                    }
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

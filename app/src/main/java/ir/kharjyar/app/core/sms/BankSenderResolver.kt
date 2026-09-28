@@ -18,7 +18,26 @@ object BankSenderResolver {
         "PASARGAD" to "پاسارگاد",
         "SAMANBANK" to "سامان",
         "PARSIANBANK" to "پارسیان",
-        "BLUBANK" to "بلو بانک"
+        "BLUBANK" to "بلو بانک",
+        "ENBANK" to "اقتصاد نوین",
+        "EGHTESADNOVIN" to "اقتصاد نوین",
+        "REFAHBANK" to "رفاه",
+        "BANKREFAH" to "رفاه",
+        "KESHAVARZI" to "کشاورزی",
+        "BKI" to "کشاورزی",
+        "MASKANBANK" to "مسکن",
+        "BANKMASKAN" to "مسکن",
+        "SHAHRBANK" to "شهر",
+        "BANKSHAHR" to "شهر",
+        "SARMAYEHBANK" to "سرمایه",
+        "SINABANK" to "سینا",
+        "KARAFARIN" to "کارآفرین",
+        "AYANDEHBANK" to "آینده",
+        "IRANZAMIN" to "ایران زمین",
+        "DAYBANK" to "دی",
+        "TOURISMBANK" to "گردشگری",
+        "RESALATBANK" to "رسالت",
+        "MEHRIRAN" to "قرض‌الحسنه مهر"
     )
     fun bankName(sender:String):String? { val key=Digits.normalize(sender).uppercase().filter(Char::isLetterOrDigit);return aliases.entries.firstOrNull{key==it.key||key.contains(it.key)}?.value }
     fun sameBank(saved:String,inferred:String):Boolean {

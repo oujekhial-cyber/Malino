@@ -149,12 +149,13 @@ object WidgetRenderer {
         applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
         views.setTextViewText(R.id.w_title, "خرج‌یار")
         views.setTextViewText(R.id.w_weather, weather?.let { "${it.city}  ${it.temperature}" } ?: "")
-        val weatherIcon = when (weather?.code ?: 0) {
-            0, 1, 2 -> R.drawable.weather_sun
-            3, in 45..48 -> R.drawable.weather_cloud
-            in 51..67, in 80..82 -> R.drawable.weather_rain
-            in 71..77, in 85..86 -> R.drawable.weather_snow
-            in 95..99 -> R.drawable.weather_storm
+        val weatherIcon = when {
+            weather != null && !weather.isDay && weather.code in 0..2 -> R.drawable.weather_moon
+            weather != null && weather.code in 0..2 -> R.drawable.weather_sun
+            weather != null && (weather.code == 3 || weather.code in 45..48) -> R.drawable.weather_cloud
+            weather != null && (weather.code in 51..67 || weather.code in 80..82) -> R.drawable.weather_rain
+            weather != null && (weather.code in 71..77 || weather.code in 85..86) -> R.drawable.weather_snow
+            weather != null && weather.code in 95..99 -> R.drawable.weather_storm
             else -> R.drawable.weather_cloud
         }
         views.setTextViewCompoundDrawables(R.id.w_weather, 0, 0, 0, weatherIcon)

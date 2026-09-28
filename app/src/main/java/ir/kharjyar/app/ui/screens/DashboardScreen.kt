@@ -522,7 +522,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             if (isDragging) {
                                 Popup(
                                     offset = IntOffset((floatingOriginX + floatingX).roundToInt(), (floatingOriginY + floatingY).roundToInt()),
-                                    properties = PopupProperties(focusable = false)
+                                    // جلوگیری از محدودشدن مختصات افقی Popup به عرض پنجره؛ کارت باید
+                                    // دقیقاً همراه انگشت به هر چهار جهت حرکت کند.
+                                    properties = PopupProperties(focusable = false, clippingEnabled = false)
                                 ) {
                                     BankCard(
                                         account = account,
@@ -535,7 +537,15 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         selected = defaultAccount?.id == account.id,
                                         masked = !amountVisible,
                                         modifier = Modifier.width(pageWidth).graphicsLayer {
-                                            scaleX = 0.96f; scaleY = 0.96f; shadowElevation = 28.dp.toPx()
+                                            scaleX = 0.96f
+                                            scaleY = 0.96f
+                                            // شکل سایه دقیقاً با گوشه‌های گرد کارت یکی است؛ رنگ کم‌غلظت
+                                            // و ارتفاع بیشتر، لبه خطی را به هاله نرم تبدیل می‌کند.
+                                            shape = RoundedCornerShape(22.dp)
+                                            clip = false
+                                            shadowElevation = 34.dp.toPx()
+                                            ambientShadowColor = Color.Black.copy(alpha = 0.20f)
+                                            spotShadowColor = Color.Black.copy(alpha = 0.28f)
                                         }
                                     )
                                 }

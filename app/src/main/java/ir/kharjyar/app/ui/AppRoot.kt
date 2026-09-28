@@ -146,7 +146,7 @@ fun AppRoot(
     val settings by viewModel.settings.collectAsState()
     val locked by viewModel.locked.collectAsState()
 
-    KharjYarTheme(themeMode = settings.themeMode, palette = settings.palette) {
+    KharjYarTheme(themeMode = settings.themeMode, palette = settings.palette, appFontScale = settings.appFontScale) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 AppBackdrop {
@@ -252,7 +252,7 @@ private val drawerEntries = listOf(
     DrawerEntry("home", "خانه", Icons.Filled.Home),
     DrawerEntry("transactions", "تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("reports", "گزارش‌ها", Icons.Filled.BarChart),
-    DrawerEntry("accounts", "حساب‌ها", Icons.Filled.AccountBalance),
+    DrawerEntry("accounts", "مدیریت حساب‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("categories", "دسته‌بندی‌ها", Icons.Filled.Category),
     DrawerEntry("review", "پیامک‌های بررسی‌نشده", Icons.Filled.RateReview, badge = true),
     DrawerEntry("debts", "طلب و بدهی", Icons.Filled.AccountBalance),
@@ -260,7 +260,7 @@ private val drawerEntries = listOf(
     DrawerEntry("loans", "اقساط و وام‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("assets", "دارایی‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("reminders", "یادآورها", Icons.AutoMirrored.Filled.ReceiptLong),
-    DrawerEntry("civicCenter", "قبوض و جرائم مالی", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("civicCenter", "قبوض شهروندی", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("vehicles", "وسایل نقلیه", Icons.Filled.DirectionsCar),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )

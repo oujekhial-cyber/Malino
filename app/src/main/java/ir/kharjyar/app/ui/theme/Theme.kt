@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -419,6 +421,7 @@ val LocalAppSkin: ProvidableCompositionLocal<AppSkin> = compositionLocalOf { Sak
 fun KharjYarTheme(
     themeMode: ThemeMode,
     palette: Palette,
+    appFontScale: Int = 100,
     content: @Composable () -> Unit
 ) {
     // خانواده مینیمال واقعاً تطبیقی است: در حالت پیش‌فرض سیستم، شب/روز گوشی
@@ -441,7 +444,12 @@ fun KharjYarTheme(
         Palette.MINIMAL_DAY -> MinimalDayScheme
         Palette.MINIMAL_NIGHT -> MinimalNightScheme
     }
-    CompositionLocalProvider(LocalAppSkin provides skin) {
+    val systemDensity = LocalDensity.current
+    val scaledDensity = Density(
+        density = systemDensity.density,
+        fontScale = systemDensity.fontScale * (appFontScale.coerceIn(85, 130) / 100f)
+    )
+    CompositionLocalProvider(LocalAppSkin provides skin, LocalDensity provides scaledDensity) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = typography(),

@@ -16,13 +16,20 @@ class BackupManager(
 
     /** @param password اگر null باشد، بکاپ بدون رمزنگاری ساخته می‌شود (به انتخاب کاربر). */
     suspend fun createBackup(password: CharArray?): ByteArray {
-        val payload = BackupPayload(
+        val payload = snapshot()
+        val json = payload.toJson().toByteArray(Charsets.UTF_8)
+        return if (password == null) BackupCrypto.packPlain(json)
+        else BackupCrypto.encrypt(json, password)
+    }
+
+    private suspend fun snapshot(): BackupPayload =
+        BackupPayload(
             createdAt = System.currentTimeMillis(),
             accounts = repo.accountDao.allOnce().map { BAccount.of(it) },
             senders = repo.accountDao.allSenders().map { BSender.of(it) },
             categories = repo.categoryDao.allOnce().map { BCategory.of(it) },
             rules = repo.categoryDao.allRulesOnce().map { BRule.of(it) },
-            templates = emptyList(), // قالب‌های تشخیص پیامک عمداً وارد بکاپ نمی‌شوند
+            templates = repo.templateDao.allOnce().map { BTemplate.of(it) },
             transactions = repo.txDao.allOnce().map { BTransaction.of(it) },
             transferGroups = repo.transferDao.allOnce().map { BTransferGroup.of(it) },
             smsQueue = repo.smsDao.allOnce().map { BSms.of(it) },
@@ -36,10 +43,6 @@ class BackupManager(
             privateFiles = collectPrivateFiles(repo.db.checkDao().allOnce().map { it.imagePath } + repo.db.transactionAttachmentDao().allOnce().map { it.imagePath } + repo.db.civicDao().allProfilesOnce().map { it.imagePath }),
             settings = settings.exportForBackup()
         )
-        val json = payload.toJson().toByteArray(Charsets.UTF_8)
-        return if (password == null) BackupCrypto.packPlain(json)
-        else BackupCrypto.encrypt(json, password)
-    }
 
     private fun collectPrivateFiles(paths: List<String>): List<BPrivateFile> = paths.filter { it.isNotBlank() }.distinct().mapNotNull { path ->
         runCatching { val file=java.io.File(path); if(!file.isFile) return@runCatching null; BPrivateFile(path,android.util.Base64.encodeToString(file.readBytes(),android.util.Base64.NO_WRAP)) }.getOrNull()
@@ -72,6 +75,28 @@ class BackupManager(
      */
     data class RestoreReport(val carriedOverSms: Int, val mergedDuplicates: Int)
 
+    /** ادغام بکاپ با داده فعلی؛ موارد هم‌شناسه فعلی حفظ و SMS با fingerprint یکتا می‌شود. */
+    suspend fun merge(payload: BackupPayload): RestoreReport {
+        val current = snapshot()
+        fun <T, K> merged(backup: List<T>, now: List<T>, key: (T) -> K): List<T> =
+            (backup + now).associateBy(key).values.toList()
+        val combined = payload.copy(
+            createdAt = System.currentTimeMillis(),
+            accounts = merged(payload.accounts,current.accounts){it.id}, senders = merged(payload.senders,current.senders){it.id},
+            categories = merged(payload.categories,current.categories){it.id}, rules = merged(payload.rules,current.rules){it.id}, templates = merged(payload.templates,current.templates){it.id},
+            transactions = merged(payload.transactions,current.transactions){it.id}, transferGroups = merged(payload.transferGroups,current.transferGroups){it.id},
+            smsQueue = merged(payload.smsQueue,current.smsQueue){it.fingerprint}, blockedSenders = merged(payload.blockedSenders,current.blockedSenders){it.sender},
+            debtPeople = merged(payload.debtPeople,current.debtPeople){it.id}, debts = merged(payload.debts,current.debts){it.id}, debtPayments = merged(payload.debtPayments,current.debtPayments){it.id},
+            checks = merged(payload.checks,current.checks){it.id}, bankBalances = merged(payload.bankBalances,current.bankBalances){it.accountId}, notes = merged(payload.notes,current.notes){it.id},
+            loans = merged(payload.loans,current.loans){it.id}, installments = merged(payload.installments,current.installments){it.id}, assets = merged(payload.assets,current.assets){it.id},
+            assetTrades = merged(payload.assetTrades,current.assetTrades){it.id}, attachments = merged(payload.attachments,current.attachments){it.id}, reminders = merged(payload.reminders,current.reminders){it.id},
+            profiles = merged(payload.profiles,current.profiles){it.id}, coveredPeople = merged(payload.coveredPeople,current.coveredPeople){it.id}, vehicles = merged(payload.vehicles,current.vehicles){it.id},
+            oilServices = merged(payload.oilServices,current.oilServices){it.id}, civicMessages = merged(payload.civicMessages,current.civicMessages){it.fingerprint},
+            privateFiles = merged(payload.privateFiles,current.privateFiles){it.path}, settings = current.settings
+        )
+        return restore(combined)
+    }
+
     /**
      * جایگزینی کامل داده‌ها؛ در یک تراکنش تا نیمه‌کاره نماند.
      *
@@ -86,15 +111,16 @@ class BackupManager(
         db.withTransaction {
             // قبل از پاک‌سازی خوانده می‌شود؛ داخل همان تراکنش تا داده‌ای جا نماند
             val current = repo.smsDao.listByStatus(SmsQueueMerge.UNREVIEWED_STATUSES)
-            val existingTemplateIds = repo.templateDao.allOnce().mapTo(mutableSetOf()) { it.id }
+            val restoredTemplateIds = (if (payload.templates.isNotEmpty()) payload.templates.map { it.id } else repo.templateDao.allOnce().map { it.id }).toSet()
             val merge = SmsQueueMerge.merge(
-                backupQueue = payload.smsQueue.map { it.toEntity().let { sms -> if (sms.matchedTemplateId in existingTemplateIds) sms else sms.copy(matchedTemplateId = null) } },
+                backupQueue = payload.smsQueue.map { it.toEntity().let { sms -> if (sms.matchedTemplateId in restoredTemplateIds) sms else sms.copy(matchedTemplateId = null) } },
                 currentQueue = current,
                 knownAccountIds = payload.accounts.mapTo(mutableSetOf()) { it.id },
-                knownTemplateIds = existingTemplateIds
+                knownTemplateIds = restoredTemplateIds
             )
 
-            db.clearAllTablesInTransaction()
+            db.clearAllTablesInTransaction(clearTemplates = payload.templates.isNotEmpty())
+            if (payload.templates.isNotEmpty()) payload.templates.forEach { repo.templateDao.insert(it.toEntity()) }
             payload.accounts.forEach { repo.accountDao.insert(it.toEntity()) }
             payload.senders.forEach { repo.accountDao.insertSender(it.toEntity()) }
             payload.categories.forEach { repo.categoryDao.insert(it.toEntity()) }
@@ -121,8 +147,9 @@ class BackupManager(
 }
 
 /** پاک‌سازی جدول‌ها داخل تراکنش (clearAllTables خودش تراکنش می‌سازد و اینجا قابل استفاده نیست). */
-private suspend fun ir.kharjyar.app.data.db.KharjYarDatabase.clearAllTablesInTransaction() {
+private suspend fun ir.kharjyar.app.data.db.KharjYarDatabase.clearAllTablesInTransaction(clearTemplates: Boolean) {
     openHelper.writableDatabase.apply {
+        if (clearTemplates) execSQL("DELETE FROM sms_templates")
         execSQL("DELETE FROM vehicle_oil_services")
         execSQL("DELETE FROM civic_messages")
         execSQL("DELETE FROM vehicles")

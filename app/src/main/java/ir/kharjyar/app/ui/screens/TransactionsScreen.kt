@@ -100,12 +100,23 @@ fun TransactionsScreen(
     val selected = remember { mutableStateListOf<Long>() }
     val selecting = selected.isNotEmpty()
 
+    // جست‌وجو با هر تغییر متن فوراً روی فهرست اعمال می‌شود. قبلاً برای عبارت‌های
+    // غیرعددی، رشته خالیِ استخراج‌شده از رقم داخل همه مبلغ‌ها پیدا می‌شد و در
+    // نتیجه تمام تراکنش‌ها نمایش داده می‌شدند؛ همین باعث می‌شد جست‌وجو ظاهراً کار نکند.
+    val normalizedQuery = Digits.normalizeForMatch(query).trim()
+    val queryDigits = Digits.normalize(query).filter(Char::isDigit)
+    val accountTitles = accounts.associate { it.id to Digits.normalizeForMatch(it.title) }
+    val categoryTitles = categories.associate { it.id to Digits.normalizeForMatch(it.name) }
     val filtered = all.filter { tx ->
-        (query.isBlank() ||
-            tx.description.contains(query) || tx.counterparty.contains(query) ||
-            Digits.normalize(query).let { q ->
-                q.isNotBlank() && tx.amountRial.toString().contains(q.filter(Char::isDigit))
-            }) &&
+        val textMatches = normalizedQuery.isNotBlank() && listOf(
+            tx.description,
+            tx.counterparty,
+            tx.refNumber,
+            accountTitles[tx.accountId].orEmpty(),
+            tx.categoryId?.let(categoryTitles::get).orEmpty()
+        ).any { Digits.normalizeForMatch(it).contains(normalizedQuery, ignoreCase = true) }
+        val amountMatches = queryDigits.isNotBlank() && tx.amountRial.toString().contains(queryDigits)
+        (query.isBlank() || textMatches || amountMatches) &&
             (filterAccount == null || tx.accountId == filterAccount) &&
             (filterNature == null || tx.nature == filterNature) &&
             (filterDirection == null || tx.direction == filterDirection) &&
@@ -188,7 +199,7 @@ fun TransactionsScreen(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    placeholder = { Text("جست‌وجو در توضیح، طرف مقابل یا مبلغ") },
+                    placeholder = { Text("جست‌وجوی زنده در تراکنش‌ها، حساب و مبلغ") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     singleLine = true
                 )

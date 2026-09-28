@@ -62,6 +62,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var showNewCategory by remember { mutableStateOf(false) }
     var showNewRule by remember { mutableStateOf(false) }
     var editRule by remember { mutableStateOf<CategoryRuleEntity?>(null) }
+    var pendingRuleDelete by remember { mutableStateOf<CategoryRuleEntity?>(null) }
     val snackbar = remember { SnackbarHostState() }
 
     /** حذف قانون با امکان بازگرداندن. */
@@ -170,8 +171,9 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                         val r = rules[i]
                         val catName = categories.firstOrNull { it.id == r.categoryId }?.name ?: "؟"
                         SwipeActionRow(
-                            onDelete = { deleteRuleWithUndo(r) },
-                            onEdit = { editRule = r }
+                            onDelete = { pendingRuleDelete = r },
+                            onEdit = { editRule = r },
+                            removeOnDelete = false
                         ) {
                         SkinCard(modifier = Modifier.fillMaxWidth()) {
                             Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -186,7 +188,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                 Switch(checked = r.enabled, onCheckedChange = { on ->
                                     scope.launch { viewModel.repo.categoryDao.updateRule(r.copy(enabled = on)) }
                                 })
-                                TextButton(onClick = { deleteRuleWithUndo(r) }) {
+                                TextButton(onClick = { pendingRuleDelete = r }) {
                                     Text("حذف", color = MaterialTheme.colorScheme.error)
                                 }
                             }
@@ -197,6 +199,23 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             }
         }
     }
+    }
+
+    // ---------- تأیید حذف قانون خودکار ----------
+    pendingRuleDelete?.let { rule ->
+        val categoryName = categories.firstOrNull { it.id == rule.categoryId }?.name ?: "دسته نامشخص"
+        AlertDialog(
+            onDismissRequest = { pendingRuleDelete = null },
+            title = { Text("حذف قانون خودکار") },
+            text = { Text("قانون «${rule.keyword} ← $categoryName» حذف شود؟ پس از حذف، تراکنش‌های جدید دیگر با این قانون دسته‌بندی نمی‌شوند.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingRuleDelete = null
+                    deleteRuleWithUndo(rule)
+                }) { Text("حذف قانون", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { pendingRuleDelete = null }) { Text("انصراف") } }
+        )
     }
 
     // ---------- تأیید حذف دسته ----------

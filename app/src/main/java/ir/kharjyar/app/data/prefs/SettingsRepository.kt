@@ -85,7 +85,7 @@ data class AppSettings(
     /** نمایش نام «خرج‌یار» روی ویجت. */
     val widgetShowTitle: Boolean = true,
     val widgetShowWeather: Boolean = true,
-    val widgetPalette: Palette = Palette.MINIMAL_DAY,
+    val widgetPalette: Palette = Palette.SAKURA,
     val widgetTitleSize: Int = 15,
     val widgetWeatherSize: Int = 12,
     val widgetWeatherAlign: WidgetAlign = WidgetAlign.CENTER,
@@ -98,6 +98,8 @@ data class AppSettings(
     val digitStyle: DigitStyle = DigitStyle.PERSIAN,
     /** حرکت آرام هاله نور شیشه‌ای روی کارت‌های صفحه خانه. */
     val cardShine: Boolean = false,
+    /** مقیاس متن و اعداد کل برنامه؛ ۱۰۰ اندازه استاندارد است. */
+    val appFontScale: Int = 100,
     /** نمایش مبالغ در کارت خانه (با دکمه چشم عوض می‌شود و ماندگار است). */
     val amountsVisible: Boolean = true,
     val bankFeePercent: Int = 1,
@@ -148,6 +150,7 @@ class SettingsRepository(private val context: Context) {
         val SECURE_SCREEN = booleanPreferencesKey("secure_screen")
         val DIGIT_STYLE = stringPreferencesKey("digit_style")
         val CARD_SHINE = booleanPreferencesKey("card_shine")
+        val APP_FONT_SCALE = intPreferencesKey("app_font_scale")
         val AMOUNTS_VISIBLE = booleanPreferencesKey("amounts_visible")
         val BANK_FEE_PERCENT = intPreferencesKey("bank_fee_percent")
         val DASHBOARD_ACCOUNT_ORDER = stringPreferencesKey("dashboard_account_order")
@@ -195,6 +198,7 @@ class SettingsRepository(private val context: Context) {
                 ir.kharjyar.app.core.text.Digits.usePersianDigits = it == DigitStyle.PERSIAN
             },
             cardShine = p[Keys.CARD_SHINE] ?: false,
+            appFontScale = (p[Keys.APP_FONT_SCALE] ?: 100).coerceIn(85, 130),
             amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
             bankFeePercent = (p[Keys.BANK_FEE_PERCENT] ?: 1).coerceIn(0, 100),
             dashboardAccountOrder = p[Keys.DASHBOARD_ACCOUNT_ORDER]?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList(),
@@ -246,6 +250,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setSecureScreen(v: Boolean) = edit { it[Keys.SECURE_SCREEN] = v }
     suspend fun setDigitStyle(v: DigitStyle) = edit { it[Keys.DIGIT_STYLE] = v.name }
     suspend fun setCardShine(v: Boolean) = edit { it[Keys.CARD_SHINE] = v }
+    suspend fun setAppFontScale(v: Int) = edit { it[Keys.APP_FONT_SCALE] = v.coerceIn(85, 130) }
     suspend fun setAmountsVisible(v: Boolean) = edit { it[Keys.AMOUNTS_VISIBLE] = v }
     suspend fun setBankFeePercent(v: Int) = edit { it[Keys.BANK_FEE_PERCENT] = v.coerceIn(0,100) }
     suspend fun setDashboardAccountOrder(ids: List<Long>) = edit { it[Keys.DASHBOARD_ACCOUNT_ORDER] = ids.joinToString(",") }
@@ -257,46 +262,51 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetClockOffsetY(v: Int) = edit { it[Keys.W_CLOCK_OFFSET_Y] = v.coerceIn(-40, 40) }
     suspend fun setWidgetTitleOffsetY(v: Int) = edit { it[Keys.W_TITLE_OFFSET_Y] = v.coerceIn(-40, 40) }
 
-    /** تنظیمات غیرحساس برای بکاپ. */
+    /** تمام انتخاب‌های کاربر برای بازیابی کامل پس از نصب مجدد. */
     suspend fun exportForBackup(): Map<String, String> {
         val s = current()
         return mapOf(
-            "money_unit" to s.moneyUnit.name,
-            "widget_content" to s.widgetContent.name,
-            "w_layout" to s.widgetLayout.name,
-            "widget_numbers" to s.widgetShowNumbers.toString(),
-            "widget_clock" to s.widgetShowClock.toString(),
-            "widget_opacity" to s.widgetOpacity.toString(),
-            "widget_clock_size" to s.widgetClockSize.toString(),
-            "widget_date_size" to s.widgetDateSize.toString(),
-            "widget_value_size" to s.widgetValueSize.toString(),
-            "widget_label_size" to s.widgetLabelSize.toString(),
-            "widget_dates" to s.widgetShowDates.toString(),
-            "widget_title" to s.widgetShowTitle.toString(),
-            "secure_screen" to s.secureScreen.toString(),
-            "digit_style" to s.digitStyle.name,
-            "card_shine" to s.cardShine.toString()
+            "theme_mode" to s.themeMode.name, "palette" to s.palette.name, "money_unit" to s.moneyUnit.name,
+            "app_lock" to s.appLockEnabled.toString(), "lock_timeout" to s.lockTimeoutSeconds.toString(), "onboarding_done" to s.onboardingDone.toString(),
+            "widget_content" to s.widgetContent.name, "w_layout" to s.widgetLayout.name,
+            "widget_numbers" to s.widgetShowNumbers.toString(), "widget_numbers_locked" to s.widgetShowNumbersWhenLocked.toString(),
+            "default_account_id" to (s.defaultAccountId?.toString() ?: ""), "widget_clock" to s.widgetShowClock.toString(),
+            "widget_opacity" to s.widgetOpacity.toString(), "widget_clock_size" to s.widgetClockSize.toString(), "widget_date_size" to s.widgetDateSize.toString(),
+            "widget_value_size" to s.widgetValueSize.toString(), "widget_label_size" to s.widgetLabelSize.toString(), "widget_dates" to s.widgetShowDates.toString(),
+            "widget_title" to s.widgetShowTitle.toString(), "widget_weather" to s.widgetShowWeather.toString(), "widget_palette" to s.widgetPalette.name,
+            "widget_title_size" to s.widgetTitleSize.toString(), "widget_weather_size" to s.widgetWeatherSize.toString(),
+            "w_weather_align" to s.widgetWeatherAlign.name, "w_weather_valign" to s.widgetWeatherVAlign.name, "widget_auto_pin" to s.widgetAutoPinned.toString(),
+            "secure_screen" to s.secureScreen.toString(), "digit_style" to s.digitStyle.name, "card_shine" to s.cardShine.toString(),
+            "app_font_scale" to s.appFontScale.toString(), "amounts_visible" to s.amountsVisible.toString(), "bank_fee_percent" to s.bankFeePercent.toString(),
+            "dashboard_account_order" to s.dashboardAccountOrder.joinToString(","), "w_title_align" to s.widgetTitleAlign.name, "w_clock_align" to s.widgetClockAlign.name,
+            "w_title_valign" to s.widgetTitleVAlign.name, "w_clock_valign" to s.widgetClockVAlign.name, "w_dates_below" to s.widgetDatesBelowClock.toString(),
+            "w_clock_offset_y" to s.widgetClockOffsetY.toString(), "w_title_offset_y" to s.widgetTitleOffsetY.toString(),
+            "weather_city" to ir.kharjyar.app.weather.WeatherService.city(context)
         )
     }
 
     suspend fun importFromBackup(map: Map<String, String>) {
         context.dataStore.edit { p ->
-            map["money_unit"]?.let { v -> runCatching { MoneyUnit.valueOf(v) }.getOrNull()?.let { p[Keys.MONEY_UNIT] = it.name } }
-            map["widget_content"]?.let { v -> runCatching { WidgetContent.valueOf(v) }.getOrNull()?.let { p[Keys.WIDGET_CONTENT] = it.name } }
-            map["w_layout"]?.let { v -> runCatching { WidgetLayout.valueOf(v) }.getOrNull()?.let { p[Keys.W_LAYOUT] = it.name } }
-            map["widget_numbers"]?.let { p[Keys.WIDGET_NUMBERS] = it.toBoolean() }
-            map["widget_clock"]?.let { p[Keys.WIDGET_CLOCK] = it.toBoolean() }
-            map["widget_opacity"]?.toIntOrNull()?.let { p[Keys.WIDGET_OPACITY] = it.coerceIn(0, 100) }
-            map["widget_clock_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_CLOCK_SIZE] = it.coerceIn(18, 72) }
-            map["widget_date_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_DATE_SIZE] = it.coerceIn(8, 28) }
-            map["widget_value_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_VALUE_SIZE] = it.coerceIn(9, 30) }
-            map["widget_label_size"]?.toIntOrNull()?.let { p[Keys.WIDGET_LABEL_SIZE] = it.coerceIn(7, 22) }
-            map["widget_dates"]?.let { p[Keys.WIDGET_DATES] = it.toBoolean() }
-            map["widget_title"]?.let { p[Keys.WIDGET_TITLE] = it.toBoolean() }
-            map["secure_screen"]?.let { p[Keys.SECURE_SCREEN] = it.toBoolean() }
-            map["digit_style"]?.let { v -> runCatching { DigitStyle.valueOf(v) }.getOrNull()?.let { p[Keys.DIGIT_STYLE] = it.name } }
-            map["card_shine"]?.let { p[Keys.CARD_SHINE] = it.toBoolean() }
+            fun bool(name: String, key: Preferences.Key<Boolean>) { map[name]?.let { p[key] = it.toBoolean() } }
+            fun int(name: String, key: Preferences.Key<Int>, range: IntRange) { map[name]?.toIntOrNull()?.let { p[key] = it.coerceIn(range) } }
+            fun <T : Enum<T>> enum(name: String, key: Preferences.Key<String>, values: Array<T>) { map[name]?.let { raw -> values.firstOrNull { it.name == raw }?.let { p[key] = it.name } } }
+            enum("theme_mode",Keys.THEME,ThemeMode.entries.toTypedArray()); enum("palette",Keys.PALETTE,Palette.entries.toTypedArray()); enum("money_unit",Keys.MONEY_UNIT,MoneyUnit.entries.toTypedArray())
+            bool("app_lock",Keys.APP_LOCK); int("lock_timeout",Keys.LOCK_TIMEOUT,0..86400); bool("onboarding_done",Keys.ONBOARDING)
+            enum("widget_content",Keys.WIDGET_CONTENT,WidgetContent.entries.toTypedArray()); enum("w_layout",Keys.W_LAYOUT,WidgetLayout.entries.toTypedArray())
+            bool("widget_numbers",Keys.WIDGET_NUMBERS); bool("widget_numbers_locked",Keys.WIDGET_NUMBERS_LOCKED)
+            map["default_account_id"]?.toLongOrNull()?.takeIf { it > 0 }?.let { p[Keys.DEFAULT_ACCOUNT]=it } ?: if(map.containsKey("default_account_id")) p.remove(Keys.DEFAULT_ACCOUNT)
+            bool("widget_clock",Keys.WIDGET_CLOCK); int("widget_opacity",Keys.WIDGET_OPACITY,0..100); int("widget_clock_size",Keys.WIDGET_CLOCK_SIZE,18..72)
+            int("widget_date_size",Keys.WIDGET_DATE_SIZE,8..28); int("widget_value_size",Keys.WIDGET_VALUE_SIZE,9..30); int("widget_label_size",Keys.WIDGET_LABEL_SIZE,7..22)
+            bool("widget_dates",Keys.WIDGET_DATES); bool("widget_title",Keys.WIDGET_TITLE); bool("widget_weather",Keys.WIDGET_WEATHER)
+            enum("widget_palette",Keys.WIDGET_PALETTE,Palette.entries.toTypedArray()); int("widget_title_size",Keys.WIDGET_TITLE_SIZE,9..30); int("widget_weather_size",Keys.WIDGET_WEATHER_SIZE,8..28)
+            enum("w_weather_align",Keys.W_WEATHER_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_weather_valign",Keys.W_WEATHER_VALIGN,WidgetVAlign.entries.toTypedArray())
+            bool("widget_auto_pin",Keys.WIDGET_AUTO_PIN); bool("secure_screen",Keys.SECURE_SCREEN); enum("digit_style",Keys.DIGIT_STYLE,DigitStyle.entries.toTypedArray())
+            bool("card_shine",Keys.CARD_SHINE); int("app_font_scale",Keys.APP_FONT_SCALE,85..130); bool("amounts_visible",Keys.AMOUNTS_VISIBLE); int("bank_fee_percent",Keys.BANK_FEE_PERCENT,0..100)
+            map["dashboard_account_order"]?.let { p[Keys.DASHBOARD_ACCOUNT_ORDER]=it }; enum("w_title_align",Keys.W_TITLE_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_clock_align",Keys.W_CLOCK_ALIGN,WidgetAlign.entries.toTypedArray())
+            enum("w_title_valign",Keys.W_TITLE_VALIGN,WidgetVAlign.entries.toTypedArray()); enum("w_clock_valign",Keys.W_CLOCK_VALIGN,WidgetVAlign.entries.toTypedArray()); bool("w_dates_below",Keys.W_DATES_BELOW)
+            int("w_clock_offset_y",Keys.W_CLOCK_OFFSET_Y,-40..40); int("w_title_offset_y",Keys.W_TITLE_OFFSET_Y,-40..40)
         }
+        map["weather_city"]?.takeIf { it.isNotBlank() }?.let { ir.kharjyar.app.weather.WeatherService.setCity(context, it) }
     }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
@@ -305,7 +315,7 @@ class SettingsRepository(private val context: Context) {
 
     /** نگاشت پالت‌های قدیمی (اقیانوس/جنگل/…) به تم‌های جدید. */
     private fun paletteOf(name: String?): Palette =
-        name?.let { runCatching { Palette.valueOf(it) }.getOrNull() } ?: Palette.MINIMAL_DAY
+        name?.let { runCatching { Palette.valueOf(it) }.getOrNull() } ?: Palette.SAKURA
 
     private inline fun <reified T : Enum<T>> enumOf(name: String?, default: T): T =
         name?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default
