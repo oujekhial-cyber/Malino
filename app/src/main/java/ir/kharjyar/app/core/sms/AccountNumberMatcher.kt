@@ -10,7 +10,8 @@ object AccountNumberMatcher {
     fun match(body:String,accounts:List<MatchableAccount>):AccountMatch {
         val tokens=numericTokens(body)
         val scores=accounts.mapNotNull{account->
-            val score=identifiers(account).maxOfOrNull{saved->tokens.maxOfOrNull{token->agreementScore(token,saved)}?:0}?:0
+            val plainScore=identifiers(account).maxOfOrNull{saved->tokens.maxOfOrNull{token->agreementScore(token,saved)}?:0}?:0
+            val score=maxOf(plainScore,maskedEvidenceScore(body,account))
             if(score>=4)account.id to score else null
         }
         val best=scores.maxOfOrNull{it.second}?:return AccountMatch.Unknown
@@ -42,5 +43,19 @@ object AccountNumberMatcher {
             if(fragments.any{saved.contains(it)})return length
         }
         return 0
+    }
+
+    /** پیشوند و پسوند دو سوی ستاره‌های ماسک‌شده باید در همان شناسه ذخیره‌شده باشند. */
+    private fun maskedEvidenceScore(body:String,account:MatchableAccount):Int {
+        val groups=Regex("[\\d۰-۹٠-٩]{4,}(?:[*٭]+[\\d۰-۹٠-٩]{4,})+").findAll(body)
+        val saved=identifiers(account)
+        return groups.maxOfOrNull { match ->
+            val pieces=Regex("[\\d۰-۹٠-٩]{4,}").findAll(match.value)
+                .map{Digits.normalize(it.value).filter(Char::isDigit)}.toList()
+            if(pieces.size>=2 && saved.any{identifier->
+                var cursor=0
+                pieces.all{piece->identifier.indexOf(piece,cursor).also{if(it>=0)cursor=it+piece.length}>=0}
+            }) 50+pieces.sumOf{it.length} else 0
+        }?:0
     }
 }
