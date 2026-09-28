@@ -1,0 +1,14 @@
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:393:38 Unresolved reference 'context'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AssetsScreen.kt:92:20 Unresolved reference 'scope'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AssetsScreen.kt:117:11 Unresolved reference 'scope'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:38:2 Unresolved reference 'BackHandler'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:42:263 Unresolved reference 'BorderStroke'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:42:425 Unresolved reference 'BorderStroke'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:48:2893 Unresolved reference 'BorderStroke'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt:393:38 Unresolved reference 'context'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AssetsScreen.kt:92:20 Unresolved reference 'scope'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AssetsScreen.kt:117:11 Unresolved reference 'scope'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:38:2 Unresolved reference 'BackHandler'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:42:263 Unresolved reference 'BorderStroke'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:42:425 Unresolved reference 'BorderStroke'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:48:2893 Unresolved reference 'BorderStroke'.
