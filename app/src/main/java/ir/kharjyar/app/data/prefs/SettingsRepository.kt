@@ -294,7 +294,9 @@ class SettingsRepository(private val context: Context) {
             bool("app_lock",Keys.APP_LOCK); int("lock_timeout",Keys.LOCK_TIMEOUT,0..86400); bool("onboarding_done",Keys.ONBOARDING)
             enum("widget_content",Keys.WIDGET_CONTENT,WidgetContent.entries.toTypedArray()); enum("w_layout",Keys.W_LAYOUT,WidgetLayout.entries.toTypedArray())
             bool("widget_numbers",Keys.WIDGET_NUMBERS); bool("widget_numbers_locked",Keys.WIDGET_NUMBERS_LOCKED)
-            map["default_account_id"]?.toLongOrNull()?.takeIf { it > 0 }?.let { p[Keys.DEFAULT_ACCOUNT]=it } ?: if(map.containsKey("default_account_id")) p.remove(Keys.DEFAULT_ACCOUNT)
+            val restoredDefaultAccount = map["default_account_id"]?.toLongOrNull()?.takeIf { it > 0 }
+            if (restoredDefaultAccount != null) p[Keys.DEFAULT_ACCOUNT] = restoredDefaultAccount
+            else if (map.containsKey("default_account_id")) p.remove(Keys.DEFAULT_ACCOUNT)
             bool("widget_clock",Keys.WIDGET_CLOCK); int("widget_opacity",Keys.WIDGET_OPACITY,0..100); int("widget_clock_size",Keys.WIDGET_CLOCK_SIZE,18..72)
             int("widget_date_size",Keys.WIDGET_DATE_SIZE,8..28); int("widget_value_size",Keys.WIDGET_VALUE_SIZE,9..30); int("widget_label_size",Keys.WIDGET_LABEL_SIZE,7..22)
             bool("widget_dates",Keys.WIDGET_DATES); bool("widget_title",Keys.WIDGET_TITLE); bool("widget_weather",Keys.WIDGET_WEATHER)
