@@ -47,6 +47,7 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.showSavedMessage
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.keepAboveKeyboard
@@ -253,6 +254,7 @@ fun ManualEntryScreen(
                                     ir.kharjyar.app.data.db.TransactionAttachmentEntity(transactionId=savedTxId,imagePath=receiptPath,createdAt=System.currentTimeMillis())
                                 )
                                 ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
+                                showSavedMessage(context, "تراکنش")
                                 nav.popBackStack()
                             }
                         }

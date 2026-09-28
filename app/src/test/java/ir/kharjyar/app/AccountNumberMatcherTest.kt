@@ -21,7 +21,22 @@ class AccountNumberMatcherTest {
         assertEquals(AccountMatch.Single(1), AccountNumberMatcher.match("برداشت از 2404.306.5918267.1", accounts))
     }
 
-    @Test fun `does not mistake amount for an account`() {
+    @Test fun `matches four five or six digits from anywhere in account`() {
+        assertEquals(AccountMatch.Single(1), AccountNumberMatcher.match("حساب مرتبط 306.59", accounts))
+        assertEquals(AccountMatch.Single(1), AccountNumberMatcher.match("شناسه حساب 591826", accounts))
+        assertEquals(AccountMatch.Single(2), AccountNumberMatcher.match("حساب 12345", accounts))
+    }
+
+    @Test fun `middle match works across separators rather than only suffix`() {
+        assertEquals(AccountMatch.Single(1), AccountNumberMatcher.match("برداشت از حساب 430.659", accounts))
+    }
+
+    @Test fun `stronger six digit match wins over weaker four digit candidate`() {
+        val overlapping = accounts + MatchableAccount(3, "", "999943009999", "", "")
+        assertEquals(AccountMatch.Single(1), AccountNumberMatcher.match("حساب 430659", overlapping))
+    }
+
+    @Test fun `does not mistake unrelated amount for an account`() {
         assertTrue(AccountNumberMatcher.match("برداشت مبلغ 500000 ریال", accounts) is AccountMatch.Unknown)
     }
 }

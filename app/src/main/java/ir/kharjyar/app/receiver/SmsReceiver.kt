@@ -39,13 +39,20 @@ class SmsReceiver : BroadcastReceiver() {
             try {
                 // پیامک‌های خدمات شهروندی مستقل از تراکنش‌های بانکی نگهداری می‌شوند.
                 ir.kharjyar.app.core.sms.CivicSmsClassifier.classify(sender, body)?.let { kind ->
+                    val vehicleId = if (kind == ir.kharjyar.app.data.db.CivicMessageKind.TRAFFIC_FINE) {
+                        ir.kharjyar.app.core.sms.IranianPlateMatcher.uniqueVehicleId(
+                            body,
+                            app.database.civicDao().allVehiclesOnce()
+                        )
+                    } else null
                     app.database.civicDao().insertMessage(
                         ir.kharjyar.app.data.db.CivicMessageEntity(
                             kind = kind,
                             sender = sender,
                             body = body,
                             receivedAt = receivedAt,
-                            fingerprint = ir.kharjyar.app.core.sms.CivicSmsClassifier.fingerprint(sender, body, receivedAt)
+                            fingerprint = ir.kharjyar.app.core.sms.CivicSmsClassifier.fingerprint(sender, body, receivedAt),
+                            vehicleId = vehicleId
                         )
                     )
                 }

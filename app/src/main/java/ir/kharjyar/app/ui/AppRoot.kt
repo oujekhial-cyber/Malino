@@ -512,7 +512,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("reminders") { RemindersScreen(viewModel) }
                 composable("civicCenter") { CivicCenterScreen(viewModel) }
                 composable("vehicles") { VehiclesScreen(viewModel) }
-                composable("profile") { ProfileScreen(viewModel) }
+                composable("profile") { ProfileScreen(viewModel, navController) }
                 composable("blockedSenders") { BlockedSendersScreen(viewModel) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->

@@ -51,6 +51,7 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.AccountSenderEntity
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.showSavedMessage
 import ir.kharjyar.app.core.card.CardScan
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.CardScannerDialog
@@ -389,6 +390,7 @@ fun AccountEditScreen(
                             )
                         }
                     }
+                    showSavedMessage(context, "حساب")
                     if (onSaved != null) onSaved(id) else nav.popBackStack()
                 }
             },

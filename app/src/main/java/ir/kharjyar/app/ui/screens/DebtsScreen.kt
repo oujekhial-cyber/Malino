@@ -1,5 +1,7 @@
 package ir.kharjyar.app.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.date.PersianDate
@@ -19,6 +22,7 @@ import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.*
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.showSavedMessage
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.PersianDateField
 import kotlinx.coroutines.launch
@@ -29,6 +33,7 @@ fun DebtsScreen(vm: AppViewModel) {
     var entryKind by remember { mutableStateOf<Int?>(null) };var showChooser by remember { mutableStateOf(false) }
     var filterKind by remember{mutableStateOf<Int?>(null)};var personQuery by remember{mutableStateOf("")};var filterFrom by remember{mutableStateOf(PersianDate.today().plusDays(-365))};var filterTo by remember{mutableStateOf(PersianDate.today().plusDays(365))}
 
+    BackHandler(enabled=entryKind != null){entryKind = null}
     if (entryKind != null) {
         DebtEntryPage(vm, entryKind!!, people, onDone = { entryKind=null }, onCancel = { entryKind=null })
         return
@@ -52,9 +57,9 @@ fun DebtsScreen(vm: AppViewModel) {
         }
         FloatingActionButton(onClick={showChooser=true},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),containerColor=MaterialTheme.colorScheme.primary){Icon(Icons.Filled.Add,"افزودن طلب یا بدهی")}
     }
-    if(showChooser) AlertDialog(onDismissRequest={showChooser=false},title={Text("چه موردی ثبت می‌کنید؟")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Button({showChooser=false;entryKind=DebtKind.RECEIVABLE},Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF1B8F52))){Text("ثبت طلب")};Button({showChooser=false;entryKind=DebtKind.PAYABLE},Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFFD33B45))){Text("ثبت بدهی")}}},confirmButton={})
+    if(showChooser) AlertDialog(onDismissRequest={showChooser=false},title={Text("چه موردی ثبت می‌کنید؟")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Button({showChooser=false;entryKind=DebtKind.RECEIVABLE},Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,Color(0xFF1B8F52))){Text("ثبت طلب")};Button({showChooser=false;entryKind=DebtKind.PAYABLE},Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,Color(0xFFD33B45))){Text("ثبت بدهی")}}},confirmButton={})
 }
 
 @Composable
-private fun DebtEntryPage(vm:AppViewModel,kind:Int,people:List<DebtPersonEntity>,onDone:()->Unit,onCancel:()->Unit){val scope=rememberCoroutineScope();var person by remember{mutableStateOf("")};var title by remember{mutableStateOf("")};var amount by remember{mutableStateOf("")};var due by remember{mutableStateOf(PersianDate.today())};val receivable=kind==DebtKind.RECEIVABLE;Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){TextButton(onCancel){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به فهرست")};Text(if(receivable)"ثبت طلب" else "ثبت بدهی",style=MaterialTheme.typography.headlineSmall,color=if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45));OutlinedTextField(person,{person=it},label={Text("نام شخص")},modifier=Modifier.fillMaxWidth());OutlinedTextField(title,{title=it},label={Text("عنوان یا توضیح")},modifier=Modifier.fillMaxWidth());AmountTextField(amount,{amount=it},"مبلغ به ریال",Modifier.fillMaxWidth());Text("تاریخ سررسید");PersianDateField(due,{due=it});Button({scope.launch{val old=people.firstOrNull{it.name.trim()==person.trim()};val personId=old?.id?:vm.repo.db.debtDao().insertPerson(DebtPersonEntity(name=person.trim(),createdAt=System.currentTimeMillis()));vm.repo.db.debtDao().insertDebt(DebtEntity(personId=personId,kind=kind,amountRial=Digits.parseAmount(amount)?:0,title=title.trim(),createdAt=System.currentTimeMillis(),dueAt=due.startOfDayMillis(),reminderAt=due.startOfDayMillis()));onDone()}},enabled=person.isNotBlank()&&(Digits.parseAmount(amount)?:0)>0,modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45))){Text(if(receivable)"ثبت طلب و یادآور" else "ثبت بدهی و یادآور")}}
+private fun DebtEntryPage(vm:AppViewModel,kind:Int,people:List<DebtPersonEntity>,onDone:()->Unit,onCancel:()->Unit){val scope=rememberCoroutineScope();val context=LocalContext.current;var person by remember{mutableStateOf("")};var title by remember{mutableStateOf("")};var amount by remember{mutableStateOf("")};var due by remember{mutableStateOf(PersianDate.today())};val receivable=kind==DebtKind.RECEIVABLE;Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){TextButton(onCancel){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به فهرست")};Text(if(receivable)"ثبت طلب" else "ثبت بدهی",style=MaterialTheme.typography.headlineSmall,color=if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45));OutlinedTextField(person,{person=it},label={Text("نام شخص")},modifier=Modifier.fillMaxWidth());OutlinedTextField(title,{title=it},label={Text("عنوان یا توضیح")},modifier=Modifier.fillMaxWidth());AmountTextField(amount,{amount=it},"مبلغ به ریال",Modifier.fillMaxWidth());Text("تاریخ سررسید");PersianDateField(due,{due=it});Button({scope.launch{val old=people.firstOrNull{it.name.trim()==person.trim()};val personId=old?.id?:vm.repo.db.debtDao().insertPerson(DebtPersonEntity(name=person.trim(),createdAt=System.currentTimeMillis()));vm.repo.db.debtDao().insertDebt(DebtEntity(personId=personId,kind=kind,amountRial=Digits.parseAmount(amount)?:0,title=title.trim(),createdAt=System.currentTimeMillis(),dueAt=due.startOfDayMillis(),reminderAt=due.startOfDayMillis()));showSavedMessage(context,"طلب یا بدهی");onDone()}},enabled=person.isNotBlank()&&(Digits.parseAmount(amount)?:0)>0,modifier=Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45))){Text(if(receivable)"ثبت طلب و یادآور" else "ثبت بدهی و یادآور")}}
 }
