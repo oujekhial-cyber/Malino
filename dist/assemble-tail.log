@@ -116,5 +116,5 @@ Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilat
 	... 2 more
 
 
-BUILD FAILED in 1m 34s
-23 actionable tasks: 9 executed, 14 up-to-date
+BUILD FAILED in 1m 40s
+24 actionable tasks: 9 executed, 15 up-to-date
