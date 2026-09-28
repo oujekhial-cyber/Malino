@@ -57,6 +57,7 @@ import kotlinx.coroutines.launch
 private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,onDone:()->Unit,onCancel:()->Unit){
 
  val context=LocalContext.current
+ val scope=rememberCoroutineScope()
  val settings by vm.settings.collectAsState()
  var kind by remember{mutableStateOf(existing?.kind?:AssetKind.GOLD)}
  var title by remember{mutableStateOf(existing?.title.orEmpty())}
