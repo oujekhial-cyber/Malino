@@ -1,4 +1,1 @@
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt:297:113 'if' must have both main and 'else' branches when used as an expression.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:49:1534 Unresolved reference 'context'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt:297:113 'if' must have both main and 'else' branches when used as an expression.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt:49:1534 Unresolved reference 'context'.
+e: The daemon has terminated unexpectedly on startup attempt #1 with error code: 0. The daemon process output:
