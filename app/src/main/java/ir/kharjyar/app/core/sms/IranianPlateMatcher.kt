@@ -39,5 +39,5 @@ object IranianPlateMatcher {
     private fun normalize(raw:String):String = Digits.normalize(raw)
         .replace('ي','ی').replace('ى','ی').replace('ك','ک')
         .replace("ايران","ایران",ignoreCase=true)
-        .filter{it.isDigit()||it in 'آ'..'ی'}
+        .filter{it != 'ـ' && (it.isDigit()||it in 'آ'..'ی')}
 }
