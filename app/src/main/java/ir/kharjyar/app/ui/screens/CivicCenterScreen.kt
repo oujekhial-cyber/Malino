@@ -65,7 +65,7 @@ fun CivicCenterScreen(vm:AppViewModel){
    }
   }
   if(selectedKind==null)FloatingActionButton({chooser=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن پروفایل")}
-  if(selectedKind==CivicMessageKind.UTILITY_BILL)ExtendedFloatingActionButton({entry=ENTRY_UTILITY_BILL},Modifier.align(Alignment.BottomEnd).padding(20.dp),icon={Icon(Icons.Filled.Add,null)},text={Text("افزودن قبض")})
+  if(selectedKind==CivicMessageKind.UTILITY_BILL)ExtendedFloatingActionButton(text={Text("افزودن قبض")},onClick={entry=ENTRY_UTILITY_BILL},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),icon={Icon(Icons.Filled.Add,null)})
   if(chooser)AlertDialog(onDismissRequest={chooser=false},title={Text("چه موردی ثبت شود؟")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Button({chooser=false;entry=ENTRY_PERSON},Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,Color(0xFF1B8F52))){Text("فرد تحت پوشش")};Button({chooser=false;entry=ENTRY_VEHICLE},Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,Color(0xFFD33B45))){Text("وسیله نقلیه و پلاک")}}},confirmButton={})
  }
 }
