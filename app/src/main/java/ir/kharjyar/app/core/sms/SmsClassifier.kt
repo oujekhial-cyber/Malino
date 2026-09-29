@@ -15,7 +15,7 @@ object SmsClassifier {
     private val transactionKeywords = listOf(
         "برداشت", "واریز", "خرید", "انتقال", "کسر", "کارت به کارت", "کارت‌به‌کارت",
         "پرداخت", "حواله", "تراکنش", "کسر شد", "واریز شد", "برداشت شد", "خرید از",
-        "paya", "satna", "پایا", "ساتنا", "قبض"
+        "paya", "satna", "پایا", "ساتنا", "قبض", "بدهکار", "بستانکار", "وصول", "شارژ"
     )
 
     private val balanceKeywords = listOf("مانده", "موجودی", "مانده:", "موجودی:")
@@ -24,6 +24,11 @@ object SmsClassifier {
         "رمز یکبار مصرف", "رمز یک‌بار مصرف", "رمز یکبارمصرف", "کد تایید", "کد تأیید",
         "کد فعالسازی", "کد فعال‌سازی", "رمز پویا", "otp", "verification code",
         "کد ورود", "کد اعتبارسنجی", "این کد را در اختیار", "رمز دوم پویا"
+    )
+
+    private val securityNoticeKeywords = listOf(
+        "ورود به همراه بانک", "ورود به اینترنت بانک", "ورود موفق", "تلاش برای ورود",
+        "رمز ورود اشتباه", "رمز اشتباه", "نام کاربری", "دستگاه جدید", "نشست کاربری"
     )
 
     private val promoKeywords = listOf(
@@ -36,18 +41,25 @@ object SmsClassifier {
      * وجود واژه «رمز» یا «مسدود» به‌تنهایی دلیل حذف نیست؛ اگر نشانه تراکنش + مبلغ باشد مالی است.
      */
     fun classify(body: String): SmsKind {
-        val text = Digits.normalize(body).lowercase()
+        // حروف عربی هم یکدست می‌شوند تا «خريد/كسر» عربی هم شناخته شود
+        val text = Digits.normalizeForMatch(body).lowercase()
         val hasTxKeyword = transactionKeywords.any { text.contains(it) }
         val hasBalance = balanceKeywords.any { text.contains(it) }
         val hasAmountLike = Regex("\\d{1,3}([,،٬./]\\d{3})+|\\d{4,}").containsMatchIn(text)
         val isOtp = otpKeywords.any { text.contains(it) }
+        val isSecurityNotice = securityNoticeKeywords.any { text.contains(it) }
         val isPromo = promoKeywords.any { text.contains(it) }
 
-        // پیامک تراکنش واقعی حتی اگر هشدار امنیتی/واژه «رمز» داشته باشد
-        if (hasTxKeyword && hasAmountLike) return SmsKind.FINANCIAL_LIKELY
+        // اعلان‌های امنیتی و ورود، حتی اگر عدد یا واژه‌هایی مثل «برداشت ناموفق» داشته باشند، تراکنش نیستند.
+        if (isSecurityNotice && !hasBalance) return SmsKind.NON_FINANCIAL
 
-        // OTP خالص بدون نشانه تراکنش
+        // پیامک رمز پویا ممکن است نام فروشگاه، مبلغ و واژه «خرید/پرداخت» هم داشته
+        // باشد، اما وقوع تراکنش را اعلام نمی‌کند. بنابراین OTP همیشه پیش از قواعد
+        // مبلغ و کلیدواژه کنار گذاشته می‌شود.
         if (isOtp) return SmsKind.NON_FINANCIAL
+
+        // پیامک تراکنش قطعی: کلیدواژه مالی همراه مبلغ
+        if (hasTxKeyword && hasAmountLike) return SmsKind.FINANCIAL_LIKELY
 
         // تبلیغ بدون نشانه تراکنش
         if (isPromo && !hasTxKeyword) return SmsKind.NON_FINANCIAL
