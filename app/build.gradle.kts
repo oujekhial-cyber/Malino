@@ -16,8 +16,8 @@ android {
         applicationId = "ir.kharjyar.app"
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 11
+        versionName = "1.0.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -53,16 +53,7 @@ android {
     val hasOwnKey = storeFilePath != null && storePw != null &&
         keyAliasName != null && keyPw != null && file(storeFilePath).exists()
 
-    /**
-     * کلید پشتیبان داخل مخزن.
-     *
-     * رمزش عمومی است و راز محسوب نمی‌شود؛ هدفش فقط این است که خروجی انتشار
-     * همیشه «امضاشده و قابل نصب» باشد. APK بدون امضا با خطای
-     * «App not installed as package appears to be invalid» رد می‌شود.
-     *
-     * برای انتشار واقعی، کلید اختصاصی را از طریق Secretها بدهید تا جای این یکی
-     * را بگیرد (مقدار hasOwnKey آن موقع true می‌شود).
-     */
+    // کلید عمومی فقط برای ساخت آزمایشی است؛ انتشار رسمی باید با Secret اختصاصی امضا شود.
     val fallbackKey = rootProject.file("signing/kharjyar-fallback.p12")
     val useFallback = !hasOwnKey && fallbackKey.exists()
 
@@ -160,6 +151,12 @@ dependencies {
     implementation(libs.androidx.sqlite.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+    // دوربین + تشخیص متن روی خود گوشی (مدل داخل APK است و اینترنت نمی‌خواهد)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.text.recognition)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
 

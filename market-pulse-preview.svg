@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="950" viewBox="0 0 900 950">
+<defs>
+ <radialGradient id="bg"><stop stop-color="#431435"/><stop offset="1" stop-color="#110716"/></radialGradient>
+ <linearGradient id="glass" x1="0" x2="1"><stop stop-color="#29192f"/><stop offset=".5" stop-color="#211126"/><stop offset="1" stop-color="#34152e"/></linearGradient>
+ <linearGradient id="pink"><stop stop-color="#ff3daf"/><stop offset="1" stop-color="#8b2fd6"/></linearGradient>
+ <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-opacity=".58"/></filter>
+ <style>text{font-family:'DejaVu Sans',sans-serif}.rtl{direction:rtl;unicode-bidi:bidi-override}.title{font-size:27px;font-weight:700;fill:white}.small{font-size:18px;fill:#cdb9c8}.value{font-size:23px;font-weight:700;fill:white}</style>
+</defs>
+<rect width="900" height="950" fill="url(#bg)"/>
+<circle cx="820" cy="170" r="260" fill="#ff3daf" opacity=".07"/><circle cx="70" cy="650" r="260" fill="#4de8c2" opacity=".05"/>
+<text x="845" y="80" text-anchor="end" class="rtl title" font-size="35">خرج‌یار</text>
+<text x="845" y="126" text-anchor="end" class="rtl small">پیش‌نمایش تقریبی پنجره نبض بازار</text>
+<g filter="url(#shadow)">
+ <rect x="45" y="220" width="810" height="480" rx="42" fill="url(#glass)" fill-opacity=".95" stroke="white" stroke-opacity=".25" stroke-width="2"/>
+ <rect x="47" y="222" width="806" height="476" rx="40" fill="none" stroke="#ff3daf" stroke-opacity=".25"/>
+</g>
+<rect x="755" y="260" width="60" height="60" rx="17" fill="url(#pink)"/>
+<path d="M770 302l13-15 13 9 12-22" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="735" y="282" text-anchor="end" class="rtl title">نرخ لحظه‌ای بازار ایران</text>
+<text x="735" y="313" text-anchor="end" class="rtl small">آخرین داده دریافت‌شده از بازار</text>
+<circle cx="106" cy="287" r="27" fill="white" fill-opacity=".04" stroke="#ff3daf" stroke-opacity=".5"/><text x="106" y="296" text-anchor="middle" font-size="29" fill="#ff3daf">↻</text>
+<!-- gold -->
+<rect x="475" y="370" width="340" height="220" rx="28" fill="#302034" fill-opacity=".94" stroke="#d7a928" stroke-opacity=".55" stroke-width="2"/>
+<rect x="748" y="394" width="45" height="45" rx="12" fill="#d7a928" fill-opacity=".18"/><text x="770" y="423" text-anchor="middle" font-size="18" font-weight="700" fill="#d7a928">Au</text>
+<text x="730" y="414" text-anchor="end" class="rtl title" font-size="21">طلای ۱۸ عیار</text><text x="730" y="446" text-anchor="end" class="rtl small">هر گرم</text>
+<text x="790" y="548" text-anchor="end" class="rtl value">۷۵٬۴۲۰٬۰۰۰ ریال</text>
+<!-- dollar -->
+<rect x="85" y="370" width="340" height="220" rx="28" fill="#302034" fill-opacity=".94" stroke="#20a565" stroke-opacity=".6" stroke-width="2"/>
+<rect x="358" y="394" width="45" height="45" rx="12" fill="#20a565" fill-opacity=".18"/><text x="380" y="423" text-anchor="middle" font-size="20" font-weight="700" fill="#20a565">$</text>
+<text x="340" y="414" text-anchor="end" class="rtl title" font-size="21">دلار آزاد</text><text x="340" y="446" text-anchor="end" class="rtl small">هر دلار</text>
+<text x="400" y="548" text-anchor="end" class="rtl value">۱٬۰۲۵٬۰۰۰ ریال</text>
+<text x="450" y="772" text-anchor="middle" class="rtl small">عرض ۹۰٪ صفحه • شیشه‌ای و خوانا • گوشه‌های نرم و سایه ملایم</text>
+</svg>
