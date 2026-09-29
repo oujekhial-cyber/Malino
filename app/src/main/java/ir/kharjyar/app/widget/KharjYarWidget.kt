@@ -46,6 +46,16 @@ import java.util.Locale
  *
  * ساعت و تاریخ میلادی TextClock هستند، پس سیستم‌عامل خودش زنده نگهشان می‌دارد.
  */
+/**
+ * یک ردیف ویجت.
+ *
+ * @param income واریز بودن ردیف: true واریز، false برداشت، null بدون جهت (مثل مانده).
+ * پیش‌تر آیکون ردیف‌ها ثابت بود (ردیف اول واریز، ردیف دوم برداشت) و در حالت
+ * «آخرین تراکنش‌ها» اگر هر دو تراکنش برداشت بودند، یکی‌شان با آیکون واریز
+ * نشان داده می‌شد. حالا آیکون از خودِ ردیف می‌آید.
+ */
+data class WidgetLine(val label: String, val value: String, val income: Boolean? = null)
+
 object WidgetRenderer {
 
     /**
@@ -72,7 +82,8 @@ object WidgetRenderer {
     suspend fun build(context: Context): RemoteViews {
         val app = context.applicationContext as KharjYarApp
         val settings = app.settings.current()
-        val skin = skinOf(settings.palette)
+        val skin = skinOf(settings.widgetPalette)
+        val weather = ir.kharjyar.app.weather.WeatherService.refresh(context)
 
         val hideNumbers = settings.appLockEnabled && !settings.widgetShowNumbersWhenLocked
         val showNumbers = settings.widgetShowNumbers && !hideNumbers
@@ -94,24 +105,29 @@ object WidgetRenderer {
         val defaultAccount = accountId?.let { app.repository.accountDao.byId(it) }
         val balanceLine = defaultAccount?.let { acc ->
             val est = AccountBalance.estimate(acc, app.repository.txDao.allOnce())
-            est.rial?.let { "مانده ${acc.title}" to Money.format(it, settings.moneyUnit) }
+            est.rial?.let { WidgetLine("مانده ${acc.title}", Money.format(it, settings.moneyUnit)) }
         }
 
         val unit = settings.moneyUnit
-        val lines: List<Pair<String, String>> = when (settings.widgetContent) {
+        val lines: List<WidgetLine> = when (settings.widgetContent) {
             WidgetContent.TODAY_EXPENSE ->
-                listOf("برداشت امروز" to Money.format(todaySummary.expenseRial, unit))
+                listOf(WidgetLine("برداشت امروز", Money.format(todaySummary.expenseRial, unit), false))
             WidgetContent.MONTH_EXPENSE ->
-                listOf("برداشت ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit))
+                listOf(WidgetLine("برداشت ${today.monthName()}", Money.format(monthSummary.expenseRial, unit), false))
             WidgetContent.SUMMARY -> listOfNotNull(
-                "واریز ${today.monthName()}" to Money.format(monthSummary.incomeRial, unit),
-                "برداشت ${today.monthName()}" to Money.format(monthSummary.expenseRial, unit),
+                WidgetLine("واریز ${today.monthName()}", Money.format(monthSummary.incomeRial, unit), true),
+                WidgetLine("برداشت ${today.monthName()}", Money.format(monthSummary.expenseRial, unit), false),
                 balanceLine
             )
+            // هر ردیف آیکون خودش را می‌گیرد: واریز یا برداشت همان تراکنش
             WidgetContent.RECENT -> recent.map { tx ->
-                (if (tx.direction == TxDirection.DEPOSIT) "واریز" else "برداشت") to
-                    Money.format(tx.amountRial, unit)
-            }.ifEmpty { listOf("تراکنش اخیر" to "—") }
+                val deposit = tx.direction == TxDirection.DEPOSIT
+                WidgetLine(
+                    if (deposit) "واریز" else "برداشت",
+                    Money.format(tx.amountRial, unit),
+                    deposit
+                )
+            }.ifEmpty { listOf(WidgetLine("تراکنش اخیر", "—")) }
         }
 
         // روز هفته از ساعت واقعی گوشی خوانده می‌شود (today از LocalDate.now می‌آید)
@@ -129,7 +145,21 @@ object WidgetRenderer {
 
         applyBackground(context, views, skin, settings.widgetOpacity, settings.widgetLayout)
         applyColors(views, skin, settings.widgetLayout)
+        applyRowIcons(views, lines, skin)
         applyTexts(views, lines, persianDate, showNumbers, hideNumbers)
+        views.setTextViewText(R.id.w_title, "خرج‌یار")
+        views.setTextViewText(R.id.w_weather, weather?.let { "${it.city}  ${it.temperature}" } ?: "")
+        val weatherIcon = when {
+            weather != null && !weather.isDay && weather.code in 0..2 -> R.drawable.weather_moon
+            weather != null && weather.code in 0..2 -> R.drawable.weather_sun
+            weather != null && (weather.code == 3 || weather.code in 45..48) -> R.drawable.weather_cloud
+            weather != null && (weather.code in 51..67 || weather.code in 80..82) -> R.drawable.weather_rain
+            weather != null && (weather.code in 71..77 || weather.code in 85..86) -> R.drawable.weather_snow
+            weather != null && weather.code in 95..99 -> R.drawable.weather_storm
+            else -> R.drawable.weather_cloud
+        }
+        views.setTextViewCompoundDrawables(R.id.w_weather, 0, 0, 0, weatherIcon)
+        applyOptions(views, settings)
         applyClickTargets(context, views)
 
         return views
@@ -217,6 +247,7 @@ object WidgetRenderer {
         views.setTextColor(R.id.w_clock, big)
         views.setTextColor(R.id.w_jalali, onBg)
         views.setTextColor(R.id.w_gregorian, muted)
+        views.setTextColor(R.id.w_weather, onBg)
 
         listOf(R.id.w_label_1, R.id.w_label_2, R.id.w_label_3).forEach {
             views.setTextColor(it, onBg)
@@ -225,9 +256,7 @@ object WidgetRenderer {
             views.setTextColor(it, big)
         }
 
-        // آیکون درآمد سبز/تم و هزینه قرمز/تم
-        views.setInt(R.id.w_icon_1, "setColorFilter", skin.incomeColor.toArgb())
-        views.setInt(R.id.w_icon_2, "setColorFilter", skin.expenseColor.toArgb())
+        // رنگ آیکون‌ها در applyRowIcons و بر اساس جهت خودِ ردیف تنظیم می‌شود.
 
         // منطقه زمانی ساعت‌ها روی تهران تنظیم می‌شود
         val tz = PersianDate.TEHRAN.id
@@ -236,9 +265,73 @@ object WidgetRenderer {
     }
 
     /** پر کردن متن‌ها و پنهان/آشکار کردن ردیف‌های اضافه. */
+    /**
+     * آیکون هر ردیف بر اساس واریز/برداشت بودن همان ردیف.
+     * قالب‌ها فقط برای دو ردیف اول آیکون دارند.
+     */
+    private fun applyRowIcons(views: RemoteViews, lines: List<WidgetLine>, skin: AppSkin) {
+        val iconIds = listOf(R.id.w_icon_1, R.id.w_icon_2)
+        iconIds.forEachIndexed { i, id ->
+            when (lines.getOrNull(i)?.income) {
+                true -> {
+                    views.setImageViewResource(id, R.drawable.w_ic_up)
+                    views.setInt(id, "setColorFilter", skin.incomeColor.toArgb())
+                }
+                false -> {
+                    views.setImageViewResource(id, R.drawable.w_ic_down)
+                    views.setInt(id, "setColorFilter", skin.expenseColor.toArgb())
+                }
+                null -> {
+                    views.setImageViewResource(id, R.drawable.w_ic_wallet)
+                    views.setInt(id, "setColorFilter", skin.accent.toArgb())
+                }
+            }
+        }
+    }
+
+    /**
+     * عناصر اختیاری و اندازه فونت‌ها، طبق «تنظیمات ویجت».
+     * اگر شناسه‌ای در قالب فعلی نباشد، RemoteViews بی‌صدا از آن می‌گذرد.
+     */
+    private fun applyOptions(views: RemoteViews, settings: ir.kharjyar.app.data.prefs.AppSettings) {
+        val gone = android.view.View.GONE
+        val visible = android.view.View.VISIBLE
+        views.setViewVisibility(R.id.w_title, if (settings.widgetShowTitle) visible else gone)
+        views.setViewVisibility(R.id.w_title_rule, if (settings.widgetShowTitle) visible else gone)
+        views.setViewVisibility(R.id.w_clock, if (settings.widgetShowClock) visible else gone)
+        views.setViewVisibility(R.id.w_jalali, if (settings.widgetShowDates) visible else gone)
+        views.setViewVisibility(R.id.w_gregorian, if (settings.widgetShowDates) visible else gone)
+        views.setViewVisibility(R.id.w_weather, if (settings.widgetShowDates) visible else gone)
+
+        fun gravity(h: ir.kharjyar.app.data.prefs.WidgetAlign, v: ir.kharjyar.app.data.prefs.WidgetVAlign): Int {
+            val horizontal = when (h) { ir.kharjyar.app.data.prefs.WidgetAlign.START -> android.view.Gravity.START; ir.kharjyar.app.data.prefs.WidgetAlign.CENTER -> android.view.Gravity.CENTER_HORIZONTAL; ir.kharjyar.app.data.prefs.WidgetAlign.END -> android.view.Gravity.END }
+            val vertical = when (v) { ir.kharjyar.app.data.prefs.WidgetVAlign.TOP -> android.view.Gravity.TOP; ir.kharjyar.app.data.prefs.WidgetVAlign.CENTER -> android.view.Gravity.CENTER_VERTICAL; ir.kharjyar.app.data.prefs.WidgetVAlign.BOTTOM -> android.view.Gravity.BOTTOM }
+            return horizontal or vertical
+        }
+        views.setInt(R.id.w_title, "setGravity", gravity(settings.widgetTitleAlign, settings.widgetTitleVAlign))
+        listOf(R.id.w_clock, R.id.w_jalali, R.id.w_gregorian).forEach {
+            views.setInt(it, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
+        }
+        views.setInt(R.id.w_weather, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
+        views.setViewPadding(R.id.w_weather, 0, 0, 0, 0)
+
+        val sp = TypedValue.COMPLEX_UNIT_SP
+        views.setTextViewTextSize(R.id.w_title, sp, settings.widgetTitleSize.toFloat())
+        views.setTextViewTextSize(R.id.w_weather, sp, settings.widgetDateSize.toFloat())
+        views.setTextViewTextSize(R.id.w_clock, sp, settings.widgetClockSize.toFloat())
+        views.setTextViewTextSize(R.id.w_jalali, sp, settings.widgetDateSize.toFloat())
+        views.setTextViewTextSize(R.id.w_gregorian, sp, (settings.widgetDateSize - 1).coerceAtLeast(7).toFloat())
+        listOf(R.id.w_value_1, R.id.w_value_2, R.id.w_value_3).forEach {
+            views.setTextViewTextSize(it, sp, settings.widgetValueSize.toFloat())
+        }
+        listOf(R.id.w_label_1, R.id.w_label_2, R.id.w_label_3).forEach {
+            views.setTextViewTextSize(it, sp, settings.widgetLabelSize.toFloat())
+        }
+    }
+
     private fun applyTexts(
         views: RemoteViews,
-        lines: List<Pair<String, String>>,
+        lines: List<WidgetLine>,
         persianDate: String,
         showNumbers: Boolean,
         hideNumbers: Boolean
@@ -257,10 +350,10 @@ object WidgetRenderer {
                 views.setTextViewText(valueIds[i], "")
             } else {
                 rowIds[i]?.let { views.setViewVisibility(it, android.view.View.VISIBLE) }
-                views.setTextViewText(labelIds[i], line.first)
+                views.setTextViewText(labelIds[i], line.label)
                 views.setTextViewText(
                     valueIds[i],
-                    if (showNumbers) line.second else "••••"
+                    if (showNumbers) line.value else "••••"
                 )
             }
         }

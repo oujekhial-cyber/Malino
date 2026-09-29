@@ -3,8 +3,20 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!--
+      فقط برای «اسکن کارت بانکی» در صفحه معرفی حساب. تصویر هیچ‌جا ذخیره یا ارسال
+      نمی‌شود؛ خواندن متن با مدل داخل خود برنامه و روی گوشی انجام می‌شود.
+      مجوز در همان لحظه استفاده گرفته می‌شود و برنامه بدون آن هم کامل کار می‌کند.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!-- اینترنت فقط برای دریافت دمای موقعیت گوشی از سرویس هواشناسی استفاده می‌شود. -->
 
     <!--
       از اندروید ۱۱ دیدِ برنامه‌ها محدود است؛ بدون این بخش resolveActivity
@@ -34,7 +46,7 @@
         android:label="@string/app_label"
         android:supportsRtl="true"
         android:theme="@style/Theme.KharjYar"
-        android:enableOnBackInvokedCallback="true"
+        android:enableOnBackInvokedCallback="false"
         android:allowClearUserData="true"
         tools:targetApi="35">
 
@@ -75,5 +87,6 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info" />
         </receiver>
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" /></provider>
     </application>
 </manifest>
