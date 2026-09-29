@@ -1,0 +1,18 @@
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:130:5 Unresolved reference 'Surface'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:130:290 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:140:22 Unresolved reference 'LinearProgressIndicator'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:153:2 Unresolved reference 'Surface'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:153:175 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:156:77 Unresolved reference 'HorizontalDivider'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:156:226 Unresolved reference 'HorizontalDivider'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:158:3 Unresolved reference 'Surface'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:158:146 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:130:5 Unresolved reference 'Surface'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:130:290 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:140:22 Unresolved reference 'LinearProgressIndicator'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:153:2 Unresolved reference 'Surface'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:153:175 @Composable invocations can only happen from the context of a @Composable function
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:156:77 Unresolved reference 'HorizontalDivider'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:156:226 Unresolved reference 'HorizontalDivider'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:158:3 Unresolved reference 'Surface'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:158:146 @Composable invocations can only happen from the context of a @Composable function
