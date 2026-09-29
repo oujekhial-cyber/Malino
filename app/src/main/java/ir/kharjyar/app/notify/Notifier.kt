@@ -76,6 +76,49 @@ object Notifier {
         manager(context).notify(TAG_REVIEW, smsId.toInt(), n)
     }
 
+    fun notifyTrafficFine(context: Context, messageId: Long, vehicleTitle: String?, amountRial: Long?) {
+        if (!canNotify(context)) return
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(EXTRA_DEST, "civicCenter")
+        }
+        val pi = PendingIntent.getActivity(context, (messageId xor 0x46494E45L).toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val detail = buildString {
+            append(if (vehicleTitle.isNullOrBlank()) "یک جریمه رانندگی جدید دریافت شد" else "جریمه جدید برای $vehicleTitle")
+            amountRial?.let { append("؛ مبلغ ${ir.kharjyar.app.core.money.Money.format(it, ir.kharjyar.app.core.money.MoneyUnit.RIAL)}") }
+        }
+        val notification = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
+            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setContentTitle("جریمه راهنمایی و رانندگی")
+            .setContentText(detail)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(android.R.drawable.stat_notify_error).setContentTitle("خرج‌یار").setContentText("یک اعلان جدید خودرو").build())
+            .setContentIntent(pi).setAutoCancel(true).build()
+        manager(context).notify("traffic-fine", messageId.toInt(), notification)
+    }
+
+    fun notifyExportReady(context: Context, uri: android.net.Uri, mimeType: String) {
+        if (!canNotify(context)) return
+        val open = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mimeType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val pi = PendingIntent.getActivity(
+            context, uri.hashCode(), open,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentTitle("گزارش خرج‌یار آماده شد")
+            .setContentText("برای باز کردن فایل لمس کنید")
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .build()
+        manager(context).notify("export", uri.hashCode(), notification)
+    }
+
     private fun pendingIntent(context: Context, requestCode: Int, dest: String, smsId: Long?, txId: Long?): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP

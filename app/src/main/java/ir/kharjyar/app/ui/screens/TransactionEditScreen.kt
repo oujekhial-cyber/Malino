@@ -34,6 +34,8 @@ import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.db.TransactionEntity
+import ir.kharjyar.app.data.db.TxDirection
+import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
@@ -148,7 +150,18 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         )
 
         NaturePicker(nature, direction, onNature = { nature = it }, onDirection = { direction = it })
-        CategoryPicker(categories, categoryId, nature) { categoryId = it }
+        CategoryPicker(
+            categories = categories,
+            selectedId = categoryId,
+            nature = nature,
+            onCreate = { name ->
+                scope.launch {
+                    categoryId = viewModel.repo.categoryDao.insert(
+                        ir.kharjyar.app.data.db.CategoryEntity(name = name, colorArgb = 0xFF6C8AE4)
+                    )
+                }
+            }
+        ) { categoryId = it }
         DatePickerRow(date, hour, minute, onDate = { date = it }, onTime = { h, m -> hour = h; minute = m })
         if (t.timeIsApproximate) {
             Text(
@@ -161,7 +174,15 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("خرید/واریز بابت چی بوده؟") },
+            label = {
+                Text(
+                    when {
+                        nature == TxNature.TRANSFER -> "انتقال بابت چه بود؟"
+                        direction == TxDirection.DEPOSIT -> "واریز بابت چه بود؟"
+                        else -> "خرید بابت چه بود؟"
+                    }
+                )
+            },
             modifier = Modifier.fillMaxWidth().keepAboveKeyboard()
         )
 

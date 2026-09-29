@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 class KharjYarApp : Application() {
 
@@ -27,6 +28,27 @@ class KharjYarApp : Application() {
         super.onCreate()
         createNotificationChannels()
         observeDataForWidget()
+        // پیامک‌های قبلی که به‌علت ناشناخته‌بودن سرشماره حساب نگرفته‌اند، پس از
+        // به‌روزرسانی قواعد بانک دوباره پردازش می‌شوند.
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            repository.reprocessPendingAccounts().filterIsInstance<Repository.ProcessOutcome.DraftReady>().forEach {
+                ir.kharjyar.app.notify.Notifier.notifyDraftReady(this@KharjYarApp, it.smsId, it.txId)
+            }
+        }
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "obligation-reminders",
+            androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+            androidx.work.PeriodicWorkRequestBuilder<ir.kharjyar.app.work.ObligationReminderWorker>(12, java.util.concurrent.TimeUnit.HOURS).build()
+        )
+        // دما و وضعیت روز/شب حتی وقتی برنامه باز نیست، هر دو ساعت تازه می‌شود.
+        val weatherRequest = androidx.work.PeriodicWorkRequestBuilder<ir.kharjyar.app.work.WeatherWidgetWorker>(2, java.util.concurrent.TimeUnit.HOURS)
+            .setConstraints(androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build())
+            .build()
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "widget-weather-refresh",
+            androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+            weatherRequest
+        )
     }
 
     /**

@@ -68,7 +68,7 @@ fun DateTimeField(
     var showTime by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
-        Text("تاریخ و ساعت (شمسی)", style = MaterialTheme.typography.labelLarge, color = skin.onBackdrop)
+        Text("تاریخ", style = MaterialTheme.typography.labelLarge, color = skin.onBackdrop)
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PickerButton(
@@ -395,4 +395,16 @@ private fun WheelPicker(
             }
         }
     }
+}
+
+/** انتخاب فقط تاریخ شمسی برای مواردی که ساعت معنایی ندارد، مانند چک و قسط. */
+@Composable
+fun PersianDateField(date: PersianDate, onDate: (PersianDate) -> Unit, modifier: Modifier = Modifier) {
+    var show by remember { mutableStateOf(false) }
+    Column(modifier) {
+        Text("تاریخ", style = MaterialTheme.typography.labelLarge, color = LocalAppSkin.current.onBackdrop)
+        Spacer(Modifier.height(6.dp))
+        PickerButton(Icons.Filled.CalendarMonth, "${Digits.toPersian(date.day.toString())} ${date.monthName()} ${Digits.toPersian(date.year.toString())}", Modifier.fillMaxWidth()) { show = true }
+    }
+    if (show) PersianDatePickerDialog(date, { show = false }, { onDate(it); show = false })
 }

@@ -1,10 +1,12 @@
 package ir.kharjyar.app.ui.screens
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -36,11 +39,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,17 +59,25 @@ import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TransactionEntity
+import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
+import ir.kharjyar.app.ui.components.GlassSnackbarHost
 import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
+fun TransactionsScreen(
+    viewModel: AppViewModel,
+    nav: NavHostController,
+    presetDirection: Int? = null
+) {
     val settings by viewModel.settings.collectAsState()
     val all by viewModel.allTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
@@ -81,20 +89,37 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
     var query by remember { mutableStateOf("") }
     var filterAccount by remember { mutableStateOf<Long?>(null) }
     var filterNature by remember { mutableStateOf<Int?>(null) }
+    // میان‌بر چیپ کارت خانه، واریز/برداشت را بر اساس جهت بانکی فیلتر می‌کند؛
+    // انتقال‌ها هم بسته به جهت خود در نتیجه باقی می‌مانند.
+    var filterDirection by remember(presetDirection) { mutableStateOf(presetDirection) }
     var onlyPending by remember { mutableStateOf(false) }
+    var showFilters by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<List<TransactionEntity>>(emptyList()) }
 
     // انتخاب چندتایی: با نگه‌داشتن روی یک ردیف فعال می‌شود
     val selected = remember { mutableStateListOf<Long>() }
     val selecting = selected.isNotEmpty()
 
+    // جست‌وجو با هر تغییر متن فوراً روی فهرست اعمال می‌شود. قبلاً برای عبارت‌های
+    // غیرعددی، رشته خالیِ استخراج‌شده از رقم داخل همه مبلغ‌ها پیدا می‌شد و در
+    // نتیجه تمام تراکنش‌ها نمایش داده می‌شدند؛ همین باعث می‌شد جست‌وجو ظاهراً کار نکند.
+    val normalizedQuery = Digits.normalizeForMatch(query).trim()
+    val queryDigits = Digits.normalize(query).filter(Char::isDigit)
+    val accountTitles = accounts.associate { it.id to Digits.normalizeForMatch(it.title) }
+    val categoryTitles = categories.associate { it.id to Digits.normalizeForMatch(it.name) }
     val filtered = all.filter { tx ->
-        (query.isBlank() ||
-            tx.description.contains(query) || tx.counterparty.contains(query) ||
-            Digits.normalize(query).let { q ->
-                q.isNotBlank() && tx.amountRial.toString().contains(q.filter(Char::isDigit))
-            }) &&
+        val textMatches = normalizedQuery.isNotBlank() && listOf(
+            tx.description,
+            tx.counterparty,
+            tx.refNumber,
+            accountTitles[tx.accountId].orEmpty(),
+            tx.categoryId?.let(categoryTitles::get).orEmpty()
+        ).any { Digits.normalizeForMatch(it).contains(normalizedQuery, ignoreCase = true) }
+        val amountMatches = queryDigits.isNotBlank() && tx.amountRial.toString().contains(queryDigits)
+        (query.isBlank() || textMatches || amountMatches) &&
             (filterAccount == null || tx.accountId == filterAccount) &&
             (filterNature == null || tx.nature == filterNature) &&
+            (filterDirection == null || tx.direction == filterDirection) &&
             (!onlyPending || tx.status == TxStatus.PENDING)
     }
 
@@ -118,7 +143,10 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     Scaffold(
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbar) }
+        snackbarHost = { GlassSnackbarHost(snackbar) },
+        // نوار بالا/پایین سیستم یک‌بار در AppRoot اعمال شده؛ اینجا نباید دوباره
+        // فاصله اضافه شود وگرنه صفحه از بالا و پایین حاشیه مرده می‌گیرد.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
 
@@ -154,7 +182,7 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     TextButton(onClick = {
                         val items = all.filter { it.id in selected }
                         selected.clear()
-                        deleteWithUndo(items)
+                        pendingDelete = items
                     }) {
                         Icon(
                             Icons.Filled.Delete,
@@ -171,43 +199,58 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    placeholder = { Text("جست‌وجو در توضیح، طرف مقابل یا مبلغ") },
+                    placeholder = { Text("جست‌وجوی زنده در تراکنش‌ها، حساب و مبلغ") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     singleLine = true
                 )
             }
 
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // فیلترهای پرکاربرد همیشه جلوی چشم و با یک لمس قابل انتخاب‌اند.
+            val activeFilterCount = listOf(
+                filterDirection != null, filterNature != null, filterAccount != null, onlyPending
+            ).count { it }
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                contentPadding = PaddingValues(vertical = 2.dp)
+            ) {
                 item {
-                    FilterChip(
-                        selected = onlyPending,
-                        onClick = { onlyPending = !onlyPending },
-                        label = { Text("تأییدنشده") })
+                    ProfessionalFilterChip("همه", activeFilterCount == 0) {
+                        filterDirection = null; filterNature = null; filterAccount = null; onlyPending = false
+                    }
                 }
                 item {
-                    FilterChip(
-                        selected = filterNature == TxNature.EXPENSE,
-                        onClick = { filterNature = if (filterNature == TxNature.EXPENSE) null else TxNature.EXPENSE },
-                        label = { Text("برداشت") })
+                    ProfessionalFilterChip("واریز", filterDirection == TxDirection.DEPOSIT, skin.incomeColor) {
+                        filterDirection = if (filterDirection == TxDirection.DEPOSIT) null else TxDirection.DEPOSIT
+                    }
                 }
                 item {
-                    FilterChip(
-                        selected = filterNature == TxNature.INCOME,
-                        onClick = { filterNature = if (filterNature == TxNature.INCOME) null else TxNature.INCOME },
-                        label = { Text("واریز") })
+                    ProfessionalFilterChip("برداشت", filterDirection == TxDirection.WITHDRAW, skin.expenseColor) {
+                        filterDirection = if (filterDirection == TxDirection.WITHDRAW) null else TxDirection.WITHDRAW
+                    }
                 }
                 item {
-                    FilterChip(
-                        selected = filterNature == TxNature.TRANSFER,
-                        onClick = { filterNature = if (filterNature == TxNature.TRANSFER) null else TxNature.TRANSFER },
-                        label = { Text("انتقال") })
+                    ProfessionalFilterChip("تأییدنشده", onlyPending, MaterialTheme.colorScheme.tertiary) { onlyPending = !onlyPending }
                 }
-                items(accounts.size) { i ->
-                    val a = accounts[i]
-                    FilterChip(
-                        selected = filterAccount == a.id,
-                        onClick = { filterAccount = if (filterAccount == a.id) null else a.id },
-                        label = { Text(a.title) })
+                item {
+                    ProfessionalFilterChip(
+                        if (activeFilterCount == 0) "فیلترهای بیشتر" else "بیشتر ($activeFilterCount)",
+                        filterNature != null || filterAccount != null
+                    ) { showFilters = true }
+                }
+            }
+            if (filterAccount != null || filterNature != null) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("فعال:", style = MaterialTheme.typography.labelSmall, color = skin.onBackdrop.copy(alpha = .65f))
+                    filterAccount?.let { id ->
+                        ProfessionalFilterChip(accounts.firstOrNull { it.id == id }?.title ?: "حساب", true) { filterAccount = null }
+                    }
+                    filterNature?.let { nature ->
+                        ProfessionalFilterChip(when (nature) { TxNature.INCOME -> "درآمد"; TxNature.EXPENSE -> "هزینه"; else -> "انتقال" }, true) { filterNature = null }
+                    }
                 }
             }
 
@@ -220,7 +263,7 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(top = 12.dp, bottom = 110.dp)
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 12.dp)
                 ) {
                     itemsIndexed(
                         items = filtered,
@@ -228,6 +271,7 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     ) { _, tx ->
                         TransactionRow(
                             tx = tx,
+                            account = accounts.firstOrNull { it.id == tx.accountId },
                             categoryName = categories.firstOrNull { it.id == tx.categoryId }?.name,
                             unit = settings.moneyUnit,
                             selecting = selecting,
@@ -236,69 +280,113 @@ fun TransactionsScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 if (tx.id in selected) selected.remove(tx.id) else selected.add(tx.id)
                             },
                             onOpen = { nav.navigate("tx/${tx.id}") },
-                            onSwipeDelete = { deleteWithUndo(listOf(tx)) }
+                            onSwipeDelete = { pendingDelete = listOf(tx) },
+                            onSwipeEdit = { nav.navigate("tx/${tx.id}") }
                         )
                     }
                 }
             }
         }
     }
+    if (showFilters) {
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showFilters = false }) {
+            Column(
+                Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text("فیلتر تراکنش‌ها", style = MaterialTheme.typography.titleLarge)
+                Text("نوع گردش", style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    listOf(null to "همه", TxDirection.DEPOSIT to "واریز", TxDirection.WITHDRAW to "برداشت").forEach { (value, label) ->
+                        ProfessionalFilterChip(label, filterDirection == value, when(value){TxDirection.DEPOSIT->skin.incomeColor;TxDirection.WITHDRAW->skin.expenseColor;else->MaterialTheme.colorScheme.primary}) { filterDirection = value }
+                    }
+                }
+                Text("ماهیت تراکنش", style = MaterialTheme.typography.titleSmall)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    items(4) { index ->
+                        val values = listOf<Int?>(null, TxNature.INCOME, TxNature.EXPENSE, TxNature.TRANSFER)
+                        val labels = listOf("همه", "درآمد", "هزینه", "انتقال")
+                        ProfessionalFilterChip(labels[index], filterNature == values[index]) { filterNature = values[index] }
+                    }
+                }
+                Text("حساب", style = MaterialTheme.typography.titleSmall)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    item { ProfessionalFilterChip("همه حساب‌ها", filterAccount == null) { filterAccount = null } }
+                    items(accounts.size) { index -> val account = accounts[index]; ProfessionalFilterChip(account.title, filterAccount == account.id) { filterAccount = account.id } }
+                }
+                SkinCard(Modifier.fillMaxWidth()) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) { Text("فقط تأییدنشده‌ها"); Text("پیامک‌ها و تراکنش‌های نیازمند بررسی", style = MaterialTheme.typography.labelSmall, color = skin.onBackdrop.copy(alpha = .65f)) }
+                        androidx.compose.material3.Switch(checked = onlyPending, onCheckedChange = { onlyPending = it })
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;filterAccount=null;onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
+                    androidx.compose.material3.Button(onClick = { showFilters=false }, modifier = Modifier.weight(1f)) { Text("نمایش ${Digits.toPersian(filtered.size.toString())} نتیجه") }
+                }
+            }
+        }
+    }
+    if (pendingDelete.isNotEmpty()) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingDelete = emptyList() },
+            title = { Text("حذف تراکنش") },
+            text = { Text(if (pendingDelete.size == 1) "آیا این تراکنش حذف شود؟" else "آیا ${pendingDelete.size} تراکنش انتخاب‌شده حذف شوند؟") },
+            confirmButton = { TextButton(onClick = { val values = pendingDelete; pendingDelete = emptyList(); deleteWithUndo(values) }) { Text("حذف") } },
+            dismissButton = { TextButton(onClick = { pendingDelete = emptyList() }) { Text("لغو") } }
+        )
+    }
+}
+
+@Composable
+private fun ProfessionalFilterChip(
+    label: String,
+    selected: Boolean,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = Modifier
+            .clip(shape)
+            .background(if (selected) tint.copy(alpha = 0.20f) else Color.Transparent)
+            .border(1.dp, tint.copy(alpha = if (selected) 0.85f else 0.28f), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (selected) {
+            Icon(Icons.Filled.Check, null, tint = tint, modifier = Modifier.size(15.dp))
+            Spacer(Modifier.width(5.dp))
+        }
+        Text(label, style = MaterialTheme.typography.labelMedium, color = if (selected) tint else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 /**
  * یک ردیف تراکنش.
- * کشیدن انگشت آن را حذف می‌کند و نگه‌داشتن، حالت انتخاب چندتایی را باز می‌کند.
+ * کشیدن به یک سمت حذف و به سمت مخالف ویرایش می‌کند؛ نگه‌داشتن، حالت انتخاب
+ * چندتایی را باز می‌کند.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionRow(
     tx: TransactionEntity,
+    account: ir.kharjyar.app.data.db.AccountEntity?,
     categoryName: String?,
     unit: ir.kharjyar.app.core.money.MoneyUnit,
     selecting: Boolean,
     checked: Boolean,
     onToggle: () -> Unit,
     onOpen: () -> Unit,
-    onSwipeDelete: () -> Unit
+    onSwipeDelete: () -> Unit,
+    onSwipeEdit: () -> Unit
 ) {
-    val skin = LocalAppSkin.current
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value != SwipeToDismissBoxValue.Settled) {
-                onSwipeDelete()
-                true
-            } else false
-        },
-        // فاصله لازم برای حذف: کمی بیش از یک‌سوم عرض تا تصادفی حذف نشود
-        positionalThreshold = { total -> total * 0.38f }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
+    SwipeActionRow(
+        onDelete = onSwipeDelete,
+        onEdit = onSwipeEdit,
         // در حالت انتخاب چندتایی، کشیدن غیرفعال است تا با انتخاب تداخل نکند
-        gesturesEnabled = !selecting,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(72.dp)
-                    .clip(RoundedCornerShape(skin.cardCorner))
-                    .background(skin.expenseColor.copy(alpha = 0.22f))
-                    .padding(horizontal = 22.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = null,
-                        tint = skin.expenseColor,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("حذف", color = skin.expenseColor, style = MaterialTheme.typography.labelLarge)
-                }
-            }
-        }
+        enabled = !selecting
     ) {
         SkinCard(
             modifier = Modifier
@@ -335,6 +423,19 @@ private fun TransactionRow(
                                 it,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                    account?.let { acc ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            ir.kharjyar.app.ui.components.BankLogo(bankName = acc.bankName, size = 22.dp)
+                            Text(
+                                acc.title,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
