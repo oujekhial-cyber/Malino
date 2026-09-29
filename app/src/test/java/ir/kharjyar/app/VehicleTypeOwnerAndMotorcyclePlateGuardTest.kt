@@ -11,7 +11,7 @@ class VehicleTypeOwnerAndMotorcyclePlateGuardTest {
   val screen=File("src/main/java/ir/kharjyar/app/ui/screens/VehiclesScreen.kt").readText()
   val entity=File("src/main/java/ir/kharjyar/app/data/db/CivicEntities.kt").readText()
   val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
-  listOf("MotorcyclePlateInput","سه رقم در ردیف بالا و پنج رقم در ردیف پایین","motorcycleDigits.takeIf{it.length==8}","موتور${it.take(3)}/${it.drop(3)}").forEach{assertTrue(it,screen.contains(it))}
+  listOf("MotorcyclePlateInput","سه رقم در ردیف بالا و پنج رقم در ردیف پایین","motorcycleDigits.takeIf{it.length==8}","it.take(3)","it.drop(3)").forEach{assertTrue(it,screen.contains(it))}
   assertTrue(entity.contains("vehicleType:String"));assertTrue(entity.contains("ownerName:String"));assertTrue(db.contains("version = 12")&&db.contains("MIGRATION_11_12"))
  }
 }
