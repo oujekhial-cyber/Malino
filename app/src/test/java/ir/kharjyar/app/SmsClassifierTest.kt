@@ -29,6 +29,12 @@ class SmsClassifierTest {
     }
 
     @Test
+    fun `dynamic password mentioning purchase and amount is still non financial`() {
+        val sms = "رمز پویا خرید شما 123456 مبلغ 2,500,000 ریال است"
+        assertEquals(SmsKind.NON_FINANCIAL, SmsClassifier.classify(sms))
+    }
+
+    @Test
     fun `verification code is non financial`() {
         val sms = "کد تایید شما 98765 می‌باشد"
         assertEquals(SmsKind.NON_FINANCIAL, SmsClassifier.classify(sms))
