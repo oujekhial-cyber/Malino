@@ -37,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -89,6 +90,8 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     val activeAccounts = accounts.filter { !it.archived }
     val context = LocalContext.current
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     // آیا این گوشی اصلاً برنامه تبدیل گفتار به متن دارد؟
     val voiceAvailable = remember {
@@ -108,7 +111,9 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             ?.firstOrNull()
             ?.trim()
         if (!spoken.isNullOrBlank()) {
-            input = spoken
+            // برخی نسخه‌های موتور گفتار گوگل واژه رایج «سوپرمارکت» را به‌اشتباه
+            // سانسور می‌کنند (س***مارکت). فقط همین الگوی شناخته‌شده را محلی اصلاح می‌کنیم.
+            input = sanitizeSpeechText(spoken)
             voiceError = null
         }
     }
@@ -128,7 +133,16 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
     }
 
+    // ورود به صفحه «ثبت سریع» بلافاصله موتور گفتار سیستم/گوگل را باز می‌کند؛
+    // خود صفحه نیز پشت آن آماده است و در صورت لغو، تایپ دستی در دسترس می‌ماند.
+    LaunchedEffect(voiceAvailable) {
+        if (voiceAvailable) startVoice()
+    }
+
     fun analyze() {
+        // نتیجه بلافاصله دیده شود، نه اینکه پشت صفحه‌کلید بماند
+        keyboard?.hide()
+        focusManager.clearFocus(force = true)
         parsed = TransactionParser.parse(
             text = input,
             accounts = activeAccounts.map { ParserAccount(it.id, it.title, it.bankName) },
@@ -146,6 +160,10 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        OutlinedButton(onClick = { nav.navigate("smsPaste") }, modifier = Modifier.fillMaxWidth()) {
+            Text("جایگذاری و تحلیل پیامک بانکی")
+        }
+
         // ---------- معرفی ----------
         SkinCard(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
@@ -179,7 +197,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             value = input,
             onValueChange = { input = it; saved = false },
             label = { Text("چه اتفاقی افتاد؟") },
-            placeholder = { Text("۲۵۰ هزار تومن کیک از سوپرمارکت خریدم با حساب روزمره") },
+            placeholder = { Text("امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب بانک ملی خریدم") },
             trailingIcon = {
                 // گفتن به‌جای تایپ کردن
                 Box(
@@ -239,9 +257,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         // نمونه‌های آماده
         Text("نمونه‌ها:", style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop.copy(alpha = 0.7f))
         listOf(
-            "۲۵۰ هزار تومن کیک از سوپرمارکت خریدم با حساب روزمره",
-            "دیروز ۸۰۰ تومن بنزین زدم",
-            "حقوق این ماه ۲۵ میلیون تومن واریز شد"
+            "امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب بانک ملی خریدم"
         ).forEach { sample ->
             Text(
                 sample,
@@ -276,15 +292,29 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     val amount = p.amountRial
                     if (accId != null && amount != null) {
                         scope.launch {
-                            viewModel.repo.addManualTransaction(
-                                accountId = accId,
-                                amountRial = amount,
-                                direction = p.direction,
-                                nature = p.nature,
-                                categoryId = p.categoryId,
-                                description = p.description,
-                                occurredAt = PersianDate.toMillis(p.date, p.hour, p.minute)
-                            )
+                            val occurredAt = PersianDate.toMillis(p.date, p.hour, p.minute)
+                            if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER &&
+                                p.transferToOwn && p.targetAccountId != null
+                            ) {
+                                viewModel.repo.addInternalTransfer(
+                                    fromAccountId = accId,
+                                    toAccountId = p.targetAccountId,
+                                    amountRial = amount,
+                                    description = p.description,
+                                    occurredAt = occurredAt
+                                )
+                            } else {
+                                viewModel.repo.addManualTransaction(
+                                    accountId = accId,
+                                    amountRial = amount,
+                                    direction = p.direction,
+                                    nature = p.nature,
+                                    categoryId = if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER) null else p.categoryId,
+                                    description = p.description,
+                                    occurredAt = occurredAt,
+                                    counterparty = if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER) "حساب شخص دیگر" else ""
+                                )
+                            }
                             saved = true
                             input = ""
                             parsed = null
@@ -344,8 +374,22 @@ private fun ResultCard(
             Spacer(Modifier.height(12.dp))
 
             InfoRow("مبلغ", parsed.amountRial?.let { Money.format(it, unit) } ?: "— مشخص نشد", tint)
-            InfoRow("نوع", if (isDeposit) "واریز" else "برداشت", skin.onBackdrop)
-            InfoRow("حساب", parsed.accountTitle ?: "— انتخاب نشده", skin.onBackdrop)
+            InfoRow(
+                "نوع",
+                when (parsed.nature) {
+                    ir.kharjyar.app.data.db.TxNature.TRANSFER -> "انتقال وجه"
+                    else -> if (isDeposit) "واریز" else "برداشت"
+                },
+                skin.onBackdrop
+            )
+            InfoRow("از حساب", parsed.accountTitle ?: "— انتخاب نشده", skin.onBackdrop)
+            if (parsed.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER) {
+                InfoRow(
+                    "به حساب",
+                    if (parsed.transferToOwn) parsed.targetAccountTitle ?: "— انتخاب نشده" else "حساب شخص دیگر",
+                    skin.onBackdrop
+                )
+            }
             InfoRow("دسته", parsed.categoryName ?: "بدون دسته", skin.onBackdrop)
             InfoRow(
                 "تاریخ",
@@ -415,3 +459,9 @@ private fun InfoRow(label: String, value: String, valueColor: androidx.compose.u
         )
     }
 }
+
+
+/** اصلاح خروجی‌های سانسورشده/اشتباه رایج موتور گفتار، بدون تغییر متن‌های دیگر. */
+internal fun sanitizeSpeechText(text: String): String = text
+    .replace(Regex("س\\s*[\\*＊٭•·_\\-]{2,}\\s*مارکت", RegexOption.IGNORE_CASE), "سوپرمارکت")
+    .replace(Regex("سوپر\\s+مارکت"), "سوپرمارکت")
