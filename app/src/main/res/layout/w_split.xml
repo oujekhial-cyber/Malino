@@ -34,7 +34,7 @@
         android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:gravity="center_vertical">
+        android:gravity="top|end">
 
         <TextView
             android:id="@+id/w_title"
@@ -219,6 +219,19 @@
             android:textSize="11sp"
             android:includeFontPadding="false"
             android:textColor="#B9A8C4" />
+
+        <!-- هوا زیر تاریخ: نام شهر/دما و آیکون وضعیت در زیر متن -->
+        <TextView
+            android:id="@+id/w_weather"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:maxLines="1"
+            android:drawablePadding="2dp"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
 </LinearLayout>
+
 </FrameLayout>
