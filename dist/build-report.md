@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: ba39f09b52d98da6e4338738c7e6886d86ce8174
-- تاریخ: 2026-09-29 20:03 UTC
-- unit tests: failure
+- commit: e971d119d5cbc7e2920f159e33f7e088402cab02
+- تاریخ: 2026-09-29 20:12 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,8 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=431 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.VehicleEditDeleteVisualGuardTest.vehicle cards support edit and confirmed delete with richer plate visual: java.lang.AssertionError: تأیید حذف
+tests=431 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
