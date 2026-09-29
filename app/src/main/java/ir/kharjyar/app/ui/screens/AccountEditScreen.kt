@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +41,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -48,11 +52,15 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.AccountSenderEntity
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.showSavedMessage
+import ir.kharjyar.app.core.card.CardScan
 import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.CardScannerDialog
 import ir.kharjyar.app.ui.components.ColorPicker
 import ir.kharjyar.app.ui.components.BankCard
+import ir.kharjyar.app.ui.components.BankLogo
+import ir.kharjyar.app.ui.components.bankCardColorArgb
 import ir.kharjyar.app.ui.components.SearchableComboBox
-import ir.kharjyar.app.ui.components.ColorPickerField
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.NumberTextField
 import ir.kharjyar.app.ui.components.ComboBox
@@ -63,12 +71,21 @@ import kotlinx.coroutines.launch
 /** رنگ پیش‌فرض حساب جدید. */
 private const val DEFAULT_ACCOUNT_COLOR = 0xFF3F51B5
 
-/** «توسعه تعاون» طبق درخواست کاربر اولین گزینه است. */
+/**
+ * فهرست بانک‌ها و مؤسسه‌های اعتباری دارای خدمات بانکی (عضو شتاب).
+ * «توسعه تعاون» طبق درخواست کاربر اولین گزینه است. بانک‌های ادغام‌شده (انصار،
+ * قوامین، حکمت ایرانیان، مهر اقتصاد) هم مانده‌اند چون هنوز کارت و حساب قدیمی
+ * با نام آن‌ها وجود دارد.
+ */
 private val bankNames = listOf(
     "توسعه تعاون",
-    "ملی", "ملت", "صادرات", "تجارت", "سپه", "کشاورزی", "مسکن", "رفاه", "پاسارگاد",
-    "پارسیان", "سامان", "اقتصاد نوین", "شهر", "دی", "سینا", "کارآفرین", "آینده",
-    "گردشگری", "ایران زمین", "خاورمیانه", "رسالت", "قرض‌الحسنه مهر", "پست بانک", "سایر"
+    "ملی", "ملت", "صادرات", "تجارت", "سپه", "کشاورزی", "مسکن", "رفاه", "پست بانک",
+    "توسعه صادرات", "صنعت و معدن", "پاسارگاد", "پارسیان", "سامان", "اقتصاد نوین",
+    "سرمایه", "کارآفرین", "سینا", "شهر", "دی", "آینده", "گردشگری", "ایران زمین",
+    "خاورمیانه", "رسالت", "قرض‌الحسنه مهر", "ایران ونزوئلا", "بلو بانک",
+    "مؤسسه اعتباری ملل", "مؤسسه اعتباری نور",
+    "انصار", "قوامین", "حکمت ایرانیان", "مهر اقتصاد",
+    "سایر"
 )
 
 /** معرفی/ویرایش حساب. id == 0 یعنی حساب جدید. */
@@ -81,6 +98,7 @@ fun AccountEditScreen(
     onSaved: ((Long) -> Unit)? = null
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
 
     var title by remember { mutableStateOf("") }
@@ -101,7 +119,10 @@ fun AccountEditScreen(
     var newHint by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var showDelete by remember { mutableStateOf(false) }
+    var showScanner by remember { mutableStateOf(false) }
+    var scanMessage by remember { mutableStateOf<String?>(null) }
     var txCount by remember { mutableStateOf(0) }
+    var sampleSms by remember { mutableStateOf("") }
 
     LaunchedEffect(accountId) {
         if (accountId > 0) {
@@ -126,6 +147,30 @@ fun AccountEditScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         
+        if (accountId == 0L) {
+            FormSection("تکمیل خودکار از آخرین پیامک بانک") {
+                Text("متن آخرین پیامک همین حساب را جایگذاری کنید؛ عنوان حساب همچنان انتخاب خودتان است.", style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(sampleSms, { sampleSms = it }, label = { Text("متن پیامک") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedButton(onClick = {
+                    val extracted = ir.kharjyar.app.core.sms.Extractor.autoExtract(sampleSms)
+                    extracted.accountIdHint?.let { hint ->
+                        val normalizedHint = Digits.normalize(hint).trim()
+                        // شماره حساب دقیقاً با نقطه/خط تیره ذخیره می‌شود؛ حذف جداکننده باعث
+                        // شکست تطبیق قالب بانک‌هایی با شماره سپرده چندبخشی می‌شد.
+                        if (!normalizedHint.contains('*') && !normalizedHint.contains('٭') && normalizedHint.count(Char::isDigit) >= 8) {
+                            accountNumber = normalizedHint
+                        }
+                        maskedNumber = normalizedHint
+                        // ستاره وارد شناسه تطبیق نمی‌شود؛ شش رقم آخر همراه جداکننده‌های میانشان حفظ می‌شود.
+                        newHint = ir.kharjyar.app.core.sms.AccountMatcher.shortIdentifier(normalizedHint)
+                    }
+                    extracted.balanceRial?.let { initialBalance = it.toString() }
+                    bankNames.firstOrNull { it != "سایر" && sampleSms.contains(it) }?.let { bankName = it }
+                    scanMessage = "اطلاعات قابل تشخیص از پیامک در فرم قرار گرفت"
+                }, enabled = sampleSms.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("تحلیل و تکمیل فرم") }
+            }
+        }
+
         // ---------- پیش‌نمایش زنده کارت ----------
         BankCard(
             account = AccountEntity(
@@ -160,19 +205,33 @@ fun AccountEditScreen(
                 label = "نام بانک",
                 options = bankNames,
                 value = bankName,
-                onValueChange = { bankName = it },
-                placeholder = "حروف اول نام بانک را بنویسید"
+                // رنگ کارت خودش از روی لوگوی همان بانک انتخاب می‌شود
+                onValueChange = { bankName = it; color = bankCardColorArgb(it, color) },
+                placeholder = "حروف اول نام بانک را بنویسید",
+                // نشان هر بانک کنار نامش، هم در فیلد و هم در فهرست انتخاب
+                leadingOf = { BankLogo(bankName = it, size = 26.dp) }
             )
-            ColorPickerField(color = color, onColorChange = { color = it })
         }
 
-        // ---------- شماره‌ها ----------
-        FormSection("شماره‌ها (اختیاری)") {
+        // ---------- اسکن کارت و شماره‌ها ----------
+        FormSection("اسکن کارت") {
             Text(
                 "هر کدام را خالی بگذارید، روی کارت نمایش داده نمی‌شود.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            // خواندن شماره کارت/شبا/انقضا/CVV2 از روی خود کارت؛ همه چیز روی گوشی
+            OutlinedButton(
+                onClick = { scanMessage = null; showScanner = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.PhotoCamera, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("اسکن کارت با دوربین")
+            }
+            scanMessage?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
             NumberTextField(
                 value = cardNumber,
                 onValueChange = { cardNumber = it.filter(Char::isDigit).take(16) },
@@ -333,6 +392,7 @@ fun AccountEditScreen(
                             )
                         }
                     }
+                    showSavedMessage(context, "حساب")
                     if (onSaved != null) onSaved(id) else nav.popBackStack()
                 }
             },
@@ -344,6 +404,39 @@ fun AccountEditScreen(
                 Text("حذف حساب", color = MaterialTheme.colorScheme.error)
             }
         }
+    }
+
+    if (showScanner) {
+        CardScannerDialog(
+            onDismiss = { showScanner = false },
+            onResult = { result: CardScan ->
+                showScanner = false
+                val filled = mutableListOf<String>()
+                if (result.cardNumber.isNotBlank()) { cardNumber = result.cardNumber; filled += "شماره کارت" }
+                if (result.expiry.isNotBlank()) { cardExpiry = result.expiry; filled += "تاریخ انقضا" }
+                if (result.cvv2.isNotBlank()) { cardCvv2 = result.cvv2; filled += "CVV2" }
+                if (result.iban.isNotBlank()) { iban = result.iban; filled += "شبا" }
+                if (result.accountNumber.isNotBlank()) { accountNumber = result.accountNumber; filled += "شماره حساب" }
+                if (result.bankName.isNotBlank() && bankName.isBlank()) {
+                    bankName = result.bankName; filled += "نام بانک"
+                    // رنگ کارت هم با لوگوی همان بانک هماهنگ می‌شود
+                    color = bankCardColorArgb(bankName, color)
+                }
+                // شناسه کوتاه تطبیق پیامک را هم از چهار رقم آخر کارت پر می‌کنیم
+                if (maskedNumber.isBlank() && cardNumber.length == 16) {
+                    maskedNumber = "****" + cardNumber.takeLast(4)
+                }
+                scanMessage = if (filled.isEmpty()) {
+                    "چیزی از کارت خوانده نشد. نور را بیشتر کنید و دوباره امتحان کنید یا دستی وارد کنید."
+                } else {
+                    val tail = if (result.accountNumber.isBlank())
+                        " و شماره حساب را اگر روی کارت نبود دستی وارد کنید."
+                    else "."
+                    "خوانده شد: " + filled.joinToString("، ") + ". " +
+                        "عنوان حساب را خودتان انتخاب کنید" + tail
+                }
+            }
+        )
     }
 
     if (showDelete) {
