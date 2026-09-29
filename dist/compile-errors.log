@@ -1,4 +1,0 @@
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:166:25 Unresolved reference 'CompositionLocalProvider'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:167:29 @Composable invocations can only happen from the context of a @Composable function
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:166:25 Unresolved reference 'CompositionLocalProvider'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:167:29 @Composable invocations can only happen from the context of a @Composable function
