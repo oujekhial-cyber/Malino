@@ -8,6 +8,7 @@ import ir.kharjyar.app.data.db.SmsCandidateEntity
 import ir.kharjyar.app.data.db.SmsTemplateEntity
 import ir.kharjyar.app.data.db.TransactionEntity
 import ir.kharjyar.app.data.db.TransferGroupEntity
+import ir.kharjyar.app.data.db.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -27,6 +28,13 @@ data class BackupPayload(
     val transactions: List<BTransaction> = emptyList(),
     val transferGroups: List<BTransferGroup> = emptyList(),
     val smsQueue: List<BSms> = emptyList(),
+    val blockedSenders: List<BBlockedSender> = emptyList(),
+    val debtPeople: List<DebtPersonEntity> = emptyList(), val debts: List<DebtEntity> = emptyList(), val debtPayments: List<DebtPaymentEntity> = emptyList(),
+    val checks: List<CheckEntity> = emptyList(), val bankBalances: List<BankBalanceSnapshotEntity> = emptyList(),
+    val notes: List<NoteEntity> = emptyList(), val loans: List<LoanEntity> = emptyList(), val installments: List<LoanInstallmentEntity> = emptyList(),
+    val assets: List<AssetEntity> = emptyList(), val assetTrades: List<AssetTradeEntity> = emptyList(), val attachments: List<TransactionAttachmentEntity> = emptyList(),
+    val reminders: List<ReminderEntity> = emptyList(), val profiles: List<UserProfileEntity> = emptyList(), val coveredPeople: List<CoveredPersonEntity> = emptyList(),
+    val vehicles: List<VehicleEntity> = emptyList(), val oilServices: List<VehicleOilServiceEntity> = emptyList(), val civicMessages: List<CivicMessageEntity> = emptyList(), val privateFiles: List<BPrivateFile> = emptyList(),
     val settings: Map<String, String> = emptyMap()
 ) {
     fun toJson(): String = json.encodeToString(serializer(), this)
@@ -120,3 +128,14 @@ data class BSms(
     fun toEntity() = SmsCandidateEntity(id, sender, body, receivedAt, fingerprint, status, matchedAccountId, matchedTemplateId, extractionJson, updatedAt)
     companion object { fun of(e: SmsCandidateEntity) = BSms(e.id, e.sender, e.body, e.receivedAt, e.fingerprint, e.status, e.matchedAccountId, e.matchedTemplateId, e.extractionJson, e.updatedAt) }
 }
+
+
+@Serializable
+data class BBlockedSender(val id:Long,val sender:String,val createdAt:Long){
+ fun toEntity()=BlockedSenderEntity(id,sender,createdAt)
+ companion object{fun of(e:BlockedSenderEntity)=BBlockedSender(e.id,e.sender,e.createdAt)}
+}
+
+
+@Serializable
+data class BPrivateFile(val path:String,val base64:String)

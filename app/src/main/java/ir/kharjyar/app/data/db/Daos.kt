@@ -223,6 +223,21 @@ interface CategoryDao {
     @Query("SELECT * FROM categories")
     suspend fun allOnce(): List<CategoryEntity>
 
+    /** تعداد تراکنش‌هایی که این دسته را دارند. */
+    @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :id")
+    suspend fun usageCount(id: Long): Int
+
+    /** برداشتن دسته از تراکنش‌ها (پیش از حذف دسته، تا ارجاع بی‌صاحب نماند). */
+    @Query("UPDATE transactions SET categoryId = NULL WHERE categoryId = :id")
+    suspend fun detachTransactions(id: Long)
+
+    @Query("DELETE FROM categories WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    /** حذف قوانین خودکاری که به این دسته اشاره می‌کنند. */
+    @Query("DELETE FROM category_rules WHERE categoryId = :id")
+    suspend fun deleteRulesOfCategory(id: Long)
+
     @Insert
     suspend fun insertRule(rule: CategoryRuleEntity): Long
 

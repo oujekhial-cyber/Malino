@@ -73,6 +73,57 @@ class TransactionParserTest {
     }
 
     @Test
+    fun `description keeps only the meaningful subject`() {
+        val r = parse("امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب روزمره خریدم")
+        assertEquals("کیک از سوپرمارکت", r.description)
+    }
+
+    @Test
+    fun `detects an internal account to account transfer`() {
+        val r = parse("یک میلیون تومن از حساب روزمره به حساب پس‌انداز انتقال دادم")
+        assertEquals(TxNature.TRANSFER, r.nature)
+        assertEquals(1L, r.accountId)
+        assertEquals(2L, r.targetAccountId)
+        assertTrue(r.transferToOwn)
+        assertNull(r.categoryId)
+    }
+
+    @Test
+    fun `internal transfer description contains only user reason`() {
+        val r = parse("یک میلیون تومن از حساب روزمره به حساب پس‌انداز بابت اجاره انتقال دادم")
+        assertEquals("اجاره", r.description)
+    }
+
+    @Test
+    fun `detects destination when saved title starts with account`() {
+        val customAccounts = listOf(
+            ParserAccount(21L, "حساب حقوق", "بانک مبدأ"),
+            ParserAccount(22L, "حساب روزمره", "بانک مقصد")
+        )
+        val r = TransactionParser.parse(
+            "مبلغ پنجاه هزار تومان از حساب حقوق به حساب روزمره خودم انتقال دادم",
+            customAccounts,
+            categories,
+            MoneyUnit.RIAL,
+            today
+        )
+        assertEquals(TxNature.TRANSFER, r.nature)
+        assertEquals(21L, r.accountId)
+        assertEquals(22L, r.targetAccountId)
+        assertTrue(r.transferToOwn)
+    }
+
+    @Test
+    fun `detects a transfer to somebody else`() {
+        val r = parse("پانصد هزار تومن از حساب روزمره به حساب دیگران انتقال دادم")
+        assertEquals(TxNature.TRANSFER, r.nature)
+        assertEquals(1L, r.accountId)
+        assertNull(r.targetAccountId)
+        assertFalse(r.transferToOwn)
+        assertNull(r.categoryId)
+    }
+
+    @Test
     fun `detects deposit from verbs`() {
         val r = parse("حقوق این ماه ۲۵ میلیون تومن واریز شد به پس‌انداز")
         assertEquals(TxDirection.DEPOSIT, r.direction)

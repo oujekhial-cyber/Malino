@@ -1,0 +1,9 @@
+package ir.kharjyar.app
+import java.io.File
+import org.junit.Assert.*
+import org.junit.Test
+class DashboardCardDragOverlayGuardTest {
+ @Test fun `dashboard card drag stays captured in a global overlay until user releases`(){val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();assertTrue(s.contains("Popup("));assertTrue(s.contains("PopupProperties(focusable = false, clippingEnabled = false)"));assertTrue(s.contains("positionInWindow()"));assertTrue(s.contains("draggingId = account.id"));assertTrue(s.contains("onDragEnd"));assertTrue(s.indexOf("setDashboardAccountOrder(ids)")>s.indexOf("onDragEnd"));assertFalse(s.substringAfter("onDrag = { change, amount ->").substringBefore("onDragEnd").contains("setDashboardAccountOrder"))}
+ @Test fun `drag follows physical finger axis and preserves grabbed point`(){val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();assertTrue(s.contains("override fun align(size: IntSize, space: IntSize, layoutDirection: LayoutDirection): IntOffset = IntOffset.Zero"));assertTrue(s.contains("cardWindowPosition by remember(account.id)"));assertTrue(s.contains("floatingOriginX = cardWindowPosition.x"));assertTrue(s.contains("floatingOriginY = cardWindowPosition.y"));assertTrue(s.contains("floatingX += amount.x"));assertTrue(s.contains("floatingY += amount.y"));assertTrue(s.contains("scaleX = 1f")&&s.contains("scaleY = 1f"))}
+ @Test fun `neighbor cards move slowly and reverse with drag direction`(){val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();assertTrue(s.contains("dragTargetIndex < dragOriginIndex"));assertTrue(s.contains("dragTargetIndex > dragOriginIndex"));assertTrue(s.contains("tween(durationMillis = 480)"));assertTrue(s.contains("floatingY += amount.y"));assertTrue(s.contains("shape = RoundedCornerShape(22.dp)"));assertTrue(s.contains("ambientShadowColor")&&s.contains("spotShadowColor"))}
+}
