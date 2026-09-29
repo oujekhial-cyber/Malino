@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 124b92e440332bef9bddc2a70984cd7f345afb01
-- تاریخ: 2026-09-29 18:26 UTC
-- unit tests: failure
+- commit: 6f222e1bdc2b26477110811015d5c1a8dcc001dd
+- تاریخ: 2026-09-29 18:36 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,9 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=426 failures=2 errors=0 skipped=0
-FAIL ir.kharjyar.app.VehicleTypeOwnerAndMotorcyclePlateGuardTest.vehicle entry supports types custom owner and visible aligned plate fields: java.lang.AssertionError: label={Text("ایران"
-FAIL ir.kharjyar.app.WidgetOptionsGuardTest.widget is offered once on first entry: java.lang.AssertionError: قالب لوکس انتخاب نمی‌شود
+tests=426 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
