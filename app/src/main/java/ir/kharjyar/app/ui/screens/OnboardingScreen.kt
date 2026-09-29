@@ -99,13 +99,18 @@ fun OnboardingScreen(viewModel: AppViewModel) {
     }
 
     var askNotifNext by remember { mutableStateOf(false) }
+    // وقتی هر دو درخواست پاسخ داده شد (چه تأیید چه رد)، خودمان وارد برنامه می‌شویم
+    var smsAnswered by remember { mutableStateOf(smsGranted) }
+    var notifAnswered by remember { mutableStateOf(notifGranted) }
     val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         smsGranted = it
+        smsAnswered = true
         // بعد از پاسخ به پیامک، نوبت مجوز اعلان است
         askNotifNext = true
     }
     val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         notifGranted = it
+        notifAnswered = true
     }
 
     LaunchedEffect(askNotifNext) {
@@ -113,7 +118,24 @@ fun OnboardingScreen(viewModel: AppViewModel) {
             askNotifNext = false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notifGranted) {
                 notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                // روی اندروید قدیمی یا وقتی مجوز از قبل هست، پرسشی نمی‌ماند
+                notifAnswered = true
             }
+        }
+    }
+
+    /**
+     * ورود خودکار: به‌محض اینکه به هر دو درخواست پاسخ داده شد (یا از قبل مجوز
+     * وجود داشت)، بدون نیاز به زدن دکمه «شروع» وارد برنامه می‌شویم.
+     */
+    var entering by remember { mutableStateOf(false) }
+    LaunchedEffect(step, smsAnswered, notifAnswered) {
+        if (step == 1 && smsAnswered && notifAnswered && !entering) {
+            entering = true
+            // یک مکث کوتاه تا کاربر تیک سبز مجوزها را ببیند
+            kotlinx.coroutines.delay(600)
+            viewModel.settingsRepo.setOnboardingDone(true)
         }
     }
 
@@ -217,10 +239,23 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = { scope.launch { viewModel.settingsRepo.setOnboardingDone(true) } },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("شروع") }
+                // دکمه «شروع» حذف شد؛ بعد از پاسخ به درخواست‌ها خودکار وارد می‌شویم.
+                // این دکمه فقط وقتی دیده می‌شود که هنوز به درخواستی پاسخ داده نشده
+                // باشد (مثلاً کاربر پنجره سیستمی را بدون انتخاب بست).
+                if (smsAnswered && notifAnswered) {
+                    Text(
+                        "در حال ورود به برنامه…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Button(
+                        onClick = { scope.launch { viewModel.settingsRepo.setOnboardingDone(true) } },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("ورود به برنامه") }
+                }
             }
         }
     }

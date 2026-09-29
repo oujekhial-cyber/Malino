@@ -1,8 +1,6 @@
 package ir.kharjyar.app.ui.screens
 
 import android.Manifest
-import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,6 +13,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.size
@@ -30,10 +30,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Button
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Slider
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,26 +55,23 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.money.MoneyUnit
+import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.prefs.DigitStyle
-import ir.kharjyar.app.data.prefs.WidgetContent
-import ir.kharjyar.app.data.prefs.WidgetLayout
+import ir.kharjyar.app.data.prefs.ThemeMode
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.components.BankLogo
+import ir.kharjyar.app.ui.components.bankCardColor
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Phone
-import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.ui.components.ComboBox
-import ir.kharjyar.app.ui.components.LabeledSlider
-import ir.kharjyar.app.ui.components.WidgetPreview
 import ir.kharjyar.app.ui.theme.AllSkins
 import ir.kharjyar.app.ui.theme.AppSkin
-import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
+fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: String? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settings by viewModel.settings.collectAsState()
@@ -80,6 +81,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
     var smsGranted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED)
     }
+    var showAbout by remember { mutableStateOf(false) }
     var notifGranted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
     }
@@ -87,19 +89,49 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { smsGranted = it }
     val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { notifGranted = it }
+    fun openPermissionSettings() {
+        context.startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         
+        if (section == null) {
+            SettingsMenuRow("قالب‌ها") { nav.navigate("settings/appearance") }
+            SettingsMenuRow("مدیریت حساب") { nav.navigate("settings/account") }
+            SettingsMenuRow("نمایش اعداد و واحد پول") { nav.navigate("settings/numbers") }
+            SettingsMenuRow("دسته‌بندی‌ها") { nav.navigate("categories") }
+            SettingsMenuRow("مجوزها و اعلان‌ها") { nav.navigate("settings/permissions") }
+            SettingsMenuRow("امنیت") { nav.navigate("settings/security") }
+            SettingsMenuRow("پشتیبان‌گیری و بازیابی") { nav.navigate("backup") }
+            SettingsMenuRow("پیامک‌های تبلیغاتی") { nav.navigate("blockedSenders") }
+            SettingsMenuRow("حریم خصوصی") { nav.navigate("settings/privacy") }
+            SettingsMenuRow("درباره ما") { showAbout = true }
+        }
+
         // ---------- تم ----------
+        if (section == "appearance") {
         SectionCard("ظاهر و تم") {
             Text("تم برنامه", style = MaterialTheme.typography.labelLarge)
             Text(
                 "تم انتخابی روی پس‌زمینه، کارت‌ها، نمودار، دیالوگ‌ها، نوار پایین و ویجت اعمال می‌شود.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ComboBox(
+                label = "حالت روشنایی",
+                options = ThemeMode.entries,
+                selected = settings.themeMode,
+                labelOf = {
+                    when (it) {
+                        ThemeMode.SYSTEM -> "پیش‌فرض سیستم (تغییر خودکار روز/شب)"
+                        ThemeMode.LIGHT -> "همیشه روشن"
+                        ThemeMode.DARK -> "همیشه تیره"
+                    }
+                },
+                onSelect = { mode -> scope.launch { viewModel.settingsRepo.setThemeMode(mode) } }
             )
             // انتخاب تم از کمبوباکس + پیش‌نمایش تم فعلی
             ComboBox(
@@ -116,6 +148,34 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                 }
             )
+            var fontScaleDraft by remember(settings.appFontScale) { mutableStateOf(settings.appFontScale.toFloat()) }
+            HorizontalDivider()
+            Text("اندازه متن و اعداد", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "اندازه نوشته‌ها و همه اعداد برنامه را متناسب با دید خود تنظیم کنید.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SkinCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("کوچک", style = MaterialTheme.typography.labelSmall)
+                        Text("نمونه ۱۲۳٬۴۵۶", style = MaterialTheme.typography.titleMedium)
+                        Text("بزرگ", style = MaterialTheme.typography.titleLarge)
+                    }
+                    Slider(
+                        value = fontScaleDraft,
+                        onValueChange = { fontScaleDraft = it },
+                        valueRange = 85f..130f,
+                        steps = 8,
+                        onValueChangeFinished = { scope.launch { viewModel.settingsRepo.setAppFontScale(fontScaleDraft.toInt()) } }
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("${Digits.toPersian(fontScaleDraft.toInt().toString())}٪", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                        TextButton(onClick = { fontScaleDraft = 100f; scope.launch { viewModel.settingsRepo.setAppFontScale(100) } }) { Text("اندازه استاندارد") }
+                    }
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -134,10 +194,14 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     onCheckedChange = { scope.launch { viewModel.settingsRepo.setCardShine(it) } }
                 )
             }
+            HorizontalDivider()
+            NavRow("تنظیمات ویجت") { nav.navigate("widgetSettings") }
+        }
         }
 
         // ---------- حساب پیش‌فرض ----------
-        SectionCard("حساب پیش‌فرض") {
+        if (section == "account") {
+        SectionCard("مدیریت حساب") {
             Text(
                 "با انتخاب حساب پیش‌فرض، داشبورد و ویجت به‌صورت پیش‌فرض اطلاعات همان حساب را نشان می‌دهند.",
                 style = MaterialTheme.typography.bodySmall,
@@ -159,9 +223,29 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                 }
             )
+            HorizontalDivider()
+            Text("حساب‌های معرفی‌شده",style=MaterialTheme.typography.titleMedium)
+            if(accounts.isEmpty()){
+                Text("هنوز حسابی معرفی نشده است.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            }else accounts.forEach { account ->
+                SkinCard(Modifier.fillMaxWidth().clickable{nav.navigate("accountEdit/${account.id}")}){
+                    Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(11.dp)){
+                        BankLogo(bankName=account.bankName,size=38.dp,ringColor=bankCardColor(account.bankName,account.colorArgb))
+                        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
+                            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){Text(account.title,style=MaterialTheme.typography.titleSmall);if(account.archived)Text("بایگانی",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+                            Text(listOfNotNull(account.bankName.ifBlank{null},account.maskedNumber.ifBlank{null}?.let{Digits.toPersian(it)}).joinToString(" — ").ifBlank{"بدون مشخصات بانکی"},style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text("‹",style=MaterialTheme.typography.headlineSmall,color=MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+            OutlinedButton({nav.navigate("accountEdit/0")},Modifier.fillMaxWidth()){Text("افزودن حساب جدید")}
+            Text("برای ویرایش هر حساب، کارت آن را لمس کنید.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         }
 
         // ---------- پول ----------
+        if (section == "numbers") {
         SectionCard("نمایش اعداد و واحد پول") {
             ComboBox(
                 label = "واحد نمایش پول",
@@ -190,10 +274,48 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
             )
         }
 
+        var feeInput by remember(settings.bankFeePercent) { mutableStateOf(settings.bankFeePercent.toString().trimEnd('0').trimEnd('.')) }
+        var feeSaved by remember { mutableStateOf(false) }
+        SectionCard("درصد کارمزد بانکی") {
+            Text(
+                "کارمزد بانکی مبلغی است که بانک برای انجام خدماتی مانند انتقال وجه، کارت‌به‌کارت یا بعضی پرداخت‌ها از حساب کسر می‌کند. گاهی این مبلغ با تأخیر در پیامک بانکی دیده می‌شود و باعث اختلاف جزئی بین مانده واقعی بانک و مانده محاسبه‌شده برنامه می‌شود.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "درصد اعلام‌شده بانک مرکزی یا بانک خود را دستی وارد کنید. خرج‌یار فقط اختلاف‌های کوچک تا این درصد از مبلغ تراکنش را به‌عنوان کارمزد احتمالی ثبت می‌کند. مقدار صفر، تشخیص خودکار کارمزد را غیرفعال می‌کند.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = feeInput,
+                onValueChange = { value ->
+                    feeInput = Digits.normalize(value).filter { it.isDigit() || it == '.' }.take(6)
+                    feeSaved = false
+                },
+                label = { Text("درصد کارمزد") },
+                suffix = { Text("٪") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = {
+                    val value = feeInput.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f
+                    feeInput = value.toString().trimEnd('0').trimEnd('.')
+                    scope.launch { viewModel.settingsRepo.setBankFeePercent(value.toInt()) }
+                    feeSaved = true
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("ذخیره درصد کارمزد") }
+            if (feeSaved) Text("درصد کارمزد ذخیره شد.", color = MaterialTheme.colorScheme.primary)
+        }
+        }
+
         // ---------- مجوزها ----------
-        SectionCard("مجوزها و اعلان") {
-            PermissionRow("دریافت پیامک", smsGranted) { smsPermission.launch(Manifest.permission.RECEIVE_SMS) }
-            PermissionRow("ارسال اعلان", notifGranted) { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
+        if (section == "permissions") {
+        SectionCard("مجوزها و اعلان‌ها") {
+            PermissionRow("دریافت پیامک", smsGranted, { smsPermission.launch(Manifest.permission.RECEIVE_SMS) }, ::openPermissionSettings)
+            PermissionRow("ارسال اعلان", notifGranted && notifEnabled, { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }, ::openPermissionSettings)
             if (!notifEnabled) {
                 Text("اعلان‌های برنامه در تنظیمات دستگاه خاموش است.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
@@ -203,8 +325,10 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        }
 
         // ---------- امنیت ----------
+        if (section == "security") {
         SectionCard("امنیت") {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -261,203 +385,41 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-
-        // ---------- ویجت ----------
-        SectionCard("ویجت صفحه اصلی") {
-            Text(
-                "قالب ویجت را انتخاب کنید. هر قالب با رنگ تم فعال برنامه ساخته می‌شود؛ " +
-                    "ساعت و تاریخ‌ها همیشه زنده‌اند و با ساعت گوشی هماهنگ می‌مانند.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            ComboBox(
-                label = "قالب ویجت",
-                options = WidgetLayout.entries.toList(),
-                selected = settings.widgetLayout,
-                labelOf = { layoutLabel(it) },
-                onSelect = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetLayout(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-
-            ComboBox(
-                label = "محتوای ویجت",
-                options = listOf(
-                    WidgetContent.SUMMARY,
-                    WidgetContent.TODAY_EXPENSE,
-                    WidgetContent.MONTH_EXPENSE,
-                    WidgetContent.RECENT
-                ),
-                selected = settings.widgetContent,
-                labelOf = { contentLabel(it) },
-                onSelect = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetContent(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-
-            // ---------- پیش‌نمایش ----------
-            Text("پیش‌نمایش", style = MaterialTheme.typography.labelLarge)
-            WidgetPreview(
-                layout = settings.widgetLayout,
-                opacity = settings.widgetOpacity,
-                showNumbers = settings.widgetShowNumbers,
-                lines = when (settings.widgetContent) {
-                    WidgetContent.TODAY_EXPENSE -> listOf("برداشت امروز" to "۳,۲۵۰,۰۰۰")
-                    WidgetContent.MONTH_EXPENSE -> listOf("برداشت شهریور" to "۱۸,۴۰۰,۰۰۰")
-                    WidgetContent.RECENT -> listOf("واریز" to "۵,۸۷۰,۰۰۰", "برداشت" to "۱,۲۸۰,۰۰۰")
-                    WidgetContent.SUMMARY -> listOf("واریز شهریور" to "۵,۸۷۰,۰۰۰", "برداشت شهریور" to "۳,۲۵۰,۰۰۰")
-                }
-            )
-
-            // ---------- شیشه‌ای بودن ----------
-            LabeledSlider(
-                label = "میزان شیشه‌ای بودن",
-                value = settings.widgetOpacity,
-                range = 0..100,
-                valueSuffix = "٪",
-                onValueChange = { v ->
-                    scope.launch {
-                        viewModel.settingsRepo.setWidgetOpacity(v)
-                        ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                    }
-                }
-            )
-            Text(
-                "عدد کمتر یعنی شیشه‌ای‌تر (تصویر زمینه گوشی بیشتر دیده می‌شود).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("نمایش اعداد در ویجت", style = MaterialTheme.typography.bodyLarge)
-                Switch(
-                    checked = settings.widgetShowNumbers,
-                    onCheckedChange = {
-                        scope.launch {
-                            viewModel.settingsRepo.setWidgetShowNumbers(it)
-                            ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                        }
-                    }
-                )
-            }
-            if (settings.appLockEnabled) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("نمایش اعداد با وجود قفل برنامه", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "پیش‌فرض: با قفل فعال، اعداد ویجت مخفی‌اند",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = settings.widgetShowNumbersWhenLocked,
-                        onCheckedChange = {
-                            scope.launch {
-                                viewModel.settingsRepo.setWidgetShowNumbersWhenLocked(it)
-                                ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                            }
-                        }
-                    )
-                }
-            }
-
-            OutlinedButton(onClick = {
-                val mgr = AppWidgetManager.getInstance(context)
-                val component = ComponentName(context, KharjYarWidgetReceiver::class.java)
-                if (mgr.isRequestPinAppWidgetSupported) {
-                    mgr.requestPinAppWidget(component, null, null)
-                }
-            }, modifier = Modifier.fillMaxWidth()) { Text("افزودن ویجت به صفحه اصلی (با تأیید لانچر)") }
         }
 
-        // ---------- سایر ----------
-        SectionCard("داده و ابزار") {
-            NavRow("مدیریت حساب‌ها") { nav.navigate("accounts") }
-            NavRow("دسته‌بندی‌ها و قوانین") { nav.navigate("categories") }
-            NavRow("موارد نیازمند بررسی") { nav.navigate("review") }
-            NavRow("بکاپ و بازیابی رمزنگاری‌شده") { nav.navigate("backup") }
+
+
+        if (section == "senders") {
+        SectionCard("پیامک‌ها") { NavRow("فرستنده‌های تبلیغاتی") { nav.navigate("blockedSenders") } }
         }
 
-        // ---------- فرستنده‌های تبلیغاتی ----------
-        if (blockedSenders.isNotEmpty()) {
-            SectionCard("فرستنده‌های تبلیغاتی") {
-                Text(
-                    "پیام‌های این فرستنده‌ها نادیده گرفته می‌شوند. برای برگرداندن، حذفشان کنید.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                blockedSenders.forEach { blocked ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(blocked.sender, style = MaterialTheme.typography.bodyLarge)
-                        TextButton(onClick = {
-                            scope.launch { viewModel.repo.unblockSender(blocked.sender) }
-                        }) { Text("برگرداندن") }
-                    }
-                }
-            }
-        }
-
+        if (section == "privacy") {
         SectionCard("حریم خصوصی") {
             Text(
-                "خرج‌یار فقط پیامک‌های دریافتی جدید را (با اجازه شما) بررسی می‌کند و فقط پیامک‌های مالی را نگه می‌دارد. رمزهای یک‌بارمصرف و پیامک‌های شخصی ذخیره نمی‌شوند. همه داده‌ها فقط روی همین گوشی هستند؛ برنامه اینترنت ندارد و هیچ اطلاعاتی به جایی ارسال نمی‌شود.",
+                "خرج‌یار فقط با اجازه شما پیامک‌های مالی را بررسی می‌کند؛ رمزهای یک‌بارمصرف و پیامک‌های شخصی ذخیره نمی‌شوند. اطلاعات مالی، تصاویر چک و دفتر بدهی روی همین گوشی می‌مانند و برای سازنده ارسال نمی‌شوند. اینترنت فقط برای دریافت هواشناسی شهر انتخابی استفاده می‌شود.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-
-        // ---------- پشتیبانی ----------
-        SectionCard("پشتیبانی و ارتباط با ما") {
-            Text(
-                "برای گزارش مشکل، پیشنهاد یا راهنمایی با ما در تماس باشید.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // ایمیل: با زدن، برنامه ایمیل باز می‌شود
-            ContactRow(
-                icon = Icons.Filled.Email,
-                label = "ایمیل",
-                value = "fasasoftrrr@gmail.com",
-                onClick = {
-                    runCatching {
-                        context.startActivity(
-                            Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:fasasoftrrr@gmail.com"))
-                                .putExtra(Intent.EXTRA_SUBJECT, "خرج‌یار")
-                        )
-                    }
-                }
-            )
-
-            // شماره تماس: با زدن، شماره‌گیر باز می‌شود
-            ContactRow(
-                icon = Icons.Filled.Phone,
-                label = "شماره تماس",
-                value = Digits.toPersian("09399874951"),
-                onClick = {
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:09399874951")))
-                    }
-                }
-            )
-
-            Text(
-                "نسخه ۱.۰.۰",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
+
+    }
+    if (showAbout) {
+        AlertDialog(
+            onDismissRequest = { showAbout = false },
+            title = { Text("درباره خرج‌یار") },
+            text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ContactRow(Icons.Filled.Email, "ایمیل", "fasasoftrrr@gmail.com") {
+                    runCatching { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:fasasoftrrr@gmail.com"))) }
+                }
+                Text("واتساپ — لینک به‌زودی", style = MaterialTheme.typography.bodyMedium)
+                Text("روبیکا — لینک به‌زودی", style = MaterialTheme.typography.bodyMedium)
+                HorizontalDivider()
+                Text("نسخه ۱.۰.۰")
+                Text("حریم خصوصی: اطلاعات مالی، پیامک‌ها، تصاویر چک و دفتر بدهی در فضای خصوصی و رمزنگاری‌شده برنامه نگهداری می‌شوند. هیچ داده مالی برای سازنده ارسال نمی‌شود. اینترنت فقط برای هواشناسی شهر انتخابی استفاده می‌شود.", style = MaterialTheme.typography.bodySmall)
+            } },
+            confirmButton = { TextButton({ showAbout = false }) { Text("بستن") } }
+        )
     }
 }
 
@@ -473,32 +435,11 @@ private fun SectionCard(title: String, content: @Composable androidx.compose.fou
 }
 
 @Composable
-private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit) {
+private fun PermissionRow(label: String, granted: Boolean, onEnable: () -> Unit, onDisable: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.bodyLarge)
-        if (granted) {
-            Text("فعال", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-        } else {
-            OutlinedButton(onClick = onRequest) { Text("درخواست") }
-        }
+        Column { Text(label, style = MaterialTheme.typography.bodyLarge); Text(if (granted) "فعال" else "غیرفعال", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        Switch(checked = granted, onCheckedChange = { enabled -> if (enabled) onEnable() else onDisable() })
     }
-}
-
-/** برچسب فارسی تراز افقی. */
-private fun layoutLabel(l: WidgetLayout): String = when (l) {
-    WidgetLayout.ROYAL -> "لوکس (قاب طلایی، ساعت خیلی بزرگ)"
-    WidgetLayout.MINIMAL -> "مینیمال (عنوان بزرگ، ساعت کنار)"
-    WidgetLayout.PANELS -> "نواری (سربرگ بالا، مقادیر در نوار)"
-    WidgetLayout.STACKED -> "نواری فشرده"
-    WidgetLayout.SPLIT -> "دوبخشی (خط وسط)"
-    WidgetLayout.GLASS -> "شیشه‌ای (با تصویر تم)"
-}
-
-private fun contentLabel(c: WidgetContent): String = when (c) {
-    WidgetContent.SUMMARY -> "خلاصه ماه"
-    WidgetContent.TODAY_EXPENSE -> "برداشت امروز"
-    WidgetContent.MONTH_EXPENSE -> "برداشت ماه"
-    WidgetContent.RECENT -> "آخرین تراکنش‌ها"
 }
 
 /** یک ردیف تماس قابل لمس (ایمیل/تلفن) با آیکون. */
@@ -537,5 +478,15 @@ private fun NavRow(label: String, onClick: () -> Unit) {
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge)
         Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SettingsMenuRow(label: String, onClick: () -> Unit) {
+    SkinCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.titleMedium)
+            Text("‹", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+        }
     }
 }

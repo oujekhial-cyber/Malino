@@ -68,34 +68,80 @@ data class FieldRule(
 
 object Extractor {
 
-    private val depositWords = listOf("واریز", "افزایش", "انتقال به حساب شما", "دریافت")
-    private val withdrawWords = listOf("برداشت", "خرید", "کسر", "کاهش", "پرداخت", "انتقال از")
+    private val depositWords = listOf(
+        "واریز", "واریزی", "وار.یز", "بستانکار", "افزایش", "دریافت", "عودت", "شارژ",
+        "انتقال به حساب شما", "به حساب شما", "انتقال به", "حواله وارده", "وصول"
+    )
+    private val withdrawWords = listOf(
+        "برداشت", "خرید", "کسر", "کاهش", "پرداخت", "انتقال از", "بدهکار", "حواله صادره",
+        "کارمزد", "قبض", "انتقال وجه از", "خرید اینترنتی", "خرید شارژ"
+    )
 
-    private val amountAnchors = listOf("مبلغ:", "مبلغ", "به مبلغ", "برداشت:", "واریز:", "خرید:", "کسر:", "پرداخت:")
-    private val balanceAnchors = listOf("مانده:", "مانده", "موجودی:", "موجودی")
-    private val accountAnchors = listOf("حساب", "کارت", "سپرده", "حساب:", "کارت:")
+    private val amountAnchors = listOf(
+        "مبلغ:", "به مبلغ", "مبلغ", "برداشت:", "واریز:", "خرید:", "کسر:", "پرداخت:",
+        "بدهکار:", "بستانکار:", "بد:", "بس:"
+    )
+    private val balanceAnchors = listOf("مانده:", "مانده", "موجودی:", "موجودی", "باقیمانده")
+    private val accountAnchors = listOf(
+        "حساب", "کارت", "سپرده", "حساب:", "کارت:",
+        // در پیامک سپه شماره حساب بعد از «برداشت از» می‌آید
+        "برداشت از", "واریز به"
+    )
     private val refAnchors = listOf("پیگیری:", "پیگیری", "مرجع:", "شماره پیگیری", "کد رهگیری")
 
+    /** واژه‌هایی که یعنی مبلغ به تومان نوشته شده است. */
+    private val tomanWords = listOf("تومان", "تومن", "هزارتومان")
+
+    /** شناسه حساب/کارت به شکل ماسک‌شده یا شماره سپرده چندبخشی، هر جای متن. */
+    private val maskedIdPattern = Regex(
+        // 6037****1234 یا ****1234 یا 2404.306.5918267.1
+        "\\d{2,6}[*٭]{1,8}\\d{2,6}|[*٭]{2,}\\d{3,6}|\\d{2,5}(?:[.\\-]\\d{1,7}){2,4}"
+    )
+
     private val numberPattern = Regex("\\d{1,3}(?:[,،٬]\\d{3})+|\\d+")
-    private val datePattern = Regex("(\\d{2,4})[/\\-.](\\d{1,2})[/\\-.](\\d{1,2})")
+    /** مبلغی که + یا -، قبل یا بعدش آمده؛ الگوی اصلی نمونه‌های واقعی بانک‌ها. */
+    private val signedAmountPattern = Regex(
+        "(?<![\\d.,])([+-]?)\\s*(\\d{1,3}(?:[,،٬]\\d{3})+|\\d{4,})\\s*([+-]?)(?![\\d.,])"
+    )
+    private val datePattern = Regex(
+        // (?!\\s*:) مانع می‌شود 06/04-14:32 به‌اشتباه تاریخ سه‌بخشی 1406/04/14 شود
+        "(\\d{2,4})[/\\-.](\\d{1,2})[/\\-.](\\d{1,2})(?!\\d)(?!\\s*:)"
+    )
+    /** تاریخ بدون سال: 07/03_01:53 یعنی ماه ۷، روز ۳ سال جاری. */
+    private val shortDatePattern = Regex("(?<![\\d/])(\\d{1,2})[/\\-.](\\d{1,2})(?=\\s*[_-]\\s*\\d{1,2}:)")
+    /** تاریخ فشرده 0127-22:00 یعنی ۲۷ فروردین سال جاری. */
+    private val compactDatePattern = Regex("(?<!\\d)(0[1-9]|1[0-2])([0-3]\\d)(?=\\s*[-_]\\s*\\d{1,2}:)")
     private val timePattern = Regex("(\\d{1,2}):(\\d{2})(?::(\\d{2}))?")
 
     /** استخراج خودکار (heuristic) بدون قالب. */
     fun autoExtract(body: String): ExtractionResult {
-        val text = Digits.normalize(body)
+        // حروف عربی و نیم‌فاصله یکدست می‌شوند تا کلیدواژه‌ها واقعاً پیدا شوند
+        val text = Digits.normalizeForMatch(body)
         val lines = text.split('\n', '\r').map { it.trim() }.filter { it.isNotEmpty() }
 
+        // جهت: نزدیک‌ترین کلیدواژه به ابتدای متن برنده است؛ اگر پیامکی هم
+        // «برداشت» و هم «واریز» داشته باشد (مثل «برداشت و واریز به حساب…»)،
+        // ترتیب ظاهر شدن تصمیم می‌گیرد، نه ترتیب فهرست ما.
         var direction = ExtractedDirection.UNKNOWN
-        for (w in depositWords) if (text.contains(w)) { direction = ExtractedDirection.DEPOSIT; break }
-        if (direction == ExtractedDirection.UNKNOWN) {
-            for (w in withdrawWords) if (text.contains(w)) { direction = ExtractedDirection.WITHDRAW; break }
+        val depositAt = depositWords.mapNotNull { w -> text.indexOf(w).takeIf { it >= 0 } }.minOrNull()
+        val withdrawAt = withdrawWords.mapNotNull { w -> text.indexOf(w).takeIf { it >= 0 } }.minOrNull()
+        direction = when {
+            depositAt != null && (withdrawAt == null || depositAt < withdrawAt) -> ExtractedDirection.DEPOSIT
+            withdrawAt != null -> ExtractedDirection.WITHDRAW
+            else -> ExtractedDirection.UNKNOWN
         }
 
         // مانده: نزدیک‌ترین عدد بعد از لنگر مانده
         val balance = findNumberAfterAnchors(text, balanceAnchors)
 
-        // مبلغ: نزدیک‌ترین عدد بعد از لنگر مبلغ/عمل، که با مانده یکی نباشد
-        var amount = findNumberAfterAnchors(text, amountAnchors, exclude = balance?.second)
+        // مبلغ علامت‌دار (+15,000,000 یا 1,000,000-) قطعی‌ترین نشانه است و
+        // در پیامک‌های بدون هیچ عنوانی هم مبلغ و جهت را هم‌زمان مشخص می‌کند.
+        val signed = findSignedAmount(text, balance?.second)
+        var amount = signed?.let { it.amount to it.range }
+        if (signed != null) direction = signed.direction
+
+        // در نبود علامت: نزدیک‌ترین عدد بعد از لنگر مبلغ/عمل
+        if (amount == null) amount = findNumberAfterAnchors(text, amountAnchors, exclude = balance?.second)
         if (amount == null) {
             // fallback: عدد بزرگ در سطری که کلمه عمل دارد
             for (line in lines) {
@@ -110,10 +156,20 @@ object Extractor {
             }
         }
 
+        // اگر هیچ کلیدواژه‌ای نبود، علامت جلوی مبلغ جهت را مشخص می‌کند: 500,000- یا +500,000
+        if (direction == ExtractedDirection.UNKNOWN && amount != null) {
+            direction = signDirection(text, amount!!.second)
+        }
+
         val accountId = findAccountId(text)
         val dateMatch = datePattern.find(text)
+        val shortDate = findFlexibleDate(text)
         val timeMatch = timePattern.find(text)
         val ref = findNumberAfterAnchors(text, refAnchors)
+
+        // بعضی بانک‌ها مبلغ را به تومان می‌نویسند
+        val toman = tomanWords.any { text.contains(it) }
+        val factor = if (toman) 10L else 1L
 
         val confidence = when {
             amount != null && direction != ExtractedDirection.UNKNOWN && balance != null -> Confidence.HIGH
@@ -122,21 +178,23 @@ object Extractor {
         }
 
         return ExtractionResult(
-            amountRial = amount?.first,
+            amountRial = amount?.first?.times(factor),
+            amountUnit = if (toman) "TOMAN" else "RIAL",
             direction = direction.name,
-            balanceRial = balance?.first,
+            balanceRial = balance?.first?.times(factor),
             accountIdHint = accountId,
-            dateText = dateMatch?.value,
+            dateText = dateMatch?.value ?: shortDate?.text,
             timeText = timeMatch?.value,
             refNumber = ref?.first?.toString(),
             confidence = confidence.name,
-            occurredAtMillis = parseOccurredAt(dateMatch, timeMatch)
+            occurredAtMillis = shortDate?.let { parseOccurredAt(it, timeMatch) }
+                ?: parseOccurredAt(dateMatch, timeMatch)
         )
     }
 
     /** اعمال قواعد یک قالب آموزش‌دیده روی متن. */
     fun applyRules(body: String, rules: List<FieldRule>, amountUnit: String = "RIAL"): ExtractionResult {
-        val text = Digits.normalize(body)
+        val text = Digits.normalizeForMatch(body)
         var amount: Long? = null
         var balance: Long? = null
         var accountId: String? = null
@@ -215,9 +273,9 @@ object Extractor {
     // ---------- internals ----------
 
     private fun extractAfterAnchor(text: String, rule: FieldRule): String? {
-        val idx = text.indexOf(rule.anchor)
+        val idx = text.indexOf(Digits.normalizeForMatch(rule.anchor))
         if (idx < 0) return null
-        val after = text.substring(idx + rule.anchor.length)
+        val after = text.substring(idx + Digits.normalizeForMatch(rule.anchor).length)
         val window = after.take(rule.maxGap + 40)
         return when (rule.valueType) {
             "NUMBER" -> {
@@ -266,7 +324,100 @@ object Extractor {
         return null
     }
 
+    private data class SignedAmount(
+        val amount: Long,
+        val range: IntRange,
+        val direction: ExtractedDirection
+    )
+
+    private fun findSignedAmount(text: String, exclude: IntRange?): SignedAmount? {
+        for (m in signedAmountPattern.findAll(text)) {
+            val sign = m.groupValues[1].ifBlank { m.groupValues[3] }
+            if (sign != "+" && sign != "-") continue
+            val numberGroup = m.groups[2] ?: continue
+            val range = numberGroup.range
+            if (exclude != null && rangesOverlap(range, exclude)) continue
+            val amount = Digits.parseAmount(numberGroup.value) ?: continue
+            if (amount < 1_000L) continue
+            return SignedAmount(
+                amount,
+                range,
+                if (sign == "+") ExtractedDirection.DEPOSIT else ExtractedDirection.WITHDRAW
+            )
+        }
+        return null
+    }
+
+    private fun rangesOverlap(a: IntRange, b: IntRange): Boolean =
+        a.first <= b.last && b.first <= a.last
+
+    private data class FlexibleDate(val year: Int, val month: Int, val day: Int, val text: String)
+
+    /** تاریخ کامل، ماه/روز بدون سال، یا MMDD فشرده. */
+    private fun findFlexibleDate(text: String): FlexibleDate? {
+        datePattern.find(text)?.let { m ->
+            var a = m.groupValues[1].toInt()
+            val b = m.groupValues[2].toInt()
+            var c = m.groupValues[3].toInt()
+            if (a <= 31 && m.groupValues[3].length == 4) {
+                val year = c; c = a; a = year
+            }
+            if (a in 1900..2100) {
+                val gregorian = java.time.LocalDate.of(a, b, c)
+                val jalali = ir.kharjyar.app.core.date.PersianDate.fromLocalDate(gregorian)
+                return FlexibleDate(jalali.year, jalali.month, jalali.day, m.value)
+            }
+            if (a < 100) a += 1400
+            return FlexibleDate(a, b, c, m.value)
+        }
+        val currentYear = ir.kharjyar.app.core.date.PersianDate.today().year
+        shortDatePattern.find(text)?.let { m ->
+            return FlexibleDate(currentYear, m.groupValues[1].toInt(), m.groupValues[2].toInt(), m.value)
+        }
+        compactDatePattern.find(text)?.let { m ->
+            return FlexibleDate(currentYear, m.groupValues[1].toInt(), m.groupValues[2].toInt(), m.value)
+        }
+        return null
+    }
+
+    private fun parseOccurredAt(date: FlexibleDate, timeMatch: MatchResult?): Long? = runCatching {
+        if (date.month !in 1..12 || date.day !in 1..31) return null
+        val pd = ir.kharjyar.app.core.date.PersianDate(date.year, date.month, date.day)
+        if (date.day > pd.monthLength()) return null
+        val hour = timeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val minute = timeMatch?.groupValues?.get(2)?.toIntOrNull() ?: 0
+        if (hour !in 0..23 || minute !in 0..59) return null
+        ir.kharjyar.app.core.date.PersianDate.toMillis(pd, hour, minute)
+    }.getOrNull()
+
+    /** واژه‌ای که جهت پیامک را مشخص کرده است (برای پیش‌پرکردن آموزش قالب). */
+    fun directionWordIn(body: String): String? {
+        val text = Digits.normalizeForMatch(body)
+        return (depositWords + withdrawWords)
+            .filter { text.contains(it) }
+            .minByOrNull { text.indexOf(it) }
+    }
+
+    /** جهت از روی علامت مثبت/منفی چسبیده به مبلغ. */
+    private fun signDirection(text: String, amountRange: IntRange): ExtractedDirection {
+        val before = text.substring(maxOf(0, amountRange.first - 2), amountRange.first)
+        val after = text.substring(
+            minOf(text.length, amountRange.last + 1),
+            minOf(text.length, amountRange.last + 3)
+        )
+        return when {
+            before.contains('-') || after.trimStart().startsWith("-") -> ExtractedDirection.WITHDRAW
+            before.contains('+') || after.trimStart().startsWith("+") -> ExtractedDirection.DEPOSIT
+            else -> ExtractedDirection.UNKNOWN
+        }
+    }
+
     private fun findAccountId(text: String): String? {
+        // شکل ماسک‌شده مثل 6037****1234 یا *1234 یا 1234.56.789 هر جای متن
+        maskedIdPattern.findAll(text).firstOrNull { m ->
+            // تاریخ کوتاه مثل 03-10-06 نباید شماره حساب فرض شود
+            m.value.count(Char::isDigit) >= 8
+        }?.let { return it.value.trim() }
         for (anchor in accountAnchors) {
             val idx = text.indexOf(anchor)
             if (idx < 0) continue
@@ -282,8 +433,21 @@ object Extractor {
         if (dateMatch == null) return null
         return runCatching {
             var y = dateMatch.groupValues[1].toInt()
-            val mo = dateMatch.groupValues[2].toInt()
-            val d = dateMatch.groupValues[3].toInt()
+            var mo = dateMatch.groupValues[2].toInt()
+            var d = dateMatch.groupValues[3].toInt()
+            // شکل روز/ماه/سال هم روی بعضی پیامک‌ها دیده می‌شود (12/05/1403)
+            if (y <= 31 && dateMatch.groupValues[3].length == 4) {
+                val realYear = d
+                d = y
+                y = realYear
+            }
+            // تاریخ میلادی روی پیامک‌های بعضی درگاه‌ها
+            if (y in 1900..2100) {
+                val pdg = ir.kharjyar.app.core.date.PersianDate.fromLocalDate(
+                    java.time.LocalDate.of(y, mo, d)
+                )
+                y = pdg.year; mo = pdg.month; d = pdg.day
+            }
             if (y < 100) y += 1400 // 03/05/12 -> 1403
             if (mo !in 1..12 || d !in 1..31) return null
             val pd = ir.kharjyar.app.core.date.PersianDate(y, mo, d)
@@ -300,14 +464,14 @@ object Extractor {
      * برای هر فیلد، متن بلافاصله قبل از مقدار به عنوان لنگر انتخاب می‌شود.
      */
     fun suggestRules(body: String, fieldValues: Map<FieldRole, String>): List<FieldRule> {
-        val text = Digits.normalize(body)
+        val text = Digits.normalizeForMatch(body)
         val rules = mutableListOf<FieldRule>()
         for ((role, rawValue) in fieldValues) {
             if (role == FieldRole.DIRECTION) {
                 rules.add(FieldRule(role.name, anchor = rawValue.substringBefore('|'), valueType = rawValue.substringAfter('|', "WITHDRAW")))
                 continue
             }
-            val value = Digits.normalize(rawValue.trim())
+            val value = Digits.normalizeForMatch(rawValue.trim())
             if (value.isEmpty()) continue
             val idx = text.indexOf(value)
             if (idx <= 0) continue
