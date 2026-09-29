@@ -78,6 +78,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import kotlin.math.roundToInt
@@ -525,7 +527,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 Popup(
                                     // TopLeft مطلق است و برخلاف TopStart در رابط RTL محور افقی را
                                     // وارونه نمی‌کند؛ delta انگشت و کارت اکنون هم‌جهت باقی می‌مانند.
-                                    alignment = Alignment.TopLeft,
+                                    alignment = object : Alignment {
+                                        override fun align(size: IntSize, space: IntSize, layoutDirection: LayoutDirection): IntOffset = IntOffset.Zero
+                                    },
                                     offset = IntOffset((floatingOriginX + floatingX).roundToInt(), (floatingOriginY + floatingY).roundToInt()),
                                     // جلوگیری از محدودشدن مختصات افقی Popup به عرض پنجره؛ کارت باید
                                     // دقیقاً همراه انگشت به هر چهار جهت حرکت کند.
