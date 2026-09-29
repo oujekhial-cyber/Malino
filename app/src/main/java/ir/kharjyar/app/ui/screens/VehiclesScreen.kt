@@ -141,7 +141,6 @@ private fun PlateNumberBox(value:String,placeholder:String,maxLength:Int,width:a
   }
  }
  if(showLetters){val listState=rememberLazyListState(initialFirstVisibleItemIndex=(letters.indexOf(letter).coerceAtLeast(0)-2).coerceAtLeast(0));AlertDialog(onDismissRequest={showLetters=false},title={Text("حرف پلاک را بچرخانید")},text={Box(Modifier.fillMaxWidth().height(220.dp),contentAlignment=Alignment.Center){LazyColumn(state=listState,flingBehavior=rememberSnapFlingBehavior(listState),horizontalAlignment=Alignment.CenterHorizontally,contentPadding=PaddingValues(vertical=82.dp)){items(letters){item->val selected=item==letter;Text(item,Modifier.fillMaxWidth().clickable{letter=item;emit();showLetters=false;serialFocus.requestFocus()}.padding(vertical=10.dp),textAlign=androidx.compose.ui.text.style.TextAlign.Center,color=if(selected)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(.55f),fontWeight=if(selected)FontWeight.Bold else FontWeight.Normal,style=if(selected)MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium)}}}},confirmButton={TextButton({val index=(listState.firstVisibleItemIndex+2).coerceAtMost(letters.lastIndex);letter=letters[index];emit();showLetters=false;serialFocus.requestFocus()}){Text("انتخاب")}},dismissButton={TextButton({showLetters=false}){Text("انصراف")}})}
- }
 }
 
 @Composable private fun MotorcyclePlateInput(value:String,onValueChange:(String)->Unit){
