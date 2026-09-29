@@ -79,7 +79,7 @@ class WidgetOptionsGuardTest {
         assertTrue("افزودن خودکار ویجت حذف شده", root.contains("AutoPinWidget"))
         assertTrue("درخواست چسباندن ویجت انجام نمی‌شود", root.contains("requestPinAppWidget"))
         assertTrue("عرض کامل درخواست نمی‌شود", root.contains("OPTION_APPWIDGET_MIN_WIDTH"))
-        assertTrue("قالب لوکس انتخاب نمی‌شود", root.contains("WidgetLayout.ROYAL"))
+        assertFalse("قالب لوکس نباید هنگام افزودن خودکار تحمیل شود", root.contains("setWidgetLayout(WidgetLayout.ROYAL)"))
         assertTrue("فقط یک‌بار بودنِ کار تضمین نشده", root.contains("setWidgetAutoPinned(true)"))
     }
 

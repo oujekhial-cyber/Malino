@@ -5,7 +5,7 @@ import org.junit.Test
 class VehicleTypeOwnerAndMotorcyclePlateGuardTest {
  @Test fun `vehicle entry supports types custom owner and visible aligned plate fields`() {
   val screen=File("src/main/java/ir/kharjyar/app/ui/screens/VehiclesScreen.kt").readText()
-  listOf("خودرو سواری","موتورسیکلت","وانت","کامیون","تریلر","اتوبوس","ماشین‌آلات","شخص دیگر","نام مالک (همسر، فرزند یا شخص دیگر)","focusedTextColor=Color.Black","height(58.dp)","label={Text(\"ایران\"").forEach{assertTrue(it,screen.contains(it))}
+  listOf("خودرو سواری","موتورسیکلت","وانت","کامیون","تریلر","اتوبوس","ماشین‌آلات","شخص دیگر","نام مالک (همسر، فرزند یا شخص دیگر)","focusedTextColor=Color.Black","height(58.dp)","Text(\"ایران\",Modifier.align(Alignment.TopCenter)").forEach{assertTrue(it,screen.contains(it))}
  }
  @Test fun `motorcycle plate has three over five digits and vehicle fields persist`() {
   val screen=File("src/main/java/ir/kharjyar/app/ui/screens/VehiclesScreen.kt").readText()
