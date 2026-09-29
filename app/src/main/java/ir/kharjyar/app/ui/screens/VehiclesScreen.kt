@@ -42,6 +42,7 @@ import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.showSavedMessage
 import ir.kharjyar.app.ui.components.PersianDateField
 import ir.kharjyar.app.ui.components.ComboBox
+import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.work.LifeReminderWorker
 import kotlinx.coroutines.launch
 
