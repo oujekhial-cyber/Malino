@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -391,6 +392,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             val hasDiscrepancy = est.rial != null && bankSnapshot != null && est.rial != bankSnapshot.balanceRial
                             // رنگ متن روی کارت، مثل خود BankCard از روشنایی رنگ حساب می‌آید
                             val onCard = if (Color(account.colorArgb).luminance() > 0.55f) Color(0xFF14121A) else Color.White
+                            // مختصات هر کارت مستقل نگه داشته می‌شود؛ یک مختصات مشترک بین
+                            // کارت‌ها باعث می‌شد کارت شناور هنگام شروع در محل کارت دیگری ظاهر شود.
+                            var cardWindowPosition by remember(account.id) { mutableStateOf(Offset.Zero) }
                             BankCard(
                                 title = account.title,
                                 bankName = account.bankName,
@@ -413,11 +417,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     .width(pageWidth)
                                     .animateItemPlacement(animationSpec = tween(durationMillis = 480))
                                     .onGloballyPositioned { coordinates ->
-                                        if (!isDragging) {
-                                            val position = coordinates.positionInWindow()
-                                            floatingOriginX = position.x
-                                            floatingOriginY = position.y
-                                        }
+                                        if (!isDragging) cardWindowPosition = coordinates.positionInWindow()
                                     }
                                     .graphicsLayer {
                                         translationX = neighborOffset * (size.width + 10.dp.toPx())
@@ -426,6 +426,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     .pointerInput(account.id, active.map { it.id }) {
                                         detectDragGesturesAfterLongPress(
                                             onDragStart = {
+                                                floatingOriginX = cardWindowPosition.x
+                                                floatingOriginY = cardWindowPosition.y
                                                 draggingId = account.id
                                                 dragOriginIndex = idx
                                                 dragTargetIndex = idx
@@ -521,6 +523,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             }
                             if (isDragging) {
                                 Popup(
+                                    // TopLeft مطلق است و برخلاف TopStart در رابط RTL محور افقی را
+                                    // وارونه نمی‌کند؛ delta انگشت و کارت اکنون هم‌جهت باقی می‌مانند.
+                                    alignment = Alignment.TopLeft,
                                     offset = IntOffset((floatingOriginX + floatingX).roundToInt(), (floatingOriginY + floatingY).roundToInt()),
                                     // جلوگیری از محدودشدن مختصات افقی Popup به عرض پنجره؛ کارت باید
                                     // دقیقاً همراه انگشت به هر چهار جهت حرکت کند.
@@ -537,8 +542,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         selected = defaultAccount?.id == account.id,
                                         masked = !amountVisible,
                                         modifier = Modifier.width(pageWidth).graphicsLayer {
-                                            scaleX = 0.96f
-                                            scaleY = 0.96f
+                                            // اندازه در شروع Drag تغییر نمی‌کند تا نقطه‌ای که کاربر
+                                            // گرفته دقیقاً زیر همان نقطه انگشت باقی بماند.
+                                            scaleX = 1f
+                                            scaleY = 1f
                                             // شکل سایه دقیقاً با گوشه‌های گرد کارت یکی است؛ رنگ کم‌غلظت
                                             // و ارتفاع بیشتر، لبه خطی را به هاله نرم تبدیل می‌کند.
                                             shape = RoundedCornerShape(22.dp)
