@@ -29,8 +29,9 @@ object GoldPriceService {
         val text=withoutNoise.replace(Regex("(?s)<[^>]+>")," ")
             .replace("&nbsp;"," ").replace("&#44;",",").replace("&zwnj;","")
             .replace(Regex("\\s+")," ")
-        val labelled=Regex("نرخ فعلی\\s*:{0,2}\\s*([0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬]{3,})")
-            .findAll(text).mapNotNull { digitsToLong(it.groupValues[1]) }.toList()
+        val labelled=Regex("[0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬]{3,}")
+            .findAll(text.substringAfter("نرخ فعلی",missingDelimiterValue=""))
+            .mapNotNull { digitsToLong(it.value) }.toList()
         val rawCandidates=listOf(
             Regex("\\\"(?:price|value|last|p)\\\"\\s*:\\s*\\\"?([0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬]{3,})"),
             Regex("data-(?:price|value|last)=[\\\"']([0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬]{3,})")
