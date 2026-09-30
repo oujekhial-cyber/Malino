@@ -152,7 +152,6 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit) {
        }
       }
     }
-}
 
 @Composable private fun PremiumMarketTile(title:String,subtitle:String,value:Long?,previous:Long?,unit:ir.kharjyar.app.core.money.MoneyUnit,accent:Color,symbol:String,modifier:Modifier=Modifier,dark:Boolean=true){
  val change=if(value!=null&&previous!=null&&previous>0)(value-previous)*100.0/previous else null;val positive=(change?:0.0)>=0;val trend=if(positive)Color(0xFF28B965)else Color(0xFFE94361);val tile=if(dark)Color(0xFF101722)else Color(0xFFFFFFFF);val main=if(dark)Color(0xFFF6F2F6)else Color(0xFF202633);val secondary=if(dark)Color(0xFF9CA3AF)else Color(0xFF697181)
