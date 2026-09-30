@@ -1,14 +1,20 @@
 # گزارش Build و تست (CI)
 
-- commit: 3262af375a26bfe2e815519a0c679ca0bfd6eb5d
-- تاریخ: 2026-09-30 21:18 UTC
+- commit: 010e2121f3b7aa0616bb0ab6e307380f07b61dbf
+- تاریخ: 2026-09-30 21:27 UTC
 - unit tests: failure
-- assembleDebug: failure
+- assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
-- lintDebug: failure
-- assembleRelease: failure
+- lintDebug: success
+- assembleRelease: success
 
 ## خلاصه تست‌های واحد
 ```
-(no test results)
+tests=452 failures=1 errors=0 skipped=0
+FAIL ir.kharjyar.app.MarketPopupReadabilityGuardTest.market popup is anchored compact glassy and has solid rate cards: java.lang.AssertionError
 ```
+
+## نسخه انتشار
+- حجم: 31M
+- کلید اختصاصی: false
+- امضا: معتبر

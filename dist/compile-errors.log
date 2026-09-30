@@ -1,2 +1,1 @@
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:143:35 Unresolved reference 'wrapContentHeight'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:143:35 Unresolved reference 'wrapContentHeight'.
+e: The daemon has terminated unexpectedly on startup attempt #1 with error code: 0. The daemon process output:
