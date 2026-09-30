@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- لوگوی بانک، تبدیل‌شده از SVG مجموعه masihgh/iranian-bank-list (پروانه MIT) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="256"
+    android:viewportHeight="256">
+    <group
+        android:scaleX="0.74"
+        android:scaleY="0.74"
+        android:translateX="33.28"
+        android:translateY="33.28">
+        <path
+            android:fillColor="#029a4c"
+            android:pathData="M100 228l70-71c21-21 57-13 70 18-14-1-28-4-39 8l-73 73-28-28ZM73 201 0 128l28-28 71 71c21 21 13 56-18 70 1-15 4-28-8-40ZM157 85c-21-21-13-56 18-70-1 15-4 28 8 40l73 73-28 28-71-71ZM16 81c14 2 28 4 39-8L128 0l29 28-71 72c-22 22-60 9-70-19Z" />
+        <path
+            android:fillColor="#eb8c30"
+            android:pathData="M88.0,128.0a40.0,40.0 0 1,0 80.0,0a40.0,40.0 0 1,0 -80.0,0z" />
+    </group>
+</vector>

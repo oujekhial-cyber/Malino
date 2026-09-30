@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.core.money.MoneyUnit
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import androidx.compose.runtime.rememberCoroutineScope
@@ -98,6 +99,7 @@ fun AmountTextField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
+    unit: MoneyUnit? = null,
     supportingText: String? = null,
     isError: Boolean = false,
     imeAction: ImeAction = ImeAction.Next
@@ -107,7 +109,7 @@ fun AmountTextField(
     OutlinedTextField(
         value = value,
         onValueChange = { onValueChange(AmountInput.sanitize(it)) },
-        label = { Text(label) },
+        label = { Text(if (unit == null) label else "$label (${if (unit == MoneyUnit.TOMAN) "تومان" else "ریال"})") },
         singleLine = true,
         isError = isError,
         supportingText = supportingText?.let { { Text(it) } },
