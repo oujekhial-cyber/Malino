@@ -187,7 +187,7 @@ fun AccountEditScreen(
         }
 
         // ---------- پیش‌نمایش زنده کارت ----------
-        BankCard(
+        if (accountType == AccountType.BANK) BankCard(
             account = AccountEntity(
                 id = accountId,
                 title = title.ifBlank { if(accountType==AccountType.CASH) "صندوق نقدی" else "عنوان حساب" },
@@ -208,7 +208,16 @@ fun AccountEditScreen(
             selected = true,
             masked = false,
             modifier = Modifier.fillMaxWidth()
-        )
+        ) else SkinCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("💵  ${title.ifBlank { "صندوق نقدی" }}", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    listOf(ownerName.ifBlank { "بدون تعیین صاحب" }, cashLocation.ifBlank { "محل نگهداری ثبت نشده" }).joinToString(" • "),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
 
         // ---------- پایه ----------
         FormSection("اطلاعات پایه") {
