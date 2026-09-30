@@ -7,7 +7,7 @@ class MarketPopupAndFreshDefaultsGuardTest {
   val root=File("src/main/java/ir/kharjyar/app/ui/AppRoot.kt").readText()
   val dashboard=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
   assertTrue(root.contains("Box(Modifier.align(Alignment.Center)){LiveMarketGlass(settings.moneyUnit)}"))
-  listOf("Popup(alignment=Alignment.TopCenter","fillMaxSize().background(Color.Black.copy(alpha=.20f)).clickable{closePanel()}","expandVertically","tween(620)","shrinkVertically","kotlinx.coroutines.delay(420)").forEach{assertTrue(it,dashboard.contains(it))}
+  listOf("Popup(alignment=Alignment.TopCenter","fillMaxSize().background(Color.Black.copy(alpha=if(darkMarket).20f else .10f)).clickable{closePanel()}","expandVertically","tween(620)","shrinkVertically","kotlinx.coroutines.delay(420)").forEach{assertTrue(it,dashboard.contains(it))}
  }
  @Test fun `fresh install defaults are day light and neon blossom split widget at fifty percent`() {
   val settings=File("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt").readText()

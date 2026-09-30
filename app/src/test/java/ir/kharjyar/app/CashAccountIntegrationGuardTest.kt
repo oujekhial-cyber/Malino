@@ -18,7 +18,7 @@ class CashAccountIntegrationGuardTest {
             TransactionEntity(id=1,accountId=7,amountRial=400_000,direction=TxDirection.DEPOSIT,status=TxStatus.CONFIRMED,occurredAt=110,recordedAt=110),
             TransactionEntity(id=2,accountId=7,amountRial=250_000,direction=TxDirection.WITHDRAW,status=TxStatus.CONFIRMED,occurredAt=120,recordedAt=120)
         )
-        assertEquals(1_150_000, AccountBalance.estimate(cash,tx).rial)
+        assertEquals(1_150_000L, AccountBalance.estimate(cash,tx).rial)
     }
 
     @Test fun `cash account is integrated into model backup migration and account management`() {

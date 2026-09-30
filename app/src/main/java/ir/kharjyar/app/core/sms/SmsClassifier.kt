@@ -49,7 +49,7 @@ object SmsClassifier {
         val hasTxKeyword = transactionKeywords.any { text.contains(it) }
         val hasBalance = balanceKeywords.any { text.contains(it) }
         val hasAmountLike = Regex("\\d{1,3}([,،٬./]\\d{3})+|\\d{4,}").containsMatchIn(text)
-        val isOtp = otpKeywords.any { text.contains(it) }
+        val isOtp = otpKeywords.any { text.contains(Digits.normalizeForMatch(it).lowercase()) }
         val isSecurityNotice = securityNoticeKeywords.any { text.contains(it) }
         val isPromo = promoKeywords.any { text.contains(it) }
 
