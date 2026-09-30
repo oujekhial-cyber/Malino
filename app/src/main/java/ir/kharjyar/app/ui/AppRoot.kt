@@ -1,6 +1,8 @@
 package ir.kharjyar.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +14,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import ir.kharjyar.app.ui.components.BottomBarOverhang
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -21,7 +27,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
@@ -33,20 +42,18 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -56,6 +63,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,12 +76,16 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.asImageBitmap
+import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -78,24 +93,46 @@ import androidx.navigation.compose.rememberNavController
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.ui.components.AppBackdrop
 import ir.kharjyar.app.ui.components.BottomItem
 import ir.kharjyar.app.ui.components.BottomNavBar
+import ir.kharjyar.app.ui.components.greetingByHour
+import ir.kharjyar.app.ui.components.todayHeaderLine
 import ir.kharjyar.app.ui.screens.AccountEditScreen
 import ir.kharjyar.app.ui.screens.AccountFromSmsScreen
 import ir.kharjyar.app.ui.screens.AccountsScreen
 import ir.kharjyar.app.ui.screens.BackupScreen
 import ir.kharjyar.app.ui.screens.CategoriesScreen
 import ir.kharjyar.app.ui.screens.DashboardScreen
+import ir.kharjyar.app.ui.screens.LiveMarketGlass
 import ir.kharjyar.app.ui.screens.ManualEntryScreen
 import ir.kharjyar.app.ui.screens.QuickAddScreen
 import ir.kharjyar.app.ui.screens.OnboardingScreen
 import ir.kharjyar.app.ui.screens.ReportsScreen
 import ir.kharjyar.app.ui.screens.ReviewScreen
 import ir.kharjyar.app.ui.screens.SettingsScreen
+import ir.kharjyar.app.ui.screens.SmsPasteScreen
+import ir.kharjyar.app.ui.screens.NotesScreen
+import ir.kharjyar.app.ui.screens.RemindersScreen
+import ir.kharjyar.app.ui.screens.BlockedSendersScreen
+import ir.kharjyar.app.ui.screens.LoansScreen
+import ir.kharjyar.app.ui.screens.AssetsScreen
+import ir.kharjyar.app.ui.screens.SmsHistoryImportScreen
+import ir.kharjyar.app.ui.screens.BankSmsHubScreen
+import ir.kharjyar.app.ui.screens.DebtsScreen
+import ir.kharjyar.app.ui.screens.ChecksScreen
 import ir.kharjyar.app.ui.screens.TemplateTrainScreen
 import ir.kharjyar.app.ui.screens.TransactionEditScreen
 import ir.kharjyar.app.ui.screens.TransactionsScreen
+import ir.kharjyar.app.ui.screens.WidgetSettingsScreen
+import ir.kharjyar.app.ui.screens.CivicCenterScreen
+import ir.kharjyar.app.ui.screens.ProfileScreen
+import ir.kharjyar.app.ui.screens.VehiclesScreen
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import androidx.compose.ui.platform.LocalContext
+import ir.kharjyar.app.widget.KharjYarWidgetReceiver
 import ir.kharjyar.app.ui.theme.KharjYarTheme
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
@@ -109,17 +146,66 @@ fun AppRoot(
     val settings by viewModel.settings.collectAsState()
     val locked by viewModel.locked.collectAsState()
 
-    KharjYarTheme(themeMode = settings.themeMode, palette = settings.palette) {
+    KharjYarTheme(themeMode = settings.themeMode, palette = settings.palette, appFontScale = settings.appFontScale) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 AppBackdrop {
                     when {
                         !settings.onboardingDone -> OnboardingScreen(viewModel)
                         locked -> LockScreen(onUnlockRequest = { onRequestBiometric { viewModel.unlock() } })
-                        else -> MainScaffold(viewModel, initialDestination)
+                        else -> {
+                            AutoPinWidget(viewModel, settings)
+                            MainScaffold(viewModel, initialDestination)
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+
+/**
+ * ویجت خودکار روی صفحه اصلی گوشی.
+ *
+ * محدودیت اندروید: هیچ برنامه‌ای اجازه ندارد خودش ویجت را روی صفحه اصلی
+ * بچسباند؛ تنها راه رسمی `requestPinAppWidget` است که یک تأیید کوتاهِ سیستمی
+ * نشان می‌دهد و چسباندن را به لانچر می‌سپارد.
+ *
+ * برای اینکه ویجت واقعاً سر جایش بنشیند، این درخواست در هر بار باز شدن برنامه
+ * تکرار می‌شود تا وقتی که دست‌کم یک نمونه ویجت روی صفحه اصلی وجود داشته باشد؛
+ * بعد از آن دیگر هیچ پیامی نشان داده نمی‌شود. اگر لانچر این قابلیت را نداشته
+ * باشد، بی‌سر و صدا رد می‌شود و کاربر می‌تواند از «تنظیمات ویجت» اقدام کند.
+ */
+@Composable
+private fun AutoPinWidget(viewModel: AppViewModel, settings: ir.kharjyar.app.data.prefs.AppSettings) {
+    val context = LocalContext.current
+    // کلید Unit است تا این افکت فقط یک‌بار در هر بار باز شدن برنامه اجرا شود
+    LaunchedEffect(Unit) {
+        runCatching {
+            val manager = AppWidgetManager.getInstance(context)
+            val component = ComponentName(context, KharjYarWidgetReceiver::class.java)
+            // ویجت از قبل روی صفحه اصلی هست؟ کار تمام است.
+            if (manager.getAppWidgetIds(component).isNotEmpty()) {
+                if (!settings.widgetAutoPinned) viewModel.settingsRepo.setWidgetAutoPinned(true)
+                return@runCatching
+            }
+            if (!manager.isRequestPinAppWidgetSupported) return@runCatching
+            // قالب انتخابی کاربر را دست‌کاری نکن؛ در نصب تازه fallback تنظیمات
+            // و initialLayout هر دو مستقیماً قالب پیش‌فرض دوبخشی را می‌سازند.
+            if (!settings.widgetAutoPinned) {
+                viewModel.settingsRepo.setWidgetAutoPinned(true)
+            }
+            // درخواست عرض کامل صفحه برای ویجت
+            val metrics = context.resources.displayMetrics
+            val widthDp = (metrics.widthPixels / metrics.density).toInt()
+            val options = android.os.Bundle().apply {
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, widthDp)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, widthDp)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 180)
+            }
+            manager.requestPinAppWidget(component, options, null)
         }
     }
 }
@@ -163,13 +249,18 @@ private data class DrawerEntry(
 /** آیتم‌های کشو (همه مقصدها). */
 private val drawerEntries = listOf(
     DrawerEntry("home", "خانه", Icons.Filled.Home),
-    DrawerEntry("quickAdd", "ثبت سریع با جمله", Icons.Filled.AutoAwesome),
     DrawerEntry("transactions", "تراکنش‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("reports", "گزارش‌ها", Icons.Filled.BarChart),
-    DrawerEntry("accounts", "حساب‌ها", Icons.Filled.AccountBalance),
+    DrawerEntry("accounts", "مدیریت حساب‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("categories", "دسته‌بندی‌ها", Icons.Filled.Category),
-    DrawerEntry("review", "نیازمند بررسی", Icons.Filled.RateReview, badge = true),
-    DrawerEntry("backup", "بکاپ", Icons.Filled.CloudUpload),
+    DrawerEntry("review", "پیامک‌های بررسی‌نشده", Icons.Filled.RateReview, badge = true),
+    DrawerEntry("debts", "طلب و بدهی", Icons.Filled.AccountBalance),
+    DrawerEntry("checks", "مدیریت چک‌ها", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("loans", "اقساط و وام‌ها", Icons.Filled.AccountBalance),
+    DrawerEntry("assets", "دارایی‌ها", Icons.Filled.AccountBalance),
+    DrawerEntry("reminders", "یادآورها", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("civicCenter", "قبوض شهروندی", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrawerEntry("vehicles", "وسایل نقلیه", Icons.Filled.DirectionsCar),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
 
@@ -183,7 +274,14 @@ private fun titleOf(route: String?): String = when {
     route.startsWith("template") -> "آموزش قالب پیامک"
     route.startsWith("tx/") -> "ویرایش تراکنش"
     route == "manual" -> "ثبت تراکنش"
+    route == "manual/{dir}" -> "ثبت تراکنش"
     route == "quickAdd" -> "ثبت سریع"
+    route == "widgetSettings" -> "تنظیمات ویجت"
+    route == "settings/appearance" -> "قالب‌ها"
+    route == "settings/permissions" -> "مجوزها و اعلان‌ها"
+    route == "settings/security" -> "امنیت"
+    route == "settings/account" -> "مدیریت حساب"
+    route == "profile" -> "پروفایل کاربری"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
 }
 
@@ -198,6 +296,9 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val skin = LocalAppSkin.current
     val accounts by viewModel.accounts.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val context = LocalContext.current
+    val userProfile by viewModel.repo.db.civicDao().observeProfile().collectAsState(initial = null)
+    var lastBackAt by remember { mutableStateOf(0L) }
 
     LaunchedEffect(initialDestination) {
         initialDestination?.let { navController.navigate(it) }
@@ -212,6 +313,9 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
+    // پیش از باز کردن فرم، نوع تراکنش پرسیده می‌شود تا هر صفحه ساده‌تر بماند.
+    var showDirectionChooser by rememberSaveable { mutableStateOf(false) }
+
     fun go(route: String) {
         if (currentRoute != route) {
             navController.navigate(route) {
@@ -219,6 +323,18 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 launchSingleTop = true
                 restoreState = true
             }
+        }
+    }
+
+    // خروج تصادفی ممنوع: در خانه، برگشت اول فقط پیام می‌دهد و برگشت دوم
+    // در فاصله دو ثانیه برنامه را می‌بندد.
+    BackHandler(enabled = currentRoute == "home" && !drawerState.isOpen) {
+        val now = System.currentTimeMillis()
+        if (now - lastBackAt <= 2_000L) {
+            (context as? android.app.Activity)?.finish()
+        } else {
+            lastBackAt = now
+            android.widget.Toast.makeText(context, "برای خروج دوباره دکمه برگشت را بزنید", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -242,10 +358,12 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                     reviewCount = reviewCount,
                     accountCount = accounts.count { !it.archived },
                     defaultAccountName = accounts.firstOrNull { it.id == settings.defaultAccountId }?.title,
+                    userProfile = userProfile,
                     onNavigate = { route ->
                         scope.launch { drawerState.close() }
                         go(route)
-                    }
+                    },
+                    onProfile = { scope.launch { drawerState.close() }; go("profile") }
                 )
             }
         }
@@ -254,33 +372,71 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
             containerColor = Color.Transparent,
             modifier = Modifier.imePadding(),
             topBar = {
-                TopAppBar(
-                    title = { Text(titleOf(currentRoute)) },
-                    // منوی همبرگری سمت راست: در RTL، navigationIcon سمت راست قرار می‌گیرد.
-                    navigationIcon = {
-                        val menuRotation by animateFloatAsState(
-                            targetValue = if (drawerState.isOpen) 90f else 0f,
-                            animationSpec = tween(300),
-                            label = "menuRotation"
+                // نوار بالای جمع‌وجور (به‌جای TopAppBar استاندارد با ارتفاع ۶۴dp)
+                // تا کارت اصلی بالاتر بیاید و فضای بیشتری برای محتوا بماند.
+                Box(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val menuRotation by animateFloatAsState(
+                        targetValue = if (drawerState.isOpen) 90f else 0f,
+                        animationSpec = tween(300),
+                        label = "menuRotation"
+                    )
+                    // منوی همبرگری سمت راست: در RTL، اولین عنصر ردیف سمت راست می‌نشیند.
+                    // به‌جای IconButton (که دست‌کم ۴۸dp ارتفاع می‌گیرد) یک Box کوچک
+                    // است تا نوار بالا دقیقاً به بلندای متن باشد و محتوا بالاتر بیاید.
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                scope.launch {
+                                    if (drawerState.isOpen) drawerState.close() else drawerState.open()
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            if (drawerState.isOpen) Icons.Filled.Close else Icons.Filled.Menu,
+                            contentDescription = if (drawerState.isOpen) "بستن منو" else "منو",
+                            tint = skin.onBackdrop,
+                            modifier = Modifier.graphicsLayer { rotationZ = menuRotation }
                         )
-                        IconButton(onClick = {
-                            scope.launch {
-                                if (drawerState.isOpen) drawerState.close() else drawerState.open()
-                            }
-                        }) {
-                            Icon(
-                                if (drawerState.isOpen) Icons.Filled.Close else Icons.Filled.Menu,
-                                contentDescription = if (drawerState.isOpen) "بستن منو" else "منو",
-                                modifier = Modifier.graphicsLayer { rotationZ = menuRotation }
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    if (currentRoute == "home") {
+                        // سلام و تاریخ در بالای برنامه، کنار منوی همبرگری
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                greetingByHour(),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = skin.onBackdrop,
+                                maxLines = 1
+                            )
+                            Text(
+                                todayHeaderLine(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = skin.onBackdrop.copy(alpha = 0.72f),
+                                maxLines = 1
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = skin.onBackdrop,
-                        navigationIconContentColor = skin.onBackdrop
-                    )
-                )
+                    } else {
+                        Text(
+                            titleOf(currentRoute),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = skin.onBackdrop,
+                            maxLines = 1,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                if(currentRoute=="home") Box(Modifier.align(Alignment.Center)){LiveMarketGlass(settings.moneyUnit)}
+                }
             },
             bottomBar = {
                 if (currentRoute in bottomRoutes) {
@@ -293,23 +449,71 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                         ),
                         currentRoute = currentRoute,
                         onSelect = { go(it) },
-                        onFabClick = { navController.navigate("manual") }
+                        onFabClick = { showDirectionChooser = true }
                     )
                 }
             }
         ) { padding ->
+            // محتوا تا خطِ بالای نوار پایین ادامه پیدا می‌کند؛ فقط بخشِ «بیرون‌زدگی»
+            // دکمه وسط (که شفاف است) از فاصله پایین کم می‌شود تا نوار سیاهِ خالی نماند.
+            val layoutDirection = LocalLayoutDirection.current
+            val contentPadding = PaddingValues(
+                start = padding.calculateStartPadding(layoutDirection),
+                end = padding.calculateEndPadding(layoutDirection),
+                top = padding.calculateTopPadding(),
+                bottom = (padding.calculateBottomPadding() - BottomBarOverhang).coerceAtLeast(0.dp)
+            )
             NavHost(
                 navController = navController,
                 startDestination = "home",
-                modifier = Modifier.padding(padding)
+                modifier = Modifier.padding(contentPadding)
             ) {
                 composable("home") { DashboardScreen(viewModel, navController) }
                 composable("transactions") { TransactionsScreen(viewModel, navController) }
+                composable("transactions/{direction}") { entry ->
+                    TransactionsScreen(
+                        viewModel,
+                        navController,
+                        presetDirection = when (entry.arguments?.getString("direction")) {
+                            "deposit" -> TxDirection.DEPOSIT
+                            "withdraw" -> TxDirection.WITHDRAW
+                            else -> null
+                        }
+                    )
+                }
                 composable("reports") { ReportsScreen(viewModel) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
+                composable("settings/{section}") { back -> SettingsScreen(viewModel, navController, back.arguments?.getString("section")) }
+                composable("widgetSettings") { WidgetSettingsScreen(viewModel) }
                 composable("manual") { ManualEntryScreen(viewModel, navController) }
+                composable("manual/{dir}") { entry ->
+                    val dir = entry.arguments?.getString("dir")
+                    ManualEntryScreen(
+                        viewModel,
+                        navController,
+                        presetDirection = when (dir) {
+                            "deposit" -> TxDirection.DEPOSIT
+                            // انتقال هم به‌طور پیش‌فرض «از این حساب رفت» است
+                            "withdraw", "transfer" -> TxDirection.WITHDRAW
+                            else -> null
+                        },
+                        presetTransfer = dir == "transfer"
+                    )
+                }
                 composable("quickAdd") { QuickAddScreen(viewModel, navController) }
-                composable("review") { ReviewScreen(viewModel, navController) }
+                composable("smsPaste") { SmsPasteScreen(viewModel, navController) }
+                composable("review") { BankSmsHubScreen(viewModel, navController) }
+                composable("reviewImport") { BankSmsHubScreen(viewModel, navController, initialTab = 1) }
+                composable("debts") { DebtsScreen(viewModel) }
+                composable("checks") { ChecksScreen(viewModel) }
+                composable("loans") { LoansScreen(viewModel) }
+                composable("assets") { AssetsScreen(viewModel) }
+                composable("notes") { NotesScreen(viewModel) }
+                composable("reminders") { RemindersScreen(viewModel) }
+                composable("civicCenter") { CivicCenterScreen(viewModel) }
+                composable("vehicles") { VehiclesScreen(viewModel) }
+                composable("profile") { ProfileScreen(viewModel, navController) }
+                composable("blockedSenders") { BlockedSendersScreen(viewModel) }
                 composable("accounts") { AccountsScreen(viewModel, navController) }
                 composable("accountEdit/{id}") { entry ->
                     AccountEditScreen(viewModel, navController, entry.arguments?.getString("id")?.toLongOrNull() ?: 0L)
@@ -327,6 +531,124 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("backup") { BackupScreen(viewModel) }
             }
         }
+
+        if (showDirectionChooser) {
+            DirectionChooserDialog(
+                skin = skin,
+                onDismiss = { showDirectionChooser = false },
+                onPick = { dir ->
+                    showDirectionChooser = false
+                    navController.navigate("manual/$dir")
+                }
+            )
+        }
+    }
+}
+
+/**
+ * پنجره «انتخاب عملیات» پیش از باز شدن فرم ثبت تراکنش.
+ * با انتخاب نوع عملیات (واریز، برداشت، انتقال وجه)، فرم بعدی کوتاه‌تر باز می‌شود
+ * و دیگر پرسش «این پول چه بود؟» لازم نیست.
+ */
+@Composable
+private fun DirectionChooserDialog(
+    skin: ir.kharjyar.app.ui.theme.AppSkin,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = skin.dialogColor,
+            contentColor = skin.onBackdrop,
+            tonalElevation = 6.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "انتخاب عملیات",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = skin.onBackdrop
+                )
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    DirectionChoiceCard(
+                        title = "واریز",
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        tint = skin.incomeColor,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onPick("deposit") }
+                    )
+                    DirectionChoiceCard(
+                        title = "برداشت",
+                        icon = Icons.AutoMirrored.Filled.TrendingDown,
+                        tint = skin.expenseColor,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onPick("withdraw") }
+                    )
+                    DirectionChoiceCard(
+                        title = "انتقال وجه",
+                        icon = Icons.Filled.SwapHoriz,
+                        tint = skin.accent,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onPick("transfer") }
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "انصراف",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = skin.onBackdrop.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onDismiss() }
+                        .padding(horizontal = 18.dp, vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DirectionChoiceCard(
+    title: String,
+    icon: ImageVector,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(tint.copy(alpha = 0.14f))
+            .border(1.5.dp, tint.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+            .padding(vertical = 16.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.22f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            color = tint,
+            maxLines = 1
+        )
     }
 }
 
@@ -339,7 +661,9 @@ private fun DrawerBody(
     reviewCount: Int,
     accountCount: Int,
     defaultAccountName: String?,
-    onNavigate: (String) -> Unit
+    userProfile: ir.kharjyar.app.data.db.UserProfileEntity?,
+    onNavigate: (String) -> Unit,
+    onProfile: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -378,31 +702,19 @@ private fun DrawerBody(
                     .padding(horizontal = 16.dp, vertical = 16.dp)
                     .graphicsLayer { alpha = headerAlpha }
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(alpha = 0.22f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Filled.AccountBalance,
-                            contentDescription = null,
-                            tint = skin.onHero,
-                            modifier = Modifier.size(24.dp)
-                        )
+                Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onProfile).padding(4.dp),verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(52.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.22f)),contentAlignment = Alignment.Center) {
+                        userProfile?.imagePath?.takeIf { it.isNotBlank() }?.let { path -> BitmapFactory.decodeFile(path)?.asImageBitmap() }?.let { bitmap -> Image(bitmap,null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop) } ?: Icon(Icons.Filled.AccountBalance,null,tint=skin.onHero,modifier=Modifier.size(26.dp))
                     }
                     Spacer(Modifier.width(10.dp))
                     Column {
-                        Text("خرج‌یار", style = MaterialTheme.typography.titleMedium, color = skin.onHero)
-                        Text(
-                            "دستیار خرج و دخل شما",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = skin.onHero.copy(alpha = 0.85f)
-                        )
+                        Text(userProfile?.displayName?.ifBlank { userProfile.username } ?: "ساخت پروفایل",style=MaterialTheme.typography.titleMedium,color=skin.onHero)
+                        if(userProfile!=null) CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                            Text("@${userProfile!!.username}",style=MaterialTheme.typography.bodySmall,color=skin.onHero.copy(alpha=0.85f))
+                        } else Text("برای افزودن نام کاربری و عکس لمس کنید",style=MaterialTheme.typography.bodySmall,color=skin.onHero.copy(alpha=0.85f))
                     }
                 }
+                Text("دستیار دخل و خرج شما", style = MaterialTheme.typography.labelSmall, color = skin.onHero.copy(alpha = 0.82f))
                 Spacer(Modifier.height(14.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -428,7 +740,7 @@ private fun DrawerBody(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 10.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
             drawerEntries.forEachIndexed { index, entry ->
                 // ورود پلکانی آیتم‌ها هنگام باز شدن کشو
@@ -513,7 +825,7 @@ private fun DrawerRow(
                 ) else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 11.dp, vertical = 11.dp),
+            .padding(horizontal = 11.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // نوار نشانگر انتخاب

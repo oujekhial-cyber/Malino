@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -48,8 +49,8 @@ import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlin.math.roundToInt
 
 /**
- * کمبوباکس تم‌پذیر: به‌جای ردیف طولانی چیپ‌ها، یک فیلد جمع‌وجور که با کلیک
- * فهرست گزینه‌ها را در یک دیالوگ نشان می‌دهد. نمای برنامه را تمیز نگه می‌دارد.
+ * کمبوباکس کلاسیک و تم‌پذیر: فهرست گزینه‌ها درست زیر خود فیلد باز می‌شود؛
+ * هیچ دیالوگ یا پنجره تمام‌صفحه‌ای برای انتخاب نمایش داده نمی‌شود.
  */
 @Composable
 fun <T> ComboBox(
@@ -65,79 +66,42 @@ fun <T> ComboBox(
     val skin = LocalAppSkin.current
     var open by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(skin.cardCorner / 1.6f)
-
     Column(modifier = modifier) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelLarge,
-            color = skin.onBackdrop.copy(alpha = 0.8f)
-        )
+        Text(label,style=MaterialTheme.typography.labelLarge,color=skin.onBackdrop.copy(alpha=.8f))
         Spacer(Modifier.height(6.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .background(skin.cardColor.copy(alpha = if (skin.dark) 0.7f else 1f))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-                .clickable { open = true }
-                .padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (selected != null && leadingOf != null) {
-                leadingOf(selected)
-                Spacer(Modifier.width(10.dp))
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+            Row(
+                modifier=Modifier.fillMaxWidth().clip(shape)
+                    .background(skin.cardColor.copy(alpha=if(skin.dark).7f else 1f))
+                    .border(1.dp,if(open)skin.accent.copy(alpha=.75f)else MaterialTheme.colorScheme.outlineVariant,shape)
+                    .clickable{open=!open}.padding(horizontal=14.dp,vertical=14.dp),
+                verticalAlignment=Alignment.CenterVertically
+            ) {
+                if(selected!=null&&leadingOf!=null){leadingOf(selected);Spacer(Modifier.width(10.dp))}
+                Text(selected?.let(labelOf)?:placeholder,style=MaterialTheme.typography.bodyLarge,color=if(selected!=null)skin.onBackdrop else skin.onBackdrop.copy(alpha=.5f),modifier=Modifier.weight(1f))
+                Icon(Icons.Filled.ArrowDropDown,null,tint=skin.accent,modifier=Modifier.graphicsLayer(rotationZ=if(open)180f else 0f))
             }
-            Text(
-                text = selected?.let(labelOf) ?: placeholder,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (selected != null) skin.onBackdrop else skin.onBackdrop.copy(alpha = 0.5f),
-                modifier = Modifier.weight(1f)
-            )
-            Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = skin.accent)
-        }
-    }
-
-    if (open) {
-        AlertDialog(
-            onDismissRequest = { open = false },
-            containerColor = skin.dialogColor,
-            titleContentColor = skin.onBackdrop,
-            textContentColor = skin.onBackdrop,
-            title = { Text(label) },
-            text = {
-                LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
-                    items(options.size) { i ->
-                        val option = options[i]
-                        val isSelected = option == selected
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onSelect(option); open = false }
-                                .padding(horizontal = 8.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (leadingOf != null) {
-                                leadingOf(option)
-                                Spacer(Modifier.width(10.dp))
-                            }
-                            Text(
-                                labelOf(option),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (isSelected) skin.accent else skin.onBackdrop,
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (isSelected) {
-                                Icon(Icons.Filled.Check, contentDescription = null, tint = skin.accent)
-                            }
-                        }
-                    }
+            androidx.compose.material3.DropdownMenu(
+                expanded=open,
+                onDismissRequest={open=false},
+                modifier=Modifier.width(maxWidth).heightIn(max=360.dp).background(skin.dialogColor),
+                shape=RoundedCornerShape(14.dp),
+                containerColor=skin.dialogColor,
+                tonalElevation=8.dp,
+                shadowElevation=10.dp
+            ) {
+                options.forEach { option ->
+                    val isSelected=option==selected
+                    androidx.compose.material3.DropdownMenuItem(
+                        text={Text(labelOf(option),style=MaterialTheme.typography.bodyLarge,color=if(isSelected)skin.accent else skin.onBackdrop)},
+                        onClick={onSelect(option);open=false},
+                        leadingIcon=leadingOf?.let{{it(option)}},
+                        trailingIcon=if(isSelected){{Icon(Icons.Filled.Check,null,tint=skin.accent)}}else null,
+                        modifier=Modifier.fillMaxWidth().background(if(isSelected)skin.accent.copy(alpha=.09f)else Color.Transparent)
+                    )
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { open = false }) { Text("بستن", color = skin.accent) }
             }
-        )
+        }
     }
 }
 
@@ -349,7 +313,9 @@ fun SearchableComboBox(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "برای جست‌وجو تایپ کنید"
+    placeholder: String = "برای جست‌وجو تایپ کنید",
+    /** نشان کوچک کنار هر گزینه (مثلاً نشان بانک)؛ اگر null باشد نقطه ساده می‌آید. */
+    leadingOf: (@Composable (String) -> Unit)? = null
 ) {
     val skin = LocalAppSkin.current
     var open by remember { mutableStateOf(false) }
@@ -368,6 +334,9 @@ fun SearchableComboBox(
             label = { Text(label) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            leadingIcon = if (leadingOf != null && value.isNotBlank()) {
+                { leadingOf(value) }
+            } else null,
             trailingIcon = {
                 Icon(
                     Icons.Filled.ArrowDropDown,
@@ -414,15 +383,19 @@ fun SearchableComboBox(
                                         .padding(vertical = 11.dp, horizontal = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (item == value) skin.accent
-                                                else skin.onBackdrop.copy(alpha = 0.28f)
-                                            )
-                                    )
+                                    if (leadingOf != null) {
+                                        leadingOf(item)
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (item == value) skin.accent
+                                                    else skin.onBackdrop.copy(alpha = 0.28f)
+                                                )
+                                        )
+                                    }
                                     Spacer(Modifier.width(10.dp))
                                     Text(
                                         item,

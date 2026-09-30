@@ -23,6 +23,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,7 @@ import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.keepAboveKeyboard
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -57,7 +59,7 @@ fun BackupScreen(viewModel: AppViewModel) {
     val skin = LocalAppSkin.current
 
     // ---------- ساخت بکاپ ----------
-    var encrypt by remember { mutableStateOf(true) }
+    var encrypt by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var passwordRepeat by remember { mutableStateOf("") }
 
@@ -67,10 +69,19 @@ fun BackupScreen(viewModel: AppViewModel) {
     var restorePassword by remember { mutableStateOf("") }
     var restoreError by remember { mutableStateOf<String?>(null) }
     var pendingRestore by remember { mutableStateOf<BackupPayload?>(null) }
+    /** بازیابی جایگزینی که منتظر ذخیره بکاپ ایمنی از اطلاعات فعلی است. */
+    var safetyBackupPayload by remember { mutableStateOf<BackupPayload?>(null) }
 
     var message by remember { mutableStateOf<String?>(null) }
     var isError by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+
+    // پیام نتیجه هر عملیات فقط چهار ثانیه نمایش داده می‌شود.
+    LaunchedEffect(message) {
+        val shown = message ?: return@LaunchedEffect
+        delay(4_000)
+        if (message == shown) message = null
+    }
 
     val saveBackup = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/octet-stream")
@@ -90,6 +101,35 @@ fun BackupScreen(viewModel: AppViewModel) {
                 } catch (e: Exception) {
                     message = "خطا در ساخت بکاپ"; isError = true
                 } finally { busy = false }
+            }
+        }
+    }
+
+    /** ابتدا نسخه ایمنی داده فعلی ذخیره می‌شود؛ فقط بعد از موفقیت، جایگزینی اجرا می‌شود. */
+    val saveSafetyBackup = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        val payload = safetyBackupPayload
+        if (uri == null || payload == null) {
+            safetyBackupPayload = null
+            message = "جایگزینی لغو شد و اطلاعات فعلی تغییر نکرد."
+        } else scope.launch {
+            busy = true
+            try {
+                val bytes = withContext(Dispatchers.Default) { manager.createBackup(null) }
+                withContext(Dispatchers.IO) {
+                    requireNotNull(context.contentResolver.openOutputStream(uri)).use { it.write(bytes) }
+                }
+                manager.restore(payload)
+                message = "از اطلاعات قبلی بکاپ گرفته شد و بازیابی جایگزین با موفقیت انجام شد."
+                isError = false
+                pendingRestore = null
+            } catch (_: Exception) {
+                message = "بکاپ ایمنی یا بازیابی کامل نشد؛ عملیات متوقف شد."
+                isError = true
+            } finally {
+                busy = false
+                safetyBackupPayload = null
             }
         }
     }
@@ -132,8 +172,10 @@ fun BackupScreen(viewModel: AppViewModel) {
     ) {
         SkinCard(modifier = Modifier.fillMaxWidth()) {
             Text(
-                "بکاپ یک فایل واحد است. اگر رمزگذاری را روشن بگذارید با AES-256-GCM محافظت می‌شود " +
-                    "و رمز آن مستقل از رمز گوشی است.\n\n" +
+                "بکاپ یک فایل واحد و کامل از حساب‌ها، تراکنش‌ها، دارایی‌ها، تعهدات، یادآورها، پیامک‌ها، تصاویر خصوصی و تمام تنظیمات کاربر است. " +
+                    "پس از حذف و نصب مجدد برنامه، بازیابی جایگزینی همه این اطلاعات را برمی‌گرداند. " +
+                    "مجوزهای سیستمی اندروید باید دوباره توسط خود کاربر تأیید شوند.\n\n" +
+                    "اگر رمزگذاری را روشن بگذارید، فایل با AES-256-GCM محافظت می‌شود و رمز آن مستقل از رمز گوشی است.\n\n" +
                     "مهم: اگر رمز بکاپ را فراموش کنید، بازیابی به هیچ روشی ممکن نیست. " +
                     "بکاپ بدون رمز راحت‌تر است ولی هرکسی که فایل را داشته باشد می‌تواند آن را بخواند.",
                 modifier = Modifier.padding(16.dp),
@@ -287,26 +329,55 @@ fun BackupScreen(viewModel: AppViewModel) {
                         "تراکنش‌ها: ${Digits.toPersian(payload.transactions.size.toString())}\n" +
                         "دسته‌ها: ${Digits.toPersian(payload.categories.size.toString())}\n" +
                         "قالب‌ها: ${Digits.toPersian(payload.templates.size.toString())}\n\n" +
-                        "با ادامه، همه داده‌های فعلی با محتوای بکاپ جایگزین می‌شوند."
+                        "روش بازیابی را انتخاب کنید:\n\n" +
+                        "۱) حذف اطلاعات موجود و بازیابی: اطلاعات فعلی پاک و محتوای فایل بکاپ جایگزین می‌شود.\n\n" +
+                        "۲) ادغام با اطلاعات موجود: محتوای بکاپ بدون پاک‌کردن اطلاعات فعلی ترکیب می‌شود و پیامک‌های تکراری بر اساس fingerprint دوباره ثبت نمی‌شوند.\n\n" +
+                        "۳) بکاپ ایمنی و بازیابی: ابتدا فایل جداگانه‌ای از تمام اطلاعات فعلی ذخیره می‌شود؛ سپس اطلاعات فعلی پاک و محتوای بکاپ جایگزین می‌شود."
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    scope.launch {
-                        busy = true
-                        try {
-                            manager.restore(payload)
-                            message = "بازیابی با موفقیت انجام شد."; isError = false
-                        } catch (e: Exception) {
-                            message = "بازیابی ناموفق بود"; isError = true
-                        } finally {
-                            busy = false
-                            pendingRestore = null
+                Column(horizontalAlignment = Alignment.End) {
+                    TextButton(onClick = {
+                        scope.launch {
+                            busy = true
+                            try {
+                                manager.restore(payload)
+                                message = "اطلاعات موجود حذف شد و بکاپ با موفقیت بازیابی شد."
+                                isError = false
+                            } catch (_: Exception) {
+                                message = "بازیابی انجام نشد؛ اطلاعات موجود بدون تغییر باقی ماند."
+                                isError = true
+                            } finally {
+                                busy = false
+                                pendingRestore = null
+                            }
                         }
-                    }
-                }) { Text("جایگزینی کامل", color = MaterialTheme.colorScheme.error) }
+                    }, enabled = !busy) { Text("حذف اطلاعات موجود و بازیابی", color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = {
+                        safetyBackupPayload = payload
+                        val date = ir.kharjyar.app.core.date.PersianDate.today().format(persianDigits = false).replace("/", "-")
+                        saveSafetyBackup.launch("kharjyar-before-restore-$date.khbk")
+                    }, enabled = !busy) { Text("ابتدا بکاپ از اطلاعات موجود") }
+                    TextButton(onClick = {
+                        scope.launch {
+                            busy = true
+                            try {
+                                val report = manager.merge(payload)
+                                message = "اطلاعات بکاپ با اطلاعات موجود ادغام شد." +
+                                    if (report.mergedDuplicates > 0) " ${Digits.toPersian(report.mergedDuplicates.toString())} پیامک تکراری نادیده گرفته شد." else ""
+                                isError = false
+                            } catch (_: Exception) {
+                                message = "ادغام اطلاعات ناموفق بود؛ اطلاعات فعلی تغییر نکرد."
+                                isError = true
+                            } finally {
+                                busy = false
+                                pendingRestore = null
+                            }
+                        }
+                    }, enabled = !busy) { Text("ادغام با اطلاعات موجود") }
+                }
             },
-            dismissButton = { TextButton(onClick = { pendingRestore = null }) { Text("انصراف") } }
+            dismissButton = { TextButton(onClick = { pendingRestore = null; safetyBackupPayload = null }) { Text("انصراف") } }
         )
     }
 }

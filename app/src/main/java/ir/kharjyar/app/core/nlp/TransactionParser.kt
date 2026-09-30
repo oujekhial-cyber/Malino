@@ -36,7 +36,11 @@ data class ParsedTransaction(
     val dateExplicit: Boolean,
     val confidence: ParseConfidence,
     /** مواردی که پارسر مطمئن نیست و بهتر است کاربر بررسی کند. */
-    val warnings: List<String>
+    val warnings: List<String>,
+    /** حساب مقصد، فقط برای انتقال بین حساب‌های خود کاربر. */
+    val targetAccountId: Long? = null,
+    val targetAccountTitle: String? = null,
+    val transferToOwn: Boolean = false
 ) {
     /** بدون مبلغ یا بدون حساب نمی‌توان ثبت کرد. */
     val isComplete: Boolean get() = amountRial != null && amountRial > 0 && accountId != null
@@ -57,19 +61,43 @@ object TransactionParser {
 
     /** فعل‌ها و کلماتی که یعنی پول از حساب خارج شده. */
     private val withdrawalWords = listOf(
-        "خریدم", "خرید", "دادم", "پرداخت", "پرداختم", "هزینه", "خرج", "خرج کردم",
-        "برداشت", "کشیدم", "حساب کردم", "رد کردم", "فرستادم", "ارسال", "واریز کردم به"
+        "خریدم", "خرید کردم", "خرید", "دادم", "پول دادم", "پرداخت کردم", "پرداخت شد",
+        "پرداخت", "پرداختم", "هزینه کردم", "هزینه شد", "هزینه", "خرج کردم", "خرج شد", "خرج",
+        "برداشت کردم", "برداشت شد", "برداشتم", "برداشت", "کشیدم", "کارت کشیدم",
+        "حساب کردم", "تسویه کردم", "رد کردم", "فرستادم", "ارسال کردم", "ارسال",
+        "واریز کردم به", "قبض دادم", "کرایه دادم", "قسط دادم", "کارمزد کم شد"
     )
 
     /** فعل‌ها و کلماتی که یعنی پول وارد حساب شده. */
     private val depositWords = listOf(
-        "گرفتم", "دریافت", "دریافتی", "واریز شد", "ریختن", "ریخت", "ریختند",
-        "حقوق", "درآمد", "فروختم", "پس گرفتم", "بهم دادن", "بهم داد", "عیدی", "پاداش"
+        "گرفتم", "پول گرفتم", "دریافت کردم", "دریافت شد", "دریافت", "دریافتی",
+        "واریز شد", "واریز کردند", "واریز کردن", "به حسابم آمد", "به حسابم اومد",
+        "ریختن", "ریخت", "ریختند", "نشست به حساب", "بستانکار شد",
+        "حقوق گرفتم", "حقوق", "درآمد داشتم", "درآمد", "فروختم", "فروش داشتم",
+        "پس گرفتم", "برگشت خورد", "عودت شد", "بهم دادن", "بهم داد", "عیدی", "پاداش", "سود"
     )
 
     /** انتقال بین حساب‌های خود کاربر. */
     private val transferWords = listOf(
-        "انتقال", "منتقل", "جابجا", "جابه‌جا", "کارت به کارت", "بین حساب"
+        "انتقال", "انتقال دادم", "انتقال زدم", "منتقل", "منتقل کردم",
+        "جابجا", "جابجا کردم", "جابه جا", "جابه‌جا", "جابه‌جا کردم",
+        "کارت به کارت", "کارت‌به‌کارت", "کارت به کارت کردم", "بین حساب",
+        "واریز کردم به", "حواله کردم"
+    )
+
+    /**
+     * فرهنگ عبارت‌های انتقال؛ ترکیب این فهرست‌ها در تست corpus صدها جمله
+     * طبیعی می‌سازد تا تفاوت لحن، فعل و پیشوند نام حساب پوشش داده شود.
+     */
+    private val transferSourceMarkers = listOf(
+        "از حساب", "از کارت", "از توی حساب", "از داخل حساب", "از سپرده", "مبدا", "مبدأ", "از "
+    )
+    private val transferTargetMarkers = listOf(
+        "به حساب", "به کارت", "به حساب خودم", "به حساب دیگه خودم", "به سپرده", "مقصد", "به "
+    )
+    private val otherPeopleWords = listOf(
+        "دیگران", "شخص دیگر", "حساب دیگری", "حساب فرد دیگر", "حساب دوستم",
+        "برای کسی", "به کسی", "برای دوستم", "به دوستم", "به فروشنده"
     )
 
     /** واحد پول در متن. */
@@ -78,16 +106,16 @@ object TransactionParser {
 
     /** کلیدواژه هر دسته پیش‌فرض، برای حدس زدن دسته‌بندی. */
     private val categoryHints: Map<String, List<String>> = mapOf(
-        "خوراک و سوپرمارکت" to listOf(
+        "مواد غذایی و سوپرمارکت" to listOf(
             "سوپرمارکت", "سوپر", "خواربار", "نان", "نانوایی", "میوه", "تره‌بار",
             "گوشت", "مرغ", "لبنیات", "شیر", "کیک", "شیرینی", "قنادی", "خوراک", "بقالی"
         ),
         "رستوران و کافه" to listOf("رستوران", "کافه", "کافی‌شاپ", "فست‌فود", "پیتزا", "ساندویچ", "قهوه", "چایخانه", "غذا"),
-        "حمل‌ونقل" to listOf("تاکسی", "اسنپ", "تپسی", "مترو", "اتوبوس", "بنزین", "سوخت", "گازوئیل", "کرایه", "بلیت", "پارکینگ"),
+        "حمل و نقل و خودرو" to listOf("تاکسی", "اسنپ", "تپسی", "مترو", "اتوبوس", "بنزین", "سوخت", "گازوئیل", "کرایه", "بلیت", "پارکینگ", "تعمیر خودرو", "تعویض روغن"),
         "مسکن و اجاره" to listOf("اجاره", "رهن", "ودیعه", "شارژ ساختمان", "مسکن"),
         "قبوض" to listOf("قبض", "برق", "آب", "گاز", "عوارض", "جریمه"),
         "اینترنت و تلفن" to listOf("اینترنت", "شارژ", "بسته", "همراه اول", "ایرانسل", "رایتل", "مخابرات", "تلفن", "سیم‌کارت"),
-        "درمان" to listOf("دکتر", "پزشک", "دارو", "داروخانه", "بیمارستان", "آزمایش", "دندان", "درمان", "ویزیت"),
+        "درمان و سلامت" to listOf("دکتر", "پزشک", "دارو", "داروخانه", "بیمارستان", "آزمایش", "دندان", "درمان", "ویزیت"),
         "پوشاک" to listOf("لباس", "کفش", "پوشاک", "مانتو", "شلوار", "پیراهن"),
         "آموزش" to listOf("کلاس", "آموزش", "دانشگاه", "مدرسه", "کتاب", "شهریه", "دوره"),
         "تفریح" to listOf("سینما", "تفریح", "سفر", "بازی", "کنسرت", "استخر", "باشگاه"),
@@ -130,7 +158,9 @@ object TransactionParser {
         if (amountRial == null) warnings.add("مبلغ پیدا نشد")
 
         // ---------- جهت و ماهیت ----------
-        val isTransfer = transferWords.any { normalized.contains(it) }
+        val hasTransferPath = transferSourceMarkers.any { normalized.contains(it) } &&
+            transferTargetMarkers.any { normalized.contains(it) }
+        val isTransfer = transferWords.any { normalized.contains(it) } || hasTransferPath
         val depositHit = depositWords.any { normalized.contains(it) }
         val withdrawalHit = withdrawalWords.any { normalized.contains(it) }
 
@@ -150,12 +180,26 @@ object TransactionParser {
         }
 
         // ---------- حساب ----------
-        val account = matchAccount(normalized, accounts)
+        val sourceAccount = if (isTransfer) {
+            matchAccountNear(normalized, accounts, transferSourceMarkers)
+                ?: matchAccount(normalized, accounts)
+        } else matchAccount(normalized, accounts)
+        val targetAccount = if (isTransfer) {
+            matchAccountNear(normalized, accounts, transferTargetMarkers, excludeId = sourceAccount?.id)
+        } else null
+        val transferToOwn = isTransfer && targetAccount != null
+        val account = sourceAccount
         if (account == null) {
             warnings.add(
                 if (accounts.isEmpty()) "هنوز حسابی ثبت نکرده‌اید"
                 else "حساب مشخص نشد؛ انتخابش کنید"
             )
+        }
+
+        if (isTransfer && targetAccount == null &&
+            !otherPeopleWords.any { normalized.contains(it) }
+        ) {
+            warnings.add("مقصد انتقال مشخص نشد؛ انتقال به حساب دیگران در نظر گرفته شد")
         }
 
         // ---------- تاریخ ----------
@@ -165,7 +209,13 @@ object TransactionParser {
         val category = matchCategory(normalized, categories, nature)
 
         // ---------- شرح ----------
-        val description = buildDescription(text, normalized)
+        val description = buildDescription(
+            original = text,
+            normalized = normalized,
+            account = account,
+            targetAccount = targetAccount,
+            category = category
+        )
 
         val confidence = when {
             amountRial != null && account != null && warnings.isEmpty() -> ParseConfidence.HIGH
@@ -183,11 +233,14 @@ object TransactionParser {
             categoryName = category?.name,
             description = description,
             date = date,
-            hour = 12,
-            minute = 0,
+            hour = PersianDate.nowHourMinute().first,
+            minute = PersianDate.nowHourMinute().second,
             dateExplicit = explicit,
             confidence = confidence,
-            warnings = warnings
+            warnings = warnings,
+            targetAccountId = targetAccount?.id,
+            targetAccountTitle = targetAccount?.title,
+            transferToOwn = transferToOwn
         )
     }
 
@@ -215,10 +268,9 @@ object TransactionParser {
     private fun matchAccount(text: String, accounts: List<ParserAccount>): ParserAccount? {
         if (accounts.isEmpty()) return null
 
-        // عنوان کامل حساب در جمله آمده باشد
+        // عنوان کامل یا ساده‌شده حساب در جمله آمده باشد
         accounts.sortedByDescending { it.title.length }.forEach { acc ->
-            val t = normalize(acc.title)
-            if (t.isNotBlank() && text.contains(t)) return acc
+            if (accountAliases(acc).any { text.contains(it) }) return acc
         }
         // نام بانک، اگر فقط یک حساب از آن بانک باشد
         accounts.sortedByDescending { it.bankName.length }.forEach { acc ->
@@ -233,6 +285,52 @@ object TransactionParser {
         accounts.forEach { acc ->
             val titleWords = normalize(acc.title).split(" ").filter { it.length >= 3 }
             if (titleWords.any { it in words }) return acc
+        }
+        return null
+    }
+
+    /** نام‌های قابل تطبیق حساب: عنوان/بانک، با و بدون پیشوندهای رایج. */
+    private fun accountAliases(account: ParserAccount): List<String> =
+        listOf(account.title, account.bankName)
+            .map(::normalize)
+            .flatMap { value ->
+                listOf(
+                    value,
+                    value.removePrefix("حساب ").removePrefix("بانک ").trim(),
+                    value.removeSuffix(" خودم").trim()
+                )
+            }
+            .filter { it.length >= 2 }
+            .distinct()
+            .sortedByDescending { it.length }
+
+    /** حسابی که بعد از یکی از عبارت‌های «از …» یا «به …» آمده است. */
+    private fun matchAccountNear(
+        text: String,
+        accounts: List<ParserAccount>,
+        markers: List<String>,
+        excludeId: Long? = null
+    ): ParserAccount? {
+        val candidates = accounts.filter { it.id != excludeId }
+        for (marker in markers.sortedByDescending { it.length }) {
+            var start = 0
+            while (true) {
+                val index = text.indexOf(marker, start)
+                if (index < 0) break
+                val window = text.substring(index + marker.length).take(50)
+                // همه حساب‌ها را امتیاز می‌دهیم و نزدیک‌ترین نام بعد از marker
+                // را برمی‌گزینیم. قبلاً اولین حسابِ لیست که جایی در پنجره ۵۰
+                // نویسه‌ای دیده می‌شد برنده بود؛ چون پنجره هر دو نام مبدأ و مقصد
+                // را داشت، گاهی مقصد با اینکه نوشته شده بود تشخیص داده نمی‌شد.
+                val best = candidates.mapNotNull { account ->
+                    val positions = accountAliases(account)
+                        .map { alias -> window.indexOf(alias) }
+                        .filter { it >= 0 }
+                    positions.minOrNull()?.let { position -> account to position }
+                }.minByOrNull { (_, position) -> position }
+                if (best != null) return best.first
+                start = index + marker.length
+            }
         }
         return null
     }
@@ -274,7 +372,11 @@ object TransactionParser {
         // از روی کلیدواژه‌ها
         categoryHints.forEach { (catName, hints) ->
             if (hints.any { text.contains(it) }) {
-                categories.firstOrNull { normalize(it.name) == normalize(catName) }?.let { return it }
+                categories.firstOrNull {
+                    val existing = normalize(it.name)
+                    val expected = normalize(catName)
+                    existing == expected || existing.substringBefore(" (") == expected.substringBefore(" (")
+                }?.let { return it }
             }
         }
         // انتقال دسته ندارد
@@ -286,17 +388,42 @@ object TransactionParser {
      * شرح: جمله کاربر با حذف بخش‌های ساختاری (مبلغ، واحد، نام حساب).
      * اگر چیز معناداری نماند، خود جمله اصلی برمی‌گردد.
      */
-    private fun buildDescription(original: String, normalized: String): String {
-        var s = normalized
-        // حذف عدد و واحد
-        s = s.replace(Regex("\\d+"), " ")
+    private fun buildDescription(
+        original: String,
+        normalized: String,
+        account: ParserAccount?,
+        targetAccount: ParserAccount?,
+        category: ParserCategory?
+    ): String {
+        // اگر کاربر «بابت ...» گفته باشد، شرح دقیقاً از متن بعد از «بابت» ساخته می‌شود؛
+        // در نتیجه مبلغ و مشخصات مبدأ/مقصد که پیش از آن آمده‌اند وارد دلیل انتقال نمی‌شوند.
+        var s = if (normalized.contains("بابت")) normalized.substringAfter("بابت") else normalized
+        // حذف مبلغ و واحد
+        s = s.replace(Regex("\\d+(?:[.,]\\d+)*"), " ")
         (tomanWords + rialWords + listOf("هزار", "میلیون", "میلیارد", "نیم")).forEach {
             s = s.replace(it, " ")
         }
-        listOf("با حساب", "از حساب", "به حساب", "حساب", "کارت").forEach {
-            s = s.replace(it, " ")
-        }
-        s = s.replace(Regex("\\s+"), " ").trim()
-        return if (s.length >= 3) s else original.trim()
+        // عنوان و نام بانک حساب، و نام دسته نباید وارد شرح شوند
+        listOfNotNull(
+            account?.title, account?.bankName,
+            targetAccount?.title, targetAccount?.bankName,
+            category?.name
+        ).map(::normalize)
+            .filter { it.isNotBlank() }
+            .sortedByDescending { it.length }
+            .forEach { s = s.replace(it, " ") }
+        // اجزای دستوری جمله؛ فقط موضوع واقعی خرید/واریز باقی بماند
+        val structural = listOf(
+            "با حساب", "از حساب", "به حساب", "حساب", "کارت", "بانک",
+            "خریدم", "خرید کردم", "خرید", "پرداختم", "پرداخت کردم", "پرداخت",
+            "دادم", "گرفتم", "دریافت کردم", "واریز شد", "واریز کردم", "واریز",
+            "انتقال وجه دادم", "انتقال وجه کردم", "انتقال دادم", "منتقل کردم", "انتقال وجه", "انتقال",
+            "بابت", "امروز", "دیروز", "پریروز", "فردا", "این ماه", "این هفته"
+        )
+        structural.sortedByDescending { it.length }.forEach { s = s.replace(it, " ") }
+        s = s.replace(Regex("\\s+"), " ").trim(' ', '،', ',', '-', '_')
+        // شرح کوتاه و معنادار؛ اگر چیزی نماند، شرح را خالی می‌گذاریم نه اینکه
+        // جمله ساختاری و بی‌معنی اولیه را دوباره نمایش دهیم.
+        return if (s.length >= 2) s else ""
     }
 }

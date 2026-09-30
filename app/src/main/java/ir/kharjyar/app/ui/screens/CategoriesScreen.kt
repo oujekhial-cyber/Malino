@@ -19,6 +19,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import ir.kharjyar.app.ui.components.GlassSnackbarHost
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -40,8 +45,15 @@ import ir.kharjyar.app.data.db.CategoryEntity
 import ir.kharjyar.app.data.db.CategoryRuleEntity
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.SkinCard
+import ir.kharjyar.app.ui.components.CategoryGraphic
+import ir.kharjyar.app.core.text.Digits
+import androidx.compose.runtime.LaunchedEffect
+import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.EmptyState
 import kotlinx.coroutines.launch
+
+private fun normalizedCategoryName(value:String):String = Digits.normalizeForMatch(value)
+    .replace('\u200c',' ').trim().replace(Regex("\\s+")," ")
 
 /** مدیریت دسته‌بندی‌ها و قوانین خودکار. */
 @Composable
@@ -53,27 +65,96 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var editCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var showNewCategory by remember { mutableStateOf(false) }
     var showNewRule by remember { mutableStateOf(false) }
+    var editRule by remember { mutableStateOf<CategoryRuleEntity?>(null) }
+    var pendingRuleDelete by remember { mutableStateOf<CategoryRuleEntity?>(null) }
+    val snackbar = remember { SnackbarHostState() }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                Spacer(Modifier.padding(4.dp))
-        TabRow(selectedTabIndex = tab) {
+    /** حذف قانون با امکان بازگرداندن. */
+    fun deleteRuleWithUndo(rule: CategoryRuleEntity) {
+        scope.launch {
+            viewModel.repo.categoryDao.deleteRule(rule.id)
+            val res = snackbar.showSnackbar(
+                message = "قانون «${rule.keyword}» حذف شد",
+                actionLabel = "بازگرداندن",
+                duration = SnackbarDuration.Short
+            )
+            // شناسه حفظ می‌شود تا قانون دقیقاً همان‌طور برگردد
+            if (res == SnackbarResult.ActionPerformed) viewModel.repo.categoryDao.insertRule(rule)
+        }
+    }
+    // دسته در انتظار تأیید حذف (کشیدن انگشت روی کارت)
+    var pendingDelete by remember { mutableStateOf<CategoryEntity?>(null) }
+    var pendingDeleteUsage by remember { mutableStateOf(0) }
+
+    LaunchedEffect(pendingDelete?.id) {
+        pendingDelete?.let { pendingDeleteUsage = viewModel.repo.categoryDao.usageCount(it.id) }
+    }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        snackbarHost = { GlassSnackbarHost(snackbar) }
+    ) { padding ->
+    Column(
+        modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SkinCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Text("دسته‌بندی هوشمند", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "خرج‌ها و درآمدها را مرتب کنید؛ قوانین خودکار دفعه بعد دسته را پیشنهاد می‌دهند.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.padding(3.dp))
+                Text(
+                    "${Digits.toPersian(categories.count { !it.archived }.toString())} دسته فعال  •  ${Digits.toPersian(rules.count { it.enabled }.toString())} قانون فعال",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        TabRow(selectedTabIndex = tab, containerColor = Color.Transparent, divider = {}) {
             Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("دسته‌ها") })
             Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("قوانین خودکار") })
         }
-        Spacer(Modifier.padding(6.dp))
 
         if (tab == 0) {
-            Button(onClick = { showNewCategory = true }) { Text("دسته جدید") }
-            Spacer(Modifier.padding(4.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { showNewCategory = true }, modifier = Modifier.weight(1f)) { Text("+ دسته جدید") }
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val existing = categories.map { normalizedCategoryName(it.name) }.toSet()
+                            ir.kharjyar.app.data.db.KharjYarDatabase.DEFAULT_CATEGORIES
+                                .filter { normalizedCategoryName(it.first) !in existing }
+                                .forEach { (name, color, kind) ->
+                                    viewModel.repo.categoryDao.insert(CategoryEntity(name = name, colorArgb = color, kind = kind, builtin = true))
+                                }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) { Text("دسته‌های پیشنهادی") }
+            }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(categories.size) { i ->
                     val c = categories[i]
-                    SkinCard(modifier = Modifier.fillMaxWidth().clickable { editCategory = c }) {
-                        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(14.dp).background(Color(c.colorArgb), CircleShape))
-                            Spacer(Modifier.width(12.dp))
-                            Text(c.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                            if (c.archived) Text("بایگانی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    SwipeActionRow(
+                        onDelete = { pendingDelete = c },
+                        onEdit = { editCategory = c },
+                        // حذف دسته تأییدیه دارد، پس ردیف بلافاصله برداشته نمی‌شود
+                        removeOnDelete = false
+                    ) {
+                        SkinCard(modifier = Modifier.fillMaxWidth().clickable { editCategory = c }) {
+                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                                CategoryGraphic(name = c.name, color = Color(c.colorArgb), size = 42.dp)
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(c.name, style = MaterialTheme.typography.bodyLarge)
+                                    Text(if (c.builtin) "پیشنهادی خرج‌یار" else "ساخته‌شده توسط شما", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (c.archived) Text("بایگانی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
@@ -82,29 +163,94 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             Button(onClick = { showNewRule = true }) { Text("قانون جدید") }
             Spacer(Modifier.padding(4.dp))
             if (rules.isEmpty()) {
-                EmptyState("قانونی تعریف نشده", "مثال: هر تراکنشی که «اسنپ» دارد در دسته حمل‌ونقل پیشنهاد شود")
+                EmptyState("قانونی تعریف نشده", "مثال: هر تراکنشی که «کافه» دارد در دسته رستوران و کافه پیشنهاد شود")
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(rules.size) { i ->
                         val r = rules[i]
                         val catName = categories.firstOrNull { it.id == r.categoryId }?.name ?: "؟"
+                        SwipeActionRow(
+                            onDelete = { pendingRuleDelete = r },
+                            onEdit = { editRule = r },
+                            removeOnDelete = false
+                        ) {
                         SkinCard(modifier = Modifier.fillMaxWidth()) {
                             Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("«${r.keyword}» ← $catName", style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        if (r.createdByUser) "قانون ساخته‌شده توسط شما" else "نمونه پیشنهادی متداول در ایران",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                                 Switch(checked = r.enabled, onCheckedChange = { on ->
                                     scope.launch { viewModel.repo.categoryDao.updateRule(r.copy(enabled = on)) }
                                 })
-                                TextButton(onClick = { scope.launch { viewModel.repo.categoryDao.deleteRule(r.id) } }) {
+                                TextButton(onClick = { pendingRuleDelete = r }) {
                                     Text("حذف", color = MaterialTheme.colorScheme.error)
                                 }
                             }
+                        }
                         }
                     }
                 }
             }
         }
+    }
+    }
+
+    // ---------- تأیید حذف قانون خودکار ----------
+    pendingRuleDelete?.let { rule ->
+        val categoryName = categories.firstOrNull { it.id == rule.categoryId }?.name ?: "دسته نامشخص"
+        AlertDialog(
+            onDismissRequest = { pendingRuleDelete = null },
+            title = { Text("حذف قانون خودکار") },
+            text = { Text("قانون «${rule.keyword} ← $categoryName» حذف شود؟ پس از حذف، تراکنش‌های جدید دیگر با این قانون دسته‌بندی نمی‌شوند.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingRuleDelete = null
+                    deleteRuleWithUndo(rule)
+                }) { Text("حذف قانون", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { pendingRuleDelete = null }) { Text("انصراف") } }
+        )
+    }
+
+    // ---------- تأیید حذف دسته ----------
+    pendingDelete?.let { cat ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("حذف دسته") },
+            text = {
+                Text(
+                    if (pendingDeleteUsage > 0)
+                        "«${cat.name}» در ${Digits.toPersian(pendingDeleteUsage.toString())} تراکنش استفاده شده است. با حذف، آن تراکنش‌ها بدون دسته می‌شوند (خود تراکنش‌ها پاک نمی‌شوند)."
+                    else "«${cat.name}» حذف شود؟"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        viewModel.repo.categoryDao.detachTransactions(cat.id)
+                        viewModel.repo.categoryDao.deleteRulesOfCategory(cat.id)
+                        viewModel.repo.categoryDao.delete(cat.id)
+                        pendingDelete = null
+                    }
+                }) { Text("حذف", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        scope.launch {
+                            viewModel.repo.categoryDao.update(cat.copy(archived = true))
+                            pendingDelete = null
+                        }
+                    }) { Text("بایگانی") }
+                    TextButton(onClick = { pendingDelete = null }) { Text("انصراف") }
+                }
+            }
+        )
     }
 
     if (showNewCategory || editCategory != null) {
@@ -112,10 +258,14 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             existing = editCategory,
             onDismiss = { showNewCategory = false; editCategory = null },
             onSave = { name, color, archived ->
-                scope.launch {
-                    val e = editCategory
+                val e = editCategory
+                val duplicate = categories.any { it.id != e?.id && normalizedCategoryName(it.name) == normalizedCategoryName(name) }
+                if (duplicate) {
+                    scope.launch { snackbar.showSnackbar("دسته‌ای با این نام از قبل وجود دارد") }
+                } else scope.launch {
                     if (e == null) {
-                        viewModel.repo.categoryDao.insert(CategoryEntity(name = name, colorArgb = color, archived = archived))
+                        val inserted = viewModel.repo.categoryDao.insert(CategoryEntity(name = name, colorArgb = color, archived = archived))
+                        if (inserted == -1L) snackbar.showSnackbar("دسته‌ای با این نام از قبل وجود دارد")
                     } else {
                         viewModel.repo.categoryDao.update(e.copy(name = name, colorArgb = color, archived = archived))
                     }
@@ -125,16 +275,22 @@ fun CategoriesScreen(viewModel: AppViewModel) {
         )
     }
 
-    if (showNewRule) {
+    if (showNewRule || editRule != null) {
+        val existing = editRule
         RuleDialog(
+            existing = existing,
             categories = categories.filter { !it.archived },
-            onDismiss = { showNewRule = false },
+            onDismiss = { showNewRule = false; editRule = null },
             onSave = { keyword, categoryId ->
                 scope.launch {
-                    viewModel.repo.categoryDao.insertRule(
-                        CategoryRuleEntity(keyword = keyword, categoryId = categoryId, priority = 10, createdByUser = true, createdAt = System.currentTimeMillis())
-                    )
-                    showNewRule = false
+                    if (existing == null) {
+                        viewModel.repo.categoryDao.insertRule(
+                            CategoryRuleEntity(keyword = keyword, categoryId = categoryId, priority = 10, createdByUser = true, createdAt = System.currentTimeMillis())
+                        )
+                    } else {
+                        viewModel.repo.categoryDao.updateRule(existing.copy(keyword = keyword, categoryId = categoryId))
+                    }
+                    showNewRule = false; editRule = null
                 }
             }
         )
@@ -161,7 +317,10 @@ private fun CategoryDialog(
         title = { Text(if (existing == null) "دسته جدید" else "ویرایش دسته") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("نام") }, singleLine = true)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CategoryGraphic(name = name, color = Color(color), size = 44.dp)
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("نام") }, singleLine = true, modifier = Modifier.weight(1f))
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     categoryColors.take(6).forEach { c ->
                         Box(Modifier.size(32.dp).background(Color(c), CircleShape).clickable { color = c })
@@ -189,16 +348,17 @@ private fun CategoryDialog(
 
 @Composable
 private fun RuleDialog(
+    existing: CategoryRuleEntity?,
     categories: List<CategoryEntity>,
     onDismiss: () -> Unit,
     onSave: (String, Long) -> Unit
 ) {
-    var keyword by remember { mutableStateOf("") }
-    var categoryId by remember { mutableStateOf<Long?>(null) }
+    var keyword by remember(existing?.id) { mutableStateOf(existing?.keyword ?: "") }
+    var categoryId by remember(existing?.id) { mutableStateOf(existing?.categoryId) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("قانون خودکار جدید") },
+        title = { Text(if (existing == null) "قانون خودکار جدید" else "ویرایش قانون") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = keyword, onValueChange = { keyword = it }, label = { Text("کلیدواژه (مثل «اسنپ»)") }, singleLine = true)

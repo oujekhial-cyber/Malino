@@ -4,7 +4,12 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** حساب بانکی کاربر. */
+object AccountType {
+    const val BANK = "BANK"
+    const val CASH = "CASH"
+}
+
+/** حساب مالی کاربر؛ حساب بانکی یا صندوق نقدی یک فرد. */
 @Entity(tableName = "accounts")
 data class AccountEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -24,6 +29,14 @@ data class AccountEntity(
     val cardExpiry: String = "",
     /** CVV2 کارت. */
     val cardCvv2: String = "",
+    /** BANK برای حساب بانکی و CASH برای کیف پول/صندوق فیزیکی. */
+    val accountType: String = AccountType.BANK,
+    /** صاحب پول نقد؛ برای نمونه خودم، همسر یا فرزند. */
+    val ownerName: String = "",
+    /** محل نگهداری وجه نقد؛ مانند کیف پول، خانه یا صندوق محل کار. */
+    val cashLocation: String = "",
+    /** توضیح اختیاری حساب یا صندوق. */
+    val note: String = "",
     /** موجودی اولیه اختیاری (ریال). */
     val initialBalanceRial: Long? = null,
     /** زمان ثبت موجودی اولیه. */
@@ -180,7 +193,7 @@ object CategoryKind {
     const val BOTH = 2
 }
 
-@Entity(tableName = "categories", indices = [Index("archived")])
+@Entity(tableName = "categories", indices = [Index("archived"), Index(value = ["name"], unique = true)])
 data class CategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
