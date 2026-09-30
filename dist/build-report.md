@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 20226f8c853b96315132bb59472e4b5f648076e8
-- تاریخ: 2026-09-30 12:44 UTC
-- unit tests: success
+- commit: c627c2a37e1797d9ba34b50506eb3a0f85fb4cbd
+- تاریخ: 2026-09-30 20:33 UTC
+- unit tests: failure
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,7 +10,8 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=444 failures=0 errors=0 skipped=0
+tests=452 failures=1 errors=0 skipped=0
+FAIL ir.kharjyar.app.BankAccountKindAndInterestGuardTest.interestSmsIsRecognizedAsDeposit: java.lang.AssertionError: expected: java.lang.Integer<1250000> but was: java.lang.Long<1250000>
 ```
 
 ## نسخه انتشار
