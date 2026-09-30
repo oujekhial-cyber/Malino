@@ -37,6 +37,14 @@ data class AccountEntity(
     val cashLocation: String = "",
     /** توضیح اختیاری حساب یا صندوق. */
     val note: String = "",
+    /** نوع محصول بانکی: جاری، قرض‌الحسنه، کوتاه‌مدت، بلندمدت یا سایر. */
+    val bankAccountKind: String = "OTHER",
+    /** آیا بانک برای این سپرده سود ماهانه واریز می‌کند؟ */
+    val monthlyInterestBearing: Boolean = false,
+    /** نرخ سود ماهانه اعلامی؛ فقط اطلاعات کاربر است و مبلغی را خودکار نمی‌سازد. */
+    val monthlyInterestRatePercent: Double? = null,
+    /** حسابی که سود واقعی به آن واریز می‌شود. */
+    val interestDestinationAccountId: Long? = null,
     /** موجودی اولیه اختیاری (ریال). */
     val initialBalanceRial: Long? = null,
     /** زمان ثبت موجودی اولیه. */

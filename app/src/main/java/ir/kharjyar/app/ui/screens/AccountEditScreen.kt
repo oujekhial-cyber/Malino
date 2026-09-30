@@ -101,12 +101,17 @@ fun AccountEditScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
+    val allAccounts by viewModel.accounts.collectAsState()
 
     var title by remember { mutableStateOf("") }
     var accountType by remember { mutableStateOf(AccountType.BANK) }
     var ownerName by remember { mutableStateOf("") }
     var cashLocation by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var bankAccountKind by remember { mutableStateOf("OTHER") }
+    var monthlyInterestBearing by remember { mutableStateOf(false) }
+    var monthlyInterestRate by remember { mutableStateOf("") }
+    var interestDestinationId by remember { mutableStateOf<Long?>(null) }
     var bankName by remember { mutableStateOf("") }
     var color by remember { mutableStateOf(DEFAULT_ACCOUNT_COLOR) }
     var maskedNumber by remember { mutableStateOf("") }
@@ -136,6 +141,9 @@ fun AccountEditScreen(
                 title = a.title; bankName = a.bankName; color = a.colorArgb
                 accountType = a.accountType; ownerName = a.ownerName
                 cashLocation = a.cashLocation; note = a.note
+                bankAccountKind = a.bankAccountKind; monthlyInterestBearing = a.monthlyInterestBearing
+                monthlyInterestRate = a.monthlyInterestRatePercent?.toString().orEmpty()
+                interestDestinationId = a.interestDestinationAccountId
                 maskedNumber = a.maskedNumber; archived = a.archived
                 accountNumber = a.accountNumber; iban = a.iban
                 cardNumber = a.cardNumber; cardExpiry = a.cardExpiry; cardCvv2 = a.cardCvv2
@@ -228,7 +236,8 @@ fun AccountEditScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            if (accountType == AccountType.BANK) SearchableComboBox(
+            if (accountType == AccountType.BANK) {
+             SearchableComboBox(
                 label = "نام بانک",
                 options = bankNames,
                 value = bankName,
@@ -237,7 +246,18 @@ fun AccountEditScreen(
                 placeholder = "حروف اول نام بانک را بنویسید",
                 // نشان هر بانک کنار نامش، هم در فیلد و هم در فهرست انتخاب
                 leadingOf = { BankLogo(bankName = it, size = 26.dp) }
-            ) else {
+             )
+             ComboBox(label="نوع حساب بانکی",options=listOf("CURRENT","GHARZ","SHORT_TERM","LONG_TERM","SALARY","OTHER"),selected=bankAccountKind,labelOf={when(it){"CURRENT"->"جاری";"GHARZ"->"قرض‌الحسنه";"SHORT_TERM"->"سپرده کوتاه‌مدت";"LONG_TERM"->"سپرده بلندمدت";"SALARY"->"حساب حقوق";else->"سایر"}},onSelect={bankAccountKind=it;if(it!in listOf("SHORT_TERM","LONG_TERM"))monthlyInterestBearing=false})
+             if(bankAccountKind=="SHORT_TERM"||bankAccountKind=="LONG_TERM"){
+              Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween,modifier=Modifier.fillMaxWidth()){Text("پرداخت سود ماهانه");androidx.compose.material3.Switch(monthlyInterestBearing,{monthlyInterestBearing=it})}
+              if(monthlyInterestBearing){
+               OutlinedTextField(monthlyInterestRate,{monthlyInterestRate=Digits.normalize(it).filter{c->c.isDigit()||c=='.'}},label={Text("نرخ سود ماهانه (درصد، اختیاری)")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal),modifier=Modifier.fillMaxWidth(),singleLine=true)
+               val destinations=allAccounts.filter{!it.archived&&it.accountType==AccountType.BANK&&it.id!=accountId}
+               ComboBox(label="حساب مقصد واریز سود",options=listOf<Long?>(null)+destinations.map{it.id},selected=interestDestinationId,labelOf={id->if(id==null)"همین حساب" else destinations.firstOrNull{it.id==id}?.let{"${it.title} • ${it.bankName}"}?:"انتخاب حساب"},onSelect={interestDestinationId=it})
+               Text("خرج‌یار مبلغ سود را تخمین یا ایجاد نمی‌کند؛ فقط واریز واقعی را از پیامک بانک می‌خواند.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+              }
+             }
+            } else {
                 OutlinedTextField(ownerName, { ownerName = it }, label = { Text("صاحب صندوق (مثلاً خودم، همسر یا فرزند)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(cashLocation, { cashLocation = it }, label = { Text("محل نگهداری (کیف پول، خانه، محل کار و…)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(note, { note = it }, label = { Text("توضیحات اختیاری") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
@@ -394,6 +414,7 @@ fun AccountEditScreen(
                             AccountEntity(
                                 title = title.trim(), bankName = if(accountType==AccountType.BANK) bankName.trim() else "", colorArgb = color,
                                 accountType = accountType, ownerName = ownerName.trim(), cashLocation = cashLocation.trim(), note = note.trim(),
+                                bankAccountKind = bankAccountKind, monthlyInterestBearing = monthlyInterestBearing, monthlyInterestRatePercent = monthlyInterestRate.toDoubleOrNull(), interestDestinationAccountId = if(monthlyInterestBearing) interestDestinationId else null,
                                 maskedNumber = if(accountType==AccountType.BANK) maskedNumber.trim() else "",
                                 accountNumber = accountNumber.trim(), iban = iban.trim(),
                                 cardNumber = cardNumber.trim(), cardExpiry = cardExpiry.trim(),
@@ -409,6 +430,7 @@ fun AccountEditScreen(
                             existing!!.copy(
                                 title = title.trim(), bankName = if(accountType==AccountType.BANK) bankName.trim() else "", colorArgb = color,
                                 accountType = accountType, ownerName = ownerName.trim(), cashLocation = cashLocation.trim(), note = note.trim(),
+                                bankAccountKind = bankAccountKind, monthlyInterestBearing = monthlyInterestBearing, monthlyInterestRatePercent = monthlyInterestRate.toDoubleOrNull(), interestDestinationAccountId = if(monthlyInterestBearing) interestDestinationId else null,
                                 maskedNumber = if(accountType==AccountType.BANK) maskedNumber.trim() else "",
                                 accountNumber = accountNumber.trim(), iban = iban.trim(),
                                 cardNumber = cardNumber.trim(), cardExpiry = cardExpiry.trim(),

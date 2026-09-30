@@ -26,7 +26,7 @@ private val positions=listOf(
  WidgetPosition(WidgetAlign.START,WidgetVAlign.BOTTOM,"پایین سمت راست"),WidgetPosition(WidgetAlign.CENTER,WidgetVAlign.BOTTOM,"پایین وسط"),WidgetPosition(WidgetAlign.END,WidgetVAlign.BOTTOM,"پایین سمت چپ"))
 
 @Composable fun WidgetSettingsScreen(viewModel:AppViewModel){
- val context=LocalContext.current;val scope=rememberCoroutineScope();val settings by viewModel.settings.collectAsState();var city by remember{mutableStateOf(ir.kharjyar.app.weather.WeatherService.city(context))};var element by remember{mutableStateOf(WidgetElement.TITLE)}
+ val context=LocalContext.current;val scope=rememberCoroutineScope();val settings by viewModel.settings.collectAsState();var city by remember{mutableStateOf(ir.kharjyar.app.weather.WeatherService.city(context))};var element by remember{mutableStateOf(WidgetElement.TITLE)};var saving by remember{mutableStateOf(false)};var saveMessage by remember{mutableStateOf<String?>(null)}
  fun apply(block:suspend()->Unit){scope.launch{block();WidgetUpdater.requestUpdate(context)}}
  fun positionOf():WidgetPosition=when(element){WidgetElement.TITLE,WidgetElement.VALUES,WidgetElement.LABELS->positions.first{it.h==settings.widgetTitleAlign&&it.v==settings.widgetTitleVAlign};else->positions.first{it.h==settings.widgetClockAlign&&it.v==settings.widgetClockVAlign}}
  fun size():Int=when(element){WidgetElement.TITLE->settings.widgetTitleSize;WidgetElement.CLOCK->settings.widgetClockSize;WidgetElement.DATES->settings.widgetDateSize;WidgetElement.VALUES->settings.widgetValueSize;WidgetElement.LABELS->settings.widgetLabelSize}
@@ -51,7 +51,7 @@ private val positions=listOf(
     else->ToggleRow("نمایش اعداد","",settings.widgetShowNumbers){apply{viewModel.settingsRepo.setWidgetShowNumbers(it)}}
    }
   }
-  WidgetCard("هواشناسی") {OutlinedTextField(city,{city=it},label={Text("شهر")},modifier=Modifier.fillMaxWidth());Button({ir.kharjyar.app.weather.WeatherService.setCity(context,city);apply{ir.kharjyar.app.weather.WeatherService.refresh(context)}},Modifier.fillMaxWidth()){Text("ذخیره و بروزرسانی")}}
+  WidgetCard("هواشناسی") {OutlinedTextField(city,{city=it;saveMessage=null},label={Text("شهر")},modifier=Modifier.fillMaxWidth());Button({if(!saving)scope.launch{saving=true;saveMessage=null;ir.kharjyar.app.weather.WeatherService.setCity(context,city);val weather=ir.kharjyar.app.weather.WeatherService.refresh(context,force=true);val updated=WidgetUpdater.updateNow(context);saveMessage=when{weather==null->"شهر یا اطلاعات هواشناسی دریافت نشد؛ اتصال اینترنت و نام شهر را بررسی کنید.";!updated->"هواشناسی دریافت شد، اما بروزرسانی ویجت انجام نشد.";else->"تنظیمات و هواشناسی فوراً روی ویجت بروزرسانی شد."};saving=false}},Modifier.fillMaxWidth(),enabled=!saving&&city.isNotBlank()){if(saving)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp) else Text("ذخیره و بروزرسانی فوری")};saveMessage?.let{Text(it,style=MaterialTheme.typography.bodySmall,color=if(it.startsWith("تنظیمات"))MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)}}
   OutlinedButton({apply{viewModel.settingsRepo.resetWidget()}},Modifier.fillMaxWidth()){Text("بازنشانی تنظیمات ویجت به حالت اولیه")}
   OutlinedButton({val m=AppWidgetManager.getInstance(context);if(m.isRequestPinAppWidgetSupported)m.requestPinAppWidget(ComponentName(context,KharjYarWidgetReceiver::class.java),null,null)},Modifier.fillMaxWidth()){Text("افزودن ویجت به صفحه اصلی")}
  }

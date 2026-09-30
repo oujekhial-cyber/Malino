@@ -15,8 +15,16 @@ object WeatherService {
     }
 
     fun city(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("city", "تهران") ?: "تهران"
-    fun setCity(context: Context, city: String) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-        .putString("city", city.trim().ifBlank { "تهران" }).putLong("updated", 0).apply()
+    fun setCity(context: Context, city: String) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val normalized = city.trim().ifBlank { "تهران" }
+        val edit = prefs.edit().putString("city", normalized).putLong("updated", 0)
+        // هوای شهر قبلی نباید با نام/انتخاب شهر جدید روی ویجت باقی بماند.
+        if (prefs.getString("city", "تهران") != normalized) {
+            edit.remove("temperature").remove("resolved_city").remove("icon").remove("code").remove("is_day")
+        }
+        edit.commit()
+    }
 
     fun cached(context: Context): WeatherInfo? {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

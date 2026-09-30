@@ -21,9 +21,9 @@ import net.sqlcipher.database.SupportFactory
         CategoryRuleEntity::class,
         BlockedSenderEntity::class,
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
-        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, VehicleOilServiceEntity::class, CivicMessageEntity::class
+        BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, StockSmsDraftEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, VehicleOilServiceEntity::class, CivicMessageEntity::class
     ],
-    version = 14,
+    version = 16,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -40,6 +40,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
     abstract fun loanDao(): LoanDao
     abstract fun assetDao(): AssetDao
+    abstract fun stockDao(): StockDao
     abstract fun transactionAttachmentDao(): TransactionAttachmentDao
     abstract fun reminderDao(): ReminderDao
     abstract fun civicDao(): CivicDao
@@ -57,7 +58,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -194,6 +195,20 @@ abstract class KharjYarDatabase : RoomDatabase() {
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_categories_name ON categories(name)")
         } }
 
+        val MIGRATION_14_15 = object : Migration(14, 15) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS stock_sms_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, fingerprint TEXT NOT NULL, sender TEXT NOT NULL, broker TEXT NOT NULL, symbol TEXT NOT NULL, side INTEGER NOT NULL, quantity INTEGER NOT NULL, unitPriceRial INTEGER NOT NULL, totalRial INTEGER NOT NULL, occurredAt INTEGER NOT NULL, status INTEGER NOT NULL, createdAt INTEGER NOT NULL)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_stock_sms_drafts_fingerprint ON stock_sms_drafts(fingerprint)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_stock_sms_drafts_status ON stock_sms_drafts(status)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_stock_sms_drafts_occurredAt ON stock_sms_drafts(occurredAt)")
+        } }
+
+        val MIGRATION_15_16 = object : Migration(15, 16) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE accounts ADD COLUMN bankAccountKind TEXT NOT NULL DEFAULT 'OTHER'")
+            db.execSQL("ALTER TABLE accounts ADD COLUMN monthlyInterestBearing INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE accounts ADD COLUMN monthlyInterestRatePercent REAL")
+            db.execSQL("ALTER TABLE accounts ADD COLUMN interestDestinationAccountId INTEGER")
+        } }
+
         /** نمونه قوانین متداول ایران؛ کاربر می‌تواند آن‌ها را خاموش، ویرایش یا حذف کند. */
         val DEFAULT_IRAN_RULES: List<Pair<String, String>> = listOf(
             "اسنپ" to "حمل و نقل و خودرو", "تپسی" to "حمل و نقل و خودرو",
@@ -207,7 +222,8 @@ abstract class KharjYarDatabase : RoomDatabase() {
             "رایتل" to "اینترنت و تلفن", "مخابرات" to "اینترنت و تلفن",
             "قبض برق" to "قبوض", "قبض آب" to "قبوض", "قبض گاز" to "قبوض",
             "بیمه ایران" to "بیمه", "تأمین اجتماعی" to "بیمه",
-            "حقوق" to "حقوق", "کارمزد" to "کارمزد بانکی"
+            "حقوق" to "حقوق", "کارمزد" to "کارمزد بانکی",
+            "سود سپرده" to "سود و سرمایه‌گذاری", "سود ماهانه" to "سود و سرمایه‌گذاری", "سود علی الحساب" to "سود و سرمایه‌گذاری"
         )
 
         /** دسته‌های اولیه پیش‌فرض. */

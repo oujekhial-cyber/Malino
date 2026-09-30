@@ -491,21 +491,23 @@ object WidgetUpdater {
         }
     }
 
+    /** رسم فوری و قابل انتظار؛ دکمه ذخیره تا پایان اعمال واقعی ویجت منتظر می‌ماند. */
+    suspend fun updateNow(context: Context): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        val appContext = context.applicationContext
+        runCatching {
+            val manager = AppWidgetManager.getInstance(appContext)
+            val ids = manager.getAppWidgetIds(ComponentName(appContext, KharjYarWidgetReceiver::class.java))
+            if (ids.isNotEmpty()) {
+                val views = runCatching { WidgetRenderer.build(appContext) }
+                    .getOrElse { WidgetRenderer.buildFallback(appContext) }
+                ids.forEach { manager.updateAppWidget(it, views) }
+            }
+            true
+        }.getOrDefault(false)
+    }
+
     /** به‌روزرسانی همه نمونه‌های ویجت پس از تغییر داده یا تنظیمات. */
     fun requestUpdate(context: Context) {
-        val appContext = context.applicationContext
-        CoroutineScope(Dispatchers.IO).launch {
-            runCatching {
-                val manager = AppWidgetManager.getInstance(appContext)
-                val ids = manager.getAppWidgetIds(
-                    ComponentName(appContext, KharjYarWidgetReceiver::class.java)
-                )
-                if (ids.isNotEmpty()) {
-                    val views = runCatching { WidgetRenderer.build(appContext) }
-                        .getOrElse { WidgetRenderer.buildFallback(appContext) }
-                    ids.forEach { manager.updateAppWidget(it, views) }
-                }
-            }
-        }
+        CoroutineScope(Dispatchers.IO).launch { updateNow(context) }
     }
 }

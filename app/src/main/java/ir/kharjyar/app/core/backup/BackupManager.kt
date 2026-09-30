@@ -36,7 +36,7 @@ class BackupManager(
             blockedSenders = repo.blockedSenderDao.allOnce().map { BBlockedSender.of(it) },
             debtPeople = repo.db.debtDao().allPeopleOnce(), debts = repo.db.debtDao().allDebtsOnce(), debtPayments = repo.db.debtDao().allPaymentsOnce(),
             checks = repo.db.checkDao().allOnce(), bankBalances = repo.db.bankBalanceSnapshotDao().allOnce(), notes = repo.db.noteDao().allOnce(),
-            loans = repo.db.loanDao().allLoansOnce(), installments = repo.db.loanDao().allInstallmentsOnce(), assets = repo.db.assetDao().allAssetsOnce(),
+            loans = repo.db.loanDao().allLoansOnce(), installments = repo.db.loanDao().allInstallmentsOnce(), assets = repo.db.assetDao().allAssetsOnce(), stockSmsDrafts = repo.db.stockDao().allOnce(),
             assetTrades = repo.db.assetDao().allTradesOnce(), attachments = repo.db.transactionAttachmentDao().allOnce(), reminders = repo.db.reminderDao().allOnce(),
             profiles = repo.db.civicDao().allProfilesOnce(), coveredPeople = repo.db.civicDao().allPeopleOnce(), vehicles = repo.db.civicDao().allVehiclesOnce(),
             oilServices = repo.db.civicDao().allOilServicesOnce(), civicMessages = repo.db.civicDao().allMessagesOnce(),
@@ -88,7 +88,7 @@ class BackupManager(
             smsQueue = merged(payload.smsQueue,current.smsQueue){it.fingerprint}, blockedSenders = merged(payload.blockedSenders,current.blockedSenders){it.sender},
             debtPeople = merged(payload.debtPeople,current.debtPeople){it.id}, debts = merged(payload.debts,current.debts){it.id}, debtPayments = merged(payload.debtPayments,current.debtPayments){it.id},
             checks = merged(payload.checks,current.checks){it.id}, bankBalances = merged(payload.bankBalances,current.bankBalances){it.accountId}, notes = merged(payload.notes,current.notes){it.id},
-            loans = merged(payload.loans,current.loans){it.id}, installments = merged(payload.installments,current.installments){it.id}, assets = merged(payload.assets,current.assets){it.id},
+            loans = merged(payload.loans,current.loans){it.id}, installments = merged(payload.installments,current.installments){it.id}, assets = merged(payload.assets,current.assets){it.id}, stockSmsDrafts = merged(payload.stockSmsDrafts,current.stockSmsDrafts){it.fingerprint},
             assetTrades = merged(payload.assetTrades,current.assetTrades){it.id}, attachments = merged(payload.attachments,current.attachments){it.id}, reminders = merged(payload.reminders,current.reminders){it.id},
             profiles = merged(payload.profiles,current.profiles){it.id}, coveredPeople = merged(payload.coveredPeople,current.coveredPeople){it.id}, vehicles = merged(payload.vehicles,current.vehicles){it.id},
             oilServices = merged(payload.oilServices,current.oilServices){it.id}, civicMessages = merged(payload.civicMessages,current.civicMessages){it.fingerprint},
@@ -134,7 +134,7 @@ class BackupManager(
             payload.debtPeople.forEach { repo.db.debtDao().insertPerson(it) }; payload.debts.forEach { repo.db.debtDao().insertDebt(it) }; payload.debtPayments.forEach { repo.db.debtDao().insertPayment(it) }
             payload.checks.forEach { repo.db.checkDao().insert(it) }; payload.bankBalances.forEach { repo.db.bankBalanceSnapshotDao().upsert(it) }; payload.notes.forEach { repo.db.noteDao().insert(it) }
             payload.loans.forEach { repo.db.loanDao().insertLoan(it) }; if(payload.installments.isNotEmpty()) repo.db.loanDao().insertInstallments(payload.installments)
-            payload.assets.forEach { repo.db.assetDao().insert(it) }; payload.assetTrades.forEach { repo.db.assetDao().insertTrade(it) }; payload.attachments.forEach { repo.db.transactionAttachmentDao().insert(it) }
+            payload.assets.forEach { repo.db.assetDao().insert(it) }; payload.assetTrades.forEach { repo.db.assetDao().insertTrade(it) }; payload.stockSmsDrafts.forEach { repo.db.stockDao().insertDraft(it) }; payload.attachments.forEach { repo.db.transactionAttachmentDao().insert(it) }
             payload.reminders.forEach { repo.db.reminderDao().insert(it) }; payload.profiles.forEach { repo.db.civicDao().saveProfile(it) }; payload.coveredPeople.forEach { repo.db.civicDao().insertPerson(it) }
             payload.vehicles.forEach { repo.db.civicDao().insertVehicle(it) }; payload.oilServices.forEach { repo.db.civicDao().insertOilService(it) }; payload.civicMessages.forEach { repo.db.civicDao().insertMessage(it) }
             restorePrivateFiles(payload.privateFiles)
@@ -158,6 +158,7 @@ private suspend fun ir.kharjyar.app.data.db.KharjYarDatabase.clearAllTablesInTra
         execSQL("DELETE FROM reminders")
         execSQL("DELETE FROM transaction_attachments")
         execSQL("DELETE FROM asset_trades")
+        execSQL("DELETE FROM stock_sms_drafts")
         execSQL("DELETE FROM assets")
         execSQL("DELETE FROM loan_installments")
         execSQL("DELETE FROM loans")

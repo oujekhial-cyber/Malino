@@ -65,6 +65,21 @@ class SmsReceiver : BroadcastReceiver() {
                         )
                     }
                 }
+                // پیام انجام معامله کارگزاری فقط به‌صورت پیش‌نویس ذخیره می‌شود و تا
+                // تأیید کاربر هیچ تغییری در سبد سهام نمی‌دهد.
+                val stock = ir.kharjyar.app.core.sms.StockTradeSmsParser.parse(sender, body)
+                if (stock != null) {
+                    app.database.stockDao().insertDraft(
+                        ir.kharjyar.app.data.db.StockSmsDraftEntity(
+                            fingerprint = ir.kharjyar.app.core.sms.SmsFingerprint.of(sender, body, receivedAt),
+                            sender = sender, broker = stock.broker, symbol = stock.symbol,
+                            side = stock.side, quantity = stock.quantity,
+                            unitPriceRial = stock.unitPriceRial, totalRial = stock.totalRial,
+                            occurredAt = receivedAt
+                        )
+                    )
+                    return@launch
+                }
                 val result = app.repository.ingestSms(sender, body, receivedAt)
                 val smsId = result.smsId
                 if (smsId != null && !result.duplicate) {

@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
-object AssetKind { const val GOLD=0; const val VEHICLE=1; const val PROPERTY=2; const val OTHER=3 }
+object AssetKind { const val GOLD=0; const val VEHICLE=1; const val PROPERTY=2; const val OTHER=3; const val CURRENCY=4; const val STOCK=5 }
 @Entity(tableName="assets",indices=[Index("kind"),Index("active")])
 @Serializable
 data class AssetEntity(@PrimaryKey(autoGenerate=true)val id:Long=0,val kind:Int,val title:String,val quantity:Double=1.0,val purchasePriceRial:Long,val currentValueRial:Long,val purchasedAt:Long,val note:String="",val active:Boolean=true)

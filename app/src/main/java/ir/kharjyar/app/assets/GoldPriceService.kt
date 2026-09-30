@@ -36,7 +36,7 @@ object GoldPriceService {
             Regex("\\\"(?:price|value|last|p)\\\"\\s*:\\s*\\\"?([0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬]{3,})"),
             Regex("data-(?:price|value|last)=[\\\"']([0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬]{3,})")
         ).flatMap { regex -> regex.findAll(html).mapNotNull { digitsToLong(it.groupValues[1]) }.toList() }
-        val minimum=if(profile=="price_dollar_rl")100_000L else 1_000_000L
+        val minimum=if(profile=="geram18")1_000_000L else 1_000L
         return (labelled+rawCandidates).firstOrNull { it>=minimum }
     }
 
@@ -68,6 +68,16 @@ object GoldPriceService {
 
     /** نرخ دلار بازار آزاد ایران به ریال؛ صفحه اصلی و دو مسیر جایگزین امتحان می‌شوند. */
     suspend fun dollarRial():Long? = currentRial("price_dollar_rl")
+
+    /** پروفایل نرخ آزاد ارزهای متداول بازار ایران. */
+    private val currencyProfiles = mapOf(
+        "USD" to "price_dollar_rl", "EUR" to "price_eur", "GBP" to "price_gbp",
+        "AED" to "price_aed", "TRY" to "price_try", "CAD" to "price_cad",
+        "AUD" to "price_aud", "CHF" to "price_chf", "CNY" to "price_cny"
+    )
+
+    /** نرخ یک واحد ارز در بازار آزاد به ریال؛ null یعنی منبع در دسترس نبوده است. */
+    suspend fun currencyRial(code:String):Long? = currencyProfiles[code]?.let { currentRial(it) }
 }
 
 object IranianGoldCalculator {

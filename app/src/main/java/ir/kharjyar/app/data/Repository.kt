@@ -124,12 +124,23 @@ class Repository(val db: KharjYarDatabase) {
                 )
             }
         )
+        // پیامک سود ممکن است شماره سپرده مبدأ را بنویسد، در حالی‌که وجه به حساب
+        // دیگری واریز شده است. مقصد فقط از تنظیم صریح کاربر انتخاب می‌شود؛ حدس نمی‌زنیم.
+        val normalizedSms = ir.kharjyar.app.core.text.Digits.normalizeForMatch(sms.body)
+        val isInterestSms = listOf("سود سپرده","سود ماهانه","سود علی الحساب").any { normalizedSms.contains(it) }
+        val configuredInterestDestinations = if(isInterestSms) activeAccounts.filter { it.monthlyInterestBearing }.mapNotNull { source ->
+            val sourceMentioned = ir.kharjyar.app.core.sms.AccountNumberMatcher.match(sms.body,listOf(ir.kharjyar.app.core.sms.MatchableAccount(source.id,source.maskedNumber,source.accountNumber,source.iban,source.cardNumber))) is AccountMatch.Single
+            if(sourceMentioned) (source.interestDestinationAccountId ?: source.id) else null
+        }.distinct() else emptyList()
+        val interestMatch:AccountMatch=when(configuredInterestDestinations.size){1->AccountMatch.Single(configuredInterestDestinations.single());in 2..Int.MAX_VALUE->AccountMatch.Ambiguous(configuredInterestDestinations);else->AccountMatch.Unknown}
         // سرشماره‌های نام‌دار بانک: فقط وقتی دقیقاً یک حساب از همان بانک وجود دارد
         // به‌صورت خودکار انتخاب می‌شوند؛ با چند حساب هرگز حدس خطرناک نمی‌زنیم.
         val inferredBank = ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sms.sender)
         val bankIds = inferredBank?.let { bank -> activeAccounts.filter { ir.kharjyar.app.core.sms.BankSenderResolver.sameBank(it.bankName, bank) }.map { it.id }.distinct() }.orEmpty()
         val bankMatch: AccountMatch = when(bankIds.size){1->AccountMatch.Single(bankIds.single());in 2..Int.MAX_VALUE->AccountMatch.Ambiguous(bankIds);else->AccountMatch.Unknown}
         val match = when {
+            interestMatch is AccountMatch.Single -> interestMatch
+            interestMatch is AccountMatch.Ambiguous -> interestMatch
             numberMatch is AccountMatch.Single -> numberMatch
             senderMatch is AccountMatch.Single -> senderMatch
             numberMatch is AccountMatch.Ambiguous -> numberMatch
