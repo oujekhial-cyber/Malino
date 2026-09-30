@@ -1,1 +1,10 @@
-e: The daemon has terminated unexpectedly on startup attempt #1 with error code: 0. The daemon process output:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:32:17 Conflicting declarations:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:37:17 Conflicting declarations:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:32 Overload resolution ambiguity between candidates:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:55 Overload resolution ambiguity between candidates:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:75 Unresolved reference 'it'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:32:17 Conflicting declarations:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:37:17 Conflicting declarations:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:32 Overload resolution ambiguity between candidates:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:55 Overload resolution ambiguity between candidates:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:75 Unresolved reference 'it'.

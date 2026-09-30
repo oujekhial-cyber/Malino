@@ -1,9 +1,3 @@
-> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :app:preBuild UP-TO-DATE
-> Task :app:preDebugBuild UP-TO-DATE
-> Task :app:checkDebugAarMetadata UP-TO-DATE
-> Task :app:generateDebugResValues UP-TO-DATE
-> Task :app:mapDebugSourceSetPaths UP-TO-DATE
 > Task :app:generateDebugResources UP-TO-DATE
 > Task :app:mergeDebugResources UP-TO-DATE
 > Task :app:packageDebugResources UP-TO-DATE
@@ -15,25 +9,52 @@
 > Task :app:processDebugManifestForPackage UP-TO-DATE
 > Task :app:processDebugResources UP-TO-DATE
 > Task :app:kspDebugKotlin UP-TO-DATE
-> Task :app:compileDebugKotlin UP-TO-DATE
 > Task :app:javaPreCompileDebug UP-TO-DATE
-> Task :app:compileDebugJavaWithJavac UP-TO-DATE
-> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
 > Task :app:preDebugAndroidTestBuild SKIPPED
 > Task :app:generateDebugAndroidTestResValues FROM-CACHE
-> Task :app:generateDebugAndroidTestLintModel
 > Task :app:extractProguardFiles UP-TO-DATE
-> Task :app:generateDebugLintReportModel
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
-> Task :app:generateDebugUnitTestLintModel
-> Task :app:lintAnalyzeDebugAndroidTest
-> Task :app:lintAnalyzeDebug
-> Task :app:lintAnalyzeDebugUnitTest
 
-> Task :app:lintReportDebug
-Wrote HTML report to file:///home/runner/work/Malino/Malino/app/build/reports/lint-results-debug.html
+> Task :app:compileDebugKotlin FAILED
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:32:17 Conflicting declarations:
+val securityNoticeKeywords: List<String>
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:37:17 Conflicting declarations:
+val securityNoticeKeywords: List<String>
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:32 Overload resolution ambiguity between candidates:
+val securityNoticeKeywords: List<String>
+val securityNoticeKeywords: List<String>
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:55 Overload resolution ambiguity between candidates:
+fun <T> Array<out T>.any(predicate: (T) -> Boolean): Boolean
+fun BooleanArray.any(predicate: (Boolean) -> Boolean): Boolean
+fun ByteArray.any(predicate: (Byte) -> Boolean): Boolean
+fun CharArray.any(predicate: (Char) -> Boolean): Boolean
+fun DoubleArray.any(predicate: (Double) -> Boolean): Boolean
+fun FloatArray.any(predicate: (Float) -> Boolean): Boolean
+fun IntArray.any(predicate: (Int) -> Boolean): Boolean
+fun LongArray.any(predicate: (Long) -> Boolean): Boolean
+fun ShortArray.any(predicate: (Short) -> Boolean): Boolean
+fun <T> Iterable<T>.any(predicate: (T) -> Boolean): Boolean
+fun <K, V> Map<out K, V>.any(predicate: (Map.Entry<K, V>) -> Boolean): Boolean
+fun UByteArray.any(predicate: (UByte) -> Boolean): Boolean
+fun UIntArray.any(predicate: (UInt) -> Boolean): Boolean
+fun ULongArray.any(predicate: (ULong) -> Boolean): Boolean
+fun UShortArray.any(predicate: (UShort) -> Boolean): Boolean
+fun <T> Sequence<T>.any(predicate: (T) -> Boolean): Boolean
+fun CharSequence.any(predicate: (Char) -> Boolean): Boolean
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/sms/SmsClassifier.kt:58:75 Unresolved reference 'it'.
 
-> Task :app:lintDebug
+FAILURE: Build failed with an exception.
 
-BUILD SUCCESSFUL in 1m 21s
-28 actionable tasks: 8 executed, 1 from cache, 19 up-to-date
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 5s
+18 actionable tasks: 1 executed, 1 from cache, 16 up-to-date
