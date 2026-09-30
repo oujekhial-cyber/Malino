@@ -9,7 +9,7 @@ import java.io.File
 class BankAccountKindAndInterestGuardTest {
  @Test fun interestSmsIsRecognizedAsDeposit(){
   val result=Extractor.autoExtract("سود سپرده شماره 1234 به مبلغ 1,250,000 ریال واریز شد")
-  assertEquals(1_250_000,result.amountRial)
+  assertEquals(1_250_000L,result.amountRial)
   assertEquals(ExtractedDirection.DEPOSIT,result.directionEnum())
  }
  @Test fun accountFormAndMigrationPersistInterestRouting(){
