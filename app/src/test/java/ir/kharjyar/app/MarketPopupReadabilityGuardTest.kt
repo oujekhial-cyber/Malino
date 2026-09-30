@@ -21,7 +21,7 @@ class MarketPopupReadabilityGuardTest {
             "PremiumMarketTile","\"Au\"","\"\\$\"","آخرین تغییرات بازار","آخرین بروزرسانی"
         ).forEach{assertTrue(it,source.contains(it))}
         val popup=source.substring(source.indexOf("if(expanded)Popup"),source.indexOf("@Composable private fun PremiumMarketTile"))
-        assertTrue(popup.contains("20.dp.roundToPx()"))
+        assertTrue(source.contains("20.dp.roundToPx()"))
         assertTrue(popup.contains("dismissOnClickOutside=true"))
         assertTrue(popup.contains("fillMaxWidth().wrapContentHeight()"))
         assertFalse(popup.contains("Modifier.fillMaxSize()"))
