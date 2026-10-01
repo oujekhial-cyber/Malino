@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: de9a444d4f4bfa17ebc9a793f3ff93410195e84c
-- تاریخ: 2026-10-01 07:46 UTC
-- unit tests: failure
+- commit: a0f559732ac37b9e7426ad68ac81960a933d1262
+- تاریخ: 2026-10-01 08:25 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,9 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=457 failures=2 errors=0 skipped=0
-FAIL ir.kharjyar.app.CivicListFirstGuardTest.civic messages support sms import and explicit manual utility bill entry: java.lang.AssertionError
-FAIL ir.kharjyar.app.UnifiedMoneyAmountFieldsGuardTest.money forms pass selected unit and convert input to rial storage: java.lang.AssertionError: unit missing in CivicCenterScreen.kt
+tests=457 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
