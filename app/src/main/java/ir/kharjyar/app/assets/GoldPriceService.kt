@@ -78,6 +78,13 @@ object GoldPriceService {
 
     /** نرخ یک واحد ارز در بازار آزاد به ریال؛ null یعنی منبع در دسترس نبوده است. */
     suspend fun currencyRial(code:String):Long? = currencyProfiles[code]?.let { currentRial(it) }
+
+    /** پروفایل عمومی فلزات گران‌بهای رایج؛ مقدار ناموجود هرگز تخمین زده نمی‌شود. */
+    private val preciousMetalProfiles = mapOf(
+        "GOLD18" to "geram18", "GOLD24" to "geram24", "MESGHAL" to "mesghal", "SILVER" to "silver_999"
+    )
+
+    suspend fun preciousMetalRial(code:String):Long? = preciousMetalProfiles[code]?.let { currentRial(it) }
 }
 
 object IranianGoldCalculator {

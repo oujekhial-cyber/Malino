@@ -22,9 +22,13 @@ data class VehicleEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val ownerI
 @Serializable
 data class VehicleOilServiceEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val vehicleId:Long,val servicedAt:Long,val currentKm:Int,val nextKm:Int,val nextDueAt:Long,val oilType:String="",val note:String="",val reminderId:Long?=null,val serviceType:String="تعویض روغن",val partsStatus:String="")
 
-@Entity(tableName="civic_messages",indices=[Index(value=["fingerprint"],unique=true),Index("kind"),Index("receivedAt"),Index("personId"),Index("vehicleId")])
+@Entity(tableName="utility_bill_profiles",indices=[Index(value=["identifier"],unique=true),Index("type")])
 @Serializable
-data class CivicMessageEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val kind:Int,val sender:String,val body:String,val receivedAt:Long,val fingerprint:String,val personId:Long?=null,val vehicleId:Long?=null,val read:Boolean=false)
+data class UtilityBillProfileEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val title:String,val type:String,val identifier:String,val address:String="",val note:String="",val active:Boolean=true)
+
+@Entity(tableName="civic_messages",indices=[Index(value=["fingerprint"],unique=true),Index("kind"),Index("receivedAt"),Index("personId"),Index("vehicleId"),Index("utilityBillId")])
+@Serializable
+data class CivicMessageEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val kind:Int,val sender:String,val body:String,val receivedAt:Long,val fingerprint:String,val personId:Long?=null,val vehicleId:Long?=null,val utilityBillId:Long?=null,val read:Boolean=false)
 
 @Dao interface CivicDao {
  @Query("SELECT * FROM user_profiles") suspend fun allProfilesOnce():List<UserProfileEntity>
@@ -32,6 +36,12 @@ data class CivicMessageEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val k
  @Query("SELECT * FROM vehicles") suspend fun allVehiclesOnce():List<VehicleEntity>
  @Query("SELECT * FROM vehicle_oil_services") suspend fun allOilServicesOnce():List<VehicleOilServiceEntity>
  @Query("SELECT * FROM civic_messages") suspend fun allMessagesOnce():List<CivicMessageEntity>
+ @Query("SELECT * FROM utility_bill_profiles") suspend fun allUtilityBillsOnce():List<UtilityBillProfileEntity>
+ @Query("SELECT * FROM utility_bill_profiles WHERE active=1 ORDER BY type,title") fun observeUtilityBills():Flow<List<UtilityBillProfileEntity>>
+ @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insertUtilityBill(v:UtilityBillProfileEntity):Long
+ @Update suspend fun updateUtilityBill(v:UtilityBillProfileEntity)
+ @Query("UPDATE civic_messages SET utilityBillId=NULL WHERE utilityBillId=:id") suspend fun detachUtilityBillMessages(id:Long)
+ @Query("DELETE FROM utility_bill_profiles WHERE id=:id") suspend fun deleteUtilityBill(id:Long)
  @Query("SELECT * FROM civic_messages ORDER BY receivedAt DESC") fun observeMessages():Flow<List<CivicMessageEntity>>
  @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insertMessage(v:CivicMessageEntity):Long
  @Update suspend fun updateMessage(v:CivicMessageEntity)

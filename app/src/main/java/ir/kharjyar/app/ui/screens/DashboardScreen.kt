@@ -126,7 +126,7 @@ import ir.kharjyar.app.ui.components.EmbossedText
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 @Composable
-fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit) {
+fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit,onOpenMarket:()->Unit) {
     val scope=rememberCoroutineScope();var expanded by remember{mutableStateOf(false)};var panelVisible by remember{mutableStateOf(false)};var refreshKey by remember{mutableStateOf(0)};var loading by remember{mutableStateOf(false)};var gold by remember{mutableStateOf<Long?>(null)};var dollar by remember{mutableStateOf<Long?>(null)};var previousGold by remember{mutableStateOf<Long?>(null)};var previousDollar by remember{mutableStateOf<Long?>(null)};var failed by remember{mutableStateOf(false)};var updatedAt by remember{mutableStateOf("—")}
     val arrowRotation by animateFloatAsState(if(expanded)180f else 0f,animationSpec=tween(550),label="marketArrow")
     val darkMarket=MaterialTheme.colorScheme.background.luminance()<.5f
@@ -134,7 +134,7 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit) {
     val muted=if(darkMarket)Color(0xFF9196A4) else Color(0xFF626978)
     // فاصله کافی از دکمه تا پنجره؛ خود پنجره دیگر تمام ارتفاع صفحه را نمی‌گیرد
     // تا سیستم‌عامل برای جا دادن آن، پنجره را به بالا و روی دکمه منتقل نکند.
-    val marketBarGapPx=with(LocalDensity.current){20.dp.roundToPx()}
+    val marketBarGapPx=with(LocalDensity.current){10.dp.roundToPx()}
     fun closePanel(){scope.launch{panelVisible=false;kotlinx.coroutines.delay(420);expanded=false}}
     LaunchedEffect(expanded,refreshKey){if(!expanded)return@LaunchedEffect;panelVisible=true;loading=true;failed=false;coroutineScope{val g=async{ir.kharjyar.app.assets.GoldPriceService.gram18Rial()};val d=async{ir.kharjyar.app.assets.GoldPriceService.dollarRial()};val newGold=g.await();val newDollar=d.await();if(gold!=null&&newGold!=null)previousGold=gold;if(dollar!=null&&newDollar!=null)previousDollar=dollar;gold=newGold?:gold;dollar=newDollar?:dollar;failed=newGold==null&&newDollar==null;if(!failed){val time=java.text.SimpleDateFormat("HH:mm",java.util.Locale.US).format(java.util.Date());updatedAt=Digits.toPersian(time)}};loading=false}
     Surface(modifier=Modifier.clickable{if(expanded)closePanel()else expanded=true},color=MaterialTheme.colorScheme.surface.copy(alpha=.78f),shape=RoundedCornerShape(50),border=BorderStroke(1.dp,MaterialTheme.colorScheme.primary.copy(alpha=.30f)),tonalElevation=5.dp,shadowElevation=5.dp){Row(Modifier.padding(horizontal=10.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)){Icon(Icons.Filled.ShowChart,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(16.dp));Text("نبض بازار",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.labelMedium);Icon(Icons.Filled.ExpandMore,null,modifier=Modifier.size(16.dp).graphicsLayer(rotationZ=arrowRotation))}}
@@ -151,6 +151,7 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit) {
            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp)){PremiumMarketTile("دلار آزاد","هر دلار",dollar,previousDollar,unit,Color(0xFF35BDB9),"\$",Modifier.weight(1f),darkMarket);PremiumMarketTile("طلای ۱۸ عیار","هر گرم",gold,previousGold,unit,Color(0xFFD4A526),"Au",Modifier.weight(1f),darkMarket)}}
            if(failed)Text("دریافت نرخ‌ها ممکن نشد؛ اینترنت را بررسی کنید.",color=Color(0xFFFF506C),style=MaterialTheme.typography.bodySmall)
            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){Icon(Icons.Filled.Refresh,"به‌روزرسانی",tint=muted,modifier=Modifier.size(20.dp).clip(CircleShape).clickable(enabled=!loading){refreshKey++}.padding(2.dp));Text("آخرین بروزرسانی: امروز، $updatedAt",color=muted,style=MaterialTheme.typography.labelSmall)}
+           OutlinedButton(onClick={expanded=false;onOpenMarket()},modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(13.dp),border=BorderStroke(1.dp,Color(0xFF55D9D5).copy(.55f))){Icon(Icons.Filled.ShowChart,null,tint=Color(0xFF55D9D5));Spacer(Modifier.width(7.dp));Text("مشاهده کامل نبض بازار",color=Color(0xFF55D9D5),fontWeight=FontWeight.Bold)}
           }
          }
         }

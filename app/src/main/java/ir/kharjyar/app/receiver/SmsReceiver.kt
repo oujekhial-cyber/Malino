@@ -38,32 +38,31 @@ class SmsReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 // پیامک‌های خدمات شهروندی مستقل از تراکنش‌های بانکی نگهداری می‌شوند.
-                ir.kharjyar.app.core.sms.CivicSmsClassifier.classify(sender, body)?.let { kind ->
+                // نوع قبض از پروفایل ثبت‌شده می‌آید؛ لازم نیست خود پیامک حتماً نام آب/برق/گاز را بنویسد.
+                val civicDao = app.database.civicDao()
+                val registeredBillId = if (ir.kharjyar.app.core.sms.UtilityBillMatcher.looksLikeBillMessage(body))
+                    ir.kharjyar.app.core.sms.UtilityBillMatcher.uniqueProfileId(body,civicDao.allUtilityBillsOnce()) else null
+                val civicKind = if(registeredBillId!=null) ir.kharjyar.app.data.db.CivicMessageKind.UTILITY_BILL else ir.kharjyar.app.core.sms.CivicSmsClassifier.classify(sender, body)
+                civicKind?.let { kind ->
+                    val utilityBillId = if (kind == ir.kharjyar.app.data.db.CivicMessageKind.UTILITY_BILL) registeredBillId else null
+                    // قبض ناشناس وارد هیچ محل حدسی نمی‌شود؛ ابتدا باید شناسه آن در
+                    // «قبوض خدماتی» معرفی شده باشد.
+                    if (kind == ir.kharjyar.app.data.db.CivicMessageKind.UTILITY_BILL && utilityBillId == null) return@launch
                     val vehicleId = if (kind == ir.kharjyar.app.data.db.CivicMessageKind.TRAFFIC_FINE) {
-                        ir.kharjyar.app.core.sms.IranianPlateMatcher.uniqueVehicleId(
-                            body,
-                            app.database.civicDao().allVehiclesOnce()
-                        )
+                        ir.kharjyar.app.core.sms.IranianPlateMatcher.uniqueVehicleId(body, civicDao.allVehiclesOnce())
                     } else null
-                    val civicMessageId = app.database.civicDao().insertMessage(
+                    val civicMessageId = civicDao.insertMessage(
                         ir.kharjyar.app.data.db.CivicMessageEntity(
-                            kind = kind,
-                            sender = sender,
-                            body = body,
-                            receivedAt = receivedAt,
+                            kind = kind, sender = sender, body = body, receivedAt = receivedAt,
                             fingerprint = ir.kharjyar.app.core.sms.CivicSmsClassifier.fingerprint(sender, body, receivedAt),
-                            vehicleId = vehicleId
+                            vehicleId = vehicleId, utilityBillId = utilityBillId
                         )
                     )
                     if (kind == ir.kharjyar.app.data.db.CivicMessageKind.TRAFFIC_FINE && civicMessageId > 0) {
-                        val vehicleTitle = vehicleId?.let { id -> app.database.civicDao().allVehiclesOnce().firstOrNull { it.id == id }?.let { "${it.title} (${it.plate})" } }
-                        ir.kharjyar.app.notify.Notifier.notifyTrafficFine(
-                            context,
-                            civicMessageId,
-                            vehicleTitle,
-                            ir.kharjyar.app.core.sms.TrafficFineParser.amountRial(body)
-                        )
+                        val vehicleTitle = vehicleId?.let { id -> civicDao.allVehiclesOnce().firstOrNull { it.id == id }?.let { "${it.title} (${it.plate})" } }
+                        ir.kharjyar.app.notify.Notifier.notifyTrafficFine(context,civicMessageId,vehicleTitle,ir.kharjyar.app.core.sms.TrafficFineParser.amountRial(body))
                     }
+                    return@launch
                 }
                 // پیام انجام معامله کارگزاری فقط به‌صورت پیش‌نویس ذخیره می‌شود و تا
                 // تأیید کاربر هیچ تغییری در سبد سهام نمی‌دهد.

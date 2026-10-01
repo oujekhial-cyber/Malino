@@ -39,7 +39,7 @@ class BackupManager(
             loans = repo.db.loanDao().allLoansOnce(), installments = repo.db.loanDao().allInstallmentsOnce(), assets = repo.db.assetDao().allAssetsOnce(), stockSmsDrafts = repo.db.stockDao().allOnce(),
             assetTrades = repo.db.assetDao().allTradesOnce(), attachments = repo.db.transactionAttachmentDao().allOnce(), reminders = repo.db.reminderDao().allOnce(),
             profiles = repo.db.civicDao().allProfilesOnce(), coveredPeople = repo.db.civicDao().allPeopleOnce(), vehicles = repo.db.civicDao().allVehiclesOnce(),
-            oilServices = repo.db.civicDao().allOilServicesOnce(), civicMessages = repo.db.civicDao().allMessagesOnce(),
+            oilServices = repo.db.civicDao().allOilServicesOnce(), utilityBillProfiles = repo.db.civicDao().allUtilityBillsOnce(), civicMessages = repo.db.civicDao().allMessagesOnce(),
             privateFiles = collectPrivateFiles(repo.db.checkDao().allOnce().map { it.imagePath } + repo.db.transactionAttachmentDao().allOnce().map { it.imagePath } + repo.db.civicDao().allProfilesOnce().map { it.imagePath }),
             settings = settings.exportForBackup()
         )
@@ -91,7 +91,7 @@ class BackupManager(
             loans = merged(payload.loans,current.loans){it.id}, installments = merged(payload.installments,current.installments){it.id}, assets = merged(payload.assets,current.assets){it.id}, stockSmsDrafts = merged(payload.stockSmsDrafts,current.stockSmsDrafts){it.fingerprint},
             assetTrades = merged(payload.assetTrades,current.assetTrades){it.id}, attachments = merged(payload.attachments,current.attachments){it.id}, reminders = merged(payload.reminders,current.reminders){it.id},
             profiles = merged(payload.profiles,current.profiles){it.id}, coveredPeople = merged(payload.coveredPeople,current.coveredPeople){it.id}, vehicles = merged(payload.vehicles,current.vehicles){it.id},
-            oilServices = merged(payload.oilServices,current.oilServices){it.id}, civicMessages = merged(payload.civicMessages,current.civicMessages){it.fingerprint},
+            oilServices = merged(payload.oilServices,current.oilServices){it.id}, utilityBillProfiles = merged(payload.utilityBillProfiles,current.utilityBillProfiles){it.identifier}, civicMessages = merged(payload.civicMessages,current.civicMessages){it.fingerprint},
             privateFiles = merged(payload.privateFiles,current.privateFiles){it.path}, settings = current.settings
         )
         return restore(combined)
@@ -136,7 +136,7 @@ class BackupManager(
             payload.loans.forEach { repo.db.loanDao().insertLoan(it) }; if(payload.installments.isNotEmpty()) repo.db.loanDao().insertInstallments(payload.installments)
             payload.assets.forEach { repo.db.assetDao().insert(it) }; payload.assetTrades.forEach { repo.db.assetDao().insertTrade(it) }; payload.stockSmsDrafts.forEach { repo.db.stockDao().insertDraft(it) }; payload.attachments.forEach { repo.db.transactionAttachmentDao().insert(it) }
             payload.reminders.forEach { repo.db.reminderDao().insert(it) }; payload.profiles.forEach { repo.db.civicDao().saveProfile(it) }; payload.coveredPeople.forEach { repo.db.civicDao().insertPerson(it) }
-            payload.vehicles.forEach { repo.db.civicDao().insertVehicle(it) }; payload.oilServices.forEach { repo.db.civicDao().insertOilService(it) }; payload.civicMessages.forEach { repo.db.civicDao().insertMessage(it) }
+            payload.vehicles.forEach { repo.db.civicDao().insertVehicle(it) }; payload.oilServices.forEach { repo.db.civicDao().insertOilService(it) }; payload.utilityBillProfiles.forEach { repo.db.civicDao().insertUtilityBill(it) }; payload.civicMessages.forEach { repo.db.civicDao().insertMessage(it) }
             restorePrivateFiles(payload.privateFiles)
 
             report = RestoreReport(merge.carriedOver.size, merge.duplicates)
@@ -152,6 +152,7 @@ private suspend fun ir.kharjyar.app.data.db.KharjYarDatabase.clearAllTablesInTra
         if (clearTemplates) execSQL("DELETE FROM sms_templates")
         execSQL("DELETE FROM vehicle_oil_services")
         execSQL("DELETE FROM civic_messages")
+        execSQL("DELETE FROM utility_bill_profiles")
         execSQL("DELETE FROM vehicles")
         execSQL("DELETE FROM covered_people")
         execSQL("DELETE FROM user_profiles")

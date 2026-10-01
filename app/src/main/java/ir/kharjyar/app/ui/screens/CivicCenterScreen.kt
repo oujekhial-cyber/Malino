@@ -38,7 +38,7 @@ private val utilityBillTypes=listOf("آب","برق","گاز","تلفن","سای�
 
 @Composable
 fun CivicCenterScreen(vm:AppViewModel){
- val dao=vm.repo.db.civicDao();val messages by dao.observeMessages().collectAsState(initial=emptyList());val people by dao.observePeople().collectAsState(initial=emptyList());val vehicles by dao.observeVehicles().collectAsState(initial=emptyList());val scope=rememberCoroutineScope()
+ val dao=vm.repo.db.civicDao();val messages by dao.observeMessages().collectAsState(initial=emptyList());val utilityBills by dao.observeUtilityBills().collectAsState(initial=emptyList());val people by dao.observePeople().collectAsState(initial=emptyList());val vehicles by dao.observeVehicles().collectAsState(initial=emptyList());val scope=rememberCoroutineScope()
  var selectedKind by remember{mutableStateOf<Int?>(null)};var entry by remember{mutableStateOf<Int?>(null)};var chooser by remember{mutableStateOf(false)};var utilityFilter by remember{mutableStateOf(BILL_ALL)}
  BackHandler(enabled=entry!=null||selectedKind!=null){if(entry!=null)entry=null else selectedKind=null}
  if(entry==ENTRY_UTILITY_BILL){CivicBillEntry(vm,{entry=null},{entry=null});return}
@@ -55,17 +55,17 @@ fun CivicCenterScreen(vm:AppViewModel){
     }
     
    }else{
-    val kind=selectedKind!!;val sectionMessages=messages.filter{it.kind==kind};val shown=if(kind==CivicMessageKind.UTILITY_BILL&&utilityFilter!=BILL_ALL)sectionMessages.filter{utilityBillType(it)==utilityFilter}else sectionMessages;val accent=civicAccent(kind)
+    val kind=selectedKind!!;val sectionMessages=messages.filter{it.kind==kind};val shown=if(kind==CivicMessageKind.UTILITY_BILL&&utilityFilter!=BILL_ALL)sectionMessages.filter{m->utilityBills.firstOrNull{it.id==m.utilityBillId}?.type==utilityFilter}else sectionMessages;val accent=civicAccent(kind)
     TextButton({selectedKind=null}){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به قبوض شهروندی")}
     Text(civicSectionTitle(kind),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
     Text(civicSectionSubtitle(kind),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-    if(kind==CivicMessageKind.UTILITY_BILL){Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){(listOf(BILL_ALL)+utilityBillTypes).forEach{type->FilterChip(utilityFilter==type,{utilityFilter=type},{Text(type)})}}}
+    if(kind==CivicMessageKind.UTILITY_BILL){Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){(listOf(BILL_ALL)+utilityBillTypes).forEach{type->FilterChip(utilityFilter==type,{utilityFilter=type},{Text(type)})}};Text("اشتراک‌های ثبت‌شده",fontWeight=FontWeight.Bold);if(utilityBills.isEmpty())Text("ابتدا شناسه قبض یا شماره اشتراک را ثبت کنید تا پیامک‌ها به محل درست متصل شوند.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);utilityBills.filter{utilityFilter==BILL_ALL||it.type==utilityFilter}.forEach{bill->Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=accent.copy(.06f))){Column(Modifier.padding(12.dp)){Text("${bill.title} • ${bill.type}",fontWeight=FontWeight.Bold);Text("شناسه/اشتراک: ${Digits.toPersian(bill.identifier)}",style=MaterialTheme.typography.bodySmall);if(bill.address.isNotBlank())Text(bill.address,style=MaterialTheme.typography.bodySmall)}}};Text("پیامک‌های تطبیق‌یافته",fontWeight=FontWeight.Bold)}
     if(shown.isEmpty())Card(Modifier.fillMaxWidth()){Text("هنوز موردی در این بخش ثبت نشده است.",Modifier.padding(24.dp))}
-    shown.forEach{m->Card(colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.10f)),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().border(1.3.dp,accent,RoundedCornerShape(16.dp))){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(civicTitle(m.kind),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text(if(m.read)"خوانده‌شده" else "جدید",color=if(m.read)Color(0xFF1B8F52) else Color(0xFFD33B45),fontWeight=FontWeight.Bold)};Text("${m.sender} • ${PersianDate.formatDateTime(m.receivedAt)}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(m.body);Row{if(!m.read)TextButton({scope.launch{dao.updateMessage(m.copy(read=true))}}){Text("خواندم")};TextButton({scope.launch{dao.deleteMessage(m.id)}}){Text("حذف",color=MaterialTheme.colorScheme.error)}}}}}
+    shown.forEach{m->Card(colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.10f)),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().border(1.3.dp,accent,RoundedCornerShape(16.dp))){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(m.kind==CivicMessageKind.UTILITY_BILL)utilityBills.firstOrNull{it.id==m.utilityBillId}?.let{"${it.title} • ${it.type}"}?:civicTitle(m.kind) else civicTitle(m.kind),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text(if(m.read)"خوانده‌شده" else "جدید",color=if(m.read)Color(0xFF1B8F52) else Color(0xFFD33B45),fontWeight=FontWeight.Bold)};Text("${m.sender} • ${PersianDate.formatDateTime(m.receivedAt)}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(m.body);Row{if(!m.read)TextButton({scope.launch{dao.updateMessage(m.copy(read=true))}}){Text("خواندم")};TextButton({scope.launch{dao.deleteMessage(m.id)}}){Text("حذف",color=MaterialTheme.colorScheme.error)}}}}}
    }
   }
   if(selectedKind==null)FloatingActionButton({chooser=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن پروفایل")}
-  if(selectedKind==CivicMessageKind.UTILITY_BILL)ExtendedFloatingActionButton(text={Text("افزودن قبض")},onClick={entry=ENTRY_UTILITY_BILL},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),icon={Icon(Icons.Filled.Add,null)})
+  if(selectedKind==CivicMessageKind.UTILITY_BILL)ExtendedFloatingActionButton(text={Text("ثبت اشتراک قبض")},onClick={entry=ENTRY_UTILITY_BILL},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),icon={Icon(Icons.Filled.Add,null)})
   if(chooser)AlertDialog(onDismissRequest={chooser=false},title={Text("چه موردی ثبت شود؟")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Button({chooser=false;entry=ENTRY_PERSON},Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,Color(0xFF1B8F52))){Text("فرد تحت پوشش")};Button({chooser=false;entry=ENTRY_VEHICLE},Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,Color(0xFFD33B45))){Text("وسیله نقلیه و پلاک")}}},confirmButton={})
  }
 }
@@ -79,16 +79,17 @@ private fun civicTitle(kind:Int)=when(kind){CivicMessageKind.TRAFFIC_FINE->"جر
 private fun utilityBillType(message:CivicMessageEntity):String{val text="${message.sender} ${message.body}";return when{listOf("آب","آبفا").any{text.contains(it,true)}->"آب";listOf("برق","توانیر").any{text.contains(it,true)}->"برق";listOf("گاز").any{text.contains(it,true)}->"گاز";listOf("تلفن","مخابرات").any{text.contains(it,true)}->"تلفن";else->"سایر"}}
 
 @Composable private fun CivicBillEntry(vm:AppViewModel,onDone:()->Unit,onCancel:()->Unit){
- val context=LocalContext.current;val scope=rememberCoroutineScope();val settings by vm.settings.collectAsState();var type by remember{mutableStateOf("آب")};var billId by remember{mutableStateOf("")};var amount by remember{mutableStateOf("")};var date by remember{mutableStateOf(PersianDate.today())};var note by remember{mutableStateOf("")}
+ val context=LocalContext.current;val scope=rememberCoroutineScope();var type by remember{mutableStateOf("آب")};var title by remember{mutableStateOf("")};var billId by remember{mutableStateOf("")};var address by remember{mutableStateOf("")};var note by remember{mutableStateOf("")}
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
   TextButton(onCancel){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به قبوض خدماتی")}
-  Text("افزودن قبض",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
-  Text("نوع قبض");Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){utilityBillTypes.forEach{item->FilterChip(type==item,{type=item},{Text(item)})}}
-  OutlinedTextField(billId,{billId=Digits.normalize(it)},label={Text("شناسه قبض یا اشتراک")},modifier=Modifier.fillMaxWidth())
-  AmountTextField(amount,{amount=it},"مبلغ قبض",Modifier.fillMaxWidth(),unit=settings.moneyUnit)
-  Text("تاریخ قبض");PersianDateField(date,{date=it})
+  Text("ثبت اشتراک قبض",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
+  Text("شناسه قبض یا شماره اشتراک را یک‌بار ثبت کنید. از این پس فقط پیامکی که همین شناسه را داشته باشد به این قبض متصل می‌شود.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  Text("نوع خدمت");Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){utilityBillTypes.forEach{item->FilterChip(type==item,{type=item},{Text(item)})}}
+  OutlinedTextField(title,{title=it},label={Text("عنوان محل (مثلاً برق خانه)")},modifier=Modifier.fillMaxWidth(),singleLine=true)
+  OutlinedTextField(billId,{billId=Digits.normalize(it).filter(Char::isDigit)},label={Text("شناسه قبض یا شماره اشتراک")},modifier=Modifier.fillMaxWidth(),singleLine=true)
+  OutlinedTextField(address,{address=it},label={Text("آدرس یا محل مصرف (اختیاری)")},modifier=Modifier.fillMaxWidth())
   OutlinedTextField(note,{note=it},label={Text("توضیحات (اختیاری)")},modifier=Modifier.fillMaxWidth(),minLines=2)
-  Button({scope.launch{val amountRial=Money.inputToRial(amount,settings.moneyUnit)?:0;val body=buildString{append("قبض $type");if(billId.isNotBlank())append(" • شناسه: ${billId.trim()}");append(" • مبلغ: ${Money.format(amountRial,settings.moneyUnit)}");if(note.isNotBlank())append(" • ${note.trim()}")};vm.repo.db.civicDao().insertMessage(CivicMessageEntity(kind=CivicMessageKind.UTILITY_BILL,sender=type,body=body,receivedAt=date.startOfDayMillis(),fingerprint="manual-utility-${System.currentTimeMillis()}",read=false));showSavedMessage(context,"قبض $type");onDone()}},enabled=(Money.inputToRial(amount,settings.moneyUnit)?:0)>0,modifier=Modifier.fillMaxWidth()){Text("ثبت قبض")}
+  Button({scope.launch{val id=ir.kharjyar.app.core.sms.UtilityBillMatcher.normalizeIdentifier(billId);val result=vm.repo.db.civicDao().insertUtilityBill(UtilityBillProfileEntity(title=title.trim(),type=type,identifier=id,address=address.trim(),note=note.trim()));if(result>0){showSavedMessage(context,"اشتراک قبض");onDone()}}},enabled=title.isNotBlank()&&ir.kharjyar.app.core.sms.UtilityBillMatcher.normalizeIdentifier(billId).length>=4,modifier=Modifier.fillMaxWidth()){Text("ثبت شناسه و فعال‌کردن تشخیص پیامک")}
  }
 }
 

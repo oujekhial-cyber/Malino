@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -71,6 +73,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -106,6 +109,8 @@ import ir.kharjyar.app.ui.screens.BackupScreen
 import ir.kharjyar.app.ui.screens.CategoriesScreen
 import ir.kharjyar.app.ui.screens.DashboardScreen
 import ir.kharjyar.app.ui.screens.LiveMarketGlass
+import ir.kharjyar.app.ui.screens.MarketPulseScreen
+import ir.kharjyar.app.ui.screens.NotificationCenterScreen
 import ir.kharjyar.app.ui.screens.ManualEntryScreen
 import ir.kharjyar.app.ui.screens.QuickAddScreen
 import ir.kharjyar.app.ui.screens.OnboardingScreen
@@ -277,12 +282,30 @@ private fun titleOf(route: String?): String = when {
     route == "manual/{dir}" -> "ثبت تراکنش"
     route == "quickAdd" -> "ثبت سریع"
     route == "widgetSettings" -> "تنظیمات ویجت"
+    route == "marketPulse" -> "نبض بازار"
+    route == "notifications" -> "اعلان‌ها"
     route == "settings/appearance" -> "قالب‌ها"
     route == "settings/permissions" -> "مجوزها و اعلان‌ها"
     route == "settings/security" -> "امنیت"
     route == "settings/account" -> "مدیریت حساب"
     route == "profile" -> "پروفایل کاربری"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"
+}
+
+@Composable
+private fun ModernNotificationButton(notificationCount:Int,onClick:()->Unit){
+    val active=notificationCount>0
+    val cyan=Color(0xFF43E4DC);val pink=Color(0xFFFF4E9E)
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr){
+        Box(Modifier.size(44.dp),contentAlignment=Alignment.Center){
+            if(active)Box(Modifier.size(40.dp).shadow(10.dp,CircleShape,ambientColor=pink.copy(.45f),spotColor=cyan.copy(.42f)).background(Brush.radialGradient(listOf(pink.copy(.18f),Color.Transparent)),CircleShape))
+            Box(Modifier.size(38.dp).clip(RoundedCornerShape(13.dp)).background(if(active)Brush.linearGradient(listOf(pink.copy(.24f),Color(0xFF26162F).copy(.82f),cyan.copy(.22f)))else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant.copy(.72f),MaterialTheme.colorScheme.surface.copy(.62f)))).border(1.2.dp,if(active)Brush.linearGradient(listOf(pink,cyan))else Brush.linearGradient(listOf(MaterialTheme.colorScheme.outline.copy(.35f),MaterialTheme.colorScheme.outline.copy(.18f))),RoundedCornerShape(13.dp)).clickable(onClick=onClick),contentAlignment=Alignment.Center){
+                Icon(if(active)Icons.Filled.NotificationsActive else Icons.Filled.Notifications,contentDescription="اعلان‌های جدید",tint=if(active)cyan else MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.size(22.dp))
+                if(active)Box(Modifier.align(Alignment.BottomCenter).padding(bottom=4.dp).size(3.dp).background(pink,CircleShape))
+            }
+            if(active)Box(Modifier.align(Alignment.TopEnd).offset(x=2.dp,y=(-2).dp).height(19.dp).defaultMinSize(minWidth=19.dp).shadow(5.dp,CircleShape,spotColor=pink.copy(.7f)).background(Brush.horizontalGradient(listOf(pink,Color(0xFFD92FCB))),CircleShape).border(1.dp,Color.White.copy(.72f),CircleShape).padding(horizontal=4.dp),contentAlignment=Alignment.Center){Text(Digits.toPersian(if(notificationCount>99)"99+" else notificationCount.toString()),color=Color.White,fontWeight=FontWeight.Black,style=MaterialTheme.typography.labelSmall,maxLines=1)}
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -298,6 +321,9 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     val userProfile by viewModel.repo.db.civicDao().observeProfile().collectAsState(initial = null)
+    val civicMessages by viewModel.repo.db.civicDao().observeMessages().collectAsState(initial = emptyList())
+    val stockDrafts by viewModel.repo.db.stockDao().observePending().collectAsState(initial = emptyList())
+    val notificationCount = reviewCount + civicMessages.count { !it.read } + stockDrafts.size
     var lastBackAt by remember { mutableStateOf(0L) }
 
     LaunchedEffect(initialDestination) {
@@ -434,8 +460,10 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    // آیکون اعلان در سمت چپ فیزیکی نوار، هم‌راستا با منوی همبرگری.
+                    ModernNotificationButton(notificationCount=notificationCount,onClick={go("notifications")})
                 }
-                if(currentRoute=="home") Box(Modifier.align(Alignment.Center)){LiveMarketGlass(settings.moneyUnit)}
+                if(currentRoute=="home") Box(Modifier.align(Alignment.Center)){LiveMarketGlass(settings.moneyUnit){navController.navigate("marketPulse")}}
                 }
             },
             bottomBar = {
@@ -469,6 +497,8 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 modifier = Modifier.padding(contentPadding)
             ) {
                 composable("home") { DashboardScreen(viewModel, navController) }
+                composable("marketPulse") { MarketPulseScreen(viewModel) }
+                composable("notifications") { NotificationCenterScreen(viewModel,navController) }
                 composable("transactions") { TransactionsScreen(viewModel, navController) }
                 composable("transactions/{direction}") { entry ->
                     TransactionsScreen(
