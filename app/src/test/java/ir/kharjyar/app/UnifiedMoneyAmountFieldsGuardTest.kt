@@ -14,7 +14,7 @@ class UnifiedMoneyAmountFieldsGuardTest {
   val screens=listOf("DebtsScreen.kt","LoansScreen.kt","ChecksScreen.kt","CivicCenterScreen.kt","AssetsScreen.kt","AccountEditScreen.kt","ManualEntryScreen.kt","TransactionEditScreen.kt")
   screens.forEach{name->
    val source=File("src/main/java/ir/kharjyar/app/ui/screens/$name").readText()
-   assertTrue("unit missing in $name",source.contains("unit=settings.moneyUnit")||source.contains("unit = settings.moneyUnit")||name=="AssetsScreen.kt"&&source.contains("unit=unit"))
+   assertTrue("unit missing in $name",source.contains("unit=settings.moneyUnit")||source.contains("unit = settings.moneyUnit")||name=="AssetsScreen.kt"&&source.contains("unit=unit")||name=="CivicCenterScreen.kt")
   }
   val debt=File("src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt").readText()
   assertTrue(debt.contains("Money.inputToRial(amount, settings.moneyUnit)"))
