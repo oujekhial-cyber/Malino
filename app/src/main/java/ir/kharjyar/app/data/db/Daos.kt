@@ -64,6 +64,15 @@ interface BlockedSenderDao {
     suspend fun unblock(sender: String)
 }
 
+@Dao interface SpamSmsDao {
+    @Query("SELECT * FROM spam_sms ORDER BY receivedAt DESC") fun observeAll():Flow<List<SpamSmsEntity>>
+    @Query("SELECT * FROM spam_sms ORDER BY receivedAt DESC") suspend fun allOnce():List<SpamSmsEntity>
+    @Query("SELECT * FROM spam_sms WHERE id=:id") suspend fun byId(id:Long):SpamSmsEntity?
+    @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insert(v:SpamSmsEntity):Long
+    @Query("DELETE FROM spam_sms WHERE id=:id") suspend fun delete(id:Long)
+    @Query("DELETE FROM spam_sms WHERE sender=:sender") suspend fun deleteSenderMessages(sender:String)
+}
+
 @Dao
 interface SmsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -74,6 +83,9 @@ interface SmsDao {
 
     @Query("SELECT * FROM sms_candidates WHERE id = :id")
     suspend fun byId(id: Long): SmsCandidateEntity?
+
+    @Query("SELECT * FROM sms_candidates WHERE fingerprint=:fingerprint LIMIT 1")
+    suspend fun byFingerprint(fingerprint:String):SmsCandidateEntity?
 
     @Query("SELECT * FROM sms_candidates WHERE status IN (:statuses) ORDER BY receivedAt DESC")
     fun observeByStatus(statuses: List<Int>): Flow<List<SmsCandidateEntity>>
@@ -212,11 +224,17 @@ interface CategoryDao {
     @Update
     suspend fun update(category: CategoryEntity)
 
-    @Query("SELECT * FROM categories WHERE archived = 0 ORDER BY name")
+    @Query("SELECT * FROM categories WHERE archived = 0 ORDER BY sortOrder, name")
     fun observeActive(): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM categories ORDER BY archived, name")
+    @Query("SELECT * FROM categories ORDER BY sortOrder, name")
     fun observeAll(): Flow<List<CategoryEntity>>
+
+    @Query("UPDATE categories SET sortOrder=:position WHERE id=:id")
+    suspend fun setSortOrder(id:Long,position:Int)
+
+    @Query("SELECT COALESCE(MAX(sortOrder),-1)+1 FROM categories")
+    suspend fun nextSortOrder():Int
 
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun byId(id: Long): CategoryEntity?

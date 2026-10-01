@@ -40,6 +40,11 @@ object SmsClassifier {
         "لغو11", "لغو 11", "پیشنهاد ویژه", "تبلیغ"
     )
 
+    fun isOtp(body:String):Boolean {
+        val text=Digits.normalizeForMatch(body).lowercase()
+        return otpKeywords.any { text.contains(Digits.normalizeForMatch(it).lowercase()) }
+    }
+
     /**
      * طبقه‌بندی پیامک.
      * وجود واژه «رمز» یا «مسدود» به‌تنهایی دلیل حذف نیست؛ اگر نشانه تراکنش + مبلغ باشد مالی است.
@@ -50,7 +55,7 @@ object SmsClassifier {
         val hasTxKeyword = transactionKeywords.any { text.contains(it) }
         val hasBalance = balanceKeywords.any { text.contains(it) }
         val hasAmountLike = Regex("\\d{1,3}([,،٬./]\\d{3})+|\\d{4,}").containsMatchIn(text)
-        val isOtp = otpKeywords.any { text.contains(Digits.normalizeForMatch(it).lowercase()) }
+        val isOtp = isOtp(body)
         val isSecurityNotice = securityNoticeKeywords.any { text.contains(it) }
         val isPromo = promoKeywords.any { text.contains(it) }
 

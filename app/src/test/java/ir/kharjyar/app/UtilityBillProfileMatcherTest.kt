@@ -21,6 +21,6 @@ class UtilityBillProfileMatcherTest {
   val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
   assertTrue(receiver.contains("allUtilityBillsOnce"))
   assertTrue(receiver.contains("utilityBillId == null) return@launch"))
-  assertTrue(db.contains("MIGRATION_16_17")&&db.contains("version = 17"))
+  assertTrue(db.contains("MIGRATION_16_17")&&db.contains("version = 19"))
  }
 }

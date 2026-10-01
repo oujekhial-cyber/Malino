@@ -272,6 +272,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 val peek = 22.dp
                 val pageWidth = (LocalConfiguration.current.screenWidthDp.dp - 32.dp - peek * 2)
                     .coerceAtLeast(180.dp)
+                // همه کارت‌های خلاصه/بانکی/نقدی ارتفاع یکسان دارند تا هنگام ورق‌زدن،
+                // بخش تراکنش‌های زیر آن‌ها بالا و پایین نپرد.
+                val accountCardHeight = 300.dp
                 val dashboardLayoutDirection = LocalLayoutDirection.current
                 // وضعیت جابه‌جایی تا زمان رهاکردن ثابت می‌ماند؛ ترتیب فقط در پایان ذخیره می‌شود.
                 var draggingId by remember { mutableStateOf<Long?>(null) }
@@ -288,6 +291,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 
                 EnterCard(0) {
                     LazyRow(
+                        modifier = Modifier.height(accountCardHeight),
                         state = rowState,
                         flingBehavior = controlledFling,
                         contentPadding = PaddingValues(horizontal = peek),
@@ -300,6 +304,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             HeroCard(
                                 modifier = Modifier
                                     .width(pageWidth)
+                                    .height(accountCardHeight)
                                     .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
                                 neon = settings.cardShine
                             ) {
@@ -496,8 +501,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
                                 balanceColor = if (hasDiscrepancy) skin.expenseColor else null,
+                                showDetailsWhenSelected = false,
                                 modifier = Modifier
                                     .width(pageWidth)
+                                    .height(accountCardHeight)
                                     .animateItemPlacement(animationSpec = tween(durationMillis = 480))
                                     .onGloballyPositioned { coordinates ->
                                         val physical = coordinates.positionInWindow()
@@ -644,7 +651,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         balanceCaption = "مانده برآوردی",
                                         selected = defaultAccount?.id == account.id,
                                         masked = !amountVisible,
-                                        modifier = Modifier.width(pageWidth).graphicsLayer {
+                                        showDetailsWhenSelected = false,
+                                        modifier = Modifier.width(pageWidth).height(accountCardHeight).graphicsLayer {
                                             // اندازه در شروع Drag تغییر نمی‌کند تا نقطه‌ای که کاربر
                                             // گرفته دقیقاً زیر همان نقطه انگشت باقی بماند.
                                             scaleX = 1f
@@ -667,6 +675,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             SkinCard(
                                 modifier = Modifier
                                     .width(if (active.isEmpty()) pageWidth else pageWidth * 0.55f)
+                                    .height(accountCardHeight)
                                     .clickable { nav.navigate("accountEdit/0") }
                             ) {
                                 Column(

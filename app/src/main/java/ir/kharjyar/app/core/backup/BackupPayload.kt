@@ -29,6 +29,7 @@ data class BackupPayload(
     val transferGroups: List<BTransferGroup> = emptyList(),
     val smsQueue: List<BSms> = emptyList(),
     val blockedSenders: List<BBlockedSender> = emptyList(),
+    val spamMessages: List<BSpamSms> = emptyList(),
     val debtPeople: List<DebtPersonEntity> = emptyList(), val debts: List<DebtEntity> = emptyList(), val debtPayments: List<DebtPaymentEntity> = emptyList(),
     val checks: List<CheckEntity> = emptyList(), val bankBalances: List<BankBalanceSnapshotEntity> = emptyList(),
     val notes: List<NoteEntity> = emptyList(), val loans: List<LoanEntity> = emptyList(), val installments: List<LoanInstallmentEntity> = emptyList(),
@@ -91,9 +92,9 @@ data class BSender(val id: Long, val accountId: Long, val sender: String, val id
 }
 
 @Serializable
-data class BCategory(val id: Long, val name: String, val colorArgb: Long, val kind: Int, val archived: Boolean, val builtin: Boolean) {
-    fun toEntity() = CategoryEntity(id, name, colorArgb, kind, archived, builtin)
-    companion object { fun of(e: CategoryEntity) = BCategory(e.id, e.name, e.colorArgb, e.kind, e.archived, e.builtin) }
+data class BCategory(val id: Long, val name: String, val colorArgb: Long, val kind: Int, val archived: Boolean, val builtin: Boolean, val sortOrder:Int=0) {
+    fun toEntity() = CategoryEntity(id, name, colorArgb, kind, archived, builtin, sortOrder)
+    companion object { fun of(e: CategoryEntity) = BCategory(e.id, e.name, e.colorArgb, e.kind, e.archived, e.builtin, e.sortOrder) }
 }
 
 @Serializable
@@ -145,6 +146,10 @@ data class BSms(
 data class BBlockedSender(val id:Long,val sender:String,val createdAt:Long){
  fun toEntity()=BlockedSenderEntity(id,sender,createdAt)
  companion object{fun of(e:BlockedSenderEntity)=BBlockedSender(e.id,e.sender,e.createdAt)}
+}
+@Serializable data class BSpamSms(val id:Long,val sender:String,val body:String,val receivedAt:Long,val reason:String,val fingerprint:String){
+ fun toEntity()=SpamSmsEntity(id,sender,body,receivedAt,reason,fingerprint)
+ companion object{fun of(e:SpamSmsEntity)=BSpamSms(e.id,e.sender,e.body,e.receivedAt,e.reason,e.fingerprint)}
 }
 
 

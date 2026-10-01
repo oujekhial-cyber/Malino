@@ -2,6 +2,7 @@ package ir.kharjyar.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -33,13 +37,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.consume
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.kharjyar.app.data.db.CategoryEntity
 import ir.kharjyar.app.data.db.CategoryRuleEntity
@@ -68,6 +78,12 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var editRule by remember { mutableStateOf<CategoryRuleEntity?>(null) }
     var pendingRuleDelete by remember { mutableStateOf<CategoryRuleEntity?>(null) }
     val snackbar = remember { SnackbarHostState() }
+    val orderedCategories = remember { mutableStateListOf<CategoryEntity>() }
+    var draggingCategoryId by remember { mutableStateOf<Long?>(null) }
+    val dragStepPx = with(LocalDensity.current) { 68.dp.toPx() }
+    LaunchedEffect(categories,draggingCategoryId) {
+        if(draggingCategoryId==null){orderedCategories.clear();orderedCategories.addAll(categories)}
+    }
 
     /** حذف قانون با امکان بازگرداندن. */
     fun deleteRuleWithUndo(rule: CategoryRuleEntity) {
@@ -126,26 +142,29 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                     onClick = {
                         scope.launch {
                             val existing = categories.map { normalizedCategoryName(it.name) }.toSet()
+                            var nextOrder=viewModel.repo.categoryDao.nextSortOrder()
                             ir.kharjyar.app.data.db.KharjYarDatabase.DEFAULT_CATEGORIES
                                 .filter { normalizedCategoryName(it.first) !in existing }
                                 .forEach { (name, color, kind) ->
-                                    viewModel.repo.categoryDao.insert(CategoryEntity(name = name, colorArgb = color, kind = kind, builtin = true))
+                                    viewModel.repo.categoryDao.insert(CategoryEntity(name = name, colorArgb = color, kind = kind, builtin = true,sortOrder=nextOrder++))
                                 }
                         }
                     },
                     modifier = Modifier.weight(1f)
                 ) { Text("دسته‌های پیشنهادی") }
             }
+            Text("برای جابه‌جایی، کارت را لمس و نگه دارید و بالا یا پایین ببرید.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(categories.size) { i ->
-                    val c = categories[i]
+                items(orderedCategories.size,key={orderedCategories[it].id}) { i ->
+                    val c = orderedCategories[i]
+                    var dragOffset by remember(c.id){mutableStateOf(0f)}
+                    val dragging=draggingCategoryId==c.id
                     SwipeActionRow(
                         onDelete = { pendingDelete = c },
                         onEdit = { editCategory = c },
-                        // حذف دسته تأییدیه دارد، پس ردیف بلافاصله برداشته نمی‌شود
                         removeOnDelete = false
                     ) {
-                        SkinCard(modifier = Modifier.fillMaxWidth().clickable { editCategory = c }) {
+                        SkinCard(modifier = Modifier.fillMaxWidth().zIndex(if(dragging)2f else 0f).graphicsLayer{translationY=if(dragging)dragOffset else 0f;scaleX=if(dragging)1.025f else 1f;scaleY=if(dragging)1.025f else 1f;shadowElevation=if(dragging)18.dp.toPx() else 0f}.pointerInput(c.id,orderedCategories.size){detectDragGesturesAfterLongPress(onDragStart={draggingCategoryId=c.id;dragOffset=0f},onDrag={change,amount->change.consume();dragOffset+=amount.y;var current=orderedCategories.indexOfFirst{it.id==c.id};if(dragOffset>dragStepPx&&current<orderedCategories.lastIndex){orderedCategories.removeAt(current);orderedCategories.add(current+1,c);dragOffset-=dragStepPx}else if(dragOffset< -dragStepPx&&current>0){orderedCategories.removeAt(current);orderedCategories.add(current-1,c);dragOffset+=dragStepPx}},onDragEnd={dragOffset=0f;draggingCategoryId=null;scope.launch{orderedCategories.forEachIndexed{position,item->viewModel.repo.categoryDao.setSortOrder(item.id,position)}}},onDragCancel={dragOffset=0f;draggingCategoryId=null})}.clickable { editCategory = c }) {
                             Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
                                 CategoryGraphic(name = c.name, color = Color(c.colorArgb), size = 42.dp)
                                 Spacer(Modifier.width(12.dp))
@@ -154,6 +173,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                     Text(if (c.builtin) "پیشنهادی خرج‌یار" else "ساخته‌شده توسط شما", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 if (c.archived) Text("بایگانی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Filled.DragHandle,"جابه‌جایی دسته",tint=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(start=6.dp))
                             }
                         }
                     }
@@ -264,7 +284,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                     scope.launch { snackbar.showSnackbar("دسته‌ای با این نام از قبل وجود دارد") }
                 } else scope.launch {
                     if (e == null) {
-                        val inserted = viewModel.repo.categoryDao.insert(CategoryEntity(name = name, colorArgb = color, archived = archived))
+                        val inserted = viewModel.repo.categoryDao.insert(CategoryEntity(name = name, colorArgb = color, archived = archived,sortOrder=viewModel.repo.categoryDao.nextSortOrder()))
                         if (inserted == -1L) snackbar.showSnackbar("دسته‌ای با این نام از قبل وجود دارد")
                     } else {
                         viewModel.repo.categoryDao.update(e.copy(name = name, colorArgb = color, archived = archived))

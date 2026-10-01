@@ -69,6 +69,7 @@ fun BankCard(
     balanceCaption: String?,
     selected: Boolean,
     masked: Boolean,
+    showDetailsWhenSelected: Boolean = true,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onCopy: (label: String, value: String) -> Unit = { _, _ -> }
@@ -90,6 +91,7 @@ fun BankCard(
         cvv2 = account.cardCvv2,
         showSecrets = !masked,
         balanceColor = null,
+        showDetailsWhenSelected = showDetailsWhenSelected,
         modifier = modifier,
         onClick = onClick,
         onCopy = onCopy
@@ -123,6 +125,7 @@ fun BankCard(
     cvv2: String = "",
     showSecrets: Boolean = false,
     balanceColor: Color? = null,
+    showDetailsWhenSelected: Boolean = true,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onCopy: (label: String, value: String) -> Unit = { _, _ -> },
@@ -279,7 +282,7 @@ fun BankCard(
 
         // ---------- جزئیات، فقط وقتی کارت انتخاب شده ----------
         AnimatedVisibility(
-            visible = selected,
+            visible = selected && showDetailsWhenSelected,
             enter = fadeIn(tween(200)) + expandVertically(tween(220)),
             exit = fadeOut(tween(140)) + shrinkVertically(tween(180))
         ) {

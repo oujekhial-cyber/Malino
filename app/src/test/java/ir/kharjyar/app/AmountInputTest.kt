@@ -25,7 +25,7 @@ class AmountInputTest {
 
     @Test
     fun sanitize_respectsMaxDigits() {
-        assertEquals(15, AmountInput.sanitize("1".repeat(40)).length)
+        assertEquals(17, AmountInput.sanitize("1".repeat(40)).length)
     }
 
     @Test

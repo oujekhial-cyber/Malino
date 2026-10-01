@@ -28,7 +28,7 @@ class CashAccountIntegrationGuardTest {
         val form=File("src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt").readText()
         val settings=File("src/main/java/ir/kharjyar/app/ui/screens/SettingsScreen.kt").readText()
         listOf("accountType","ownerName","cashLocation","note").forEach { assertTrue(entity.contains(it) && backup.contains(it)) }
-        assertTrue(db.contains("version = 17")); assertTrue(db.contains("MIGRATION_13_14"))
+        assertTrue(db.contains("version = 19")); assertTrue(db.contains("MIGRATION_13_14"))
         listOf("صندوق نقدی","صاحب صندوق","محل نگهداری","accountType == AccountType.BANK").forEach { assertTrue(form.contains(it)) }
         assertTrue(settings.contains("account.accountType==AccountType.CASH"))
     }

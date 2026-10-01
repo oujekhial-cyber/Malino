@@ -28,7 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 object AmountInput {
 
     /** فقط رقم‌های لاتین را از ورودی (فارسی/عربی/لاتین، با هر جداکننده‌ای) بیرون می‌کشد. */
-    fun sanitize(raw: String, maxDigits: Int = 15): String {
+    fun sanitize(raw: String, maxDigits: Int = 17): String {
         val digits = Digits.normalize(raw).filter { it in '0'..'9' }
         if (digits.isEmpty()) return ""
         val trimmed = digits.trimStart('0')

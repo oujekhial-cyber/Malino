@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -102,7 +103,7 @@ data class AppSettings(
     val appFontScale: Int = 100,
     /** نمایش مبالغ در کارت خانه (با دکمه چشم عوض می‌شود و ماندگار است). */
     val amountsVisible: Boolean = true,
-    val bankFeePercent: Int = 1,
+    val bankFeePercent: Float = 1f,
     val dashboardAccountOrder: List<Long> = emptyList(),
     /** ترتیب دلخواه پلاک‌ها در صفحه وسایل نقلیه. */
     val vehicleOrder: List<Long> = emptyList(),
@@ -156,7 +157,8 @@ class SettingsRepository(private val context: Context) {
         val CARD_SHINE = booleanPreferencesKey("card_shine")
         val APP_FONT_SCALE = intPreferencesKey("app_font_scale")
         val AMOUNTS_VISIBLE = booleanPreferencesKey("amounts_visible")
-        val BANK_FEE_PERCENT = intPreferencesKey("bank_fee_percent")
+        val BANK_FEE_PERCENT = floatPreferencesKey("bank_fee_percent_decimal")
+        val BANK_FEE_PERCENT_LEGACY = intPreferencesKey("bank_fee_percent")
         val DASHBOARD_ACCOUNT_ORDER = stringPreferencesKey("dashboard_account_order")
         val VEHICLE_ORDER = stringPreferencesKey("vehicle_order")
         val W_TITLE_ALIGN = stringPreferencesKey("w_title_align")
@@ -209,7 +211,7 @@ class SettingsRepository(private val context: Context) {
             cardShine = p[Keys.CARD_SHINE] ?: false,
             appFontScale = (p[Keys.APP_FONT_SCALE] ?: 100).coerceIn(85, 130),
             amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
-            bankFeePercent = (p[Keys.BANK_FEE_PERCENT] ?: 1).coerceIn(0, 100),
+            bankFeePercent = (p[Keys.BANK_FEE_PERCENT] ?: p[Keys.BANK_FEE_PERCENT_LEGACY]?.toFloat() ?: 1f).coerceIn(0f, 100f),
             dashboardAccountOrder = p[Keys.DASHBOARD_ACCOUNT_ORDER]?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList(),
             vehicleOrder = p[Keys.VEHICLE_ORDER]?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList(),
             widgetTitleAlign = enumOf(p[Keys.W_TITLE_ALIGN], WidgetAlign.START),
@@ -266,7 +268,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setCardShine(v: Boolean) = edit { it[Keys.CARD_SHINE] = v }
     suspend fun setAppFontScale(v: Int) = edit { it[Keys.APP_FONT_SCALE] = v.coerceIn(85, 130) }
     suspend fun setAmountsVisible(v: Boolean) = edit { it[Keys.AMOUNTS_VISIBLE] = v }
-    suspend fun setBankFeePercent(v: Int) = edit { it[Keys.BANK_FEE_PERCENT] = v.coerceIn(0,100) }
+    suspend fun setBankFeePercent(v: Float) = edit { it[Keys.BANK_FEE_PERCENT] = v.coerceIn(0f,100f) }
     suspend fun setDashboardAccountOrder(ids: List<Long>) = edit { it[Keys.DASHBOARD_ACCOUNT_ORDER] = ids.joinToString(",") }
     suspend fun setVehicleOrder(ids: List<Long>) = edit { it[Keys.VEHICLE_ORDER] = ids.joinToString(",") }
     suspend fun setWidgetTitleAlign(v: WidgetAlign) = edit { it[Keys.W_TITLE_ALIGN] = v.name }
@@ -304,6 +306,7 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { p ->
             fun bool(name: String, key: Preferences.Key<Boolean>) { map[name]?.let { p[key] = it.toBoolean() } }
             fun int(name: String, key: Preferences.Key<Int>, range: IntRange) { map[name]?.toIntOrNull()?.let { p[key] = it.coerceIn(range) } }
+            fun float(name:String,key:Preferences.Key<Float>,range:ClosedFloatingPointRange<Float>){map[name]?.toFloatOrNull()?.let{p[key]=it.coerceIn(range)}}
             fun <T : Enum<T>> enum(name: String, key: Preferences.Key<String>, values: Array<T>) { map[name]?.let { raw -> values.firstOrNull { it.name == raw }?.let { p[key] = it.name } } }
             enum("theme_mode",Keys.THEME,ThemeMode.entries.toTypedArray()); enum("palette",Keys.PALETTE,Palette.entries.toTypedArray()); enum("money_unit",Keys.MONEY_UNIT,MoneyUnit.entries.toTypedArray())
             bool("app_lock",Keys.APP_LOCK); int("lock_timeout",Keys.LOCK_TIMEOUT,0..86400); bool("onboarding_done",Keys.ONBOARDING)
@@ -318,7 +321,7 @@ class SettingsRepository(private val context: Context) {
             enum("widget_palette",Keys.WIDGET_PALETTE,Palette.entries.toTypedArray()); int("widget_title_size",Keys.WIDGET_TITLE_SIZE,9..30); int("widget_weather_size",Keys.WIDGET_WEATHER_SIZE,8..28)
             enum("w_weather_align",Keys.W_WEATHER_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_weather_valign",Keys.W_WEATHER_VALIGN,WidgetVAlign.entries.toTypedArray())
             bool("widget_auto_pin",Keys.WIDGET_AUTO_PIN); bool("secure_screen",Keys.SECURE_SCREEN); enum("digit_style",Keys.DIGIT_STYLE,DigitStyle.entries.toTypedArray())
-            bool("card_shine",Keys.CARD_SHINE); int("app_font_scale",Keys.APP_FONT_SCALE,85..130); bool("amounts_visible",Keys.AMOUNTS_VISIBLE); int("bank_fee_percent",Keys.BANK_FEE_PERCENT,0..100)
+            bool("card_shine",Keys.CARD_SHINE); int("app_font_scale",Keys.APP_FONT_SCALE,85..130); bool("amounts_visible",Keys.AMOUNTS_VISIBLE); float("bank_fee_percent",Keys.BANK_FEE_PERCENT,0f..100f)
             map["dashboard_account_order"]?.let { p[Keys.DASHBOARD_ACCOUNT_ORDER]=it }; map["vehicle_order"]?.let { p[Keys.VEHICLE_ORDER]=it }; enum("w_title_align",Keys.W_TITLE_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_clock_align",Keys.W_CLOCK_ALIGN,WidgetAlign.entries.toTypedArray())
             enum("w_title_valign",Keys.W_TITLE_VALIGN,WidgetVAlign.entries.toTypedArray()); enum("w_clock_valign",Keys.W_CLOCK_VALIGN,WidgetVAlign.entries.toTypedArray()); bool("w_dates_below",Keys.W_DATES_BELOW)
             int("w_clock_offset_y",Keys.W_CLOCK_OFFSET_Y,-40..40); int("w_title_offset_y",Keys.W_TITLE_OFFSET_Y,-40..40)

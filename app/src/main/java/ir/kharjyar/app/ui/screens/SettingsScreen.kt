@@ -29,6 +29,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Button
@@ -37,6 +38,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,6 +52,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextAlign
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
@@ -70,6 +75,8 @@ import ir.kharjyar.app.data.db.AccountType
 import ir.kharjyar.app.ui.theme.AllSkins
 import ir.kharjyar.app.ui.theme.AppSkin
 import kotlinx.coroutines.launch
+
+private fun formatFeePercent(value:Float):String=value.toString().trimEnd('0').trimEnd('.').let{if(it.startsWith("0."))it.removePrefix("0") else it}
 
 @Composable
 fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: String? = null) {
@@ -275,7 +282,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
             )
         }
 
-        var feeInput by remember(settings.bankFeePercent) { mutableStateOf(settings.bankFeePercent.toString().trimEnd('0').trimEnd('.')) }
+        var feeInput by remember(settings.bankFeePercent) { mutableStateOf(formatFeePercent(settings.bankFeePercent)) }
         var feeSaved by remember { mutableStateOf(false) }
         SectionCard("درصد کارمزد بانکی") {
             Text(
@@ -288,22 +295,28 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            OutlinedTextField(
-                value = feeInput,
-                onValueChange = { value ->
-                    feeInput = Digits.normalize(value).filter { it.isDigit() || it == '.' }.take(6)
-                    feeSaved = false
-                },
-                label = { Text("درصد کارمزد") },
-                suffix = { Text("٪") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                OutlinedTextField(
+                    value = feeInput,
+                    onValueChange = { value ->
+                        val raw=Digits.normalize(value).replace('٫','.').filter { it.isDigit() || it=='.' }
+                        val whole=raw.substringBefore('.').take(3)
+                        val decimal=if(raw.contains('.'))"."+raw.substringAfter('.').filter(Char::isDigit).take(4) else ""
+                        feeInput=whole+decimal
+                        feeSaved = false
+                    },
+                    label = { Text("درصد کارمزد") },
+                    suffix = { Text("٪") },
+                    textStyle=LocalTextStyle.current.copy(textAlign=TextAlign.Left),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             Button(
                 onClick = {
                     val value = feeInput.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f
-                    feeInput = value.toString().trimEnd('0').trimEnd('.')
-                    scope.launch { viewModel.settingsRepo.setBankFeePercent(value.toInt()) }
+                    feeInput = formatFeePercent(value)
+                    scope.launch { viewModel.settingsRepo.setBankFeePercent(value) }
                     feeSaved = true
                 },
                 modifier = Modifier.fillMaxWidth()

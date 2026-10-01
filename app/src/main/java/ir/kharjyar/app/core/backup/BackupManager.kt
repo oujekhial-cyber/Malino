@@ -33,7 +33,7 @@ class BackupManager(
             transactions = repo.txDao.allOnce().map { BTransaction.of(it) },
             transferGroups = repo.transferDao.allOnce().map { BTransferGroup.of(it) },
             smsQueue = repo.smsDao.allOnce().map { BSms.of(it) },
-            blockedSenders = repo.blockedSenderDao.allOnce().map { BBlockedSender.of(it) },
+            blockedSenders = repo.blockedSenderDao.allOnce().map { BBlockedSender.of(it) }, spamMessages = repo.spamSmsDao.allOnce().map { BSpamSms.of(it) },
             debtPeople = repo.db.debtDao().allPeopleOnce(), debts = repo.db.debtDao().allDebtsOnce(), debtPayments = repo.db.debtDao().allPaymentsOnce(),
             checks = repo.db.checkDao().allOnce(), bankBalances = repo.db.bankBalanceSnapshotDao().allOnce(), notes = repo.db.noteDao().allOnce(),
             loans = repo.db.loanDao().allLoansOnce(), installments = repo.db.loanDao().allInstallmentsOnce(), assets = repo.db.assetDao().allAssetsOnce(), stockSmsDrafts = repo.db.stockDao().allOnce(),
@@ -85,7 +85,7 @@ class BackupManager(
             accounts = merged(payload.accounts,current.accounts){it.id}, senders = merged(payload.senders,current.senders){it.id},
             categories = merged(payload.categories,current.categories){it.id}, rules = merged(payload.rules,current.rules){it.id}, templates = merged(payload.templates,current.templates){it.id},
             transactions = merged(payload.transactions,current.transactions){it.id}, transferGroups = merged(payload.transferGroups,current.transferGroups){it.id},
-            smsQueue = merged(payload.smsQueue,current.smsQueue){it.fingerprint}, blockedSenders = merged(payload.blockedSenders,current.blockedSenders){it.sender},
+            smsQueue = merged(payload.smsQueue,current.smsQueue){it.fingerprint}, blockedSenders = merged(payload.blockedSenders,current.blockedSenders){it.sender}, spamMessages = merged(payload.spamMessages,current.spamMessages){it.fingerprint},
             debtPeople = merged(payload.debtPeople,current.debtPeople){it.id}, debts = merged(payload.debts,current.debts){it.id}, debtPayments = merged(payload.debtPayments,current.debtPayments){it.id},
             checks = merged(payload.checks,current.checks){it.id}, bankBalances = merged(payload.bankBalances,current.bankBalances){it.accountId}, notes = merged(payload.notes,current.notes){it.id},
             loans = merged(payload.loans,current.loans){it.id}, installments = merged(payload.installments,current.installments){it.id}, assets = merged(payload.assets,current.assets){it.id}, stockSmsDrafts = merged(payload.stockSmsDrafts,current.stockSmsDrafts){it.fingerprint},
@@ -130,7 +130,7 @@ class BackupManager(
             // صف نگه‌داشته‌شده بعد از صف بکاپ درج می‌شود تا شناسه‌ها با هم تداخل نکنند
             merge.carriedOver.forEach { repo.smsDao.insertIgnore(it) }
             payload.transactions.forEach { repo.txDao.insert(it.toEntity()) }
-            payload.blockedSenders.forEach { repo.blockedSenderDao.insertIgnore(it.toEntity()) }
+            payload.blockedSenders.forEach { repo.blockedSenderDao.insertIgnore(it.toEntity()) }; payload.spamMessages.forEach { repo.spamSmsDao.insert(it.toEntity()) }
             payload.debtPeople.forEach { repo.db.debtDao().insertPerson(it) }; payload.debts.forEach { repo.db.debtDao().insertDebt(it) }; payload.debtPayments.forEach { repo.db.debtDao().insertPayment(it) }
             payload.checks.forEach { repo.db.checkDao().insert(it) }; payload.bankBalances.forEach { repo.db.bankBalanceSnapshotDao().upsert(it) }; payload.notes.forEach { repo.db.noteDao().insert(it) }
             payload.loans.forEach { repo.db.loanDao().insertLoan(it) }; if(payload.installments.isNotEmpty()) repo.db.loanDao().insertInstallments(payload.installments)
@@ -169,6 +169,7 @@ private suspend fun ir.kharjyar.app.data.db.KharjYarDatabase.clearAllTablesInTra
         execSQL("DELETE FROM debt_payments")
         execSQL("DELETE FROM debts")
         execSQL("DELETE FROM debt_people")
+        execSQL("DELETE FROM spam_sms")
         execSQL("DELETE FROM blocked_senders")
         execSQL("DELETE FROM transactions")
         execSQL("DELETE FROM transfer_groups")

@@ -39,7 +39,7 @@ data class PhoneSms(val id:Long,val sender:String,val body:String,val at:Long,va
     val bankBalance=sms.extraction.balanceRial!!;val at=sms.extraction.occurredAtMillis?:sms.at
     vm.repo.db.bankBalanceSnapshotDao().upsert(BankBalanceSnapshotEntity(aid,bankBalance,at,sms.id))
     val account=accounts.firstOrNull{it.id==aid};val txs=vm.repo.txDao.allOnce();val estimated=account?.let{ir.kharjyar.app.core.balance.AccountBalance.estimate(it,txs).rial}
-    val diff=if(estimated!=null)estimated-bankBalance else 0L;val base=list.maxOfOrNull{it.extraction.amountRial?:0L}?:0L;val maxFee=base*feePercent/100
+    val diff=if(estimated!=null)estimated-bankBalance else 0L;val base=list.maxOfOrNull{it.extraction.amountRial?:0L}?:0L;val maxFee=(base.toDouble()*feePercent/100.0).toLong()
     val duplicate=txs.any{it.accountId==aid&&it.description=="کارمزد بانکی خودکار"&&it.amountRial==diff&&kotlin.math.abs(it.occurredAt-at)<86_400_000L}
     if(diff>0&&diff<=maxFee&&!duplicate)vm.repo.txDao.insert(TransactionEntity(accountId=aid,amountRial=diff,direction=TxDirection.WITHDRAW,nature=TxNature.EXPENSE,description="کارمزد بانکی خودکار",occurredAt=at,recordedAt=System.currentTimeMillis(),source=TxSource.SMS,status=TxStatus.CONFIRMED))
    }

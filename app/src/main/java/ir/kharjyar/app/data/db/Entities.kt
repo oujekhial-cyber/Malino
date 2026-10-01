@@ -92,6 +92,17 @@ data class BlockedSenderEntity(
     val createdAt: Long
 )
 
+/** پیام تبلیغاتی قرنطینه‌شده؛ فقط روی گوشی می‌ماند و قابل بازگردانی است. */
+@Entity(tableName="spam_sms",indices=[Index("receivedAt"),Index("sender"),Index(value=["fingerprint"],unique=true)])
+data class SpamSmsEntity(
+    @PrimaryKey(autoGenerate=true) val id:Long=0,
+    val sender:String,
+    val body:String,
+    val receivedAt:Long,
+    val reason:String,
+    val fingerprint:String
+)
+
 /** پیامک مالی یا مشکوک به مالی در صف بررسی. */
 @Entity(
     tableName = "sms_candidates",
@@ -208,7 +219,9 @@ data class CategoryEntity(
     val colorArgb: Long,
     val kind: Int = CategoryKind.EXPENSE,
     val archived: Boolean = false,
-    val builtin: Boolean = false
+    val builtin: Boolean = false,
+    /** ترتیب قابل‌تغییر کاربر در فهرست دسته‌ها. */
+    val sortOrder: Int = 0
 )
 
 /** قانون دسته‌بندی خودکار: اگر کلیدواژه در متن/طرف مقابل بود، دسته پیشنهاد شود. */

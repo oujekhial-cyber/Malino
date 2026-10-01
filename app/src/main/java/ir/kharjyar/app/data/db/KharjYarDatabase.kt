@@ -20,10 +20,11 @@ import net.sqlcipher.database.SupportFactory
         CategoryEntity::class,
         CategoryRuleEntity::class,
         BlockedSenderEntity::class,
+        SpamSmsEntity::class,
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
         BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, StockSmsDraftEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, VehicleOilServiceEntity::class, UtilityBillProfileEntity::class, CivicMessageEntity::class
     ],
-    version = 17,
+    version = 19,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -34,6 +35,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
     abstract fun transferDao(): TransferDao
     abstract fun categoryDao(): CategoryDao
     abstract fun blockedSenderDao(): BlockedSenderDao
+    abstract fun spamSmsDao(): SpamSmsDao
     abstract fun debtDao(): DebtDao
     abstract fun checkDao(): CheckDao
     abstract fun bankBalanceSnapshotDao(): BankBalanceSnapshotDao
@@ -58,7 +60,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -217,6 +219,18 @@ abstract class KharjYarDatabase : RoomDatabase() {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_civic_messages_utilityBillId ON civic_messages(utilityBillId)")
         } }
 
+        val MIGRATION_17_18 = object : Migration(17, 18) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE categories ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE categories SET sortOrder=(SELECT COUNT(*) FROM categories c2 WHERE c2.id<=categories.id)-1")
+        } }
+
+        val MIGRATION_18_19 = object : Migration(18, 19) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS spam_sms (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, sender TEXT NOT NULL, body TEXT NOT NULL, receivedAt INTEGER NOT NULL, reason TEXT NOT NULL, fingerprint TEXT NOT NULL)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_spam_sms_receivedAt ON spam_sms(receivedAt)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_spam_sms_sender ON spam_sms(sender)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_spam_sms_fingerprint ON spam_sms(fingerprint)")
+        } }
+
         /** نمونه قوانین متداول ایران؛ کاربر می‌تواند آن‌ها را خاموش، ویرایش یا حذف کند. */
         val DEFAULT_IRAN_RULES: List<Pair<String, String>> = listOf(
             "اسنپ" to "حمل و نقل و خودرو", "تپسی" to "حمل و نقل و خودرو",
@@ -267,8 +281,8 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 super.onCreate(db)
                 for ((name, color, kind) in DEFAULT_CATEGORIES) {
                     db.execSQL(
-                        "INSERT INTO categories (name, colorArgb, kind, archived, builtin) VALUES (?, ?, ?, 0, 1)",
-                        arrayOf(name, color or 0xFF000000, kind)
+                        "INSERT INTO categories (name, colorArgb, kind, archived, builtin, sortOrder) VALUES (?, ?, ?, 0, 1, ?)",
+                        arrayOf(name, color or 0xFF000000, kind, DEFAULT_CATEGORIES.indexOfFirst { it.first == name })
                     )
                 }
             }

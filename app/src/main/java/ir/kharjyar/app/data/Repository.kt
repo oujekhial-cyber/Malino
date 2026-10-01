@@ -43,6 +43,7 @@ class Repository(val db: KharjYarDatabase) {
     val transferDao = db.transferDao()
     val categoryDao = db.categoryDao()
     val blockedSenderDao = db.blockedSenderDao()
+    val spamSmsDao = db.spamSmsDao()
 
     /** نتیجه ثبت اولیه پیامک (از Receiver). */
     data class IngestResult(val smsId: Long?, val duplicate: Boolean, val kind: SmsKind)
@@ -52,14 +53,22 @@ class Repository(val db: KharjYarDatabase) {
      * پیامک غیرمالی ذخیره نمی‌شود (OTP و پیامک شخصی نگه داشته نمی‌شوند).
      */
     suspend fun ingestSms(sender: String, body: String, receivedAt: Long): IngestResult {
-        // فرستنده‌ای که کاربر «تبلیغاتی» علامت زده: بی‌سروصدا نادیده گرفته می‌شود
-        // و متن پیامک هم اصلاً ذخیره نمی‌شود.
+        // رمز پویا حتی برای فرستنده مسدودشده ذخیره نمی‌شود.
+        if (SmsClassifier.isOtp(body)) return IngestResult(null,false,SmsKind.NON_FINANCIAL)
+        val fp = SmsFingerprint.of(sender, body, receivedAt)
         if (blockedSenderDao.isBlocked(sender)) {
+            spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason="فرستنده مسدودشده توسط کاربر",fingerprint=fp))
             return IngestResult(null, false, SmsKind.NON_FINANCIAL)
+        }
+        val mappings=accountDao.allSenders()
+        val knownFinancialSender=mappings.any{AccountMatcher.normalizeSender(it.sender)==AccountMatcher.normalizeSender(sender)}||ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sender)!=null
+        val spam=ir.kharjyar.app.core.sms.SpamSmsClassifier.decide(body)
+        if(!knownFinancialSender&&spam.confident){
+            spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason=spam.reason,fingerprint=fp))
+            return IngestResult(null,false,SmsKind.NON_FINANCIAL)
         }
         val kind = SmsClassifier.classify(body)
         if (kind == SmsKind.NON_FINANCIAL) return IngestResult(null, false, kind)
-        val fp = SmsFingerprint.of(sender, body, receivedAt)
         val row = SmsCandidateEntity(
             sender = sender,
             body = body,
@@ -83,11 +92,24 @@ class Repository(val db: KharjYarDatabase) {
         // صف فعلی را هم از همین فرستنده پاک می‌کنیم
         smsDao.allOnce()
             .filter { it.sender == sender && it.status != SmsStatus.DONE }
-            .forEach { smsDao.update(it.copy(status = SmsStatus.DISMISSED, updatedAt = now())) }
+            .forEach {
+                spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=it.sender,body=it.body,receivedAt=it.receivedAt,reason="علامت‌گذاری دستی کاربر",fingerprint=it.fingerprint))
+                smsDao.update(it.copy(status = SmsStatus.DISMISSED, updatedAt = now()))
+            }
     }
 
     /** برداشتن علامت تبلیغاتی از یک فرستنده. */
     suspend fun unblockSender(sender: String) = blockedSenderDao.unblock(sender)
+
+    /** بازگردانی پیام قرنطینه‌شده به صف مالی؛ فرستنده دستی نیز آزاد می‌شود. */
+    suspend fun restoreSpamMessage(id:Long):ProcessOutcome? {
+        val row=spamSmsDao.byId(id)?:return null
+        blockedSenderDao.unblock(row.sender)
+        val existing=smsDao.byFingerprint(row.fingerprint)
+        val smsId=if(existing!=null){smsDao.update(existing.copy(status=SmsStatus.RAW,updatedAt=now()));existing.id}else smsDao.insertIgnore(SmsCandidateEntity(sender=row.sender,body=row.body,receivedAt=row.receivedAt,fingerprint=row.fingerprint,status=SmsStatus.RAW,updatedAt=now()))
+        spamSmsDao.delete(id)
+        return if(smsId>0)processSms(smsId) else null
+    }
 
     /** نتیجه پردازش کامل پیامک (در Worker). */
     sealed class ProcessOutcome {

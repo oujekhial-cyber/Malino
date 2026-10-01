@@ -61,6 +61,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -297,15 +301,29 @@ private fun titleOf(route: String?): String = when {
 @Composable
 private fun ModernNotificationButton(notificationCount:Int,onClick:()->Unit){
     val active=notificationCount>0
-    val cyan=Color(0xFF43E4DC);val pink=Color(0xFFFF4E9E)
+    val ringing=rememberInfiniteTransition(label="notificationBellRing")
+    val rotation by ringing.animateFloat(
+        initialValue=0f,targetValue=0f,
+        animationSpec=infiniteRepeatable(keyframes{
+            durationMillis=3600
+            0f at 0;0f at 2700;-17f at 2780;17f at 2860;-13f at 2940;13f at 3020;-7f at 3100;7f at 3180;0f at 3260;0f at 3600
+        }),label="notificationBellRotation"
+    )
+    val pink=Color(0xFFFF4E9E);val cyan=Color(0xFF43E4DC)
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr){
-        Box(Modifier.size(44.dp),contentAlignment=Alignment.Center){
-            if(active)Box(Modifier.size(40.dp).shadow(10.dp,CircleShape,ambientColor=pink.copy(.45f),spotColor=cyan.copy(.42f)).background(Brush.radialGradient(listOf(pink.copy(.18f),Color.Transparent)),CircleShape))
-            Box(Modifier.size(38.dp).clip(RoundedCornerShape(13.dp)).background(if(active)Brush.linearGradient(listOf(pink.copy(.24f),Color(0xFF26162F).copy(.82f),cyan.copy(.22f)))else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant.copy(.72f),MaterialTheme.colorScheme.surface.copy(.62f)))).border(1.2.dp,if(active)Brush.linearGradient(listOf(pink,cyan))else Brush.linearGradient(listOf(MaterialTheme.colorScheme.outline.copy(.35f),MaterialTheme.colorScheme.outline.copy(.18f))),RoundedCornerShape(13.dp)).clickable(onClick=onClick),contentAlignment=Alignment.Center){
-                Icon(if(active)Icons.Filled.NotificationsActive else Icons.Filled.Notifications,contentDescription="اعلان‌های جدید",tint=if(active)cyan else MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.size(22.dp))
-                if(active)Box(Modifier.align(Alignment.BottomCenter).padding(bottom=4.dp).size(3.dp).background(pink,CircleShape))
+        // محدوده لمس استاندارد می‌ماند، اما خود زنگ کوچک‌تر و بدون قاب است.
+        Box(Modifier.size(38.dp).clip(CircleShape).clickable(onClick=onClick),contentAlignment=Alignment.Center){
+            if(active)Box(Modifier.size(27.dp).background(Brush.radialGradient(listOf(pink.copy(.20f),Color.Transparent)),CircleShape))
+            Icon(
+                if(active)Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
+                contentDescription="اعلان‌های جدید",
+                tint=if(active)pink else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier=Modifier.size(if(active)20.dp else 18.dp).graphicsLayer{rotationZ=if(active)rotation else 0f}
+            )
+            if(active){
+                Box(Modifier.align(Alignment.BottomCenter).offset(y=(-5).dp).size(4.dp).background(cyan,CircleShape))
+                Box(Modifier.align(Alignment.TopEnd).offset(x=1.dp,y=(-1).dp).height(17.dp).defaultMinSize(minWidth=17.dp).shadow(4.dp,CircleShape,spotColor=pink.copy(.58f)).background(pink,CircleShape).padding(horizontal=3.dp),contentAlignment=Alignment.Center){Text(Digits.toPersian(if(notificationCount>99)"99+" else notificationCount.toString()),color=Color.White,fontWeight=FontWeight.Black,style=MaterialTheme.typography.labelSmall,maxLines=1)}
             }
-            if(active)Box(Modifier.align(Alignment.TopEnd).offset(x=2.dp,y=(-2).dp).height(19.dp).defaultMinSize(minWidth=19.dp).shadow(5.dp,CircleShape,spotColor=pink.copy(.7f)).background(Brush.horizontalGradient(listOf(pink,Color(0xFFD92FCB))),CircleShape).border(1.dp,Color.White.copy(.72f),CircleShape).padding(horizontal=4.dp),contentAlignment=Alignment.Center){Text(Digits.toPersian(if(notificationCount>99)"99+" else notificationCount.toString()),color=Color.White,fontWeight=FontWeight.Black,style=MaterialTheme.typography.labelSmall,maxLines=1)}
         }
     }
 }
