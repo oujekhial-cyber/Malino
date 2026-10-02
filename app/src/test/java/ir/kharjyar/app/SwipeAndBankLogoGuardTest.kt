@@ -226,7 +226,7 @@ class SwipeAndBankLogoGuardTest {
         for (screen in listOf("ManualEntryScreen", "TransactionEditScreen")) {
             assertTrue(
                 "$screen دسته‌بندی جدید را وصل نکرده",
-                source("src/main/java/ir/kharjyar/app/ui/screens/$screen.kt").contains("onCreate={name->")
+                source("src/main/java/ir/kharjyar/app/ui/screens/$screen.kt").let { it.contains("onCreate={name->") || it.contains("onCreate = { name ->") }
             )
         }
     }
