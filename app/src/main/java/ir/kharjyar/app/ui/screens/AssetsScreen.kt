@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material.icons.filled.AutoAwesomeMosaic
 import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +42,8 @@ import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.PersianDateField
 import ir.kharjyar.app.ui.components.SwipeActionRow
+import ir.kharjyar.app.ui.components.ModernSummaryHero
+import ir.kharjyar.app.ui.components.SummaryMetric
 import kotlinx.coroutines.launch
 
 @Composable fun AssetsScreen(vm:AppViewModel){val assets by vm.assets.collectAsState();val trades by vm.assetTrades.collectAsState();val settings by vm.settings.collectAsState();val stockDrafts by remember{vm.repo.db.stockDao().observePending()}.collectAsState(initial=emptyList());val scope=rememberCoroutineScope();var editor by remember{mutableStateOf<AssetEntity?>(null)};var adding by remember{mutableStateOf(false)};var selectedKind by remember{mutableStateOf<Int?>(null)};var purchaseAsset by remember{mutableStateOf<AssetEntity?>(null)};var pendingDelete by remember{mutableStateOf<AssetEntity?>(null)}
@@ -50,9 +54,8 @@ import kotlinx.coroutines.launch
  val allActive=assets.filter{it.active}
  if(selectedKind==null){AssetCategoryLanding(allActive,settings.moneyUnit,onSelect={selectedKind=it},onAdd={adding=true});return}
  val active=allActive.filter{it.kind==selectedKind};val totalBuy=active.sumOf{it.purchasePriceRial};val totalNow=active.sumOf{it.currentValueRial};val profit=totalNow-totalBuy
- Box(Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start=16.dp,end=16.dp,top=12.dp,bottom=92.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){TextButton({selectedKind=null}){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به انواع دارایی")};Text(assetKindTitle(selectedKind!!),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
+ Box(Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start=16.dp,end=16.dp,top=12.dp,bottom=92.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){TextButton({selectedKind=null}){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به انواع دارایی")};ModernSummaryHero(assetKindTitle(selectedKind!!),"ارزش و بازده این گروه",MaterialTheme.colorScheme.primary,listOf(SummaryMetric("ارزش روز",Money.format(totalNow,settings.moneyUnit),MaterialTheme.colorScheme.primary,Icons.Filled.ShowChart),SummaryMetric(if(profit>=0)"سود کل" else "زیان کل",Money.format(kotlin.math.abs(profit),settings.moneyUnit),if(profit>=0)Color(0xFF20A565) else Color(0xFFE14B55),Icons.Filled.TrendingUp),SummaryMetric("سرمایه اولیه",Money.format(totalBuy,settings.moneyUnit),MaterialTheme.colorScheme.tertiary,Icons.Filled.Inventory2)),Icons.Filled.AutoAwesomeMosaic)
   if(selectedKind==AssetKind.STOCK&&stockDrafts.isNotEmpty()){Text("معاملات پیامکی منتظر تأیید",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);stockDrafts.forEach{draft->StockDraftCard(draft,settings.moneyUnit,onConfirm={confirmStockDraft(draft)},onIgnore={scope.launch{vm.repo.db.stockDao().updateDraft(draft.copy(status=StockDraftStatus.IGNORED))}})}}
-  Card(shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha=.88f),MaterialTheme.colorScheme.tertiary.copy(alpha=.72f)))).padding(20.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){Text("ارزش روز کل دارایی‌ها",color=Color.White.copy(.85f));Text(Money.format(totalNow,settings.moneyUnit),color=Color.White,style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold);HorizontalDivider(color=Color.White.copy(.25f));Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column{Text("سرمایه اولیه",color=Color.White.copy(.8f));Text(Money.format(totalBuy,settings.moneyUnit),color=Color.White)};Column(horizontalAlignment=Alignment.End){Text(if(profit>=0)"سود کل" else "زیان کل",color=Color.White.copy(.8f));Text(Money.format(kotlin.math.abs(profit),settings.moneyUnit),color=Color.White,fontWeight=FontWeight.Bold)}}}}
   Text("موارد ثبت‌شده",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
   Text("${Digits.toPersian(active.size.toString())} دارایی فعال در این بخش",color=MaterialTheme.colorScheme.onSurfaceVariant)
   Text("دارایی‌های من",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);if(active.isEmpty())Card(Modifier.fillMaxWidth()){Column(Modifier.padding(28.dp),horizontalAlignment=Alignment.CenterHorizontally){Text("هنوز دارایی ثبت نشده است");Text("با دکمه + اولین دارایی را اضافه کنید",style=MaterialTheme.typography.bodySmall)}}
@@ -70,8 +73,7 @@ private fun assetKindTitle(kind:Int)=when(kind){AssetKind.GOLD->"دارایی‌
  val total=assets.sumOf{it.currentValueRial}
  Box(Modifier.fillMaxSize()){
   Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start=16.dp,end=16.dp,top=12.dp,bottom=92.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-   Text("دارایی‌ها",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
-   Card(shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary.copy(.88f),MaterialTheme.colorScheme.tertiary.copy(.72f)))).padding(20.dp)){Text("ارزش روز کل دارایی‌ها",color=Color.White.copy(.85f));Text(Money.format(total,unit),color=Color.White,style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold)}}
+   ModernSummaryHero("دارایی‌ها","نمای کلی سبد دارایی شما",MaterialTheme.colorScheme.primary,listOf(SummaryMetric("ارزش روز",Money.format(total,unit),MaterialTheme.colorScheme.primary,Icons.Filled.ShowChart),SummaryMetric("دارایی فعال",Digits.toPersian(assets.size.toString()),Color(0xFF1B9A61),Icons.Filled.ViewInAr)),Icons.Filled.AutoAwesomeMosaic)
    Text("انواع دارایی",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
    kinds.forEach{kind->val list=assets.filter{it.kind==kind};val color=colors.getValue(kind);Card(Modifier.fillMaxWidth().clickable{onSelect(kind)},shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=color.copy(.10f))){Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically){AssetKindGraphic(kind,color);Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)){Text(assetKindTitle(kind),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text("${Digits.toPersian(list.size.toString())} مورد • ${Money.format(list.sumOf{it.currentValueRial},unit)}",style=MaterialTheme.typography.bodySmall)};Text("←",color=color,style=MaterialTheme.typography.titleLarge)}}}
   }
@@ -123,7 +125,7 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,on
 
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(11.dp)){
   TextButton(onCancel){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به سبد دارایی")}
-  Text(if(existing==null)"افزودن دارایی" else "ویرایش دارایی",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
+  ModernSummaryHero(if(existing==null)"افزودن دارایی" else "ویرایش دارایی","ثبت مشخصات، بهای خرید و ارزش روز",MaterialTheme.colorScheme.primary,listOf(SummaryMetric("بهای خرید",Money.inputToRial(purchase,settings.moneyUnit)?.let{Money.format(it,settings.moneyUnit)}?:"—",MaterialTheme.colorScheme.tertiary,Icons.Filled.Inventory2),SummaryMetric("ارزش روز",Money.inputToRial(current,settings.moneyUnit)?.let{Money.format(it,settings.moneyUnit)}?:"—",Color(0xFF20A565),Icons.Filled.ShowChart)),Icons.Filled.AutoAwesomeMosaic)
   ComboBox("نوع دارایی",kinds,kind,{if(existing==null)kind=it},labelOf={when(it){AssetKind.GOLD->"فلزات گران‌بها";AssetKind.VEHICLE->"خودرو";AssetKind.PROPERTY->"ملک";AssetKind.CURRENCY->"دارایی ارزی";else->"دارایی شخصی"}})
   OutlinedTextField(title,{title=it},label={Text("عنوان دارایی")},modifier=Modifier.fillMaxWidth())
   if(kind==AssetKind.GOLD){
@@ -225,7 +227,7 @@ private fun GoldPurchaseEntry(vm:AppViewModel,asset:AssetEntity,onDone:()->Unit,
  val projectedGain=projectedCurrent-newCost
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
   TextButton(onCancel){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به دارایی‌ها")}
-  Text("افزودن مرحله خرید فلز",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
+  ModernSummaryHero("افزودن مرحله خرید فلز","ثبت خرید جدید و محاسبه میانگین موزون",Color(0xFFFFB300),listOf(SummaryMetric("مبلغ این خرید",Money.format(paid,settings.moneyUnit),Color(0xFFFFB300),Icons.Filled.Inventory2),SummaryMetric("وزن پس از خرید",if(newWeight>0)"${Digits.toPersian(String.format(java.util.Locale.US,"%.3f",newWeight))} گرم" else "—",MaterialTheme.colorScheme.primary,Icons.Filled.ViewInAr)),Icons.Filled.AutoAwesomeMosaic)
   Text(asset.title,style=MaterialTheme.typography.titleMedium,color=Color(0xFFFFA000))
   Card(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){Text("وضعیت فعلی");Text("وزن: ${Digits.toPersian(String.format(java.util.Locale.US,"%.3f",asset.quantity))} گرم");Text("جمع هزینه خرید: ${Money.format(asset.purchasePriceRial,settings.moneyUnit)}");if(asset.quantity>0)Text("میانگین خرید هر گرم: ${Money.format((asset.purchasePriceRial/asset.quantity).toLong(),settings.moneyUnit)}")}}
   Text("تاریخ این خرید")

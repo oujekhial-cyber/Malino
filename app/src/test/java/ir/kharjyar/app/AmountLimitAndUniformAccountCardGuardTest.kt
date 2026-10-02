@@ -11,8 +11,8 @@ class AmountLimitAndUniformAccountCardGuardTest {
  @Test fun `dashboard account area is stable and visual card is compact`() {
   val dashboard=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
   val card=File("src/main/java/ir/kharjyar/app/ui/components/BankCard.kt").readText()
-  assertTrue(dashboard.contains("val accountCardHeight = 375.dp"))
-  assertTrue(dashboard.contains("365.dp else 205.dp") && dashboard.contains(".height(accountCardHeight)"))
+  assertTrue(dashboard.contains("val compactAccountCardHeight = 205.dp"))
+  assertTrue(dashboard.contains("365.dp else 205.dp") && dashboard.contains(".height(accountCarouselHeight)"))
   assertTrue(dashboard.contains("showDetailsWhenSelected = false"))
   assertTrue(card.contains("visible = selected && showDetailsWhenSelected"))
  }

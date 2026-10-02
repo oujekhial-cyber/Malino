@@ -1,9 +1,12 @@
 package ir.kharjyar.app.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -13,16 +16,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
+import ir.kharjyar.app.R
 import androidx.compose.ui.unit.dp
 
-enum class VehicleGraphicKind { PEUGEOT_PARS, PEUGEOT_206, SAMAND, DENA, PRIDE, SEDAN, MOTORCYCLE, PICKUP, TRUCK, BUS, MACHINERY }
+enum class VehicleGraphicKind { PEUGEOT_PARS, SHAHIN, PEUGEOT_206, SAMAND, DENA, PRIDE, SEDAN, MOTORCYCLE, PICKUP, TRUCK, BUS, MACHINERY }
 
 fun vehicleGraphicKind(title:String,type:String):VehicleGraphicKind{
  val value=(title+" "+type).lowercase().replace('ي','ی').replace('ك','ک')
  return when{
   "موتور" in value -> VehicleGraphicKind.MOTORCYCLE
-  "پژو پارس" in value||"پرشیا" in value -> VehicleGraphicKind.PEUGEOT_PARS
+  "پژو پارس" in value||"پارس سال" in value||"پرشیا" in value -> VehicleGraphicKind.PEUGEOT_PARS
+  "شاهین" in value||"shahin" in value -> VehicleGraphicKind.SHAHIN
   "۲۰۶" in value||"206" in value -> VehicleGraphicKind.PEUGEOT_206
   "دنا" in value -> VehicleGraphicKind.DENA
   "سمند" in value -> VehicleGraphicKind.SAMAND
@@ -39,7 +46,10 @@ fun vehicleGraphicKind(title:String,type:String):VehicleGraphicKind{
 @Composable fun VehicleGraphic(title:String,type:String,accent:Color,modifier:Modifier=Modifier,size:Dp=58.dp){
  val kind=vehicleGraphicKind(title,type)
  Box(modifier.size(size).background(accent.copy(.11f),RoundedCornerShape(17.dp)).border(1.dp,accent.copy(.30f),RoundedCornerShape(17.dp)),contentAlignment=Alignment.Center){
-  Canvas(Modifier.size(size*.86f)){val w=this.size.width;val h=this.size.height;val body=accent;val glass=Color.White.copy(.72f);val tire=Color(0xFF20242A);val rim=Color(0xFFCAD2DC)
+  val modelImage=when(kind){VehicleGraphicKind.PEUGEOT_PARS->R.drawable.vehicle_peugeot_pars;VehicleGraphicKind.SHAHIN->R.drawable.vehicle_saipa_shahin;else->null}
+  if(modelImage!=null){
+   Image(painterResource(modelImage),contentDescription=title.ifBlank{type},modifier=Modifier.fillMaxSize().padding(3.dp),contentScale=ContentScale.Crop)
+  }else Canvas(Modifier.size(size*.86f)){val w=this.size.width;val h=this.size.height;val body=accent;val glass=Color.White.copy(.72f);val tire=Color(0xFF20242A);val rim=Color(0xFFCAD2DC)
    fun wheel(x:Float,y:Float,r:Float){drawCircle(tire,r,Offset(x,y));drawCircle(rim,r*.48f,Offset(x,y));drawCircle(body.copy(.75f),r*.18f,Offset(x,y))}
    when(kind){
     VehicleGraphicKind.MOTORCYCLE->{drawCircle(tire,h*.15f,Offset(w*.25f,h*.69f));drawCircle(tire,h*.15f,Offset(w*.75f,h*.69f));drawLine(body,Offset(w*.25f,h*.67f),Offset(w*.48f,h*.45f),h*.065f,StrokeCap.Round);drawLine(body,Offset(w*.48f,h*.45f),Offset(w*.68f,h*.66f),h*.065f,StrokeCap.Round);drawLine(body,Offset(w*.38f,h*.67f),Offset(w*.57f,h*.67f),h*.07f,StrokeCap.Round);drawRoundRect(body,Offset(w*.39f,h*.39f),Size(w*.25f,h*.11f),CornerRadius(h*.05f,h*.05f));drawLine(body,Offset(w*.61f,h*.42f),Offset(w*.70f,h*.28f),h*.045f,StrokeCap.Round);drawLine(body,Offset(w*.68f,h*.29f),Offset(w*.80f,h*.29f),h*.035f,StrokeCap.Round)}

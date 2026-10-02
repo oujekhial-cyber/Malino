@@ -99,6 +99,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
@@ -306,9 +307,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 val peek = 22.dp
                 val pageWidth = (LocalConfiguration.current.screenWidthDp.dp - 32.dp - peek * 2)
                     .coerceAtLeast(180.dp)
-                // همه کارت‌های خلاصه/بانکی/نقدی ارتفاع یکسان دارند تا هنگام ورق‌زدن،
-                // بخش تراکنش‌های زیر آن‌ها بالا و پایین نپرد.
-                val accountCardHeight = 375.dp
+                // ردیف در حالت عادی هم‌ارتفاع کارت‌های جمع‌وجور است؛ فقط با انتخاب
+                // یک حساب برای نمایش جزئیات باز می‌شود و تراکنش‌های اخیر بی‌دلیل پایین نمی‌روند.
+                val compactAccountCardHeight = 205.dp
+                val accountCarouselHeight = if (defaultAccount == null) 215.dp else 375.dp
                 val dashboardLayoutDirection = LocalLayoutDirection.current
                 // وضعیت جابه‌جایی تا زمان رهاکردن ثابت می‌ماند؛ ترتیب فقط در پایان ذخیره می‌شود.
                 var draggingId by remember { mutableStateOf<Long?>(null) }
@@ -325,7 +327,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 
                 EnterCard(0) {
                     LazyRow(
-                        modifier = Modifier.height(accountCardHeight),
+                        modifier = Modifier.height(accountCarouselHeight).animateContentSize(animationSpec=tween(320)),
                         state = rowState,
                         flingBehavior = controlledFling,
                         contentPadding = PaddingValues(horizontal = peek),
@@ -683,7 +685,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             SkinCard(
                                 modifier = Modifier
                                     .width(if (active.isEmpty()) pageWidth else pageWidth * 0.55f)
-                                    .height(accountCardHeight)
+                                    .height(compactAccountCardHeight)
                                     .clickable { nav.navigate("accountEdit/0") }
                             ) {
                                 Column(
