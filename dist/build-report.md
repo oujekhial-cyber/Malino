@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 990a6aa936e610f24de6193b7c2a8e4ed9099d15
-- تاریخ: 2026-10-02 08:26 UTC
-- unit tests: failure
+- commit: 94ced6d7fc45e26c7e140a819329a5cbd76a3b07
+- تاریخ: 2026-10-02 08:35 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,8 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=472 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.SwipeAndBankLogoGuardTest.category picker can create a new category: java.lang.AssertionError: TransactionEditScreen دسته‌بندی جدید را وصل نکرده
+tests=472 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
