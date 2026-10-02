@@ -29,6 +29,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.money.Money
@@ -88,6 +91,27 @@ private val bankNames = listOf(
     "انصار", "قوامین", "حکمت ایرانیان", "مهر اقتصاد",
     "سایر"
 )
+
+private data class BankAccountKindOption(val code:String,val title:String,val subtitle:String,val interestCapable:Boolean=false)
+private val bankAccountKinds=listOf(
+    BankAccountKindOption("CURRENT","قرض‌الحسنه جاری","مناسب چک و پرداخت‌های روزمره"),
+    BankAccountKindOption("GHARZ","قرض‌الحسنه پس‌انداز","پس‌انداز بدون سود قطعی"),
+    BankAccountKindOption("SHORT_TERM","کوتاه‌مدت عادی","واریز و برداشت روزانه",true),
+    BankAccountKindOption("SHORT_TERM_SPECIAL","کوتاه‌مدت ویژه","سپرده با شرایط زمانی ویژه",true),
+    BankAccountKindOption("LONG_TERM","بلندمدت","سپرده مدت‌دار با سود دوره‌ای",true),
+    BankAccountKindOption("SALARY","حساب حقوق","دریافت حقوق و مستمری"),
+    BankAccountKindOption("PROXY","حساب وکالتی","خرید خودرو، بورس کالا و امور مشابه"),
+    BankAccountKindOption("LOAN","حساب تسهیلات","دریافت یا بازپرداخت وام"),
+    BankAccountKindOption("POINT","حساب امتیازی","ایجاد میانگین برای تسهیلات"),
+    BankAccountKindOption("HOUSING","پس‌انداز مسکن","حساب‌های مسکن و جوانان"),
+    BankAccountKindOption("FOREIGN","حساب ارزی","سپرده با ارز خارجی",true),
+    BankAccountKindOption("BUSINESS","حساب تجاری","مرتبط با فعالیت اقتصادی"),
+    BankAccountKindOption("JOINT","حساب مشترک","دارای بیش از یک صاحب حساب"),
+    BankAccountKindOption("DIGITAL","حساب دیجیتال","نئوبانک و افتتاح کاملاً آنلاین"),
+    BankAccountKindOption("COLLATERAL","سپرده وثیقه‌ای","وجه توثیق یا مسدودشده",true),
+    BankAccountKindOption("OTHER","سایر","سایر حساب‌ها و سپرده‌ها")
+)
+private fun bankAccountKindOption(code:String)=bankAccountKinds.firstOrNull{it.code==code}?:bankAccountKinds.last()
 
 /** معرفی/ویرایش حساب. id == 0 یعنی حساب جدید. */
 @Composable
@@ -247,15 +271,11 @@ fun AccountEditScreen(
                 // نشان هر بانک کنار نامش، هم در فیلد و هم در فهرست انتخاب
                 leadingOf = { BankLogo(bankName = it, size = 26.dp) }
              )
-             ComboBox(label="نوع حساب بانکی",options=listOf("CURRENT","GHARZ","SHORT_TERM","LONG_TERM","SALARY","OTHER"),selected=bankAccountKind,labelOf={when(it){"CURRENT"->"جاری";"GHARZ"->"قرض‌الحسنه";"SHORT_TERM"->"سپرده کوتاه‌مدت";"LONG_TERM"->"سپرده بلندمدت";"SALARY"->"حساب حقوق";else->"سایر"}},onSelect={bankAccountKind=it;if(it!in listOf("SHORT_TERM","LONG_TERM"))monthlyInterestBearing=false})
-             if(bankAccountKind=="SHORT_TERM"||bankAccountKind=="LONG_TERM"){
-              Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween,modifier=Modifier.fillMaxWidth()){Text("پرداخت سود ماهانه");androidx.compose.material3.Switch(monthlyInterestBearing,{monthlyInterestBearing=it})}
-              if(monthlyInterestBearing){
-               OutlinedTextField(monthlyInterestRate,{monthlyInterestRate=Digits.normalize(it).filter{c->c.isDigit()||c=='.'}},label={Text("نرخ سود ماهانه (درصد، اختیاری)")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal),modifier=Modifier.fillMaxWidth(),singleLine=true)
-               val destinations=allAccounts.filter{!it.archived&&it.accountType==AccountType.BANK&&it.id!=accountId}
-               ComboBox(label="حساب مقصد واریز سود",options=listOf<Long?>(null)+destinations.map{it.id},selected=interestDestinationId,labelOf={id->if(id==null)"همین حساب" else destinations.firstOrNull{it.id==id}?.let{"${it.title} • ${it.bankName}"}?:"انتخاب حساب"},onSelect={interestDestinationId=it})
-               Text("خرج‌یار مبلغ سود را تخمین یا ایجاد نمی‌کند؛ فقط واریز واقعی را از پیامک بانک می‌خواند.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-              }
+             val selectedKind=bankAccountKindOption(bankAccountKind)
+             Card(Modifier.fillMaxWidth(),shape=androidx.compose.foundation.shape.RoundedCornerShape(18.dp),colors=androidx.compose.material3.CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer.copy(alpha=.38f))){Row(Modifier.padding(13.dp),verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(45.dp).background(MaterialTheme.colorScheme.primary.copy(.14f),androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(if(selectedKind.interestCapable)Icons.Filled.Savings else Icons.Filled.AccountBalanceWallet,null,tint=MaterialTheme.colorScheme.primary)};Spacer(Modifier.width(11.dp));Column{Text(selectedKind.title,fontWeight=FontWeight.Bold);Text(selectedKind.subtitle,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
+             ComboBox(label="نوع حساب بانکی",options=bankAccountKinds.map{it.code},selected=bankAccountKind,labelOf={bankAccountKindOption(it).title},onSelect={bankAccountKind=it;if(!bankAccountKindOption(it).interestCapable){monthlyInterestBearing=false;monthlyInterestRate="";interestDestinationId=null}})
+             if(selectedKind.interestCapable){
+              Card(Modifier.fillMaxWidth(),colors=androidx.compose.material3.CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant.copy(alpha=.45f))){Column(Modifier.padding(12.dp)){Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween,modifier=Modifier.fillMaxWidth()){Column(Modifier.weight(1f)){Text("سود ماهانه",fontWeight=FontWeight.Bold);Text("فقط واریز واقعی پیامک بانک ثبت می‌شود",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)};androidx.compose.material3.Switch(monthlyInterestBearing,{monthlyInterestBearing=it})};if(monthlyInterestBearing){OutlinedTextField(monthlyInterestRate,{monthlyInterestRate=Digits.normalize(it).filter{c->c.isDigit()||c=='.'}},label={Text("نرخ سود (اختیاری)")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal),modifier=Modifier.fillMaxWidth(),singleLine=true);val destinations=allAccounts.filter{!it.archived&&it.accountType==AccountType.BANK&&it.id!=accountId};ComboBox(label="واریز سود به",options=listOf<Long?>(null)+destinations.map{it.id},selected=interestDestinationId,labelOf={id->if(id==null)"همین حساب" else destinations.firstOrNull{it.id==id}?.title?:"انتخاب حساب"},onSelect={interestDestinationId=it})}}}
              }
             } else {
                 OutlinedTextField(ownerName, { ownerName = it }, label = { Text("صاحب صندوق (مثلاً خودم، همسر یا فرزند)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)

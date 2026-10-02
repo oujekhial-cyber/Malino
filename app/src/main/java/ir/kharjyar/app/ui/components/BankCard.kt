@@ -3,7 +3,9 @@ package ir.kharjyar.app.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -37,8 +39,9 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -167,8 +170,20 @@ fun BankCard(
         label = "cardBorderWidth"
     )
 
+    var flipped by remember(title, cardNumber) { mutableStateOf(false) }
+    var verticalDrag by remember { mutableFloatStateOf(0f) }
+    val flipRotation by animateFloatAsState(if (flipped) 180f else 0f, tween(720), label = "bankCardFlip")
+
     Box(
         modifier = modifier
+            .graphicsLayer { rotationX = flipRotation; cameraDistance = 18f * density }
+            .pointerInput(flipped) {
+                detectVerticalDragGestures(
+                    onVerticalDrag = { change, amount -> change.consume(); verticalDrag += amount },
+                    onDragEnd = { if (kotlin.math.abs(verticalDrag) > 42f) flipped = !flipped; verticalDrag = 0f },
+                    onDragCancel = { verticalDrag = 0f }
+                )
+            }
             .clip(shape)
             .background(Brush.linearGradient(listOf(top, bottom)))
             .border(borderWidth, borderColor, shape)
@@ -193,7 +208,7 @@ fun BankCard(
         }
 
     Column(
-        modifier = Modifier.padding(16.dp)
+        modifier = Modifier.padding(16.dp).alpha(if (flipped) 0f else 1f)
     ) {
         // ---------- ردیف بالا: نام بانک و نشان ----------
         Row(
@@ -280,64 +295,27 @@ fun BankCard(
 
         content()
 
-        // ---------- جزئیات، فقط وقتی کارت انتخاب شده ----------
-        AnimatedVisibility(
-            visible = selected && showDetailsWhenSelected,
-            enter = fadeIn(tween(200)) + expandVertically(tween(220)),
-            exit = fadeOut(tween(140)) + shrinkVertically(tween(180))
-        ) {
-            Column {
-                Spacer(Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(onCard.copy(alpha = 0.22f))
-                )
-                Spacer(Modifier.height(10.dp))
+        // جزئیات کامل روی پشت کارت نمایش داده می‌شوند.
+    }
 
-                if (accountNumber.isNotBlank()) {
-                    CardField("شماره حساب", Digits.ltr(Digits.toPersian(accountNumber)), onCard) { onCopy("شماره حساب", accountNumber) }
-                }
-                if (iban.isNotBlank()) {
-                    CardField("شبا", Digits.ltr("IR" + Digits.toPersian(iban)), onCard) { onCopy("شماره شبا", "IR$iban") }
-                }
-                if (expiry.isNotBlank() || cvv2.isNotBlank()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                        if (expiry.isNotBlank()) {
-                            Column {
-                                Text(
-                                    "انقضا",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = onCard.copy(alpha = 0.7f)
-                                )
-                                Text(
-                                    Digits.ltr(Digits.toPersian(expiry)),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = onCard
-                                )
-                            }
-                        }
-                        if (cvv2.isNotBlank()) {
-                            Column {
-                                Text(
-                                    "CVV2",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = onCard.copy(alpha = 0.7f)
-                                )
-                                Text(
-                                    if (showSecrets) Digits.ltr(Digits.toPersian(cvv2)) else "•••",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = onCard
-                                )
-                            }
-                        }
-                    }
-                }
-                content()
+    if (flipped) {
+        Column(
+            Modifier.matchParentSize().graphicsLayer { rotationX = 180f }.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column { Text(title, color=onCard, fontWeight=FontWeight.Black);Text("اطلاعات کامل حساب",color=onCard.copy(.72f),style=MaterialTheme.typography.labelSmall) }
+                BankLogo(bankName=bankName,size=34.dp,ringColor=onCard)
             }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(onCard.copy(.24f)))
+            if(accountNumber.isNotBlank()) CardField("شماره حساب",Digits.ltr(Digits.toPersian(accountNumber)),onCard){onCopy("شماره حساب",accountNumber)}
+            if(iban.isNotBlank()) CardField("شبا",Digits.ltr("IR"+Digits.toPersian(iban)),onCard){onCopy("شماره شبا","IR$iban")}
+            Row(horizontalArrangement=Arrangement.spacedBy(28.dp)) {
+                if(expiry.isNotBlank()) CardField("انقضا",Digits.ltr(Digits.toPersian(expiry)),onCard){}
+                if(cvv2.isNotBlank()) CardField("CVV2",if(showSecrets)Digits.ltr(Digits.toPersian(cvv2)) else "•••",onCard){}
+            }
+            if(ownerName.isNotBlank()) Text("دارنده: $ownerName",color=onCard,style=MaterialTheme.typography.bodyMedium)
+            Text("برای بازگشت، کارت را عمودی بکشید",color=onCard.copy(.68f),style=MaterialTheme.typography.labelSmall,modifier=Modifier.align(Alignment.CenterHorizontally))
         }
     }
     }

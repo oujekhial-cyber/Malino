@@ -150,7 +150,7 @@ class Repository(val db: KharjYarDatabase) {
         // پیامک سود ممکن است شماره سپرده مبدأ را بنویسد، در حالی‌که وجه به حساب
         // دیگری واریز شده است. مقصد فقط از تنظیم صریح کاربر انتخاب می‌شود؛ حدس نمی‌زنیم.
         val normalizedSms = ir.kharjyar.app.core.text.Digits.normalizeForMatch(sms.body)
-        val isInterestSms = listOf("سود سپرده","سود ماهانه","سود علی الحساب").any { normalizedSms.contains(it) }
+        val isInterestSms = ir.kharjyar.app.core.sms.InterestSmsDetector.isInterest(normalizedSms)
         val configuredInterestDestinations = if(isInterestSms) activeAccounts.filter { it.monthlyInterestBearing }.mapNotNull { source ->
             val sourceMentioned = ir.kharjyar.app.core.sms.AccountNumberMatcher.match(sms.body,listOf(ir.kharjyar.app.core.sms.MatchableAccount(source.id,source.maskedNumber,source.accountNumber,source.iban,source.cardNumber))) is AccountMatch.Single
             if(sourceMentioned) (source.interestDestinationAccountId ?: source.id) else null
@@ -238,7 +238,9 @@ class Repository(val db: KharjYarDatabase) {
 
         // ۵) ساخت پیش‌نویس تراکنش (PENDING) — پیشنهاد است، نه ثبت قطعی
         val direction = if (chosen.directionEnum() == ExtractedDirection.DEPOSIT) TxDirection.DEPOSIT else TxDirection.WITHDRAW
-        val suggestedCategory = suggestCategory(sms.body, chosen.counterparty ?: "")
+        val interestDeposit = ir.kharjyar.app.core.sms.InterestSmsDetector.isInterest(sms.body) && direction == TxDirection.DEPOSIT
+        val suggestedCategory = if(interestDeposit) categoryDao.allOnce().firstOrNull{it.name=="سود و سرمایه‌گذاری"}?.id
+            ?: suggestCategory(sms.body, chosen.counterparty ?: "") else suggestCategory(sms.body, chosen.counterparty ?: "")
         val occurredAt = chosen.occurredAtMillis ?: sms.receivedAt
         txDao.findDuplicate(accountId,chosen.amountRial,direction,occurredAt)?.let { duplicate ->
             smsDao.update(sms.copy(status=SmsStatus.DONE,matchedAccountId=accountId,extractionJson=chosen.toJson(),updatedAt=now()))
@@ -254,8 +256,9 @@ class Repository(val db: KharjYarDatabase) {
                     accountId = accountId,
                     amountRial = chosen.amountRial,
                     direction = direction,
-                    nature = TxNature.UNKNOWN,
+                    nature = if(interestDeposit) TxNature.INCOME else TxNature.UNKNOWN,
                     categoryId = suggestedCategory,
+                    description = if(interestDeposit) "سود واریزشده سپرده" else "",
                     occurredAt = occurredAt,
                     recordedAt = now(),
                     timeIsApproximate = chosen.occurredAtMillis == null,

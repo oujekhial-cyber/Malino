@@ -85,6 +85,12 @@ object GoldPriceService {
     )
 
     suspend fun preciousMetalRial(code:String):Long? = preciousMetalProfiles[code]?.let { currentRial(it) }
+
+    private val coinProfiles = mapOf(
+        "COIN_EMAMI" to "sekee", "COIN_BAHAR" to "sekeb", "COIN_HALF" to "nim",
+        "COIN_QUARTER" to "rob", "COIN_GRAM" to "gerami"
+    )
+    suspend fun coinRial(code:String):Long? = coinProfiles[code]?.let { currentRial(it) }
 }
 
 object IranianGoldCalculator {
