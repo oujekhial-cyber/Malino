@@ -1,8 +1,8 @@
 package ir.kharjyar.app
 
 import java.io.File
-import kotlin.test.Test
-import kotlin.test.assertTrue
+import org.junit.Test
+import org.junit.Assert.assertTrue
 
 class ManagementHeroCoverageGuardTest {
     private fun source(name: String) = File("src/main/java/ir/kharjyar/app/ui/screens/$name").readText()
