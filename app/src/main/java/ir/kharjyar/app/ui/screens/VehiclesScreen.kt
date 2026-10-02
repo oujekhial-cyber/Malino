@@ -127,7 +127,7 @@ private enum class PlateKind(val label:String,val prefix:String,val letter:Strin
  PERSONAL("شخصی","", "",Color(0xFFF8F8F8)),TAXI("تاکسی","تاکسی|","ت",Color(0xFFFFC928)),PUBLIC("عمومی/باربری","عمومی|","ع",Color(0xFFFFC928)),AGRICULTURAL("کشاورزی","کشاورزی|","ک",Color(0xFFFFC928)),TEMPORARY("گذر موقت","گذر موقت|","گ",Color.White),FREE_ZONE("منطقه آزاد","آزاد-","",Color.White),DISABLED("معلولین","معلولین|","♿",Color.White),GOVERNMENT("دولتی","دولتی|","الف",Color(0xFFD12E35),Color.White),HISTORIC("تاریخی","تاریخی|","",Color(0xFFC7A77A))
 }
 private fun plateKindOf(plate:String)=when{plate.startsWith("تاکسی|")->PlateKind.TAXI;plate.startsWith("عمومی|")->PlateKind.PUBLIC;plate.startsWith("کشاورزی|")->PlateKind.AGRICULTURAL;plate.startsWith("گذر موقت|")->PlateKind.TEMPORARY;plate.startsWith("آزاد-")->PlateKind.FREE_ZONE;plate.startsWith("معلولین|")->PlateKind.DISABLED;plate.startsWith("دولتی|")->PlateKind.GOVERNMENT;plate.startsWith("تاریخی|")->PlateKind.HISTORIC;else->PlateKind.PERSONAL}
-private fun platePayload(plate:String)=when{plateKindOf(plate)){PlateKind.FREE_ZONE->plate.substringAfter('|',"");PlateKind.PERSONAL->plate;else->plate.substringAfter('|',plate)}
+private fun platePayload(plate:String)=when(plateKindOf(plate)){PlateKind.FREE_ZONE->plate.substringAfter('|',"");PlateKind.PERSONAL->plate;else->plate.substringAfter('|',plate)}
 
 @Composable private fun VehiclePlateBadge(plate:String,modifier:Modifier=Modifier){
  val kind=plateKindOf(plate);val payload=platePayload(plate);val car=remember(payload){ir.kharjyar.app.core.sms.IranianPlateMatcher.extract(payload)}
