@@ -230,7 +230,7 @@ private fun DebtEntryPage(vm: AppViewModel, kind: Int, people: List<DebtPersonEn
     val receivable = kind == DebtKind.RECEIVABLE
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onCancel) { Icon(Icons.Filled.ArrowBack, null); Text("بازگشت به فهرست") }
-        ModernSummaryHero(if(receivable)"ثبت طلب" else "ثبت بدهی","مشخصات شخص، مبلغ و سررسید",if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45),listOf(SummaryMetric("مبلغ",Money.inputToRial(amount,settings.moneyUnit)?.let{Money.format(it,settings.moneyUnit)}?:"—",if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45),if(receivable)Icons.Filled.CallReceived else Icons.Filled.CallMade),SummaryMetric("سررسید",dueDate.format(),MaterialTheme.colorScheme.primary,Icons.Filled.EventAvailable)),Icons.Filled.AccountBalanceWallet)
+        ModernSummaryHero(if(receivable)"ثبت طلب" else "ثبت بدهی","مشخصات شخص، مبلغ و سررسید",if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45),listOf(SummaryMetric("مبلغ",Money.inputToRial(amount,settings.moneyUnit)?.let{Money.format(it,settings.moneyUnit)}?:"—",if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45),if(receivable)Icons.Filled.CallReceived else Icons.Filled.CallMade),SummaryMetric("سررسید",due.format(),MaterialTheme.colorScheme.primary,Icons.Filled.EventAvailable)),Icons.Filled.AccountBalanceWallet)
         OutlinedTextField(person, { person = it }, label = { Text("نام شخص") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(title, { title = it }, label = { Text("عنوان یا توضیح") }, modifier = Modifier.fillMaxWidth())
         AmountTextField(amount, { amount = it }, "مبلغ", Modifier.fillMaxWidth(), unit = settings.moneyUnit)
