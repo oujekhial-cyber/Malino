@@ -1,7 +1,7 @@
 # گزارش Build و تست (CI)
 
-- commit: 91ed2e1d53e75d96c17b7e697f1620cf5202f967
-- تاریخ: 2026-10-02 11:34 UTC
+- commit: 54d47629d18cea8506069521491725891ac4e0f7
+- تاریخ: 2026-10-02 11:44 UTC
 - unit tests: failure
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
@@ -10,7 +10,8 @@
 
 ## خلاصه تست‌های واحد
 ```
-(no test results)
+tests=487 failures=1 errors=0 skipped=0
+FAIL ir.kharjyar.app.AssetProfessionalUiGuardTest.assets have graphical portfolio and swipe edit delete: java.lang.AssertionError
 ```
 
 ## نسخه انتشار
