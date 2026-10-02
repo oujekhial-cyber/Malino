@@ -12,13 +12,13 @@ class MarketPopupReadabilityGuardTest {
             "popupPositionProvider=object:PopupPositionProvider",
             "anchorBounds.bottom+marketBarGapPx",
             "fillMaxWidth(.86f)",
-            "panelBase.copy(alpha=if(darkMarket).86f else .84f)",
-            "Modifier.size(38.dp)",
+            "panelBase.copy(alpha=if(darkMarket).97f else .98f)",
+            "Modifier.size(46.dp)",
             "MaterialTheme.typography.titleMedium",
             "MaterialTheme.typography.labelSmall",
             "verticalArrangement=Arrangement.spacedBy(0.dp)",
             "color=tile.copy(alpha=if(dark).98f else 1f)",
-            "PremiumMarketTile","\"Au\"","\"\\$\"","آخرین تغییرات بازار","آخرین بروزرسانی"
+            "PremiumMarketTile","\"Au\"","\"\\$\"","برای مشاهده کامل، آیکون را لمس کنید","آخرین بروزرسانی"
         ).forEach{assertTrue(it,source.contains(it))}
         val popup=source.substring(source.indexOf("if(expanded)Popup"),source.indexOf("@Composable private fun PremiumMarketTile"))
         assertTrue(source.contains("10.dp.roundToPx()"))
