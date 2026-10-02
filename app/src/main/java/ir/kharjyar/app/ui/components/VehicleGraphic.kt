@@ -42,13 +42,68 @@ fun vehicleGraphicKind(title:String,type:String):VehicleGraphicKind{
  }
 }
 
-/** تصویر برداری اختصاصی؛ بدون استفاده از آیکون سیستم و متناسب با مدل/نوع ثبت‌شده. */
+fun vehicleManufacturerLogo(title:String,type:String):Int?{
+ val value=(title+" "+type).lowercase().replace('ي','ی').replace('ك','ک')
+ return when{
+  listOf("رنو تراکس","رنو کامیون","renault trucks","renault truck","premium truck","range t").any{it in value}->R.drawable.brand_renault_trucks
+  listOf("وولوو","volvo","fh12","fh13","fh16","fm9","fm12").any{it in value}->R.drawable.brand_volvo
+  listOf("اسکانیا","scania","r420","r440","r450","g410","s500").any{it in value}->R.drawable.brand_scania
+  listOf("فاو","faw","j6p","j7 truck").any{it in value}->R.drawable.brand_faw
+  listOf("مان کامیون","مان کشنده","man truck","tgx","tgs","tga").any{it in value}->R.drawable.brand_man
+  listOf("ایویکو","iveco","stralis","s-way","eurocargo").any{it in value}->R.drawable.brand_iveco
+  listOf("داف","daf","xf105","xf 105","xf480","cf85").any{it in value}->R.drawable.brand_daf
+  listOf("کاماز","kamaz").any{it in value}->R.drawable.brand_kamaz
+  listOf("شاکمان","شکمن","shacman","x5000","x3000").any{it in value}->R.drawable.brand_shacman
+  listOf("آمیکو","امیکو","amico","m2631","m1929").any{it in value}->R.drawable.brand_amico
+  listOf("ماک","mack","بولداگ","bulldog","anthem","granite").any{it in value}->R.drawable.brand_mack
+  listOf("ایسوزو","isuzu","دی مکس","d-max","dmax","npr","nqr","fvr").any{it in value}->R.drawable.brand_isuzu
+  listOf("پژو","peugeot").any{it in value}->R.drawable.brand_peugeot
+  listOf("شاهین","پراید","تیبا","ساینا","کوییک","اطلس","سهند","سایپا","saipa").any{it in value}->R.drawable.brand_saipa
+  listOf("سمند","دنا","تارا","رانا","سورن","ایران خودرو","ikco").any{it in value}->R.drawable.brand_ikco
+  listOf("رنو","تندر","ال ۹۰","ال90","ساندرو","لوگان","کپچر","کولیوس","renault").any{it in value}->R.drawable.brand_renault
+  listOf("تویوتا","کمری","کرولا","پرادو","لندکروزر","راوفور","یاریس","هایلوکس","toyota").any{it in value}->R.drawable.brand_toyota
+  listOf("هیوندای","النترا","سوناتا","آزرا","توسان","سانتافه","اکسنت","ورنا","hyundai").any{it in value}->R.drawable.brand_hyundai
+  listOf("کیا","سراتو","اپتیما","اسپورتیج","سورنتو","ریو","پیکانتو","kia").any{it in value}->R.drawable.brand_kia
+  listOf("نیسان","ماکسیما","مورانو","جوک","ایکس تریل","قشقایی","تیانا","nissan").any{it in value}->R.drawable.brand_nissan
+  listOf("مزدا","mazda").any{it in value}->R.drawable.brand_mazda
+  listOf("هوندا","سیویک","آکورد","cr-v","honda").any{it in value}->R.drawable.brand_honda
+  listOf("یاماها","yamaha","nmax","xmax","mt-","yzf").any{it in value}->R.drawable.brand_yamaha
+  listOf("کاوازاکی","kawasaki","ninja","z1000").any{it in value}->R.drawable.brand_kawasaki
+  listOf("باجاج","bajaj","پالس","پالسار","pulsar","discover").any{it in value}->R.drawable.brand_bajaj
+  listOf("تی وی اس","تی‌وی‌اس","tvs","apache","wego").any{it in value}->R.drawable.brand_tvs
+  listOf("بنلی","benelli","tnt","trk").any{it in value}->R.drawable.brand_benelli
+  listOf("فیات","fiat","ducato","doblo","500x").any{it in value}->R.drawable.brand_fiat
+  listOf("فراری","ferrari").any{it in value}->R.drawable.brand_ferrari
+  listOf("لامبورگینی","لامبورجینی","lamborghini").any{it in value}->R.drawable.brand_lamborghini
+  listOf("مرسدس","بنز","mercedes","benz").any{it in value}->R.drawable.brand_mercedes
+  listOf("بی ام و","بی‌ام‌و","بی‌ ام‌ و","bmw").any{it in value}->R.drawable.brand_bmw
+  listOf("آئودی","آودی","audi").any{it in value}->R.drawable.brand_audi
+  listOf("فولکس","گلف","پاسات","تیگوان","volkswagen","vw").any{it in value}->R.drawable.brand_volkswagen
+  listOf("فورد","موستانگ","تاروس","اکسپلورر","ford").any{it in value}->R.drawable.brand_ford
+  listOf("میتسوبیشی","لنسر","اوتلندر","پاجرو","asx","mitsubishi").any{it in value}->R.drawable.brand_mitsubishi
+  listOf("سوزوکی","ویتارا","کیزاشی","گرند ویتارا","suzuki").any{it in value}->R.drawable.brand_suzuki
+  listOf("چری","ام وی ام","mvm","فونیکس","تیگو","آریزو","chery","fownix").any{it in value}->R.drawable.brand_chery
+  listOf("بی وای دی","بی‌وای‌دی","byd","سانگ پلاس","دلفین","هان","اتو ۳","atto 3").any{it in value}->R.drawable.brand_byd
+  listOf("لوکانو","lucano","جیکو","jaecoo","l7","l8").any{it in value}->R.drawable.brand_lucano
+  listOf("کی ام سی","کی‌ام‌سی","kmc","j7","x5","t8","t9","eagle").any{it in value}->R.drawable.brand_kmc
+  listOf("لاماری","ایما","lamari","eama").any{it in value}->R.drawable.brand_lamari
+  listOf("بهمن","فیدلیتی","دیگنیتی","ریسپکت","کاپرا","bahman","fidelity","dignity").any{it in value}->R.drawable.brand_bahman
+  listOf("جی ای سی","جی‌ای‌سی","gac","امپو","امکو","empow","emkoo","gs3").any{it in value}->R.drawable.brand_gac
+  listOf("جیلی","آزکارا","geely","azkarra","coolray").any{it in value}->R.drawable.brand_geely
+  listOf("دانگ فنگ","دانگ‌فنگ","dongfeng","شاین مکس","shine max","aeolus").any{it in value}->R.drawable.brand_dongfeng
+  listOf("هاوال","haval","h2","h6","jolion").any{it in value}->R.drawable.brand_haval
+  listOf("جک","jac","s3","s5","j4").any{it in value}->R.drawable.brand_jac
+  else->null
+ }
+}
+
+/** نشان سازنده برای مدل‌های شناخته‌شده و گرافیک نوع وسیله برای موارد ناشناخته. */
 @Composable fun VehicleGraphic(title:String,type:String,accent:Color,modifier:Modifier=Modifier,size:Dp=58.dp){
  val kind=vehicleGraphicKind(title,type)
  Box(modifier.size(size).background(accent.copy(.11f),RoundedCornerShape(17.dp)).border(1.dp,accent.copy(.30f),RoundedCornerShape(17.dp)),contentAlignment=Alignment.Center){
-  val modelImage=when(kind){VehicleGraphicKind.PEUGEOT_PARS->R.drawable.vehicle_peugeot_pars;VehicleGraphicKind.SHAHIN->R.drawable.vehicle_saipa_shahin;else->null}
-  if(modelImage!=null){
-   Image(painterResource(modelImage),contentDescription=title.ifBlank{type},modifier=Modifier.fillMaxSize().padding(3.dp),contentScale=ContentScale.Crop)
+  val manufacturerLogo=vehicleManufacturerLogo(title,type)
+  if(manufacturerLogo!=null){
+   Image(painterResource(manufacturerLogo),contentDescription="نشان سازنده ${title.ifBlank{type}}",modifier=Modifier.fillMaxSize().padding(3.dp),contentScale=ContentScale.Crop)
   }else Canvas(Modifier.size(size*.86f)){val w=this.size.width;val h=this.size.height;val body=accent;val glass=Color.White.copy(.72f);val tire=Color(0xFF20242A);val rim=Color(0xFFCAD2DC)
    fun wheel(x:Float,y:Float,r:Float){drawCircle(tire,r,Offset(x,y));drawCircle(rim,r*.48f,Offset(x,y));drawCircle(body.copy(.75f),r*.18f,Offset(x,y))}
    when(kind){

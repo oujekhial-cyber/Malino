@@ -339,8 +339,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             val totalRial = active.sumOf { acc -> AccountBalance.estimate(acc, allTx).rial ?: 0L }
                             HeroCard(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(205.dp)
+                                    .width(pageWidth)
+                                    .height(compactAccountCardHeight)
                                     .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
                                 neon = settings.cardShine
                             ) {

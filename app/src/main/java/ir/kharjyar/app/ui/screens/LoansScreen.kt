@@ -10,6 +10,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import ir.kharjyar.app.ui.components.ModernChoiceDialog
+import ir.kharjyar.app.ui.components.ModernChoiceOption
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Payments
@@ -105,15 +108,7 @@ fun LoansScreen(vm:AppViewModel) {
    containerColor=MaterialTheme.colorScheme.primary
   ) { Icon(Icons.Filled.Add,"افزودن وام") }
  }
- if(showChooser) AlertDialog(
-  onDismissRequest={showChooser=false},
-  title={Text("نوع وام را انتخاب کنید")},
-  text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
-   Button({showChooser=false;entryKind=LoanKind.LENT},Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,Color(0xFF1B8F52))) { Text("ثبت وام پرداختی") }
-   Button({showChooser=false;entryKind=LoanKind.BORROWED},Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,Color(0xFFD33B45))) { Text("ثبت وام دریافتی") }
-  }},
-  confirmButton={}
- )
+ if(showChooser)ModernChoiceDialog("نوع وام","جهت پرداخت و بازپرداخت وام را انتخاب کنید",listOf(ModernChoiceOption("وام پرداختی","مبلغی که شما به شخص دیگری وام می‌دهید",Color(0xFF1B8F52),Icons.Filled.NorthEast){showChooser=false;entryKind=LoanKind.LENT},ModernChoiceOption("وام دریافتی","مبلغی که از شخص یا مؤسسه دریافت می‌کنید",Color(0xFFD33B45),Icons.Filled.SouthWest){showChooser=false;entryKind=LoanKind.BORROWED}),{showChooser=false})
 }
 
 @Composable
@@ -194,7 +189,7 @@ private fun LoanEntryPage(vm:AppViewModel,kind:Int,onDone:()->Unit,onCancel:()->
  val accent=if(lent) Color(0xFF1B8F52) else Color(0xFFD33B45)
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
   TextButton(onCancel) { Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به فهرست") }
-  Text(if(lent) "ثبت وام پرداختی" else "ثبت وام دریافتی",style=MaterialTheme.typography.headlineSmall,color=accent)
+  ModernSummaryHero(if(lent)"ثبت وام پرداختی" else "ثبت وام دریافتی","مشخصات و برنامه اقساط",accent,listOf(SummaryMetric("اصل مبلغ",Money.inputToRial(principal,settings.moneyUnit)?.let{Money.format(it,settings.moneyUnit)}?:"—",accent,Icons.Filled.Payments),SummaryMetric("تعداد اقساط",Digits.toPersian(count.ifBlank{"—"}),MaterialTheme.colorScheme.primary,Icons.Filled.CalendarMonth)),Icons.Filled.Savings)
   OutlinedTextField(title,{title=it},label={Text("عنوان وام")},modifier=Modifier.fillMaxWidth())
   OutlinedTextField(party,{party=it},label={Text(if(lent)"نام وام‌گیرنده" else "بانک یا وام‌دهنده")},modifier=Modifier.fillMaxWidth())
   AmountTextField(principal,{principal=it},"اصل مبلغ",Modifier.fillMaxWidth(),unit=settings.moneyUnit)

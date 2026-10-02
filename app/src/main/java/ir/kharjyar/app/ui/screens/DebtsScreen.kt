@@ -8,6 +8,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import ir.kharjyar.app.ui.components.ModernChoiceDialog
+import ir.kharjyar.app.ui.components.ModernChoiceOption
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -124,13 +127,7 @@ fun DebtsScreen(vm: AppViewModel) {
         }
         FloatingActionButton(onClick = { showChooser = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) { Icon(Icons.Filled.Add, "افزودن طلب یا بدهی") }
     }
-    if (showChooser) AlertDialog(
-        onDismissRequest = { showChooser = false }, title = { Text("چه موردی ثبت می‌کنید؟") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button({ showChooser = false; entryKind = DebtKind.RECEIVABLE }, Modifier.fillMaxWidth(), border = BorderStroke(1.5.dp, Color(0xFF1B8F52))) { Text("ثبت طلب") }
-            Button({ showChooser = false; entryKind = DebtKind.PAYABLE }, Modifier.fillMaxWidth(), border = BorderStroke(1.5.dp, Color(0xFFD33B45))) { Text("ثبت بدهی") }
-        } }, confirmButton = {}
-    )
+    if(showChooser)ModernChoiceDialog("طلب یا بدهی","نوع تعهد مالی را انتخاب کنید",listOf(ModernChoiceOption("ثبت طلب","مبلغی که باید از شخص دیگری دریافت کنید",Color(0xFF1B8F52),Icons.Filled.CallReceived){showChooser=false;entryKind=DebtKind.RECEIVABLE},ModernChoiceOption("ثبت بدهی","مبلغی که باید به شخص دیگری پرداخت کنید",Color(0xFFD33B45),Icons.Filled.CallMade){showChooser=false;entryKind=DebtKind.PAYABLE}),{showChooser=false})
 }
 
 @Composable
@@ -233,7 +230,7 @@ private fun DebtEntryPage(vm: AppViewModel, kind: Int, people: List<DebtPersonEn
     val receivable = kind == DebtKind.RECEIVABLE
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onCancel) { Icon(Icons.Filled.ArrowBack, null); Text("بازگشت به فهرست") }
-        Text(if (receivable) "ثبت طلب" else "ثبت بدهی", style = MaterialTheme.typography.headlineSmall, color = if (receivable) Color(0xFF1B8F52) else Color(0xFFD33B45))
+        ModernSummaryHero(if(receivable)"ثبت طلب" else "ثبت بدهی","مشخصات شخص، مبلغ و سررسید",if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45),listOf(SummaryMetric("مبلغ",Money.inputToRial(amount,settings.moneyUnit)?.let{Money.format(it,settings.moneyUnit)}?:"—",if(receivable)Color(0xFF1B8F52) else Color(0xFFD33B45),if(receivable)Icons.Filled.CallReceived else Icons.Filled.CallMade),SummaryMetric("سررسید",dueDate.format(),MaterialTheme.colorScheme.primary,Icons.Filled.EventAvailable)),Icons.Filled.AccountBalanceWallet)
         OutlinedTextField(person, { person = it }, label = { Text("نام شخص") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(title, { title = it }, label = { Text("عنوان یا توضیح") }, modifier = Modifier.fillMaxWidth())
         AmountTextField(amount, { amount = it }, "مبلغ", Modifier.fillMaxWidth(), unit = settings.moneyUnit)
