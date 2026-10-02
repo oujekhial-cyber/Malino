@@ -1,5 +1,10 @@
 package ir.kharjyar.app.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -41,6 +46,8 @@ import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.SouthWest
+import androidx.compose.material.icons.filled.NorthEast
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -71,12 +78,14 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
@@ -128,7 +137,7 @@ import ir.kharjyar.app.ui.theme.LocalAppSkin
 
 @Composable
 fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit,onOpenMarket:()->Unit) {
-    val scope=rememberCoroutineScope();var expanded by remember{mutableStateOf(false)};var panelVisible by remember{mutableStateOf(false)};var refreshKey by remember{mutableStateOf(0)};var loading by remember{mutableStateOf(false)};var gold by remember{mutableStateOf<Long?>(null)};var dollar by remember{mutableStateOf<Long?>(null)};var previousGold by remember{mutableStateOf<Long?>(null)};var previousDollar by remember{mutableStateOf<Long?>(null)};var failed by remember{mutableStateOf(false)};var updatedAt by remember{mutableStateOf("—")}
+    val scope=rememberCoroutineScope();val context=LocalContext.current;var expanded by remember{mutableStateOf(false)};var panelVisible by remember{mutableStateOf(false)};var refreshKey by remember{mutableStateOf(0)};var loading by remember{mutableStateOf(false)};var gold by remember{mutableStateOf<Long?>(null)};var dollar by remember{mutableStateOf<Long?>(null)};var previousGold by remember{mutableStateOf<Long?>(null)};var previousDollar by remember{mutableStateOf<Long?>(null)};var failed by remember{mutableStateOf(false)};var stale by remember{mutableStateOf(false)};var updatedAt by remember{mutableStateOf<Long?>(null)}
     val arrowRotation by animateFloatAsState(if(expanded)180f else 0f,animationSpec=tween(550),label="marketArrow")
     val darkMarket=MaterialTheme.colorScheme.background.luminance()<.5f
     val panelBase=if(darkMarket)Color(0xFF0B101B) else Color(0xFFF9FAFF)
@@ -137,7 +146,7 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit,onOpenMarket:()->U
     // تا سیستم‌عامل برای جا دادن آن، پنجره را به بالا و روی دکمه منتقل نکند.
     val marketBarGapPx=with(LocalDensity.current){10.dp.roundToPx()}
     fun closePanel(){scope.launch{panelVisible=false;kotlinx.coroutines.delay(420);expanded=false}}
-    LaunchedEffect(expanded,refreshKey){if(!expanded)return@LaunchedEffect;panelVisible=true;loading=true;failed=false;coroutineScope{val g=async{ir.kharjyar.app.assets.GoldPriceService.gram18Rial()};val d=async{ir.kharjyar.app.assets.GoldPriceService.dollarRial()};val newGold=g.await();val newDollar=d.await();if(gold!=null&&newGold!=null)previousGold=gold;if(dollar!=null&&newDollar!=null)previousDollar=dollar;gold=newGold?:gold;dollar=newDollar?:dollar;failed=newGold==null&&newDollar==null;if(!failed){val time=java.text.SimpleDateFormat("HH:mm",java.util.Locale.US).format(java.util.Date());updatedAt=Digits.toPersian(time)}};loading=false}
+    LaunchedEffect(expanded,refreshKey){if(!expanded)return@LaunchedEffect;panelVisible=true;loading=true;failed=false;val cachedGold=ir.kharjyar.app.assets.MarketPriceCache.read(context,"GOLD18");val cachedDollar=ir.kharjyar.app.assets.MarketPriceCache.read(context,"USD");if(gold==null)gold=cachedGold?.valueRial;if(dollar==null)dollar=cachedDollar?.valueRial;coroutineScope{val g=async{ir.kharjyar.app.assets.GoldPriceService.gram18Rial()};val d=async{ir.kharjyar.app.assets.GoldPriceService.dollarRial()};val newGold=g.await();val newDollar=d.await();val now=System.currentTimeMillis();if(gold!=null&&newGold!=null)previousGold=gold;if(dollar!=null&&newDollar!=null)previousDollar=dollar;if(newGold!=null){gold=newGold;ir.kharjyar.app.assets.MarketPriceCache.write(context,"GOLD18",newGold,now)};if(newDollar!=null){dollar=newDollar;ir.kharjyar.app.assets.MarketPriceCache.write(context,"USD",newDollar,now)};failed=newGold==null||newDollar==null;stale=failed;updatedAt=if(stale)listOfNotNull(if(newGold==null)cachedGold?.updatedAt else now,if(newDollar==null)cachedDollar?.updatedAt else now).minOrNull() else now};loading=false}
     Surface(modifier=Modifier.clickable{if(expanded)closePanel()else expanded=true},color=MaterialTheme.colorScheme.surface.copy(alpha=.78f),shape=RoundedCornerShape(50),border=BorderStroke(1.dp,MaterialTheme.colorScheme.primary.copy(alpha=.30f)),tonalElevation=5.dp,shadowElevation=5.dp){Row(Modifier.padding(horizontal=10.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)){Icon(Icons.Filled.ShowChart,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(16.dp));Text("نبض بازار",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.labelMedium);Icon(Icons.Filled.ExpandMore,null,modifier=Modifier.size(16.dp).graphicsLayer(rotationZ=arrowRotation))}}
     if(expanded)Popup(popupPositionProvider=object:PopupPositionProvider{override fun calculatePosition(anchorBounds:androidx.compose.ui.unit.IntRect,windowSize:IntSize,layoutDirection:LayoutDirection,popupContentSize:IntSize)=IntOffset(0,anchorBounds.bottom+marketBarGapPx)},onDismissRequest={closePanel()},properties=PopupProperties(focusable=true,dismissOnBackPress=true,dismissOnClickOutside=true)){
       // wrapContentHeight مهم است: fillMaxSize باعث می‌شد Popup برای جا شدن در صفحه
@@ -150,8 +159,8 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit,onOpenMarket:()->U
 
            if(loading)LinearProgressIndicator(Modifier.fillMaxWidth(.72f),color=Color(0xFF55D9D5),trackColor=muted.copy(.10f))
            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp)){PremiumMarketTile("دلار آزاد","هر دلار",dollar,previousDollar,unit,Color(0xFF35BDB9),"\$",Modifier.weight(1f),darkMarket);PremiumMarketTile("طلای ۱۸ عیار","هر گرم",gold,previousGold,unit,Color(0xFFD4A526),"Au",Modifier.weight(1f),darkMarket)}}
-           if(failed)Text("دریافت نرخ‌ها ممکن نشد؛ اینترنت را بررسی کنید.",color=Color(0xFFFF506C),style=MaterialTheme.typography.bodySmall)
-           Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){Icon(Icons.Filled.Refresh,"به‌روزرسانی",tint=muted,modifier=Modifier.size(20.dp).clip(CircleShape).clickable(enabled=!loading){refreshKey++}.padding(2.dp));Text("آخرین بروزرسانی: امروز، $updatedAt",color=muted,style=MaterialTheme.typography.labelSmall)}
+           if(failed)Text(if(gold!=null||dollar!=null)"دسترسی تازه ممکن نشد؛ آخرین قیمت ذخیره‌شده نمایش داده می‌شود." else "دریافت نرخ‌ها ممکن نشد؛ اینترنت را بررسی کنید.",color=Color(0xFFFF506C),style=MaterialTheme.typography.bodySmall)
+           Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){Icon(Icons.Filled.Refresh,"به‌روزرسانی",tint=if(stale)Color(0xFFFF506C)else muted,modifier=Modifier.size(20.dp).clip(CircleShape).clickable(enabled=!loading){refreshKey++}.padding(2.dp));Text("آخرین بروزرسانی: ${updatedAt?.let{PersianDate.formatDateTime(it)}?:"—"}",color=if(stale)Color(0xFFFF506C)else muted,style=MaterialTheme.typography.labelSmall)}
            OutlinedButton(onClick={expanded=false;onOpenMarket()},modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(13.dp),border=BorderStroke(1.dp,Color(0xFF55D9D5).copy(.55f))){Icon(Icons.Filled.ShowChart,null,tint=Color(0xFF55D9D5));Spacer(Modifier.width(7.dp));Text("مشاهده کامل نبض بازار",color=Color(0xFF55D9D5),fontWeight=FontWeight.Bold)}
           }
          }
@@ -189,6 +198,29 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var pendingBalanceAccount by remember { mutableStateOf<ir.kharjyar.app.data.db.AccountEntity?>(null) }
+    var greenBalanceAccounts by remember { mutableStateOf(setOf<Long>()) }
+    fun timedMessage(message:String){
+        scope.launch { snackbar.currentSnackbarData?.dismiss();launch{snackbar.showSnackbar(message,duration=SnackbarDuration.Indefinite)};kotlinx.coroutines.delay(4_000);snackbar.currentSnackbarData?.dismiss() }
+    }
+    fun refreshBankBalance(account:ir.kharjyar.app.data.db.AccountEntity){
+        scope.launch {
+            val sms=ir.kharjyar.app.core.sms.BankBalanceRefreshService.latest(context,account,accounts.filter{!it.archived&&ir.kharjyar.app.core.sms.BankSenderResolver.sameBank(account.bankName,it.bankName)},viewModel.repo.accountDao.allSenders())
+            if(sms==null){timedMessage("پیام بانکی منطبق با شماره این حساب پیدا نشد");return@launch}
+            viewModel.repo.db.bankBalanceSnapshotDao().upsert(ir.kharjyar.app.data.db.BankBalanceSnapshotEntity(account.id,sms.balanceRial,sms.occurredAt,sms.smsId))
+            val estimated=ir.kharjyar.app.core.balance.AccountBalance.estimate(account,viewModel.repo.txDao.allOnce()).rial
+            if(estimated!=null&&estimated==sms.balanceRial){
+                greenBalanceAccounts=greenBalanceAccounts+account.id;timedMessage("موجودی بروز شد")
+                launch{kotlinx.coroutines.delay(30_000);greenBalanceAccounts=greenBalanceAccounts-account.id}
+            }else timedMessage("موجودی مغایرت دارد")
+        }
+    }
+    val smsPermission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted->pendingBalanceAccount?.let{if(granted)refreshBankBalance(it)else timedMessage("برای بروزرسانی موجودی، دسترسی پیامک لازم است")};pendingBalanceAccount=null}
+    fun requestBalanceRefresh(account:ir.kharjyar.app.data.db.AccountEntity){
+        if(ContextCompat.checkSelfPermission(context,Manifest.permission.READ_SMS)==PackageManager.PERMISSION_GRANTED)refreshBankBalance(account)
+        else{pendingBalanceAccount=account;smsPermission.launch(Manifest.permission.READ_SMS)}
+    }
     // فیلتر فهرست «تراکنش‌های اخیر» با زدن چیپ واریز/برداشت روی کارت‌ها
     // ۰ = همه، ۱ = فقط واریزها، ۲ = فقط برداشت‌ها
     var recentFilter by remember { mutableStateOf(0) }
@@ -274,7 +306,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     .coerceAtLeast(180.dp)
                 // همه کارت‌های خلاصه/بانکی/نقدی ارتفاع یکسان دارند تا هنگام ورق‌زدن،
                 // بخش تراکنش‌های زیر آن‌ها بالا و پایین نپرد.
-                val accountCardHeight = 300.dp
+                val accountCardHeight = 375.dp
                 val dashboardLayoutDirection = LocalLayoutDirection.current
                 // وضعیت جابه‌جایی تا زمان رهاکردن ثابت می‌ماند؛ ترتیب فقط در پایان ذخیره می‌شود.
                 var draggingId by remember { mutableStateOf<Long?>(null) }
@@ -303,8 +335,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             val totalRial = active.sumOf { acc -> AccountBalance.estimate(acc, allTx).rial ?: 0L }
                             HeroCard(
                                 modifier = Modifier
-                                    .width(pageWidth)
-                                    .height(accountCardHeight)
+                                    .fillMaxWidth()
+                                    .height(205.dp)
                                     .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
                                 neon = settings.cardShine
                             ) {
@@ -480,6 +512,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             // مختصات هر کارت مستقل نگه داشته می‌شود؛ یک مختصات مشترک بین
                             // کارت‌ها باعث می‌شد کارت شناور هنگام شروع در محل کارت دیگری ظاهر شود.
                             var cardWindowPosition by remember(account.id) { mutableStateOf(Offset.Zero) }
+                            Column(Modifier.width(pageWidth)) {
                             BankCard(
                                 title = account.title,
                                 bankName = account.bankName,
@@ -500,11 +533,11 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 expiry = account.cardExpiry,
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
-                                balanceColor = if (hasDiscrepancy) skin.expenseColor else null,
+                                balanceColor = when { account.id in greenBalanceAccounts -> Color(0xFF43E08D); hasDiscrepancy -> skin.expenseColor; else -> null },
                                 showDetailsWhenSelected = false,
                                 modifier = Modifier
-                                    .width(pageWidth)
-                                    .height(accountCardHeight)
+                                    .fillMaxWidth()
+                                    .height(200.dp)
                                     .animateItemPlacement(animationSpec = tween(durationMillis = 480))
                                     .onGloballyPositioned { coordinates ->
                                         val physical = coordinates.positionInWindow()
@@ -582,46 +615,27 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         )
                                     }
                                 }
-                            ) {
-                                // خلاصه همین حساب، روی خود کارت (ادغام کارت خلاصه و کارت بانکی)
-                                Spacer(Modifier.height(12.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SummaryChip(
-                                        label = "واریز",
-                                        value = if (amountVisible) Money.format(accSum.incomeRial, settings.moneyUnit) else "••••",
-                                        tint = skin.incomeColor,
-                                        deposit = true,
-                                        onColor = onCard,
-                                        selected = false,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    SummaryChip(
-                                        label = "برداشت",
-                                        value = if (amountVisible) Money.format(accSum.expenseRial, settings.moneyUnit) else "••••",
-                                        tint = skin.expenseColor,
-                                        deposit = false,
-                                        onColor = onCard,
-                                        selected = false,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                bankSnapshot?.let { bankBalance ->
-                                    val estimated = est.rial
-                                    Spacer(Modifier.height(8.dp))
-                                    Text(
-                                        "مانده آخرین پیامک بانک: " + if (amountVisible) Money.format(bankBalance.balanceRial, settings.moneyUnit) else "••••••",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = onCard.copy(alpha = 0.92f)
-                                    )
-                                    if (estimated != null && estimated != bankBalance.balanceRial) {
-                                        Text(
-                                            "مغایرت ${Money.format(kotlin.math.abs(estimated - bankBalance.balanceRial), settings.moneyUnit)} — یافتن تراکنش ثبت‌نشده",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = skin.expenseColor,
-                                            modifier = Modifier.clickable { nav.navigate("reviewImport") }
-                                        )
+                            )
+                                Spacer(Modifier.height(8.dp))
+                                AccountBelowCardPanel(
+                                    account = account,
+                                    income = if (amountVisible) Money.format(accSum.incomeRial, settings.moneyUnit) else "••••",
+                                    expense = if (amountVisible) Money.format(accSum.expenseRial, settings.moneyUnit) else "••••",
+                                    incomeColor = skin.incomeColor,
+                                    expenseColor = skin.expenseColor,
+                                    showSecrets = amountVisible,
+                                    bankStatus = bankSnapshot?.let { snap ->
+                                        "مانده پیامک (${PersianDate.formatDateTime(snap.messageAt)}): " + (if(amountVisible) Money.format(snap.balanceRial,settings.moneyUnit) else "••••••") +
+                                            (if(hasDiscrepancy && est.rial!=null) "  •  مغایرت ${Money.format(kotlin.math.abs(est.rial-snap.balanceRial),settings.moneyUnit)}" else "")
+                                    },
+                                    hasDiscrepancy = hasDiscrepancy,
+                                    onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
+                                    onRefresh = { requestBalanceRefresh(account) },
+                                    onCopy = { label, text ->
+                                        clipboard.setText(AnnotatedString(text))
+                                        scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar("$label کپی شد", duration = SnackbarDuration.Short) }
                                     }
-                                }
+                                )
                             }
                             if (isDragging) {
                                 Popup(
@@ -652,7 +666,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         selected = defaultAccount?.id == account.id,
                                         masked = !amountVisible,
                                         showDetailsWhenSelected = false,
-                                        modifier = Modifier.width(pageWidth).height(accountCardHeight).graphicsLayer {
+                                        modifier = Modifier.width(pageWidth).height(205.dp).graphicsLayer {
                                             // اندازه در شروع Drag تغییر نمی‌کند تا نقطه‌ای که کاربر
                                             // گرفته دقیقاً زیر همان نقطه انگشت باقی بماند.
                                             scaleX = 1f
@@ -880,6 +894,71 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
  */
 private fun heroChipBg(skin: ir.kharjyar.app.ui.theme.AppSkin): Color =
     if (skin.dark) Color.Black.copy(alpha = 0.34f) else Color.White.copy(alpha = 0.72f)
+
+@Composable
+private fun AccountBelowCardPanel(
+    account: ir.kharjyar.app.data.db.AccountEntity,
+    income: String,
+    expense: String,
+    incomeColor: Color,
+    expenseColor: Color,
+    showSecrets: Boolean,
+    bankStatus: String?,
+    hasDiscrepancy: Boolean,
+    onDiscrepancy: () -> Unit,
+    onRefresh: () -> Unit,
+    onCopy: (String, String) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .72f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f))
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val accountNo = account.accountNumber.takeIf { it.isNotBlank() }
+            val iban = account.iban.takeIf { it.isNotBlank() }
+            if (accountNo != null || iban != null) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    accountNo?.let { value ->
+                        Column(Modifier.weight(1f).clickable { onCopy("شماره حساب", value) }) {
+                            Text("شماره حساب", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(Digits.ltr(Digits.toPersian(value)), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
+                    }
+                    iban?.let { value ->
+                        val normalized = value.removePrefix("IR").removePrefix("ir")
+                        Column(Modifier.weight(1.35f).clickable { onCopy("شماره شبا", "IR$normalized") }) {
+                            Text("شماره شبا", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(Digits.ltr("IR" + Digits.toPersian(normalized)), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
+                    }
+                }
+            }
+            if (account.cardExpiry.isNotBlank() || account.cardCvv2.isNotBlank()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (account.cardExpiry.isNotBlank()) Text("انقضا  ${Digits.ltr(Digits.toPersian(account.cardExpiry))}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (account.cardCvv2.isNotBlank()) Text("CVV2  ${if(showSecrets) Digits.ltr(Digits.toPersian(account.cardCvv2)) else "•••"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+                bankStatus?.let { status -> Text(status, style = MaterialTheme.typography.labelSmall, color = if(hasDiscrepancy) expenseColor else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, modifier = Modifier.weight(1f).clickable(enabled=hasDiscrepancy,onClick=onDiscrepancy)) } ?: Spacer(Modifier.weight(1f))
+                TextButton(onClick=onRefresh,contentPadding=PaddingValues(horizontal=7.dp,vertical=0.dp)){Icon(Icons.Filled.Refresh,null,Modifier.size(14.dp));Spacer(Modifier.width(3.dp));Text("بروزرسانی موجودی",style=MaterialTheme.typography.labelSmall)}
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CompactAccountFlow("واریز", income, incomeColor, Icons.Filled.SouthWest, Modifier.weight(1f))
+                CompactAccountFlow("برداشت", expense, expenseColor, Icons.Filled.NorthEast, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactAccountFlow(label:String,value:String,tint:Color,icon:ImageVector,modifier:Modifier=Modifier){
+    Row(modifier.background(tint.copy(alpha=.10f),RoundedCornerShape(12.dp)).border(1.dp,tint.copy(alpha=.28f),RoundedCornerShape(12.dp)).padding(horizontal=9.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){
+        Box(Modifier.size(27.dp).background(tint.copy(alpha=.16f),CircleShape),contentAlignment=Alignment.Center){Icon(icon,null,tint=tint,modifier=Modifier.size(15.dp))}
+        Column(Modifier.weight(1f)){Text(label,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(value,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Black,maxLines=1)}
+    }
+}
 
 @Composable
 private fun SummaryChip(

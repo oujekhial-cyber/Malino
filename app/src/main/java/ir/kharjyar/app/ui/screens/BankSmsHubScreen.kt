@@ -15,7 +15,8 @@ import ir.kharjyar.app.ui.AppViewModel
 fun BankSmsHubScreen(
     viewModel: AppViewModel,
     nav: NavHostController,
-    initialTab: Int = 0
+    initialTab: Int = 0,
+    initialAccountId: Long? = null
 ) {
     var selectedTab by rememberSaveable(initialTab) { mutableIntStateOf(initialTab.coerceIn(0, 1)) }
     Column(Modifier.fillMaxSize()) {
@@ -33,7 +34,7 @@ fun BankSmsHubScreen(
         }
         androidx.compose.foundation.layout.Box(Modifier.weight(1f)) {
             if (selectedTab == 0) ReviewScreen(viewModel, nav)
-            else SmsHistoryImportScreen(viewModel, nav)
+            else SmsHistoryImportScreen(viewModel, nav, initialAccountId)
         }
     }
 }

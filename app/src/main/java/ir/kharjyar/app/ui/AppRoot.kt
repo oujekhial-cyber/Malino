@@ -99,6 +99,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import ir.kharjyar.app.MainActivity
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.text.Digits
@@ -553,7 +555,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("quickAdd") { QuickAddScreen(viewModel, navController) }
                 composable("smsPaste") { SmsPasteScreen(viewModel, navController) }
                 composable("review") { BankSmsHubScreen(viewModel, navController) }
-                composable("reviewImport") { BankSmsHubScreen(viewModel, navController, initialTab = 1) }
+                composable("reviewImport?accountId={accountId}",arguments=listOf(navArgument("accountId"){type=NavType.LongType;defaultValue=-1L})){entry->BankSmsHubScreen(viewModel,navController,initialTab=1,initialAccountId=entry.arguments?.getLong("accountId")?.takeIf{it>0})}
                 composable("debts") { DebtsScreen(viewModel) }
                 composable("checks") { ChecksScreen(viewModel) }
                 composable("loans") { LoansScreen(viewModel) }

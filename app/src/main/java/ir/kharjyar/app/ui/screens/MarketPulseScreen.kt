@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -20,15 +21,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.assets.GoldPriceService
+import ir.kharjyar.app.assets.MarketPriceCache
+import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
-import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.ui.AppViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 private data class MarketItem(val code:String,val title:String,val subtitle:String,val symbol:String,val accent:Color)
 private val metalItems=listOf(
@@ -44,19 +43,22 @@ private val currencyItems=listOf(
  MarketItem("CNY","یوان چین","بازار آزاد","¥",Color(0xFFE75858)))
 
 @Composable fun MarketPulseScreen(vm:AppViewModel){
- val settings by vm.settings.collectAsState()
+ val settings by vm.settings.collectAsState();val context=LocalContext.current;val allItems=metalItems+currencyItems
  var refreshKey by remember{mutableStateOf(0)};var loading by remember{mutableStateOf(true)}
  var values by remember{mutableStateOf<Map<String,Long?>>(emptyMap())};var previousValues by remember{mutableStateOf<Map<String,Long?>>(emptyMap())}
- var updatedAt by remember{mutableStateOf("—")}
+ var updatedAt by remember{mutableStateOf<Long?>(null)};var stale by remember{mutableStateOf(false)}
  LaunchedEffect(refreshKey){
-  loading=true
-  val fresh=coroutineScope{(metalItems+currencyItems).associate{item->item.code to async{if(item in metalItems)GoldPriceService.preciousMetalRial(item.code) else GoldPriceService.currencyRial(item.code)}}.mapValues{it.value.await()}}
-  if(values.isNotEmpty())previousValues=values
-  values=fresh;updatedAt=Digits.toPersian(SimpleDateFormat("HH:mm",Locale.US).format(Date()));loading=false
+  loading=true;val cached=allItems.associate{it.code to MarketPriceCache.read(context,it.code)}
+  if(values.isEmpty())values=cached.mapValues{it.value?.valueRial}
+  val fresh=coroutineScope{allItems.associate{item->item.code to async{if(item in metalItems)GoldPriceService.preciousMetalRial(item.code) else GoldPriceService.currencyRial(item.code)}}.mapValues{it.value.await()}}
+  val now=System.currentTimeMillis();if(values.values.any{it!=null})previousValues=values
+  fresh.forEach{(code,value)->if(value!=null)MarketPriceCache.write(context,code,value,now)}
+  stale=fresh.values.any{it==null};values=fresh.mapValues{(code,value)->value?:cached[code]?.valueRial}
+  updatedAt=if(stale)fresh.mapNotNull{(code,value)->if(value==null)cached[code]?.updatedAt else now}.minOrNull() else now;loading=false
  }
  val bg=Brush.verticalGradient(listOf(MaterialTheme.colorScheme.background,MaterialTheme.colorScheme.primary.copy(.045f),MaterialTheme.colorScheme.background))
  LazyColumn(Modifier.fillMaxSize().background(bg),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
-  item{MarketHeader(updatedAt,loading){refreshKey++}}
+  item{MarketHeader(updatedAt,loading,stale){refreshKey++}}
   item{MarketSectionHeader("فلزات گران‌بها","طلا، مثقال و نقره",Icons.Filled.WorkspacePremium)}
   item{MarketList(metalItems,values,previousValues,settings.moneyUnit)}
   item{MarketSectionHeader("ارزهای رایج","نرخ آزاد بازار ایران",Icons.Filled.CurrencyExchange)}
@@ -65,10 +67,10 @@ private val currencyItems=listOf(
  }
 }
 
-@Composable private fun MarketHeader(updatedAt:String,loading:Boolean,onRefresh:()->Unit){
+@Composable private fun MarketHeader(updatedAt:Long?,loading:Boolean,stale:Boolean,onRefresh:()->Unit){
  Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant.copy(.72f)),border=BorderStroke(1.dp,MaterialTheme.colorScheme.primary.copy(.18f))){
   Box(Modifier.background(Brush.horizontalGradient(listOf(Color(0x1735C4BB),Color.Transparent,Color(0x16FF4C9A)))).padding(15.dp)){
-   Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(44.dp).background(Color(0xFF35C4BB).copy(.14f),RoundedCornerShape(14.dp)).border(1.dp,Color(0xFF35C4BB).copy(.48f),RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(Icons.Filled.AutoGraph,null,tint=Color(0xFF35C4BB))};Spacer(Modifier.width(11.dp));Column(Modifier.weight(1f)){Text("نمای کلی بازار",fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge);Text("آخرین دریافت: امروز، $updatedAt",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)};FilledIconButton(onRefresh,enabled=!loading,colors=IconButtonDefaults.filledIconButtonColors(containerColor=MaterialTheme.colorScheme.primary.copy(.13f))){Icon(Icons.Filled.Refresh,"به‌روزرسانی")}};if(loading)LinearProgressIndicator(Modifier.fillMaxWidth()) else Row(verticalAlignment=Alignment.CenterVertically){Icon(Icons.Filled.Verified,null,Modifier.size(15.dp),tint=Color(0xFF35B98B));Spacer(Modifier.width(5.dp));Text("داده عمومی TGJU",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}
+   Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(44.dp).background(Color(0xFF35C4BB).copy(.14f),RoundedCornerShape(14.dp)).border(1.dp,Color(0xFF35C4BB).copy(.48f),RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(Icons.Filled.AutoGraph,null,tint=Color(0xFF35C4BB))};Spacer(Modifier.width(11.dp));Column(Modifier.weight(1f)){Text("نمای کلی بازار",fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge);Text("آخرین بروزرسانی: ${updatedAt?.let{PersianDate.formatDateTime(it)}?:"—"}",style=MaterialTheme.typography.bodySmall,color=if(stale)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)};FilledIconButton(onRefresh,enabled=!loading,colors=IconButtonDefaults.filledIconButtonColors(containerColor=MaterialTheme.colorScheme.primary.copy(.13f))){Icon(Icons.Filled.Refresh,"به‌روزرسانی")}};if(loading)LinearProgressIndicator(Modifier.fillMaxWidth()) else Row(verticalAlignment=Alignment.CenterVertically){Icon(if(stale)Icons.Filled.CloudOff else Icons.Filled.Verified,null,Modifier.size(15.dp),tint=if(stale)MaterialTheme.colorScheme.error else Color(0xFF35B98B));Spacer(Modifier.width(5.dp));Text(if(stale)"اتصال ممکن نشد؛ آخرین قیمت ذخیره‌شده" else "داده عمومی TGJU",style=MaterialTheme.typography.labelSmall,color=if(stale)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)}}
   }
  }
 }
