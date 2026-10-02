@@ -12,6 +12,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.CreditCard
+import ir.kharjyar.app.ui.components.ModernSummaryHero
+import ir.kharjyar.app.ui.components.SummaryMetric
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,14 +64,15 @@ fun LoansScreen(vm:AppViewModel) {
  }
 
  val shown=loans.filter { filter==null||it.kind==filter }
+ val unpaidByLoan=installments.filter{!it.paid}.groupBy{it.loanId}.mapValues{(_,rows)->rows.sumOf{it.amountRial}}
+ val lentRemaining=loans.filter{it.kind==LoanKind.LENT}.sumOf{unpaidByLoan[it.id]?:0L};val borrowedRemaining=loans.filter{it.kind==LoanKind.BORROWED}.sumOf{unpaidByLoan[it.id]?:0L}
  Box(Modifier.fillMaxSize()) {
   Column(
    Modifier.fillMaxSize().verticalScroll(rememberScrollState())
     .padding(start=16.dp,end=16.dp,top=12.dp,bottom=92.dp),
    verticalArrangement=Arrangement.spacedBy(10.dp)
   ) {
-   Text("اقساط و وام‌ها",style=MaterialTheme.typography.headlineSmall)
-   Text("برای مشاهده مشخصات و سابقه پرداخت، وام را لمس کنید.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+   ModernSummaryHero("اقساط و وام‌ها","مانده اقساط پرداخت‌نشده",MaterialTheme.colorScheme.primary,listOf(SummaryMetric("مطالبات وام",Money.format(lentRemaining,settings.moneyUnit),Color(0xFF1B9A61),Icons.Filled.Savings),SummaryMetric("تعهدات وام",Money.format(borrowedRemaining,settings.moneyUnit),Color(0xFFE24B57),Icons.Filled.CreditCard)),Icons.Filled.Payments)
    Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
     FilterChip(filter==null,{filter=null},{Text("همه")})
     FilterChip(filter==LoanKind.LENT,{filter=LoanKind.LENT},{Text("وام‌های پرداختی")})

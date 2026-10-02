@@ -48,6 +48,13 @@ object Notifier {
         manager(context).notify(TAG_TX, smsId.toInt(), n)
     }
 
+    fun notifyDuplicateTransaction(context:Context,smsId:Long,txId:Long,@Suppress("UNUSED_PARAMETER") description:String){
+        if(!canNotify(context))return
+        val pi=pendingIntent(context,smsId.toInt(),DEST_CONFIRM_TX,smsId,txId)
+        val n=NotificationCompat.Builder(context,KharjYarApp.CHANNEL_TRANSACTIONS).setSmallIcon(android.R.drawable.stat_notify_more).setContentTitle("این تراکنش قبلاً ثبت شده").setContentText("برای مشاهده اینکه بابت چه بوده لمس کنید").setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setContentIntent(pi).setAutoCancel(true).build()
+        manager(context).notify(TAG_TX,smsId.toInt(),n)
+    }
+
     fun notifyNeedsAccount(context: Context, smsId: Long) {
         if (!canNotify(context)) return
         val pi = pendingIntent(context, smsId.toInt(), DEST_NEEDS_ACCOUNT, smsId, null)

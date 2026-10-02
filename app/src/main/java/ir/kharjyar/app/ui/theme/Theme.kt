@@ -392,6 +392,57 @@ private val GoldSkin = AppSkin(
     neonColors = listOf(Color(0xFFF0C368), Color(0xFFD9A441))
 )
 
+// ================================================================ نسخه روشن/تیره تمام خانواده‌های تم
+private val VioletDarkScheme = darkColorScheme(
+    primary=Color(0xFFB69CFF),onPrimary=Color(0xFF28105B),secondary=Color(0xFFFF86BB),onSecondary=Color(0xFF4A0424),
+    primaryContainer=Color(0xFF352160),onPrimaryContainer=Color(0xFFF0E9FF),secondaryContainer=Color(0xFF55203A),onSecondaryContainer=Color(0xFFFFD9E8),
+    background=Color(0xFF100C18),onBackground=Color(0xFFF0EAF8),surface=Color(0xFF1B1526),onSurface=Color(0xFFF0EAF8),
+    surfaceVariant=Color(0xFF2A2238),onSurfaceVariant=Color(0xFFCFC4DC),outline=Color(0xFF81748F),error=Color(0xFFFFB4AB),onError=Color(0xFF690005)
+)
+private val VioletDarkSkin=VioletSkin.copy(
+    subtitle="یاسی و بنفش آرام برای محیط تاریک",dark=true,
+    backgroundColors=listOf(Color(0xFF100C18),Color(0xFF171020)),cardColor=Color(0xFF1B1526),cardAlpha=.97f,
+    cardBorderColors=listOf(Color(0x667C3AED),Color(0x55DB2777)),heroGradient=listOf(Color(0xFF392267),Color(0xFF6A2854)),onHero=Color.White,
+    accent=Color(0xFFB69CFF),incomeColor=Color(0xFF5EE6B8),expenseColor=Color(0xFFFF7A98),bigNumberColor=Color.White,onBackdrop=Color(0xFFF0EAF8),
+    dialogColor=Color(0xFF1B1526),navBarColor=Color(0xFF0E0A15),navSelected=Color(0xFFB69CFF),navUnselected=Color(0xFF8E839C)
+)
+private val LotusLightScheme = lightColorScheme(
+    primary=Color(0xFF7B3FB0),onPrimary=Color.White,secondary=Color(0xFFB22D78),onSecondary=Color.White,
+    primaryContainer=Color(0xFFF1DCFF),onPrimaryContainer=Color(0xFF300052),secondaryContainer=Color(0xFFFFD8EA),onSecondaryContainer=Color(0xFF3E0026),
+    background=Color(0xFFFFF7FF),onBackground=Color(0xFF24162D),surface=Color.White,onSurface=Color(0xFF24162D),
+    surfaceVariant=Color(0xFFF5E8F8),onSurfaceVariant=Color(0xFF66576C),outline=Color(0xFF98879E),error=Color(0xFFBA1A1A),onError=Color.White
+)
+private val LotusLightSkin=LotusSkin.copy(
+    subtitle="نیلوفر بنفش روی زمینه روشن و لطیف",dark=false,backgroundColors=listOf(Color(0xFFFFF7FF),Color(0xFFF6ECFF)),
+    cardColor=Color.White,cardAlpha=.97f,cardBorderColors=listOf(Color(0x55A855D2),Color(0x44DB4C9D)),
+    heroGradient=listOf(Color(0xFFE9D1FA),Color(0xFFF9D9EB)),onHero=Color(0xFF301441),accent=Color(0xFF7B3FB0),incomeColor=Color(0xFF087A58),expenseColor=Color(0xFFB3265E),
+    bigNumberColor=Color(0xFF301441),onBackdrop=Color(0xFF24162D),dialogColor=Color.White,navBarColor=Color(0xFFFFF8FF),navSelected=Color(0xFF7B3FB0),navUnselected=Color(0xFF76677C)
+)
+private val OceanLightScheme = lightColorScheme(
+    primary=Color(0xFF006781),onPrimary=Color.White,secondary=Color(0xFF275DA8),onSecondary=Color.White,
+    primaryContainer=Color(0xFFBCEBFA),onPrimaryContainer=Color(0xFF001F29),secondaryContainer=Color(0xFFD8E2FF),onSecondaryContainer=Color(0xFF001A41),
+    background=Color(0xFFF4FAFD),onBackground=Color(0xFF142027),surface=Color.White,onSurface=Color(0xFF142027),surfaceVariant=Color(0xFFE1F0F5),onSurfaceVariant=Color(0xFF4A626C),
+    outline=Color(0xFF718087),error=Color(0xFFBA1A1A),onError=Color.White
+)
+private val OceanLightSkin=OceanSkin.copy(
+    subtitle="آبی اقیانوسی روشن و خنک",dark=false,backgroundColors=listOf(Color(0xFFF4FAFD),Color(0xFFE8F7FC)),cardColor=Color.White,cardAlpha=.98f,
+    cardBorderColors=listOf(Color(0x5531B6D4),Color(0x443B82F6)),heroGradient=listOf(Color(0xFFBDECF5),Color(0xFFBFD8FA)),onHero=Color(0xFF082C38),
+    accent=Color(0xFF006781),incomeColor=Color(0xFF087A4B),expenseColor=Color(0xFFB43B32),bigNumberColor=Color(0xFF082C38),onBackdrop=Color(0xFF142027),
+    dialogColor=Color.White,navBarColor=Color(0xFFF7FCFF),navSelected=Color(0xFF006781),navUnselected=Color(0xFF60757E)
+)
+private val GoldLightScheme = lightColorScheme(
+    primary=Color(0xFF765A00),onPrimary=Color.White,secondary=Color(0xFF785900),onSecondary=Color.White,
+    primaryContainer=Color(0xFFFFE088),onPrimaryContainer=Color(0xFF241A00),secondaryContainer=Color(0xFFFFDF91),onSecondaryContainer=Color(0xFF251A00),
+    background=Color(0xFFFFFAF0),onBackground=Color(0xFF211B0E),surface=Color(0xFFFFFCF6),onSurface=Color(0xFF211B0E),surfaceVariant=Color(0xFFF2E7CE),onSurfaceVariant=Color(0xFF665E4B),
+    outline=Color(0xFF877D66),error=Color(0xFFBA1A1A),onError=Color.White
+)
+private val GoldLightSkin=GoldSkin.copy(
+    subtitle="طلایی گرم و شاهانه روی زمینه روشن",dark=false,backgroundColors=listOf(Color(0xFFFFFAF0),Color(0xFFFFF3D8)),cardColor=Color(0xFFFFFCF6),cardAlpha=.98f,
+    cardBorderColors=listOf(Color(0x66C99A35),Color(0x44E0B85B)),heroGradient=listOf(Color(0xFFFFE7A3),Color(0xFFE9C96F)),onHero=Color(0xFF302400),
+    accent=Color(0xFF765A00),incomeColor=Color(0xFF137555),expenseColor=Color(0xFFB44138),bigNumberColor=Color(0xFF302400),onBackdrop=Color(0xFF211B0E),
+    dialogColor=Color(0xFFFFFCF6),navBarColor=Color(0xFFFFFAF0),navSelected=Color(0xFF765A00),navUnselected=Color(0xFF756B55)
+)
+
 // ================================================================ مینیمال روز / شب
 private val MinimalDayScheme = lightColorScheme(
     primary = Color(0xFF2563EB), onPrimary = Color.White,
@@ -472,13 +523,21 @@ fun KharjYarTheme(
     val effectivePalette = if (palette == Palette.MINIMAL_DAY || palette == Palette.MINIMAL_NIGHT) {
         if (wantsDark) Palette.MINIMAL_NIGHT else Palette.MINIMAL_DAY
     } else palette
-    val skin = if (effectivePalette == Palette.SAKURA && !wantsDark) SakuraLightSkin else skinOf(effectivePalette)
+    val skin = when(effectivePalette){
+        Palette.SAKURA -> if(wantsDark) SakuraSkin else SakuraLightSkin
+        Palette.VIOLET -> if(wantsDark) VioletDarkSkin else VioletSkin
+        Palette.LOTUS -> if(wantsDark) LotusSkin else LotusLightSkin
+        Palette.OCEAN -> if(wantsDark) OceanSkin else OceanLightSkin
+        Palette.GOLD -> if(wantsDark) GoldSkin else GoldLightSkin
+        Palette.MINIMAL_DAY -> MinimalDaySkin
+        Palette.MINIMAL_NIGHT -> MinimalNightSkin
+    }
     val colorScheme = when (effectivePalette) {
         Palette.SAKURA -> if (wantsDark) SakuraScheme else SakuraLightScheme
-        Palette.VIOLET -> VioletScheme
-        Palette.LOTUS -> LotusScheme
-        Palette.OCEAN -> OceanScheme
-        Palette.GOLD -> GoldScheme
+        Palette.VIOLET -> if(wantsDark) VioletDarkScheme else VioletScheme
+        Palette.LOTUS -> if(wantsDark) LotusScheme else LotusLightScheme
+        Palette.OCEAN -> if(wantsDark) OceanScheme else OceanLightScheme
+        Palette.GOLD -> if(wantsDark) GoldScheme else GoldLightScheme
         Palette.MINIMAL_DAY -> MinimalDayScheme
         Palette.MINIMAL_NIGHT -> MinimalNightScheme
     }

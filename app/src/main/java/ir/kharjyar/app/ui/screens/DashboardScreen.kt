@@ -46,6 +46,8 @@ import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.QueryStats
+import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.SouthWest
 import androidx.compose.material.icons.filled.NorthEast
 import androidx.compose.material3.Icon
@@ -59,7 +61,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -153,15 +154,14 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit,onOpenMarket:()->U
       // به بالای anchor هل داده شود و دکمه «نبض بازار» را بپوشاند.
       Box(Modifier.fillMaxWidth().wrapContentHeight().padding(horizontal=8.dp),contentAlignment=Alignment.TopCenter){
        AnimatedVisibility(panelVisible,enter=expandVertically(expandFrom=Alignment.Top,animationSpec=tween(620))+fadeIn(tween(500)),exit=shrinkVertically(shrinkTowards=Alignment.Top,animationSpec=tween(420))+fadeOut(tween(350))){
-        Box(Modifier.fillMaxWidth(.86f).shadow(14.dp,RoundedCornerShape(25.dp),ambientColor=Color(0xFFFF4EA3).copy(.20f),spotColor=Color(0xFF45E4E0).copy(.18f)).clip(RoundedCornerShape(25.dp)).background(panelBase.copy(alpha=if(darkMarket).86f else .84f)).background(Brush.linearGradient(listOf(Color(0x22FF3D91),Color.Transparent,Color(0x224DE8E2)))).border(1.3.dp,Brush.linearGradient(listOf(Color(0xFFFF4EA3),Color(0xFF813C79),Color(0xFF45E4E0))),RoundedCornerShape(25.dp)).clickable{}.padding(horizontal=11.dp,vertical=7.dp)){
+        Box(Modifier.fillMaxWidth(.86f).shadow(14.dp,RoundedCornerShape(25.dp),ambientColor=Color(0xFFFF4EA3).copy(.20f),spotColor=Color(0xFF45E4E0).copy(.18f)).clip(RoundedCornerShape(25.dp)).background(panelBase.copy(alpha=if(darkMarket).97f else .98f)).background(Brush.linearGradient(listOf(Color(0x12FF3D91),Color.Transparent,Color(0x124DE8E2)))).border(1.3.dp,Brush.linearGradient(listOf(Color(0xFFFF4EA3),Color(0xFF813C79),Color(0xFF45E4E0))),RoundedCornerShape(25.dp)).clickable{}.padding(horizontal=11.dp,vertical=7.dp)){
           Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(4.dp)){
-           CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){Box(Modifier.size(38.dp).background(Color(0xFF55D9D5).copy(.10f),RoundedCornerShape(12.dp)).border(1.dp,Color(0xFF55D9D5).copy(.38f),RoundedCornerShape(12.dp)),contentAlignment=Alignment.Center){Icon(Icons.Filled.ShowChart,null,tint=Color(0xFF55D9D5),modifier=Modifier.size(23.dp))};Column(verticalArrangement=Arrangement.spacedBy(0.dp)){Text("نبض بازار",style=MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.Black,brush=Brush.horizontalGradient(listOf(Color(0xFFFF6EAE),Color(0xFFE48FC7),Color(0xFF55D9D5)))));Text("آخرین تغییرات بازار",color=muted,style=MaterialTheme.typography.labelSmall)}}}
+           CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){Box(Modifier.size(46.dp).shadow(8.dp,RoundedCornerShape(15.dp),ambientColor=Color(0xFF55D9D5).copy(.28f),spotColor=Color(0xFFFF6EAE).copy(.18f)).clip(RoundedCornerShape(15.dp)).background(Brush.linearGradient(listOf(Color(0xFF173D49),Color(0xFF21304C)))).border(1.3.dp,Brush.linearGradient(listOf(Color(0xFF55D9D5),Color(0xFFFF6EAE))),RoundedCornerShape(15.dp)).clickable{expanded=false;onOpenMarket()},contentAlignment=Alignment.Center){Icon(Icons.Filled.QueryStats,"باز کردن صفحه نبض بازار",tint=Color(0xFF70ECE3),modifier=Modifier.size(25.dp));Icon(Icons.Filled.ArrowOutward,null,tint=Color.White,modifier=Modifier.align(Alignment.TopEnd).padding(5.dp).size(10.dp))};Column(verticalArrangement=Arrangement.spacedBy(0.dp)){Text("نبض بازار",style=MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.Black,brush=Brush.horizontalGradient(listOf(Color(0xFFFF6EAE),Color(0xFFE48FC7),Color(0xFF55D9D5)))));Text("برای مشاهده کامل، آیکون را لمس کنید",color=muted,style=MaterialTheme.typography.labelSmall)}}}
 
            if(loading)LinearProgressIndicator(Modifier.fillMaxWidth(.72f),color=Color(0xFF55D9D5),trackColor=muted.copy(.10f))
            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp)){PremiumMarketTile("دلار آزاد","هر دلار",dollar,previousDollar,unit,Color(0xFF35BDB9),"\$",Modifier.weight(1f),darkMarket);PremiumMarketTile("طلای ۱۸ عیار","هر گرم",gold,previousGold,unit,Color(0xFFD4A526),"Au",Modifier.weight(1f),darkMarket)}}
            if(failed)Text(if(gold!=null||dollar!=null)"دسترسی تازه ممکن نشد؛ آخرین قیمت ذخیره‌شده نمایش داده می‌شود." else "دریافت نرخ‌ها ممکن نشد؛ اینترنت را بررسی کنید.",color=Color(0xFFFF506C),style=MaterialTheme.typography.bodySmall)
            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){Icon(Icons.Filled.Refresh,"به‌روزرسانی",tint=if(stale)Color(0xFFFF506C)else muted,modifier=Modifier.size(20.dp).clip(CircleShape).clickable(enabled=!loading){refreshKey++}.padding(2.dp));Text("آخرین بروزرسانی: ${updatedAt?.let{PersianDate.formatDateTime(it)}?:"—"}",color=if(stale)Color(0xFFFF506C)else muted,style=MaterialTheme.typography.labelSmall)}
-           OutlinedButton(onClick={expanded=false;onOpenMarket()},modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(13.dp),border=BorderStroke(1.dp,Color(0xFF55D9D5).copy(.55f))){Icon(Icons.Filled.ShowChart,null,tint=Color(0xFF55D9D5));Spacer(Modifier.width(7.dp));Text("مشاهده کامل نبض بازار",color=Color(0xFF55D9D5),fontWeight=FontWeight.Bold)}
           }
          }
         }
@@ -169,14 +169,16 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit,onOpenMarket:()->U
       }
     }
 
+internal fun marketChangePercent(value:Long?,previous:Long?):Double?=if(value!=null&&previous!=null&&previous>0)(value.toDouble()-previous.toDouble())*100.0/previous.toDouble() else null
+internal fun marketChangeLabel(change:Double?):String?=when{change==null->null;change==0.0->"بدون تغییر";else->{val decimals=if(kotlin.math.abs(change)<0.01)4 else 2;val number=String.format(java.util.Locale.US,"%.${decimals}f",kotlin.math.abs(change));Digits.toPersian((if(change>0)"↗  +" else "↘  −")+number+"٪")}}
 @Composable private fun PremiumMarketTile(title:String,subtitle:String,value:Long?,previous:Long?,unit:ir.kharjyar.app.core.money.MoneyUnit,accent:Color,symbol:String,modifier:Modifier=Modifier,dark:Boolean=true){
- val change=if(value!=null&&previous!=null&&previous>0)(value-previous)*100.0/previous else null;val positive=(change?:0.0)>=0;val trend=if(positive)Color(0xFF28B965)else Color(0xFFE94361);val tile=if(dark)Color(0xFF101722)else Color(0xFFFFFFFF);val main=if(dark)Color(0xFFF6F2F6)else Color(0xFF202633);val secondary=if(dark)Color(0xFF9CA3AF)else Color(0xFF697181)
+ val change=marketChangePercent(value,previous);val positive=change!=null&&change>0;val negative=change!=null&&change<0;val trend=when{positive->Color(0xFF28B965);negative->Color(0xFFE94361);else->Color(0xFF7E8796)};val tile=if(dark)Color(0xFF101722)else Color(0xFFFFFFFF);val main=if(dark)Color(0xFFF6F2F6)else Color(0xFF202633);val secondary=if(dark)Color(0xFF9CA3AF)else Color(0xFF697181)
  Surface(modifier=modifier,shape=RoundedCornerShape(16.dp),color=tile.copy(alpha=if(dark).98f else 1f),border=BorderStroke(1.3.dp,accent.copy(alpha=.58f)),shadowElevation=3.dp){Column(Modifier.background(Brush.verticalGradient(listOf(accent.copy(.08f),Color.Transparent))).padding(7.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(4.dp)){
   Box(Modifier.size(39.dp).shadow(6.dp,CircleShape,ambientColor=accent.copy(.5f),spotColor=accent.copy(.4f)).background(Brush.radialGradient(listOf(accent.copy(.90f),accent.copy(.38f),if(dark)Color(0xFF18222E)else Color(0xFFE9EEF4))),CircleShape).border(2.dp,accent.copy(.62f),CircleShape),contentAlignment=Alignment.Center){Text(symbol,color=if(symbol=="Au")Color(0xFFFFDF72)else Color(0xFFE5FFFF),fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleSmall)}
   Text(title,color=main,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.bodyMedium,textAlign=TextAlign.Center);Text(subtitle,color=secondary,style=MaterialTheme.typography.labelSmall,maxLines=1)
   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){HorizontalDivider(Modifier.weight(1f),color=secondary.copy(.16f));Box(Modifier.padding(horizontal=6.dp).size(6.dp).background(accent,CircleShape));HorizontalDivider(Modifier.weight(1f),color=secondary.copy(.16f))}
   Text(value?.let{Money.format(it,unit)}?:"—",color=accent,fontWeight=FontWeight.Black,style=MaterialTheme.typography.bodyMedium,maxLines=1)
-  Surface(Modifier.fillMaxWidth(),shape=RoundedCornerShape(9.dp),color=trend.copy(alpha=.09f),border=BorderStroke(1.dp,trend.copy(alpha=.28f))){Column(Modifier.padding(vertical=4.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(if(change==null)"نرخ لحظه‌ای" else (if(positive)"↗  +" else "↘  ")+String.format(java.util.Locale.US,"%.2f",change)+"٪",color=trend,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.labelMedium);Text(if(change==null)"دریافت آنلاین" else "از بروزرسانی قبل",color=trend.copy(.78f),style=MaterialTheme.typography.labelSmall)}}
+  Surface(Modifier.fillMaxWidth(),shape=RoundedCornerShape(9.dp),color=trend.copy(alpha=.09f),border=BorderStroke(1.dp,trend.copy(alpha=.28f))){Column(Modifier.padding(vertical=4.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(marketChangeLabel(change)?:"نرخ لحظه‌ای",color=trend,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.labelMedium);Text(if(change==null)"دریافت آنلاین" else "از بروزرسانی قبل",color=trend.copy(.78f),style=MaterialTheme.typography.labelSmall)}}
  }}
 }
 
@@ -512,7 +514,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             // مختصات هر کارت مستقل نگه داشته می‌شود؛ یک مختصات مشترک بین
                             // کارت‌ها باعث می‌شد کارت شناور هنگام شروع در محل کارت دیگری ظاهر شود.
                             var cardWindowPosition by remember(account.id) { mutableStateOf(Offset.Zero) }
-                            Column(Modifier.width(pageWidth)) {
                             BankCard(
                                 title = account.title,
                                 bankName = account.bankName,
@@ -534,10 +535,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
                                 balanceColor = when { account.id in greenBalanceAccounts -> Color(0xFF43E08D); hasDiscrepancy -> skin.expenseColor; else -> null },
-                                showDetailsWhenSelected = false,
+                                showDetailsWhenSelected = true,
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
+                                    .width(pageWidth)
+                                    .height(if(defaultAccount?.id == account.id) 365.dp else 205.dp)
                                     .animateItemPlacement(animationSpec = tween(durationMillis = 480))
                                     .onGloballyPositioned { coordinates ->
                                         val physical = coordinates.positionInWindow()
@@ -615,27 +616,20 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         )
                                     }
                                 }
-                            )
-                                Spacer(Modifier.height(8.dp))
-                                AccountBelowCardPanel(
-                                    account = account,
+                            ) {
+                                AnimatedVisibility(defaultAccount?.id == account.id) { AccountBelowCardPanel(
                                     income = if (amountVisible) Money.format(accSum.incomeRial, settings.moneyUnit) else "••••",
                                     expense = if (amountVisible) Money.format(accSum.expenseRial, settings.moneyUnit) else "••••",
                                     incomeColor = skin.incomeColor,
                                     expenseColor = skin.expenseColor,
-                                    showSecrets = amountVisible,
                                     bankStatus = bankSnapshot?.let { snap ->
                                         "مانده پیامک (${PersianDate.formatDateTime(snap.messageAt)}): " + (if(amountVisible) Money.format(snap.balanceRial,settings.moneyUnit) else "••••••") +
                                             (if(hasDiscrepancy && est.rial!=null) "  •  مغایرت ${Money.format(kotlin.math.abs(est.rial-snap.balanceRial),settings.moneyUnit)}" else "")
                                     },
                                     hasDiscrepancy = hasDiscrepancy,
                                     onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
-                                    onRefresh = { requestBalanceRefresh(account) },
-                                    onCopy = { label, text ->
-                                        clipboard.setText(AnnotatedString(text))
-                                        scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar("$label کپی شد", duration = SnackbarDuration.Short) }
-                                    }
-                                )
+                                    onRefresh = { requestBalanceRefresh(account) }
+                                ) }
                             }
                             if (isDragging) {
                                 Popup(
@@ -897,57 +891,17 @@ private fun heroChipBg(skin: ir.kharjyar.app.ui.theme.AppSkin): Color =
 
 @Composable
 private fun AccountBelowCardPanel(
-    account: ir.kharjyar.app.data.db.AccountEntity,
-    income: String,
-    expense: String,
-    incomeColor: Color,
-    expenseColor: Color,
-    showSecrets: Boolean,
-    bankStatus: String?,
-    hasDiscrepancy: Boolean,
-    onDiscrepancy: () -> Unit,
-    onRefresh: () -> Unit,
-    onCopy: (String, String) -> Unit
+    income:String, expense:String, incomeColor:Color, expenseColor:Color,
+    bankStatus:String?, hasDiscrepancy:Boolean, onDiscrepancy:()->Unit, onRefresh:()->Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .72f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f))
-    ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            val accountNo = account.accountNumber.takeIf { it.isNotBlank() }
-            val iban = account.iban.takeIf { it.isNotBlank() }
-            if (accountNo != null || iban != null) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    accountNo?.let { value ->
-                        Column(Modifier.weight(1f).clickable { onCopy("شماره حساب", value) }) {
-                            Text("شماره حساب", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(Digits.ltr(Digits.toPersian(value)), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
-                    }
-                    iban?.let { value ->
-                        val normalized = value.removePrefix("IR").removePrefix("ir")
-                        Column(Modifier.weight(1.35f).clickable { onCopy("شماره شبا", "IR$normalized") }) {
-                            Text("شماره شبا", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(Digits.ltr("IR" + Digits.toPersian(normalized)), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
-                    }
-                }
-            }
-            if (account.cardExpiry.isNotBlank() || account.cardCvv2.isNotBlank()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (account.cardExpiry.isNotBlank()) Text("انقضا  ${Digits.ltr(Digits.toPersian(account.cardExpiry))}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (account.cardCvv2.isNotBlank()) Text("CVV2  ${if(showSecrets) Digits.ltr(Digits.toPersian(account.cardCvv2)) else "•••"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-                bankStatus?.let { status -> Text(status, style = MaterialTheme.typography.labelSmall, color = if(hasDiscrepancy) expenseColor else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, modifier = Modifier.weight(1f).clickable(enabled=hasDiscrepancy,onClick=onDiscrepancy)) } ?: Spacer(Modifier.weight(1f))
-                TextButton(onClick=onRefresh,contentPadding=PaddingValues(horizontal=7.dp,vertical=0.dp)){Icon(Icons.Filled.Refresh,null,Modifier.size(14.dp));Spacer(Modifier.width(3.dp));Text("بروزرسانی موجودی",style=MaterialTheme.typography.labelSmall)}
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactAccountFlow("واریز", income, incomeColor, Icons.Filled.SouthWest, Modifier.weight(1f))
-                CompactAccountFlow("برداشت", expense, expenseColor, Icons.Filled.NorthEast, Modifier.weight(1f))
-            }
+    Column(Modifier.fillMaxWidth().padding(top=9.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+            bankStatus?.let { status -> Text(status,style=MaterialTheme.typography.labelSmall,color=if(hasDiscrepancy)Color(0xFFFF8A93)else Color.White.copy(.78f),maxLines=1,modifier=Modifier.weight(1f).clickable(enabled=hasDiscrepancy,onClick=onDiscrepancy)) } ?: Spacer(Modifier.weight(1f))
+            TextButton(onClick=onRefresh,contentPadding=PaddingValues(horizontal=6.dp,vertical=0.dp)){Icon(Icons.Filled.Refresh,null,Modifier.size(14.dp),tint=Color.White);Spacer(Modifier.width(3.dp));Text("بروزرسانی",style=MaterialTheme.typography.labelSmall,color=Color.White)}
+        }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            CompactAccountFlow("واریز",income,incomeColor,Icons.Filled.SouthWest,Modifier.weight(1f))
+            CompactAccountFlow("برداشت",expense,expenseColor,Icons.Filled.NorthEast,Modifier.weight(1f))
         }
     }
 }
@@ -956,7 +910,7 @@ private fun AccountBelowCardPanel(
 private fun CompactAccountFlow(label:String,value:String,tint:Color,icon:ImageVector,modifier:Modifier=Modifier){
     Row(modifier.background(tint.copy(alpha=.10f),RoundedCornerShape(12.dp)).border(1.dp,tint.copy(alpha=.28f),RoundedCornerShape(12.dp)).padding(horizontal=9.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){
         Box(Modifier.size(27.dp).background(tint.copy(alpha=.16f),CircleShape),contentAlignment=Alignment.Center){Icon(icon,null,tint=tint,modifier=Modifier.size(15.dp))}
-        Column(Modifier.weight(1f)){Text(label,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(value,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Black,maxLines=1)}
+        Column(Modifier.weight(1f)){Text(label,style=MaterialTheme.typography.labelSmall,color=Color.White.copy(.72f));Text(value,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Black,color=Color.White,maxLines=1)}
     }
 }
 

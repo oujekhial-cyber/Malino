@@ -117,6 +117,7 @@ class Repository(val db: KharjYarDatabase) {
         data class NeedsAccount(val smsId: Long) : ProcessOutcome()
         data class NeedsTemplate(val smsId: Long) : ProcessOutcome()
         data class AmbiguousAccount(val smsId: Long, val accountIds: List<Long>) : ProcessOutcome()
+        data class DuplicateFound(val smsId:Long,val existingTxId:Long,val description:String):ProcessOutcome()
         object AlreadyProcessed : ProcessOutcome()
         object NotFound : ProcessOutcome()
     }
@@ -239,6 +240,11 @@ class Repository(val db: KharjYarDatabase) {
         val direction = if (chosen.directionEnum() == ExtractedDirection.DEPOSIT) TxDirection.DEPOSIT else TxDirection.WITHDRAW
         val suggestedCategory = suggestCategory(sms.body, chosen.counterparty ?: "")
         val occurredAt = chosen.occurredAtMillis ?: sms.receivedAt
+        txDao.findDuplicate(accountId,chosen.amountRial,direction,occurredAt)?.let { duplicate ->
+            smsDao.update(sms.copy(status=SmsStatus.DONE,matchedAccountId=accountId,extractionJson=chosen.toJson(),updatedAt=now()))
+            val reason=duplicate.description.ifBlank{duplicate.categoryId?.let{categoryDao.byId(it)?.name}.orEmpty()}
+            return ProcessOutcome.DuplicateFound(sms.id,duplicate.id,reason)
+        }
 
         val txId = db.withTransaction {
             val existing = txDao.bySmsId(sms.id)

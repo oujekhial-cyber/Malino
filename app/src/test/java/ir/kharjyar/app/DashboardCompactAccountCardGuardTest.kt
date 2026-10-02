@@ -3,11 +3,11 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
 class DashboardCompactAccountCardGuardTest {
- @Test fun accountDetailsAndFlowsLiveBelowShortCard(){
-  val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
-  assertTrue(s.contains(".height(200.dp)")&&s.contains("AccountBelowCardPanel("))
-  assertTrue(s.contains("شماره شبا")&&s.contains("شماره حساب")&&s.contains("CVV2")&&s.contains("انقضا"))
-  assertTrue(s.contains("CompactAccountFlow(\"واریز\"")&&s.contains("CompactAccountFlow(\"برداشت\""))
-  assertTrue(s.contains("مانده پیامک (")&&s.contains("onDiscrepancy"))
+ @Test fun accountCardIsUnifiedCompactAndExpandsOnlyWhenSelected(){
+  val d=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();val card=File("src/main/java/ir/kharjyar/app/ui/components/BankCard.kt").readText()
+  assertTrue(d.contains(".height(if(defaultAccount?.id == account.id) 365.dp else 205.dp)"))
+  assertTrue(d.contains("showDetailsWhenSelected = true")&&d.contains("AnimatedVisibility(defaultAccount?.id == account.id)"))
+  assertFalse("A detached second account card must not return",d.contains("Spacer(Modifier.height(8.dp))\n                                AccountBelowCardPanel"))
+  assertTrue(card.contains("visible = selected && showDetailsWhenSelected")&&card.contains("content()"))
  }
 }

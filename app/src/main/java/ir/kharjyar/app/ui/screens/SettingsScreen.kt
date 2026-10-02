@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -141,6 +142,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                 },
                 onSelect = { mode -> scope.launch { viewModel.settingsRepo.setThemeMode(mode) } }
             )
+            Text("همه تم‌ها نسخه روشن و تیره دارند؛ حالت سیستم با روز و شب گوشی تغییر می‌کند.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             // انتخاب تم از کمبوباکس + پیش‌نمایش تم فعلی
             ComboBox(
                 label = "تم",
@@ -243,7 +245,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){Text(account.title,style=MaterialTheme.typography.titleSmall);if(account.archived)Text("بایگانی",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
                             Text(if(account.accountType==AccountType.CASH)listOf(account.ownerName.ifBlank{"بدون صاحب"},account.cashLocation.ifBlank{"محل ثبت نشده"}).joinToString(" — ") else listOfNotNull(account.bankName.ifBlank{null},account.maskedNumber.ifBlank{null}?.let{Digits.toPersian(it)}).joinToString(" — ").ifBlank{"بدون مشخصات بانکی"},style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Text("‹",style=MaterialTheme.typography.headlineSmall,color=MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Filled.ChevronLeft,contentDescription="باز کردن",tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(24.dp))
                     }
                 }
             }
@@ -479,7 +481,7 @@ private fun ContactRow(
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.bodyLarge)
         }
-        Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(Icons.Filled.ChevronLeft, contentDescription = "باز کردن", tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -491,7 +493,7 @@ private fun NavRow(label: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge)
-        Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(Icons.Filled.ChevronLeft, contentDescription = "باز کردن", tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -500,7 +502,7 @@ private fun SettingsMenuRow(label: String, onClick: () -> Unit) {
     SkinCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.titleMedium)
-            Text("‹", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Filled.ChevronLeft, contentDescription = "باز کردن", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
         }
     }
 }

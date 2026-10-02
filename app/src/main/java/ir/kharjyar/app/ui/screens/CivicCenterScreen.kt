@@ -12,6 +12,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationCity
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.DoneAll
+import ir.kharjyar.app.ui.components.ModernSummaryHero
+import ir.kharjyar.app.ui.components.SummaryMetric
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,9 +52,7 @@ fun CivicCenterScreen(vm:AppViewModel){
  Box(Modifier.fillMaxSize()){
   Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start=16.dp,end=16.dp,top=12.dp,bottom=92.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
    if(selectedKind==null){
-    Text("قبوض شهروندی",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
-    Text("پیامک‌های خدماتی به‌صورت خودکار در بخش مرتبط دسته‌بندی می‌شوند.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){CivicSummary("خوانده‌نشده",messages.count{!it.read},Color(0xFFD33B45),Modifier.weight(1f));CivicSummary("خوانده‌شده",messages.count{it.read},Color(0xFF1B8F52),Modifier.weight(1f))}
+    ModernSummaryHero("قبوض شهروندی","پیامک‌های خدماتی و وضعیت رسیدگی",Color(0xFF397BD5),listOf(SummaryMetric("خوانده‌نشده",Digits.toPersian(messages.count{!it.read}.toString()),Color(0xFFE24B57),Icons.Filled.NotificationsActive),SummaryMetric("خوانده‌شده",Digits.toPersian(messages.count{it.read}.toString()),Color(0xFF1B9A61),Icons.Filled.DoneAll)),Icons.Filled.LocationCity)
     Text("بخش‌ها",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
     sections.forEach{kind->val rows=messages.filter{it.kind==kind};val accent=civicAccent(kind);Card(colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.10f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().clickable{selectedKind=kind}.border(1.2.dp,accent.copy(.65f),RoundedCornerShape(18.dp))){Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(civicSectionTitle(kind),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text("${Digits.toPersian(rows.size.toString())} مورد • ${Digits.toPersian(rows.count{!it.read}.toString())} جدید",style=MaterialTheme.typography.bodySmall)};Text("←",color=accent,style=MaterialTheme.typography.titleLarge)}}
     }

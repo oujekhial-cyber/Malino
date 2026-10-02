@@ -10,6 +10,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.TrendingDown
+import ir.kharjyar.app.ui.components.ModernSummaryHero
+import ir.kharjyar.app.ui.components.SummaryMetric
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -80,13 +85,7 @@ fun DebtsScreen(vm: AppViewModel) {
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 92.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("طلب‌ها و بدهی‌ها", style = MaterialTheme.typography.headlineSmall)
-            Card(Modifier.fillMaxWidth()) {
-                Row(Modifier.fillMaxWidth().padding(13.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column { Text("مجموع طلب", color = Color(0xFF1B8F52)); Text(Money.format(totalReceivable, settings.moneyUnit), color = Color(0xFF1B8F52), style = MaterialTheme.typography.titleMedium) }
-                    Column { Text("مجموع بدهی", color = Color(0xFFD33B45)); Text(Money.format(totalPayable, settings.moneyUnit), color = Color(0xFFD33B45), style = MaterialTheme.typography.titleMedium) }
-                }
-            }
+            ModernSummaryHero("طلب‌ها و بدهی‌ها","نمای کلی مانده حساب اشخاص",MaterialTheme.colorScheme.primary,listOf(SummaryMetric("مجموع طلب",Money.format(totalReceivable,settings.moneyUnit),Color(0xFF1B9A61),Icons.Filled.TrendingUp),SummaryMetric("مجموع بدهی",Money.format(totalPayable,settings.moneyUnit),Color(0xFFE24B57),Icons.Filled.TrendingDown)),Icons.Filled.AccountBalanceWallet)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(filterKind == null, { filterKind = null }, { Text("همه") })
                 FilterChip(filterKind == DebtKind.RECEIVABLE, { filterKind = DebtKind.RECEIVABLE }, { Text("طلب‌ها") })
