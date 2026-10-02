@@ -1,4 +1,0 @@
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/MarketPulseScreen.kt:89:150 Unresolved reference 'clickable'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/MarketPulseScreen.kt:89:396 @Composable invocations can only happen from the context of a @Composable function
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/MarketPulseScreen.kt:89:150 Unresolved reference 'clickable'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/MarketPulseScreen.kt:89:396 @Composable invocations can only happen from the context of a @Composable function
