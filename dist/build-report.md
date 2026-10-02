@@ -1,14 +1,21 @@
 # گزارش Build و تست (CI)
 
-- commit: 1576f1d1e97bc391062ec837be35e05a5d2ba054
-- تاریخ: 2026-10-02 12:51 UTC
+- commit: e2c01474c0db98700dfdf9cfeedb584af508e5bc
+- تاریخ: 2026-10-02 13:01 UTC
 - unit tests: failure
-- assembleDebug: failure
+- assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
-- lintDebug: failure
-- assembleRelease: failure
+- lintDebug: success
+- assembleRelease: success
 
 ## خلاصه تست‌های واحد
 ```
-(no test results)
+tests=492 failures=2 errors=0 skipped=0
+FAIL ir.kharjyar.app.VehicleListFirstGuardTest.vehicles mirror debt list first interaction: java.lang.AssertionError
+FAIL ir.kharjyar.app.AssetProfessionalUiGuardTest.assets have graphical portfolio and swipe edit delete: java.lang.AssertionError
 ```
+
+## نسخه انتشار
+- حجم: 34M
+- کلید اختصاصی: false
+- امضا: معتبر
