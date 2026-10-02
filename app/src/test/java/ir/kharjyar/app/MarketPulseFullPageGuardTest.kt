@@ -12,7 +12,7 @@ class MarketPulseFullPageGuardTest {
   assertTrue(root.contains("composable(\"marketPulse\")")&&root.contains("MarketPulseScreen"))
   assertTrue(popup.contains("Icons.Filled.QueryStats")&&popup.contains("clickable{expanded=false;onOpenMarket()"))
   assertFalse(popup.contains("مشاهده کامل نبض بازار"))
-  listOf("فلزات گران‌بها","ارزهای رایج","عمومی TGJU","قیمت‌ها صرفاً جهت اطلاع‌اند","MarketList").forEach{assertTrue(it,page.contains(it))}
+  listOf("طلا و نقره","سکه‌های رایج بازار ایران","نرخ آزاد بازار ایران","عمومی TGJU","قیمت‌ها صرفاً جهت اطلاع‌اند","MarketList").forEach{assertTrue(it,page.contains(it))}
   listOf("GOLD18","GOLD24","MESGHAL","SILVER","USD","EUR","GBP","AED","TRY","CAD","AUD","CHF","CNY").forEach{assertTrue(it,page.contains(it)||service.contains(it))}
   assertTrue(service.contains("suspend fun preciousMetalRial"))
  }

@@ -8,6 +8,6 @@ class DashboardCompactAccountCardGuardTest {
   assertTrue(d.contains(".height(if(defaultAccount?.id == account.id) 365.dp else 205.dp)"))
   assertTrue(d.contains("showDetailsWhenSelected = true")&&d.contains("AnimatedVisibility(defaultAccount?.id == account.id)"))
   assertFalse("A detached second account card must not return",d.contains("Spacer(Modifier.height(8.dp))\n                                AccountBelowCardPanel"))
-  assertTrue(card.contains("visible = selected && showDetailsWhenSelected")&&card.contains("content()"))
+  assertTrue(card.contains("rotationX = flipRotation")&&card.contains("اطلاعات کامل حساب")&&card.contains("content()"))
  }
 }
