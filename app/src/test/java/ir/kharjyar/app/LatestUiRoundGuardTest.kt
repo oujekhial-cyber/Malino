@@ -61,7 +61,7 @@ class LatestUiRoundGuardTest {
         assertTrue(repo.contains("direction = TxDirection.WITHDRAW"))
         assertTrue(repo.contains("categoryId = null"))
         val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
-        assertTrue(manual.contains("حساب دیگر خودم در خرج‌یار"))
+        assertTrue(manual.contains("یکی از حساب‌های خودم"))
         assertTrue(manual.contains("حساب شخص دیگر"))
     }
 

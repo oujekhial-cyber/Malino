@@ -8,6 +8,6 @@ class MarketPulseListDesignGuardTest{
   assertTrue(s.contains("LazyColumn")&&s.contains("MarketList(metalItems")&&s.contains("MarketList(currencyItems"))
   assertFalse("Old two-column price grid must not return",s.contains("items.chunked(2)"))
   assertTrue("Trend must compare two fetched values",s.contains("previousValues=values")&&s.contains("value.compareTo(previous)"))
-  assertTrue(s.contains("if(values.isNotEmpty())"))
+  assertTrue(s.contains("if(values.values.any{it!=null})"))
  }
 }

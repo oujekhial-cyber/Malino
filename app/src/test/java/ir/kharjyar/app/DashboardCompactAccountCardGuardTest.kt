@@ -8,6 +8,6 @@ class DashboardCompactAccountCardGuardTest {
   assertTrue(s.contains(".height(200.dp)")&&s.contains("AccountBelowCardPanel("))
   assertTrue(s.contains("شماره شبا")&&s.contains("شماره حساب")&&s.contains("CVV2")&&s.contains("انقضا"))
   assertTrue(s.contains("CompactAccountFlow(\"واریز\"")&&s.contains("CompactAccountFlow(\"برداشت\""))
-  assertTrue(s.contains("مانده پیامک:")&&s.contains("onDiscrepancy"))
+  assertTrue(s.contains("مانده پیامک (")&&s.contains("onDiscrepancy"))
  }
 }

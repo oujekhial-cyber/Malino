@@ -8,11 +8,11 @@ class AmountLimitAndUniformAccountCardGuardTest {
   assertEquals("12345678901234567",AmountInput.sanitize("1234567890123456789"))
   assertEquals(17,AmountInput.sanitize("9".repeat(30)).length)
  }
- @Test fun `dashboard account cards share one stable height`() {
+ @Test fun `dashboard account area is stable and visual card is compact`() {
   val dashboard=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
   val card=File("src/main/java/ir/kharjyar/app/ui/components/BankCard.kt").readText()
-  assertTrue(dashboard.contains("val accountCardHeight = 300.dp"))
-  assertTrue(dashboard.contains(".height(accountCardHeight)"))
+  assertTrue(dashboard.contains("val accountCardHeight = 375.dp"))
+  assertTrue(dashboard.contains(".height(200.dp)") && dashboard.contains(".height(accountCardHeight)"))
   assertTrue(dashboard.contains("showDetailsWhenSelected = false"))
   assertTrue(card.contains("visible = selected && showDetailsWhenSelected"))
  }

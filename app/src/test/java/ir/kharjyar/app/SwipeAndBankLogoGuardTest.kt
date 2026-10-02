@@ -176,16 +176,12 @@ class SwipeAndBankLogoGuardTest {
     }
 
     @Test
-    fun `entry form speaks about the amount, not the direction`() {
+    fun `entry form presents plain language and optional description`() {
         val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
-        assertTrue(manual.contains("ثبت مبلغی که به حساب واریز شده است"))
-        assertTrue(manual.contains("ثبت مبلغی که از حساب برداشت شده است"))
-        assertFalse("متن قدیمی سربرگ مانده است", manual.contains("پول وارد حساب شد"))
-        // برچسب توضیح برای هر عملیات جداگانه است
-        assertTrue(manual.contains("واریز بابت چه بود؟"))
-        assertTrue(manual.contains("خرید بابت چه بود؟"))
-        assertTrue(manual.contains("انتقال بابت چه بود؟"))
-        assertFalse(manual.contains("خرید/واریز بابت چی بوده؟"))
+        assertTrue(manual.contains("پول به حساب آمد"))
+        assertTrue(manual.contains("پول از حساب کم شد"))
+        assertTrue(manual.contains("بابت چه بود؟ (اختیاری)"))
+        assertFalse("Technical nature picker must stay out of daily form", manual.contains("NaturePicker("))
     }
 
     @Test
@@ -201,8 +197,8 @@ class SwipeAndBankLogoGuardTest {
         val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
         // در حالت انتخاب‌شده، دیگر پرسش «این پول چه بود؟» نمایش داده نمی‌شود
         assertTrue(manual.contains("presetTransfer"))
-        assertTrue(manual.contains("مقصد انتقال"))
-        assertTrue(manual.contains("حساب دیگر خودم در خرج‌یار"))
+        assertTrue(manual.contains("انتقال به"))
+        assertTrue(manual.contains("یکی از حساب‌های خودم"))
         assertFalse("انتقال نباید دسته‌بندی بخواهد", manual.contains("presetTransfer) {\n                CategoryPicker"))
     }
 
@@ -230,7 +226,7 @@ class SwipeAndBankLogoGuardTest {
         for (screen in listOf("ManualEntryScreen", "TransactionEditScreen")) {
             assertTrue(
                 "$screen دسته‌بندی جدید را وصل نکرده",
-                source("src/main/java/ir/kharjyar/app/ui/screens/$screen.kt").contains("onCreate = { name ->")
+                source("src/main/java/ir/kharjyar/app/ui/screens/$screen.kt").contains("onCreate={name->")
             )
         }
     }
