@@ -126,7 +126,7 @@ class SwipeAndBankLogoGuardTest {
     fun `bank logo is watermarked on the account card`() {
         val card = source("src/main/java/ir/kharjyar/app/ui/components/BankCard.kt")
         assertTrue("واترمارک لوگو روی کارت نیست", card.contains("bankLogoRes(bankName)"))
-        assertTrue("واترمارک باید کم‌رنگ باشد", Regex("alpha\\(0\\.(0|1)\\d*f\\)").containsMatchIn(card))
+        assertTrue("واترمارک باید کم‌رنگ باشد", card.contains(".alpha(0.10f * frontVisible)"))
     }
 
     @Test

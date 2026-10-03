@@ -13,7 +13,7 @@ class LatestRequestedRefinementsTest {
   assertEquals(SmsKind.NON_FINANCIAL,SmsClassifier.classify("رمز پویا 987654 فقط تا دو دقیقه معتبر است"))
  }
  @Test fun `transaction deletion asks for confirmation`() { val s=File("src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt").readText();assertTrue(s.contains("آیا این تراکنش حذف شود؟"));assertTrue(s.contains("pendingDelete")) }
- @Test fun `bank balance snapshots remain separate from estimated balance`() { val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();assertTrue(s.contains("مانده پیامک ("));assertTrue(s.contains("onDiscrepancy")) }
+ @Test fun `bank balance snapshots remain separate from estimated balance`() { val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();assertTrue(s.contains("مانده پیامک: "));assertTrue(s.contains("onDiscrepancy")) }
  @Test fun `widget elements move directly on preview`() { val s=File("src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt").readText();assertTrue(s.contains("detectDragGestures"));assertTrue(s.contains("DraggablePreviewElement")) }
  @Test fun `check supports camera gallery and OCR review`() { val s=File("src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt").readText();assertTrue(s.contains("TakePicture"));assertTrue(s.contains("GetContent"));assertTrue(s.contains("تصویر خوانده شد؛ اطلاعات را بررسی کنید.")) }
 }
