@@ -13,6 +13,6 @@ class BankSmsHistoryFilteringGuardTest {
  }
  @Test fun `history classifies and extracts before accepting mapped inferred or account matched bank`() {
   val source=File("src/main/java/ir/kharjyar/app/ui/screens/SmsHistoryImportScreen.kt").readText()
-  listOf("SmsClassifier.isOtp(body)","SmsClassifier.classify(body)!=SmsKind.FINANCIAL_LIKELY","val bankSender=inferredBank!=null&&BankSenderResolver.sameBank","!mappedSender&&!bankSender&&!bankInBody").forEach{assertTrue(it,source.contains(it))}
+  listOf("SmsClassifier.isOtp(body)","SmsClassifier.classify(body)==SmsKind.NON_FINANCIAL","val bankSender=inferredBank!=null&&BankSenderResolver.sameBank","!mappedSender&&!bankSender&&!bankInBody","senderAccountIds.singleOrNull()").forEach{assertTrue(it,source.contains(it))}
  }
 }

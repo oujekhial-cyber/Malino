@@ -130,7 +130,7 @@ fun ProfileScreen(vm: AppViewModel, nav: NavHostController) {
                             if(username!=profile?.username&&vm.repo.db.civicDao().usernameCount(username)>0) message="این نام کاربری تکراری است"
                             else {
                                 vm.repo.db.civicDao().saveProfile(UserProfileEntity(username=username,displayName=name.trim(),imagePath=imagePath,remoteId=profile?.remoteId,syncPending=true))
-                                showSavedMessage(context,"پروفایل");nav.popBackStack()
+                                showSavedMessage(context, "پروفایل"); nav.popBackStack()
                             }
                         }
                     },enabled=usernameValid,shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().height(52.dp)
