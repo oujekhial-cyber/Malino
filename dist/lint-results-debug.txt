@@ -345,7 +345,7 @@ espresso = "3.6.1"
    However, you may simply not be aware that a more recent version is
    available, and that is what this lint check helps find.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/BankCard.kt:76: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/BankCard.kt:78: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier,
     ~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Pickers.kt:257: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
@@ -647,15 +647,27 @@ var fromDate by remember{mutableStateOf(PersianDate.today().plusDays(-30))};var 
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_minimal.xml:39: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
             android:text="خرج‌یار"
             ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_minimal.xml:233: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
+        android:contentDescription="بروزرسانی اطلاعات ویجت" />
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:58: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
                 android:text="خرج‌یار"
                 ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:258: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
+        android:contentDescription="بروزرسانی اطلاعات ویجت" />
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_royal.xml:57: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
                 android:text="خرج‌یار"
                 ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_royal.xml:257: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
+        android:contentDescription="بروزرسانی اطلاعات ویجت" />
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_split.xml:43: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
             android:text="خرج‌یار"
             ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_split.xml:247: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
+        android:contentDescription="بروزرسانی اطلاعات ویجت" />
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    Explanation for issues of type "HardcodedText":
    Hardcoding text attributes directly in layout files is bad for several
@@ -671,4 +683,4 @@ var fromDate by remember{mutableStateOf(PersianDate.today().plusDays(-30))};var 
    There are quickfixes to automatically extract this hardcoded string into a
    resource lookup.
 
-2 errors, 112 warnings
+2 errors, 116 warnings

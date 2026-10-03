@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 0b689648ef1a226eb50bcfb8a9a6af53b42745e5
-- تاریخ: 2026-10-02 21:10 UTC
-- unit tests: success
+- commit: 3ff49522d62577934d819deac9b5c68cc503015c
+- تاریخ: 2026-10-03 05:12 UTC
+- unit tests: failure
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,7 +10,9 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=498 failures=0 errors=0 skipped=0
+tests=500 failures=2 errors=0 skipped=0
+FAIL ir.kharjyar.app.LatestRequestedRefinementsTest.bank balance snapshots remain separate from estimated balance: java.lang.AssertionError
+FAIL ir.kharjyar.app.SwipeAndBankLogoGuardTest.bank logo is watermarked on the account card: java.lang.AssertionError: واترمارک باید کم‌رنگ باشد
 ```
 
 ## نسخه انتشار
