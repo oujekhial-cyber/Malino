@@ -1,11 +1,8 @@
 package ir.kharjyar.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.animation.expandVertically
@@ -161,43 +158,23 @@ fun BankCard(
     val onCard = if (base.luminance() > 0.55f) Color(0xFF14121A) else Color.White
     val shape = RoundedCornerShape(20.dp)
 
-    val borderColor by animateColorAsState(
-        if (selected) onCard.copy(alpha = 0.85f) else Color.Transparent,
-        tween(220),
-        label = "cardBorder"
-    )
-    val borderWidth by animateDpAsState(
-        if (selected) 2.dp else 0.dp,
-        tween(220),
-        label = "cardBorderWidth"
-    )
-
     var flipped by remember(title, cardNumber) { mutableStateOf(false) }
     var verticalDrag by remember { mutableFloatStateOf(0f) }
-    // چرخش سینمایی: شروع نرم، عبور سریع و فرود آرام با مکث بسیار کوتاه نزدیک انتها.
+    // یک منحنی پیوسته به‌جای keyframeهای پله‌ای؛ حرکت بدون مکث یا شکست سرعت
+    // آغاز می‌شود، در میانه روان شتاب می‌گیرد و بسیار نرم روی سمت دیگر می‌نشیند.
     val flipRotation by animateFloatAsState(
         targetValue = if (flipped) 180f else 0f,
-        animationSpec = keyframes {
-            durationMillis = 920
-            if (flipped) {
-                0f at 0
-                12f at 110
-                96f at 430 using CubicBezierEasing(.22f, .78f, .18f, 1f)
-                174f at 790
-                180f at 920
-            } else {
-                180f at 0
-                168f at 110
-                84f at 430 using CubicBezierEasing(.22f, .78f, .18f, 1f)
-                6f at 790
-                0f at 920
-            }
-        },
+        animationSpec = tween(
+            durationMillis = 880,
+            easing = CubicBezierEasing(.22f, 0f, .18f, 1f)
+        ),
         label = "bankCardCinematicFlip"
     )
     val flipWave = kotlin.math.abs(kotlin.math.sin(Math.toRadians(flipRotation.toDouble())).toFloat())
-    val frontVisible = if (flipRotation < 88f) 1f else 0f
-    val backVisible = if (flipRotation > 92f) 1f else 0f
+    // محتوای هر سمت پیش از رسیدن به لبه به‌تدریج محو می‌شود؛ بنابراین در زاویه
+    // میانی نه نوشته وارونه داریم و نه تعویض ناگهانی یک فریم به فریم دیگر.
+    val frontVisible = ((90f - flipRotation) / 18f).coerceIn(0f, 1f)
+    val backVisible = ((flipRotation - 90f) / 18f).coerceIn(0f, 1f)
 
     Box(
         modifier = modifier
@@ -207,7 +184,7 @@ fun BankCard(
                 scaleX = 1f - (.035f * flipWave)
                 scaleY = 1f - (.055f * flipWave)
                 translationY = -7.dp.toPx() * flipWave
-                shadowElevation = 18.dp.toPx() * flipWave
+                shadowElevation = 10.dp.toPx() * flipWave
                 clip = false
             }
             .pointerInput(flipped) {
@@ -219,7 +196,7 @@ fun BankCard(
             }
             .clip(shape)
             .background(Brush.linearGradient(listOf(top, bottom)))
-            .border(borderWidth, borderColor, shape)
+            // انتخاب با نشان تیک مشخص است؛ قاب خطی هنگام چرخش حذف شده تا لبه‌ها نرم بمانند.
             .clickable(onClick = onClick)
     ) {
         // نشان بانک به‌صورت واترمارک: تک‌رنگ و بسیار کم‌رنگ، در گوشه کارت.
@@ -363,19 +340,6 @@ fun BankCard(
             Text("برای بازگشت، کارت را عمودی بکشید",color=onCard.copy(.68f),style=MaterialTheme.typography.labelSmall,modifier=Modifier.align(Alignment.CenterHorizontally))
         }
 
-    // در میانه چرخش، لبه کارت برای یک لحظه مثل بازتاب نور می‌درخشد.
-    Box(
-        Modifier
-            .align(Alignment.Center)
-            .fillMaxWidth(.94f)
-            .height(2.dp)
-            .alpha(flipWave * .82f)
-            .background(
-                Brush.horizontalGradient(
-                    listOf(Color.Transparent, Color.White.copy(.92f), Color.Transparent)
-                )
-            )
-    )
     }
 }
 

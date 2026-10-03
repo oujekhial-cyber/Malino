@@ -344,7 +344,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
                                 neon = settings.cardShine
                             ) {
-                                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
+                                // بدنه کارت اصلی دقیقاً تمام ابعاد همان قاب ۲۳۰dp کارت‌های حساب را
+                                // پر می‌کند؛ HeroCard در حالت wrap-content در بعضی تم‌ها کوتاه‌تر دیده می‌شد.
+                                Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 14.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
