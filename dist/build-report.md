@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 539593c105ba306b115408b6e73b9200c137da72
-- تاریخ: 2026-10-03 13:29 UTC
-- unit tests: failure
+- commit: 31895793df131a7abe1297f9ea34559ae8e9618a
+- تاریخ: 2026-10-03 13:40 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,10 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=510 failures=3 errors=0 skipped=0
-FAIL ir.kharjyar.app.SaveFeedbackAndReturnGuardTest.profile transaction and account saves confirm then pop when workflow is complete: java.lang.AssertionError
-FAIL ir.kharjyar.app.RequestedUiAndIranGoldGuardTest.drawer is compact and labels are explicit: java.lang.AssertionError
-FAIL ir.kharjyar.app.BankSmsHistoryFilteringGuardTest.history classifies and extracts before accepting mapped inferred or account matched bank: java.lang.AssertionError: SmsClassifier.classify(body)!=SmsKind.FINANCIAL_LIKELY
+tests=510 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
