@@ -333,7 +333,7 @@ fun BankCard(
             if(accountNumber.isNotBlank()) CardField("شماره حساب",Digits.ltr(Digits.toPersian(accountNumber)),onCard){onCopy("شماره حساب",accountNumber)}
             if(iban.isNotBlank()) CardField("شبا",Digits.ltr("IR"+Digits.toPersian(iban)),onCard){onCopy("شماره شبا","IR$iban")}
             Row(horizontalArrangement=Arrangement.spacedBy(28.dp)) {
-                if(expiry.isNotBlank()) CardField("انقضا",Digits.ltr(Digits.toPersian(expiry)),onCard){}
+                if(expiry.isNotBlank()) CardField("انقضا",formatCardExpiry(expiry),onCard){}
                 if(cvv2.isNotBlank()) CardField("CVV2",if(showSecrets)Digits.ltr(Digits.toPersian(cvv2)) else "•••",onCard){}
             }
             if(ownerName.isNotBlank()) Text("دارنده: $ownerName",color=onCard,style=MaterialTheme.typography.bodyMedium)
@@ -449,6 +449,19 @@ private fun CardField(
  * خروجی داخل ایزوله چپ‌به‌راست پیچیده می‌شود تا در چیدمان راست‌به‌چپ، ترتیب
  * گروه‌ها برعکس دیده نشود (۵۰۲۹ باید سمت چپ‌ترین نباشد بلکه اولین گروه بماند).
  */
+/**
+ * تاریخ در دیتابیس به صورت ماه/سال نگهداری می‌شود، اما روی کارت از چپ به راست
+ * «سال/ماه» نمایش داده می‌شود تا سال سمت چپ و ماه سمت راست قرار بگیرد.
+ */
+internal fun formatCardExpiry(raw: String): String {
+    val normalized = Digits.normalize(raw.trim())
+    val parts = normalized.split(Regex("[/\\-.\\s]+"), limit = 2)
+    val visual = if (parts.size == 2 && parts.all { it.isNotBlank() }) {
+        "${parts[1]}/${parts[0]}"
+    } else normalized
+    return Digits.ltr(Digits.toPersian(visual))
+}
+
 private fun formatCardNumber(raw: String, reveal: Boolean): String {
     val digits = Digits.normalize(raw).filter { it.isDigit() }
     if (digits.isEmpty()) return ""

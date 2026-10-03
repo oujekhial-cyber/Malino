@@ -24,6 +24,7 @@ class UsernameRulesTest {
         val profile = File("src/main/java/ir/kharjyar/app/ui/screens/ProfileScreen.kt").readText()
         assertTrue(profile.contains("KeyboardType.Ascii"))
         assertTrue(profile.contains("TextDirection.Ltr"))
-        assertTrue(profile.contains("prefix = { Text(\"@\") }"))
+        assertTrue(profile.contains("prefix={Text(\"@\",fontWeight=FontWeight.Bold)}"))
+        assertTrue(profile.contains("LocalLayoutDirection provides LayoutDirection.Ltr"))
     }
 }

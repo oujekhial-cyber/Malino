@@ -56,6 +56,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
 
     var tx by remember { mutableStateOf<TransactionEntity?>(null) }
     var loaded by remember { mutableStateOf(false) }
+    var duplicateResolved by remember { mutableStateOf(false) }
 
     var accountId by remember { mutableStateOf<Long?>(null) }
     var amountText by remember { mutableStateOf("") }
@@ -71,7 +72,11 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
     var suggestRule by remember { mutableStateOf(false) }
 
     LaunchedEffect(txId) {
-        val loadedTx = viewModel.repo.txDao.byId(txId)
+        // پیش از نمایش فرم، بررسی کن آیا کاربر همین برداشت/واریز را از مسیر دستی
+        // ثبت کرده است؛ در این حالت کلیک اعلان نباید فرم ثبت دوباره را باز کند.
+        val existingId = viewModel.repo.resolvePendingDuplicate(txId)
+        duplicateResolved = existingId != null
+        val loadedTx = viewModel.repo.txDao.byId(existingId ?: txId)
         tx = loadedTx
         loadedTx?.let { t ->
             accountId = t.accountId
@@ -117,6 +122,16 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
             if (isPending) "تکمیل تراکنش — بابت چی بوده؟" else "جزئیات و ویرایش تراکنش",
             style = MaterialTheme.typography.headlineSmall
         )
+        if (duplicateResolved) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                Text(
+                    "این تراکنش قبلاً ثبت شده است؛ همان تراکنش موجود برای مشاهده باز شد.",
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
         if (isPending) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
                 Text(

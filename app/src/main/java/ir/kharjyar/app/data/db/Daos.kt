@@ -147,6 +147,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE accountId=:accountId AND amountRial=:amount AND direction=:direction AND occurredAt BETWEEN :from AND :to ORDER BY ABS(occurredAt-:at) LIMIT 1")
     suspend fun findDuplicate(accountId:Long,amount:Long,direction:Int,at:Long,from:Long=at-120000,to:Long=at+120000):TransactionEntity?
 
+    @Query("SELECT * FROM transactions WHERE id != :excludeId AND status = 1 AND accountId=:accountId AND amountRial=:amount AND direction=:direction AND occurredAt BETWEEN :from AND :to ORDER BY ABS(occurredAt-:at) LIMIT 1")
+    suspend fun findConfirmedDuplicateExcluding(excludeId:Long,accountId:Long,amount:Long,direction:Int,at:Long,from:Long=at-120000,to:Long=at+120000):TransactionEntity?
+
     @Query("SELECT * FROM transactions ORDER BY occurredAt DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<TransactionEntity>>
 

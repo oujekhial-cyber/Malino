@@ -12,6 +12,13 @@ class WidgetSplitDefaultIntegrationGuardTest {
   assertTrue(prefs.contains("enumOf(p[Keys.W_LAYOUT], WidgetLayout.SPLIT)"))
   assertFalse(root.contains("setWidgetLayout(WidgetLayout.ROYAL)"))
  }
+ @Test fun `split widget app name stays on physical right`() {
+  val layout=File("src/main/res/layout/w_split.xml").readText()
+  val widget=File("src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt").readText()
+  val title=layout.substringAfter("android:id=\"@+id/w_title\"").substringBefore("/>")
+  assertTrue(title.contains("android:layout_width=\"match_parent\"")&&title.contains("android:gravity=\"right\""))
+  assertTrue(widget.contains("android.view.Gravity.RIGHT or android.view.Gravity.TOP"))
+ }
  @Test fun `legacy auto pin royal default migrates without blocking later user choice`() {
   val prefs=File("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt").readText()
   assertTrue(prefs.contains("WIDGET_SPLIT_DEFAULT_MIGRATED"))

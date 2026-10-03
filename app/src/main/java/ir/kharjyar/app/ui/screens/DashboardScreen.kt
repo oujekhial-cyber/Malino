@@ -157,7 +157,7 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit,onOpenMarket:()->U
        AnimatedVisibility(panelVisible,enter=expandVertically(expandFrom=Alignment.Top,animationSpec=tween(620))+fadeIn(tween(500)),exit=shrinkVertically(shrinkTowards=Alignment.Top,animationSpec=tween(420))+fadeOut(tween(350))){
         Box(Modifier.fillMaxWidth(.86f).shadow(14.dp,RoundedCornerShape(25.dp),ambientColor=Color(0xFFFF4EA3).copy(.20f),spotColor=Color(0xFF45E4E0).copy(.18f)).clip(RoundedCornerShape(25.dp)).background(panelBase.copy(alpha=if(darkMarket).97f else .98f)).background(Brush.linearGradient(listOf(Color(0x12FF3D91),Color.Transparent,Color(0x124DE8E2)))).border(1.3.dp,Brush.linearGradient(listOf(Color(0xFFFF4EA3),Color(0xFF813C79),Color(0xFF45E4E0))),RoundedCornerShape(25.dp)).clickable{}.padding(horizontal=11.dp,vertical=7.dp)){
           Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(4.dp)){
-           CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){Box(Modifier.size(46.dp).shadow(8.dp,RoundedCornerShape(15.dp),ambientColor=Color(0xFF55D9D5).copy(.28f),spotColor=Color(0xFFFF6EAE).copy(.18f)).clip(RoundedCornerShape(15.dp)).background(Brush.linearGradient(listOf(Color(0xFF173D49),Color(0xFF21304C)))).border(1.3.dp,Brush.linearGradient(listOf(Color(0xFF55D9D5),Color(0xFFFF6EAE))),RoundedCornerShape(15.dp)).clickable{expanded=false;onOpenMarket()},contentAlignment=Alignment.Center){Icon(Icons.Filled.QueryStats,"باز کردن صفحه نبض بازار",tint=Color(0xFF70ECE3),modifier=Modifier.size(25.dp));Icon(Icons.Filled.ArrowOutward,null,tint=Color.White,modifier=Modifier.align(Alignment.TopEnd).padding(5.dp).size(10.dp))};Column(verticalArrangement=Arrangement.spacedBy(0.dp)){Text("نبض بازار",style=MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.Black,brush=Brush.horizontalGradient(listOf(Color(0xFFFF6EAE),Color(0xFFE48FC7),Color(0xFF55D9D5)))));Text("برای مشاهده کامل، آیکون را لمس کنید",color=muted,style=MaterialTheme.typography.labelSmall)}}}
+           ModernMarketEntryButton(dark=darkMarket,onClick={expanded=false;onOpenMarket()})
 
            if(loading)LinearProgressIndicator(Modifier.fillMaxWidth(.72f),color=Color(0xFF55D9D5),trackColor=muted.copy(.10f))
            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp)){PremiumMarketTile("دلار آزاد","هر دلار",dollar,previousDollar,unit,Color(0xFF35BDB9),"\$",Modifier.weight(1f),darkMarket);PremiumMarketTile("طلای ۱۸ عیار","هر گرم",gold,previousGold,unit,Color(0xFFD4A526),"Au",Modifier.weight(1f),darkMarket)}}
@@ -169,6 +169,40 @@ fun LiveMarketGlass(unit:ir.kharjyar.app.core.money.MoneyUnit,onOpenMarket:()->U
        }
       }
     }
+
+@Composable
+private fun ModernMarketEntryButton(dark:Boolean,onClick:()->Unit){
+ val shape=RoundedCornerShape(18.dp)
+ val deep=if(dark)Color(0xFF111827) else Color(0xFFF5F7FF)
+ val title=if(dark)Color.White else Color(0xFF182034)
+ Box(
+  Modifier.fillMaxWidth().height(58.dp)
+   .shadow(9.dp,shape,ambientColor=Color(0xFF4DE4DE).copy(.22f),spotColor=Color(0xFFFF5BA8).copy(.18f))
+   .clip(shape)
+   .background(Brush.horizontalGradient(listOf(Color(0xFF0E6F78).copy(if(dark).72f else .18f),deep,Color(0xFF8B285F).copy(if(dark).62f else .14f))))
+   .border(1.dp,Brush.horizontalGradient(listOf(Color(0xFF55E7DF).copy(.78f),Color.White.copy(.12f),Color(0xFFFF6EAE).copy(.72f))),shape)
+   .clickable(onClick=onClick)
+   .padding(horizontal=10.dp),
+  contentAlignment=Alignment.Center
+ ){
+  // لکه‌های نور ثابت، بدون انیمیشن دائمی و مصرف باتری اضافه.
+  Box(Modifier.align(Alignment.CenterStart).size(72.dp).background(Brush.radialGradient(listOf(Color(0xFF55E7DF).copy(.13f),Color.Transparent)),CircleShape))
+  CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){
+   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
+    Box(Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(Brush.linearGradient(listOf(Color(0xFF42D8D2),Color(0xFF186E86)))).border(1.dp,Color.White.copy(.34f),RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){
+     Icon(Icons.Filled.QueryStats,"ورود به صفحه نبض بازار",tint=Color.White,modifier=Modifier.size(23.dp))
+    }
+    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(1.dp)){
+     Text("مشاهده کامل نبض بازار",color=title,fontWeight=FontWeight.Black,style=MaterialTheme.typography.bodyMedium,maxLines=1)
+     Text("طلا، سکه و ارز در یک نگاه",color=title.copy(.65f),style=MaterialTheme.typography.labelSmall,maxLines=1)
+    }
+    Box(Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFFF5EA8).copy(if(dark).20f else .13f)).border(1.dp,Color(0xFFFF77B5).copy(.50f),CircleShape),contentAlignment=Alignment.Center){
+     Icon(Icons.Filled.ArrowOutward,null,tint=Color(0xFFFF77B5),modifier=Modifier.size(17.dp))
+    }
+   }
+  }
+ }
+}
 
 internal fun marketChangePercent(value:Long?,previous:Long?):Double?=if(value!=null&&previous!=null&&previous>0)(value.toDouble()-previous.toDouble())*100.0/previous.toDouble() else null
 internal fun marketChangeLabel(change:Double?):String?=when{change==null->null;change==0.0->"بدون تغییر";else->{val decimals=if(kotlin.math.abs(change)<0.01)4 else 2;val number=String.format(java.util.Locale.US,"%.${decimals}f",kotlin.math.abs(change));Digits.toPersian((if(change>0)"↗  +" else "↘  −")+number+"٪")}}

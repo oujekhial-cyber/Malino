@@ -13,12 +13,12 @@ class MarketPopupReadabilityGuardTest {
             "anchorBounds.bottom+marketBarGapPx",
             "fillMaxWidth(.86f)",
             "panelBase.copy(alpha=if(darkMarket).97f else .98f)",
-            "Modifier.size(46.dp)",
-            "MaterialTheme.typography.titleMedium",
+            "Modifier.fillMaxWidth().height(58.dp)",
+            "ModernMarketEntryButton",
             "MaterialTheme.typography.labelSmall",
-            "verticalArrangement=Arrangement.spacedBy(0.dp)",
+            "طلا، سکه و ارز در یک نگاه",
             "color=tile.copy(alpha=if(dark).98f else 1f)",
-            "PremiumMarketTile","\"Au\"","\"\\$\"","برای مشاهده کامل، آیکون را لمس کنید","آخرین بروزرسانی"
+            "PremiumMarketTile","\"Au\"","\"\\$\"","مشاهده کامل نبض بازار","آخرین بروزرسانی"
         ).forEach{assertTrue(it,source.contains(it))}
         val popup=source.substring(source.indexOf("if(expanded)Popup"),source.indexOf("@Composable private fun PremiumMarketTile"))
         assertTrue(source.contains("10.dp.roundToPx()"))

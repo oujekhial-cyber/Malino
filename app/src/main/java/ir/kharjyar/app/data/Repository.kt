@@ -332,6 +332,27 @@ class Repository(val db: KharjYarDatabase) {
     }
 
     /**
+     * اعلان ممکن است بعد از ثبت دستی همان تراکنش هنوز در نوار اعلان مانده باشد.
+     * پیش‌نویس پیامکی تکراری را اتمیک حذف و شناسه تراکنش ثبت‌شده را برمی‌گرداند.
+     */
+    suspend fun resolvePendingDuplicate(txId:Long):Long? {
+        var existingId:Long?=null
+        db.withTransaction {
+            val pending=txDao.byId(txId)?:return@withTransaction
+            if(pending.status!=TxStatus.PENDING)return@withTransaction
+            val duplicate=txDao.findConfirmedDuplicateExcluding(
+                pending.id,pending.accountId,pending.amountRial,pending.direction,pending.occurredAt
+            )?:return@withTransaction
+            pending.smsId?.let { sid ->
+                smsDao.byId(sid)?.let { smsDao.update(it.copy(status=SmsStatus.DONE,updatedAt=now())) }
+            }
+            txDao.delete(pending.id)
+            existingId=duplicate.id
+        }
+        return existingId
+    }
+
+    /**
      * تأیید تراکنش توسط کاربر. اگر ماهیت انتقال است، تلاش برای تطبیق با سمت مقابل.
      */
     suspend fun confirmTransaction(

@@ -27,7 +27,8 @@ object SmsClassifier {
         "رمز دوم پویا", "رمز دوم یکبار مصرف", "رمز دوم یک‌بار مصرف",
         "رمز خرید اینترنتی", "رمز اینترنتی", "رمز موقت", "رمز یکبار مصرف کارت",
         "اعتبار رمز", "زمان اعتبار رمز", "otp", "one time password", "verification code",
-        "کد ورود", "کد اعتبارسنجی", "این کد را در اختیار"
+        "کد ورود", "کد اعتبارسنجی", "این کد را در اختیار",
+        "رمز اول کارت", "رمز دوم کارت", "رمز جهت خرید", "رمز تراکنش", "رمز شما"
     )
 
     private val securityNoticeKeywords = listOf(
@@ -42,7 +43,12 @@ object SmsClassifier {
 
     fun isOtp(body:String):Boolean {
         val text=Digits.normalizeForMatch(body).lowercase()
-        return otpKeywords.any { text.contains(Digits.normalizeForMatch(it).lowercase()) }
+        if (otpKeywords.any { text.contains(Digits.normalizeForMatch(it).lowercase()) }) return true
+        // قالب‌های بعضی بانک‌ها فقط «رمز» + کد و مهلت استفاده می‌فرستند و عبارت
+        // دقیق «رمز پویا» ندارند. ترکیب این سه نشانه محافظه‌کارانه OTP را جدا می‌کند.
+        val hasShortCode = Regex("(?<!\\d)\\d{4,8}(?!\\d)").containsMatchIn(text)
+        val hasValidityHint = listOf("معتبر", "اعتبار", "دقیقه", "ثانیه", "استفاده", "در اختیار", "افشا", "خرید اینترنتی").any(text::contains)
+        return "رمز" in text && hasShortCode && hasValidityHint
     }
 
     /**

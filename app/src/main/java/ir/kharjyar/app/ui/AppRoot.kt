@@ -274,6 +274,7 @@ private val drawerEntries = listOf(
     DrawerEntry("reminders", "یادآورها", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("civicCenter", "قبوض شهروندی", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("vehicles", "وسایل نقلیه", Icons.Filled.DirectionsCar),
+    DrawerEntry("backup", "پشتیبان‌گیری و بازیابی", Icons.Filled.CloudUpload),
     DrawerEntry("settings", "تنظیمات", Icons.Filled.Settings)
 )
 
@@ -290,6 +291,7 @@ private fun titleOf(route: String?): String = when {
     route == "manual/{dir}" -> "ثبت تراکنش"
     route == "quickAdd" -> "ثبت سریع"
     route == "widgetSettings" -> "تنظیمات ویجت"
+    route == "backup" -> "پشتیبان‌گیری و بازیابی"
     route == "marketPulse" -> "نبض بازار"
     route == "notifications" -> "اعلان‌ها"
     route == "settings/appearance" -> "قالب‌ها"

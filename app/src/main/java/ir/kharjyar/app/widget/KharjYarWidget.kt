@@ -310,6 +310,11 @@ object WidgetRenderer {
             return horizontal or vertical
         }
         views.setInt(R.id.w_title, "setGravity", gravity(settings.widgetTitleAlign, settings.widgetTitleVAlign))
+        // در قالب دوبخشی، نام برنامه مستقل از تنظیم جایگاه عمومی همیشه در
+        // ستون اطلاعات و لبه فیزیکی راست ویجت قرار می‌گیرد.
+        if (settings.widgetLayout == WidgetLayout.SPLIT || settings.widgetLayout == WidgetLayout.GLASS) {
+            views.setInt(R.id.w_title, "setGravity", android.view.Gravity.RIGHT or android.view.Gravity.TOP)
+        }
         listOf(R.id.w_clock, R.id.w_jalali, R.id.w_gregorian).forEach {
             views.setInt(it, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
         }
