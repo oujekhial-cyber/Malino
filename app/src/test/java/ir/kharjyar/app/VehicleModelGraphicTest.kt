@@ -9,6 +9,10 @@ class VehicleModelGraphicTest{
   assertEquals(VehicleGraphicKind.PEUGEOT_206,vehicleGraphicKind("پژو ۲۰۶","خودرو سواری"))
   assertEquals(VehicleGraphicKind.SHAHIN,vehicleGraphicKind("شاهین G","خودرو سواری"))
   assertEquals(VehicleGraphicKind.MOTORCYCLE,vehicleGraphicKind("هوندا ۱۲۵","موتورسیکلت"))
+  assertEquals("هوندا ۱۲۵",normalizeVehicleTitle("هندا ۱۲۵"))
+  assertEquals(R.drawable.brand_honda,vehicleManufacturerLogo("هندا ۱۲۵","موتورسیکلت"))
+  assertEquals("کاوازاکی نینجا",normalizeVehicleTitle("کاواساکی نینجا"))
+  assertEquals(R.drawable.brand_kawasaki,vehicleManufacturerLogo("کاواساکی نینجا","موتورسیکلت"))
   assertEquals(VehicleGraphicKind.PICKUP,vehicleGraphicKind("نیسان آبی","وانت"))
   assertEquals(VehicleGraphicKind.TRUCK,vehicleGraphicKind("ولوو","کامیون"))
  }

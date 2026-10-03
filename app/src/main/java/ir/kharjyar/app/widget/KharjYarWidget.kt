@@ -248,6 +248,7 @@ object WidgetRenderer {
         views.setTextColor(R.id.w_jalali, onBg)
         views.setTextColor(R.id.w_gregorian, muted)
         views.setTextColor(R.id.w_weather, onBg)
+        views.setInt(R.id.w_refresh, "setColorFilter", accent)
 
         listOf(R.id.w_label_1, R.id.w_label_2, R.id.w_label_3).forEach {
             views.setTextColor(it, onBg)
@@ -382,14 +383,23 @@ object WidgetRenderer {
         // بعضی دستگاه‌ها کار نمی‌کرد، پس طبق خواست کاربر برداشته شد.
         views.setOnClickPendingIntent(R.id.w_app_area, appPending)
         views.setOnClickPendingIntent(R.id.w_clock_area, appPending)
+        val refreshPending = PendingIntent.getBroadcast(
+            context,
+            REQ_REFRESH,
+            Intent(context, KharjYarWidgetReceiver::class.java).setAction(ACTION_REFRESH),
+            flags
+        )
+        views.setOnClickPendingIntent(R.id.w_refresh, refreshPending)
     }
 
     private const val REQ_APP = 1001
+    private const val REQ_REFRESH = 1002
 }
 
 /** گیرنده ویجت: رسم اولیه و به‌روزرسانی با تغییر روز/ساعت. */
 /** اکشن داخلی زنگ نیمه‌شب. */
 internal const val ACTION_MIDNIGHT = "ir.kharjyar.app.widget.MIDNIGHT"
+internal const val ACTION_REFRESH = "ir.kharjyar.app.widget.REFRESH"
 
 class KharjYarWidgetReceiver : AppWidgetProvider() {
 
@@ -428,12 +438,22 @@ class KharjYarWidgetReceiver : AppWidgetProvider() {
                 WidgetUpdater.requestUpdate(context)
                 WidgetUpdater.scheduleMidnight(context)
             }
+            ACTION_REFRESH -> {
+                // با لمس آیکون، داده‌های فعلی Room دوباره خوانده و ویجت فوراً رسم می‌شود.
+                WidgetUpdater.requestUpdate(context)
+            }
         }
     }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         WidgetUpdater.scheduleMidnight(context)
+        WidgetUpdater.syncWeatherWork(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        WidgetUpdater.cancelBackgroundWork(context)
     }
 
     private fun render(
@@ -458,6 +478,45 @@ class KharjYarWidgetReceiver : AppWidgetProvider() {
 object WidgetUpdater {
 
     private const val REQ_MIDNIGHT = 2001
+    private const val WEATHER_WORK = "widget-weather-refresh"
+
+    fun hasWidgets(context: Context): Boolean {
+        val app = context.applicationContext
+        return AppWidgetManager.getInstance(app)
+            .getAppWidgetIds(ComponentName(app, KharjYarWidgetReceiver::class.java)).isNotEmpty()
+    }
+
+    /** داده‌های دیتابیس و هوا فقط برای ویجت نصب‌شده، هر شش ساعت بازخوانی می‌شوند. */
+    fun syncWeatherWork(context: Context) {
+        val work = androidx.work.WorkManager.getInstance(context.applicationContext)
+        if (!hasWidgets(context)) {
+            work.cancelUniqueWork(WEATHER_WORK)
+            return
+        }
+        val constraints = androidx.work.Constraints.Builder()
+            .setRequiresBatteryNotLow(true)
+            .build()
+        val request = androidx.work.PeriodicWorkRequestBuilder<ir.kharjyar.app.work.WeatherWidgetWorker>(
+            6, java.util.concurrent.TimeUnit.HOURS
+        ).setConstraints(constraints).build()
+        work.enqueueUniquePeriodicWork(
+            WEATHER_WORK,
+            androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+            request
+        )
+    }
+
+    fun cancelBackgroundWork(context: Context) {
+        androidx.work.WorkManager.getInstance(context.applicationContext).cancelUniqueWork(WEATHER_WORK)
+        val app = context.applicationContext
+        val alarm = app.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val pending = PendingIntent.getBroadcast(
+            app, REQ_MIDNIGHT,
+            Intent(app, KharjYarWidgetReceiver::class.java).setAction(ACTION_MIDNIGHT),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pending != null) alarm.cancel(pending)
+    }
 
     /**
      * زنگ نیمه‌شب: تاریخ شمسی متن ثابت است و برخلاف ساعت خودش تیک نمی‌زند.

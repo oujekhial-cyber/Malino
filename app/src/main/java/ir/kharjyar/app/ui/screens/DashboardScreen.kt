@@ -309,8 +309,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     .coerceAtLeast(180.dp)
                 // ردیف در حالت عادی هم‌ارتفاع کارت‌های جمع‌وجور است؛ فقط با انتخاب
                 // یک حساب برای نمایش جزئیات باز می‌شود و تراکنش‌های اخیر بی‌دلیل پایین نمی‌روند.
-                val compactAccountCardHeight = 205.dp
-                val accountCarouselHeight = if (defaultAccount == null) 215.dp else 375.dp
+                val compactAccountCardHeight = 230.dp
+                val accountCarouselHeight = 240.dp
                 val dashboardLayoutDirection = LocalLayoutDirection.current
                 // وضعیت جابه‌جایی تا زمان رهاکردن ثابت می‌ماند؛ ترتیب فقط در پایان ذخیره می‌شود.
                 var draggingId by remember { mutableStateOf<Long?>(null) }
@@ -537,10 +537,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
                                 balanceColor = when { account.id in greenBalanceAccounts -> Color(0xFF43E08D); hasDiscrepancy -> skin.expenseColor; else -> null },
-                                showDetailsWhenSelected = true,
+                                showDetailsWhenSelected = false,
                                 modifier = Modifier
                                     .width(pageWidth)
-                                    .height(if(defaultAccount?.id == account.id) 365.dp else 205.dp)
+                                    .height(compactAccountCardHeight)
                                     .animateItemPlacement(animationSpec = tween(durationMillis = 480))
                                     .onGloballyPositioned { coordinates ->
                                         val physical = coordinates.positionInWindow()
@@ -619,19 +619,19 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     }
                                 }
                             ) {
-                                AnimatedVisibility(defaultAccount?.id == account.id) { AccountBelowCardPanel(
+                                AccountBelowCardPanel(
                                     income = if (amountVisible) Money.format(accSum.incomeRial, settings.moneyUnit) else "••••",
                                     expense = if (amountVisible) Money.format(accSum.expenseRial, settings.moneyUnit) else "••••",
                                     incomeColor = skin.incomeColor,
                                     expenseColor = skin.expenseColor,
                                     bankStatus = bankSnapshot?.let { snap ->
-                                        "مانده پیامک (${PersianDate.formatDateTime(snap.messageAt)}): " + (if(amountVisible) Money.format(snap.balanceRial,settings.moneyUnit) else "••••••") +
-                                            (if(hasDiscrepancy && est.rial!=null) "  •  مغایرت ${Money.format(kotlin.math.abs(est.rial-snap.balanceRial),settings.moneyUnit)}" else "")
-                                    },
+                                        "مانده پیامک: " + (if(amountVisible) Money.format(snap.balanceRial,settings.moneyUnit) else "••••••") +
+                                            (if(hasDiscrepancy && est.rial!=null) " • مغایرت ${Money.format(kotlin.math.abs(est.rial-snap.balanceRial),settings.moneyUnit)}" else "")
+                                    } ?: "مانده پیامک: ثبت نشده",
                                     hasDiscrepancy = hasDiscrepancy,
                                     onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
                                     onRefresh = { requestBalanceRefresh(account) }
-                                ) }
+                                )
                             }
                             if (isDragging) {
                                 Popup(
@@ -662,7 +662,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                         selected = defaultAccount?.id == account.id,
                                         masked = !amountVisible,
                                         showDetailsWhenSelected = false,
-                                        modifier = Modifier.width(pageWidth).height(205.dp).graphicsLayer {
+                                        modifier = Modifier.width(pageWidth).height(compactAccountCardHeight).graphicsLayer {
                                             // اندازه در شروع Drag تغییر نمی‌کند تا نقطه‌ای که کاربر
                                             // گرفته دقیقاً زیر همان نقطه انگشت باقی بماند.
                                             scaleX = 1f
@@ -896,7 +896,7 @@ private fun AccountBelowCardPanel(
     income:String, expense:String, incomeColor:Color, expenseColor:Color,
     bankStatus:String?, hasDiscrepancy:Boolean, onDiscrepancy:()->Unit, onRefresh:()->Unit
 ) {
-    Column(Modifier.fillMaxWidth().padding(top=9.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top=5.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
             bankStatus?.let { status -> Text(status,style=MaterialTheme.typography.labelSmall,color=if(hasDiscrepancy)Color(0xFFFF8A93)else Color.White.copy(.78f),maxLines=1,modifier=Modifier.weight(1f).clickable(enabled=hasDiscrepancy,onClick=onDiscrepancy)) } ?: Spacer(Modifier.weight(1f))
             TextButton(onClick=onRefresh,contentPadding=PaddingValues(horizontal=6.dp,vertical=0.dp)){Icon(Icons.Filled.Refresh,null,Modifier.size(14.dp),tint=Color.White);Spacer(Modifier.width(3.dp));Text("بروزرسانی",style=MaterialTheme.typography.labelSmall,color=Color.White)}
@@ -910,8 +910,8 @@ private fun AccountBelowCardPanel(
 
 @Composable
 private fun CompactAccountFlow(label:String,value:String,tint:Color,icon:ImageVector,modifier:Modifier=Modifier){
-    Row(modifier.background(tint.copy(alpha=.10f),RoundedCornerShape(12.dp)).border(1.dp,tint.copy(alpha=.28f),RoundedCornerShape(12.dp)).padding(horizontal=9.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){
-        Box(Modifier.size(27.dp).background(tint.copy(alpha=.16f),CircleShape),contentAlignment=Alignment.Center){Icon(icon,null,tint=tint,modifier=Modifier.size(15.dp))}
+    Row(modifier.background(tint.copy(alpha=.10f),RoundedCornerShape(11.dp)).border(1.dp,tint.copy(alpha=.28f),RoundedCornerShape(11.dp)).padding(horizontal=8.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){
+        Box(Modifier.size(23.dp).background(tint.copy(alpha=.16f),CircleShape),contentAlignment=Alignment.Center){Icon(icon,null,tint=tint,modifier=Modifier.size(15.dp))}
         Column(Modifier.weight(1f)){Text(label,style=MaterialTheme.typography.labelSmall,color=Color.White.copy(.72f));Text(value,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Black,color=Color.White,maxLines=1)}
     }
 }

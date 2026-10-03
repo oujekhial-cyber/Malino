@@ -10,6 +10,15 @@ class RecoverableSpamFilterTest {
  }
  @Test fun bankTransactionIsNeverSpam(){
   assertFalse(SpamSmsClassifier.decide("واریز 1,500,000 ریال به حساب؛ مانده 8,000,000 ریال").confident)
+  assertFalse(SpamSmsClassifier.decide("خرید 2,300,000 ریال؛ جشنواره امتیازی بانک؛ مانده 9,000,000").confident)
+  assertFalse(SpamSmsClassifier.decide("پرداخت 450000 ریال انجام شد کد پیگیری 77881").confident)
+ }
+ @Test fun definiteFinancialSmsBypassesAndRepairsAccidentalBlocking(){
+  val repo=File("src/main/java/ir/kharjyar/app/data/Repository.kt").readText()
+  assertTrue(repo.contains("val protectedFinancial = kind == SmsKind.FINANCIAL_LIKELY"))
+  assertTrue(repo.contains("if (blockedSenderDao.isBlocked(sender) && !protectedFinancial)"))
+  assertTrue(repo.contains("if (protectedFinancial) blockedSenderDao.unblock(sender)"))
+  assertTrue(repo.indexOf("val kind = SmsClassifier.classify(body)") < repo.indexOf("SpamSmsClassifier.decide(body)"))
  }
  @Test fun quarantineIsRestorableAndMigrated(){
   val repo=File("src/main/java/ir/kharjyar/app/data/Repository.kt").readText()

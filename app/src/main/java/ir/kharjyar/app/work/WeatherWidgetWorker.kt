@@ -10,7 +10,7 @@ import ir.kharjyar.app.widget.WidgetUpdater
 class WeatherWidgetWorker(context:Context,params:WorkerParameters):CoroutineWorker(context,params){
  override suspend fun doWork():Result = try {
   WeatherService.refresh(applicationContext,force=true)
-  WidgetUpdater.requestUpdate(applicationContext)
+  WidgetUpdater.updateNow(applicationContext)
   Result.success()
  }catch(_:Exception){Result.retry()}
 }

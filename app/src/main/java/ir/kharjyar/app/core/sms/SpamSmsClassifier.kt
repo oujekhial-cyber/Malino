@@ -8,7 +8,7 @@ data class SpamDecision(val confident:Boolean,val reason:String,val score:Int)
 object SpamSmsClassifier {
  private val promo=listOf("تخفیف","فروش ویژه","پیشنهاد ویژه","جشنواره","قرعه کشی","قرعه‌کشی","کد تخفیف","هدیه خرید","حراج","اقساط ویژه","همین حالا خرید","فرصت ویژه")
  private val calls=listOf("تماس بگیرید","سفارش دهید","خرید کنید","ثبت نام کنید","ثبت‌نام کنید","کلیک کنید","مشاهده کنید")
- private val financial=listOf("برداشت","واریز","مانده","موجودی","بدهکار","بستانکار","شماره پیگیری","حواله","کارت به کارت","پایا","ساتنا","سود سپرده")
+ private val financial=listOf("برداشت","واریز","واریزی","مانده","موجودی","بدهکار","بستانکار","خرید","کسر","پرداخت","تراکنش","شماره پیگیری","حواله","کارت به کارت","کارت‌به‌کارت","پایا","ساتنا","سود سپرده","سود ماهانه","سود علی‌الحساب","واریز سود")
  fun decide(body:String):SpamDecision{
   val t=Digits.normalizeForMatch(body).lowercase()
   val amount=Regex("\\d{1,3}(?:[,،٬]\\d{3})+|\\d{5,}").containsMatchIn(t)

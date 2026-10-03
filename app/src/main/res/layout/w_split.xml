@@ -234,4 +234,16 @@
     </LinearLayout>
 </LinearLayout>
 
+    <!-- تازه‌سازی دستی داده‌های ویجت بدون بازکردن برنامه -->
+    <ImageButton
+        android:id="@+id/w_refresh"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="4dp"
+        android:padding="8dp"
+        android:background="@android:color/transparent"
+        android:src="@drawable/w_ic_refresh"
+        android:contentDescription="بروزرسانی اطلاعات ویجت" />
+
 </FrameLayout>

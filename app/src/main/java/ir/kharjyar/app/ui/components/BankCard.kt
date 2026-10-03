@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.animation.expandVertically
@@ -172,11 +174,42 @@ fun BankCard(
 
     var flipped by remember(title, cardNumber) { mutableStateOf(false) }
     var verticalDrag by remember { mutableFloatStateOf(0f) }
-    val flipRotation by animateFloatAsState(if (flipped) 180f else 0f, tween(720), label = "bankCardFlip")
+    // چرخش سینمایی: شروع نرم، عبور سریع و فرود آرام با مکث بسیار کوتاه نزدیک انتها.
+    val flipRotation by animateFloatAsState(
+        targetValue = if (flipped) 180f else 0f,
+        animationSpec = keyframes {
+            durationMillis = 920
+            if (flipped) {
+                0f at 0
+                12f at 110
+                96f at 430 using CubicBezierEasing(.22f, .78f, .18f, 1f)
+                174f at 790
+                180f at 920
+            } else {
+                180f at 0
+                168f at 110
+                84f at 430 using CubicBezierEasing(.22f, .78f, .18f, 1f)
+                6f at 790
+                0f at 920
+            }
+        },
+        label = "bankCardCinematicFlip"
+    )
+    val flipWave = kotlin.math.abs(kotlin.math.sin(Math.toRadians(flipRotation.toDouble())).toFloat())
+    val frontVisible = if (flipRotation < 88f) 1f else 0f
+    val backVisible = if (flipRotation > 92f) 1f else 0f
 
     Box(
         modifier = modifier
-            .graphicsLayer { rotationX = flipRotation; cameraDistance = 18f * density }
+            .graphicsLayer {
+                rotationX = flipRotation
+                cameraDistance = 26f * density
+                scaleX = 1f - (.035f * flipWave)
+                scaleY = 1f - (.055f * flipWave)
+                translationY = -7.dp.toPx() * flipWave
+                shadowElevation = 18.dp.toPx() * flipWave
+                clip = false
+            }
             .pointerInput(flipped) {
                 detectVerticalDragGestures(
                     onVerticalDrag = { change, amount -> change.consume(); verticalDrag += amount },
@@ -202,13 +235,19 @@ fun BankCard(
                         .fillMaxHeight(0.92f)
                         .aspectRatio(1f)
                         .offset(x = 16.dp)
-                        .alpha(0.10f)
+                        .alpha(0.10f * frontVisible)
                 )
             }
         }
 
     Column(
-        modifier = Modifier.padding(16.dp).alpha(if (flipped) 0f else 1f)
+        modifier = Modifier
+            .padding(16.dp)
+            .graphicsLayer {
+                alpha = frontVisible
+                // متن هنگام دورشدن کارت اندکی عقب می‌رود تا عمق واقعی‌تری حس شود.
+                translationY = 3.dp.toPx() * flipWave
+            }
     ) {
         // ---------- ردیف بالا: نام بانک و نشان ----------
         Row(
@@ -298,9 +337,15 @@ fun BankCard(
         // جزئیات کامل روی پشت کارت نمایش داده می‌شوند.
     }
 
-    if (flipped) {
-        Column(
-            Modifier.matchParentSize().graphicsLayer { rotationX = 180f }.padding(18.dp),
+    Column(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    rotationX = 180f
+                    alpha = backVisible
+                    translationY = -3.dp.toPx() * flipWave
+                }
+                .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -317,7 +362,20 @@ fun BankCard(
             if(ownerName.isNotBlank()) Text("دارنده: $ownerName",color=onCard,style=MaterialTheme.typography.bodyMedium)
             Text("برای بازگشت، کارت را عمودی بکشید",color=onCard.copy(.68f),style=MaterialTheme.typography.labelSmall,modifier=Modifier.align(Alignment.CenterHorizontally))
         }
-    }
+
+    // در میانه چرخش، لبه کارت برای یک لحظه مثل بازتاب نور می‌درخشد.
+    Box(
+        Modifier
+            .align(Alignment.Center)
+            .fillMaxWidth(.94f)
+            .height(2.dp)
+            .alpha(flipWave * .82f)
+            .background(
+                Brush.horizontalGradient(
+                    listOf(Color.Transparent, Color.White.copy(.92f), Color.Transparent)
+                )
+            )
+    )
     }
 }
 

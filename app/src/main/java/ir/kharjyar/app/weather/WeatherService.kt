@@ -35,6 +35,12 @@ object WeatherService {
     suspend fun refresh(context: Context, force: Boolean = false): WeatherInfo? = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!force && System.currentTimeMillis() - prefs.getLong("updated", 0L) < 2 * 60 * 60 * 1000L) return@withContext cached(context)
+        // در بروزرسانی دوره‌ای دیتابیس، نبود اینترنت نباید باعث timeout و بیدارماندن CPU شود.
+        val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = connectivity.activeNetwork
+        val online = network != null && connectivity.getNetworkCapabilities(network)
+            ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        if (!online) return@withContext cached(context)
         runCatching {
             val requested = city(context)
             val q = URLEncoder.encode(requested, "UTF-8")

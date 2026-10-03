@@ -56,18 +56,27 @@ class Repository(val db: KharjYarDatabase) {
         // رمز پویا حتی برای فرستنده مسدودشده ذخیره نمی‌شود.
         if (SmsClassifier.isOtp(body)) return IngestResult(null,false,SmsKind.NON_FINANCIAL)
         val fp = SmsFingerprint.of(sender, body, receivedAt)
-        if (blockedSenderDao.isBlocked(sender)) {
+        // ابتدا ماهیت پیام بررسی می‌شود؛ یک پیام تراکنش واقعی هرگز نباید فقط به‌خاطر
+        // واژه‌هایی مثل «جشنواره/هدیه» یا مسدودی قدیمی فرستنده وارد تبلیغات شود.
+        val kind = SmsClassifier.classify(body)
+        val mappings=accountDao.allSenders()
+        val normalizedSender=AccountMatcher.normalizeSender(sender)
+        val knownFinancialSender=mappings.any{AccountMatcher.normalizeSender(it.sender)==normalizedSender}||
+            ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sender)!=null
+        val protectedFinancial = kind == SmsKind.FINANCIAL_LIKELY ||
+            (knownFinancialSender && kind == SmsKind.SUSPICIOUS)
+        if (blockedSenderDao.isBlocked(sender) && !protectedFinancial) {
             spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason="فرستنده مسدودشده توسط کاربر",fingerprint=fp))
             return IngestResult(null, false, SmsKind.NON_FINANCIAL)
         }
-        val mappings=accountDao.allSenders()
-        val knownFinancialSender=mappings.any{AccountMatcher.normalizeSender(it.sender)==AccountMatcher.normalizeSender(sender)}||ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sender)!=null
+        // اگر یک تراکنش قطعی از فرستنده‌ای که قبلاً اشتباهی تبلیغاتی شده رسید،
+        // مسدودی را خودکار برمی‌داریم تا اعلان‌های بعدی نیز از دست نروند.
+        if (protectedFinancial) blockedSenderDao.unblock(sender)
         val spam=ir.kharjyar.app.core.sms.SpamSmsClassifier.decide(body)
-        if(!knownFinancialSender&&spam.confident){
+        if(!protectedFinancial&&!knownFinancialSender&&spam.confident){
             spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason=spam.reason,fingerprint=fp))
             return IngestResult(null,false,SmsKind.NON_FINANCIAL)
         }
-        val kind = SmsClassifier.classify(body)
         if (kind == SmsKind.NON_FINANCIAL) return IngestResult(null, false, kind)
         val row = SmsCandidateEntity(
             sender = sender,
