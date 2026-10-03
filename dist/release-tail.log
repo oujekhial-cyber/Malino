@@ -22,12 +22,13 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:extractReleaseNativeSymbolTables
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:javaPreCompileRelease FROM-CACHE
+> Task :app:processReleaseManifestForPackage
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseStartupProfile
-> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseShaders
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseAssets
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:processApplicationManifestReleaseForBundle
@@ -36,7 +37,6 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:validateSigningRelease
 > Task :app:writeReleaseAppMetadata
 > Task :app:writeReleaseSigningConfigVersions
-> Task :app:processReleaseManifestForPackage
 > Task :app:compressReleaseAssets
 > Task :app:mergeReleaseResources
 > Task :app:processReleaseResources
@@ -72,8 +72,8 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CivicCenterScreen.kt:103:173 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CivicCenterScreen.kt:103:776 'val Icons.Filled.FactCheck: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FactCheck.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:152:456 'val Icons.Filled.ShowChart: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ShowChart.
-w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:544:38 'fun Modifier.animateItemPlacement(animationSpec: FiniteAnimationSpec<IntOffset> = ...): Modifier' is deprecated. Use Modifier.animateItem() instead.
-w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:629:67 Condition is always 'true'.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:546:38 'fun Modifier.animateItemPlacement(animationSpec: FiniteAnimationSpec<IntOffset> = ...): Modifier' is deprecated. Use Modifier.animateItem() instead.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:631:67 Condition is always 'true'.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:91:225 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:91:341 'val Icons.Filled.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingDown.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:130:192 'val Icons.Filled.CallReceived: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallReceived.
@@ -104,5 +104,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 2m 51s
+BUILD SUCCESSFUL in 2m 59s
 48 actionable tasks: 45 executed, 3 from cache

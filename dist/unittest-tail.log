@@ -26,8 +26,8 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
-> Task :app:processDebugManifestForPackage
 > Task :app:javaPreCompileDebugUnitTest
+> Task :app:processDebugManifestForPackage
 > Task :app:javaPreCompileDebug
 > Task :app:processDebugResources
 > Task :app:kspDebugKotlin
@@ -60,8 +60,8 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CivicCenterScreen.kt:103:173 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CivicCenterScreen.kt:103:776 'val Icons.Filled.FactCheck: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FactCheck.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:152:456 'val Icons.Filled.ShowChart: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ShowChart.
-w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:544:38 'fun Modifier.animateItemPlacement(animationSpec: FiniteAnimationSpec<IntOffset> = ...): Modifier' is deprecated. Use Modifier.animateItem() instead.
-w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:629:67 Condition is always 'true'.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:546:38 'fun Modifier.animateItemPlacement(animationSpec: FiniteAnimationSpec<IntOffset> = ...): Modifier' is deprecated. Use Modifier.animateItem() instead.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:631:67 Condition is always 'true'.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:91:225 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:91:341 'val Icons.Filled.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingDown.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:130:192 'val Icons.Filled.CallReceived: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallReceived.
@@ -88,5 +88,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 > Task :app:processDebugUnitTestJavaRes
 > Task :app:testDebugUnitTest
 
-BUILD SUCCESSFUL in 2m 55s
+BUILD SUCCESSFUL in 3m 19s
 25 actionable tasks: 25 executed
