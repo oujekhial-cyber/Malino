@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: d62b89188fbecd70400178d9a0c02dff2c85e210
-- تاریخ: 2026-10-06 12:06 UTC
-- unit tests: failure
+- commit: 41ee47139f09ecbb1da60c60e80f2bebc35edf0a
+- تاریخ: 2026-10-06 12:17 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,8 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=513 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.WidgetAlignTest.align defaults keep title start and clock centered: java.lang.AssertionError: expected:<CENTER> but was:<TOP>
+tests=513 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
