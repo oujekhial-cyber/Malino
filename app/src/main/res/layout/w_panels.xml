@@ -50,16 +50,31 @@
                 android:src="@drawable/w_ic_wallet"
                 android:contentDescription="@null" />
 
-            <TextView
-                android:id="@+id/w_title"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="خرج‌یار"
-                android:textStyle="bold"
-                android:textSize="19sp"
-                android:includeFontPadding="false"
-                android:textColor="#E8B4F0" />
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:id="@+id/w_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="خرج‌یار"
+                    android:textStyle="bold"
+                    android:textSize="19sp"
+                    android:includeFontPadding="false"
+                    android:textColor="#E8B4F0" />
+
+                <ImageView
+                    android:id="@+id/w_title_rule"
+                    android:layout_width="52dp"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="4dp"
+                    android:background="#40E8B4F0"
+                    android:contentDescription="@null" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- ناحیه ساعت -->
@@ -103,13 +118,6 @@
                 android:textColor="#BFAFC9" />
         </LinearLayout>
     </LinearLayout>
-
-    <ImageView
-        android:id="@+id/w_title_rule"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="10dp"
-        android:background="#26FFFFFF" android:contentDescription="@null" />
 
     <!-- نوار درآمد -->
     <LinearLayout
@@ -253,6 +261,7 @@
         android:layout_gravity="top|start"
         android:layout_margin="4dp"
         android:padding="8dp"
+        android:alpha="0.55"
         android:background="@android:color/transparent"
         android:src="@drawable/w_ic_refresh"
         android:contentDescription="بروزرسانی اطلاعات ویجت" />

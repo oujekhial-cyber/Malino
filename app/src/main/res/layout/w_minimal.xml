@@ -228,6 +228,7 @@
         android:layout_gravity="top|start"
         android:layout_margin="4dp"
         android:padding="8dp"
+        android:alpha="0.55"
         android:background="@android:color/transparent"
         android:src="@drawable/w_ic_refresh"
         android:contentDescription="بروزرسانی اطلاعات ویجت" />

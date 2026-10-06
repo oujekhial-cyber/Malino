@@ -17,7 +17,8 @@ class WidgetSplitDefaultIntegrationGuardTest {
   val widget=File("src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt").readText()
   val title=layout.substringAfter("android:id=\"@+id/w_title\"").substringBefore("/>")
   assertTrue(title.contains("android:layout_width=\"match_parent\"")&&title.contains("android:gravity=\"right\""))
-  assertTrue(widget.contains("android.view.Gravity.RIGHT or android.view.Gravity.TOP"))
+  assertTrue(widget.contains("views.setInt(R.id.w_app_area,\"setGravity\",titleGravity)"))
+  assertTrue(widget.contains("views.setInt(R.id.w_clock_area,\"setGravity\",clockGravity)"))
  }
  @Test fun `legacy auto pin royal default migrates without blocking later user choice`() {
   val prefs=File("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt").readText()

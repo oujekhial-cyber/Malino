@@ -249,6 +249,8 @@ object WidgetRenderer {
         views.setTextColor(R.id.w_gregorian, muted)
         views.setTextColor(R.id.w_weather, onBg)
         views.setInt(R.id.w_refresh, "setColorFilter", accent)
+        // آیکون بروزرسانی کاربردی می‌ماند، اما نباید از محتوای مالی جلو بزند.
+        views.setInt(R.id.w_refresh, "setImageAlpha", 190)
 
         listOf(R.id.w_label_1, R.id.w_label_2, R.id.w_label_3).forEach {
             views.setTextColor(it, onBg)
@@ -309,12 +311,12 @@ object WidgetRenderer {
             val vertical = when (v) { ir.kharjyar.app.data.prefs.WidgetVAlign.TOP -> android.view.Gravity.TOP; ir.kharjyar.app.data.prefs.WidgetVAlign.CENTER -> android.view.Gravity.CENTER_VERTICAL; ir.kharjyar.app.data.prefs.WidgetVAlign.BOTTOM -> android.view.Gravity.BOTTOM }
             return horizontal or vertical
         }
-        views.setInt(R.id.w_title, "setGravity", gravity(settings.widgetTitleAlign, settings.widgetTitleVAlign))
-        // در قالب دوبخشی، نام برنامه مستقل از تنظیم جایگاه عمومی همیشه در
-        // ستون اطلاعات و لبه فیزیکی راست ویجت قرار می‌گیرد.
-        if (settings.widgetLayout == WidgetLayout.SPLIT || settings.widgetLayout == WidgetLayout.GLASS) {
-            views.setInt(R.id.w_title, "setGravity", android.view.Gravity.RIGHT or android.view.Gravity.TOP)
-        }
+        val titleGravity=gravity(settings.widgetTitleAlign,settings.widgetTitleVAlign)
+        val clockGravity=gravity(settings.widgetClockAlign,settings.widgetClockVAlign)
+        views.setInt(R.id.w_app_area,"setGravity",titleGravity)
+        views.setInt(R.id.w_clock_area,"setGravity",clockGravity)
+        views.setInt(R.id.w_title, "setGravity", titleGravity)
+        // خط عنوان داخل w_app_area است و همراه نام/مبالغ به جای انتخابی می‌رود.
         listOf(R.id.w_clock, R.id.w_jalali, R.id.w_gregorian).forEach {
             views.setInt(it, "setGravity", gravity(settings.widgetClockAlign, settings.widgetClockVAlign))
         }

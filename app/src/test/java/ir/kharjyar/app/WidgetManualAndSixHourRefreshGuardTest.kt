@@ -12,6 +12,7 @@ class WidgetManualAndSixHourRefreshGuardTest {
         }
         val widget = File("src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt").readText()
         assertTrue(widget.contains("ACTION_REFRESH") && widget.contains("R.id.w_refresh, refreshPending"))
+        assertTrue(widget.contains("views.setInt(R.id.w_refresh, \"setImageAlpha\", 190)"))
         assertTrue(widget.contains("6, java.util.concurrent.TimeUnit.HOURS"))
         assertTrue(widget.contains("WidgetRenderer.build(appContext)"))
     }

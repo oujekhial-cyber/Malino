@@ -33,7 +33,10 @@ private val positions=listOf(
  fun setSize(v:Int)=apply{when(element){WidgetElement.TITLE->viewModel.settingsRepo.setWidgetTitleSize(v);WidgetElement.CLOCK->viewModel.settingsRepo.setWidgetClockSize(v);WidgetElement.DATES->viewModel.settingsRepo.setWidgetDateSize(v);WidgetElement.VALUES->viewModel.settingsRepo.setWidgetValueSize(v);WidgetElement.LABELS->viewModel.settingsRepo.setWidgetLabelSize(v)}}
  val lines=listOf(WidgetPreviewLine("واریز مهر","۵٬۸۷۰٬۰۰۰",true),WidgetPreviewLine("برداشت مهر","۳٬۲۵۰٬۰۰۰",false))
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
-  WidgetCard("پیش‌نمایش"){WidgetPreview(settings.widgetLayout,settings.widgetOpacity,settings.widgetShowNumbers,lines,showTitle=settings.widgetShowTitle,showClock=settings.widgetShowClock,showDates=settings.widgetShowDates,clockSize=settings.widgetClockSize,valueSize=settings.widgetValueSize,labelSize=settings.widgetLabelSize)}
+  WidgetCard("چیدمان لمسی ویجت"){
+   Text("هر کپسول را نگه دارید و به جای دلخواه بکشید؛ پس از رهاکردن به نزدیک‌ترین جایگاه سازگار متصل می‌شود. خط‌های همراه هر بخش نیز با همان بخش جابه‌جا می‌شوند.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+   WidgetPreview(settings.widgetLayout,settings.widgetOpacity,settings.widgetShowNumbers,lines,showTitle=settings.widgetShowTitle,showClock=settings.widgetShowClock,showDates=settings.widgetShowDates,clockSize=settings.widgetClockSize,valueSize=settings.widgetValueSize,labelSize=settings.widgetLabelSize,editable=true,titleAlign=settings.widgetTitleAlign,titleVAlign=settings.widgetTitleVAlign,clockAlign=settings.widgetClockAlign,clockVAlign=settings.widgetClockVAlign,onTitlePlaced={h,v->apply{viewModel.settingsRepo.setWidgetTitleAlign(h);viewModel.settingsRepo.setWidgetTitleVAlign(v)}},onClockPlaced={h,v->apply{viewModel.settingsRepo.setWidgetClockAlign(h);viewModel.settingsRepo.setWidgetClockVAlign(v)}})
+  }
   WidgetCard("ظاهر ویجت"){
    ComboBox("تم ویجت",Palette.entries.toList(),settings.widgetPalette,{apply{viewModel.settingsRepo.setWidgetPalette(it)}},labelOf={ir.kharjyar.app.ui.theme.skinOf(it).title})
    ComboBox("قالب",WidgetLayout.entries.toList(),settings.widgetLayout,{apply{viewModel.settingsRepo.setWidgetLayout(it)}},labelOf={widgetLayoutLabel(it)})

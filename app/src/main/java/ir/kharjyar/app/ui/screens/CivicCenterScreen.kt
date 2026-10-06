@@ -59,7 +59,7 @@ fun CivicCenterScreen(vm:AppViewModel){
     Text("بخش‌ها",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
     sections.forEach{kind->val rows=messages.filter{it.kind==kind};val accent=civicAccent(kind);Card(colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.10f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().clickable{selectedKind=kind}.border(1.2.dp,accent.copy(.65f),RoundedCornerShape(18.dp))){Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(civicSectionTitle(kind),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text("${Digits.toPersian(rows.size.toString())} مورد • ${Digits.toPersian(rows.count{!it.read}.toString())} جدید",style=MaterialTheme.typography.bodySmall)};Text("←",color=accent,style=MaterialTheme.typography.titleLarge)}}
     }
-    
+
    }else{
     val kind=selectedKind!!;val sectionMessages=messages.filter{it.kind==kind};val shown=if(kind==CivicMessageKind.UTILITY_BILL&&utilityFilter!=BILL_ALL)sectionMessages.filter{m->utilityBills.firstOrNull{it.id==m.utilityBillId}?.type==utilityFilter}else sectionMessages;val accent=civicAccent(kind)
     TextButton({selectedKind=null}){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به قبوض شهروندی")}

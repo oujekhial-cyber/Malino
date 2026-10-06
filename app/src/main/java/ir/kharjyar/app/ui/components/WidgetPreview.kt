@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -113,8 +115,9 @@ fun WidgetPreview(
                     SplitPreview(layout, jalali, lines, showNumbers, opts)
             }
             if (editable) {
-                DraggablePreviewElement("نام و مبالغ", titleAlign, titleVAlign, skin.accent, onTitlePlaced)
-                DraggablePreviewElement("ساعت و تاریخ", clockAlign, clockVAlign, skin.incomeColor, onClockPlaced)
+                PlacementGrid(skin.onBackdrop.copy(alpha=.18f))
+                DraggablePreviewElement("نام، مبالغ و خط", titleAlign, titleVAlign, skin.accent, onTitlePlaced)
+                DraggablePreviewElement("ساعت، تاریخ و خط", clockAlign, clockVAlign, skin.incomeColor, onClockPlaced)
             }
         }
     }
@@ -193,13 +196,16 @@ private fun PanelsPreview(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(
-                    "خرج‌یار",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = skin.accent,
-                    modifier = Modifier.weight(1f)
-                )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "خرج‌یار",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = skin.accent
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Box(Modifier.width(44.dp).height(1.dp).background(skin.accent.copy(alpha=.42f)))
+                }
             } else {
                 Spacer(Modifier.weight(1f))
             }
@@ -385,8 +391,30 @@ fun LabeledSlider(
     }
 }
 
+private fun placementAlignment(h:WidgetAlign,v:WidgetVAlign)=when(v){
+ WidgetVAlign.TOP->when(h){WidgetAlign.START->Alignment.TopStart;WidgetAlign.CENTER->Alignment.TopCenter;WidgetAlign.END->Alignment.TopEnd}
+ WidgetVAlign.CENTER->when(h){WidgetAlign.START->Alignment.CenterStart;WidgetAlign.CENTER->Alignment.Center;WidgetAlign.END->Alignment.CenterEnd}
+ WidgetVAlign.BOTTOM->when(h){WidgetAlign.START->Alignment.BottomStart;WidgetAlign.CENTER->Alignment.BottomCenter;WidgetAlign.END->Alignment.BottomEnd}
+}
+
+@Composable private fun BoxScope.PlacementGrid(color:Color){
+ WidgetVAlign.entries.forEach{v->WidgetAlign.entries.forEach{h->
+  Box(Modifier.align(placementAlignment(h,v)).size(8.dp).clip(CircleShape).background(color).border(1.dp,Color.White.copy(.16f),CircleShape))
+ }}
+}
+
 @Composable private fun BoxScope.DraggablePreviewElement(label:String,h:WidgetAlign,v:WidgetVAlign,color:Color,onPlaced:((WidgetAlign,WidgetVAlign)->Unit)?) {
  var dx by remember(h,v){mutableStateOf(0f)};var dy by remember(h,v){mutableStateOf(0f)}
- val align=when(v){WidgetVAlign.TOP->when(h){WidgetAlign.START->Alignment.TopStart;WidgetAlign.CENTER->Alignment.TopCenter;WidgetAlign.END->Alignment.TopEnd};WidgetVAlign.CENTER->when(h){WidgetAlign.START->Alignment.CenterStart;WidgetAlign.CENTER->Alignment.Center;WidgetAlign.END->Alignment.CenterEnd};WidgetVAlign.BOTTOM->when(h){WidgetAlign.START->Alignment.BottomStart;WidgetAlign.CENTER->Alignment.BottomCenter;WidgetAlign.END->Alignment.BottomEnd}}
- Text(label,color=Color.White,fontSize=9.sp,modifier=Modifier.align(align).offset{IntOffset(dx.roundToInt(),dy.roundToInt())}.clip(RoundedCornerShape(8.dp)).background(color.copy(alpha=.88f)).padding(5.dp).pointerInput(Unit){detectDragGestures(onDragEnd={val nh=when{dx>35->WidgetAlign.END;dx< -35->WidgetAlign.START;else->WidgetAlign.CENTER};val nv=when{dy>25->WidgetVAlign.BOTTOM;dy< -25->WidgetVAlign.TOP;else->WidgetVAlign.CENTER};onPlaced?.invoke(nh,nv);dx=0f;dy=0f}){change,drag->change.consume();dx+=drag.x;dy+=drag.y}})
+ val rtl=LocalLayoutDirection.current==LayoutDirection.Rtl
+ fun horizontalTarget():WidgetAlign{
+  val current=WidgetAlign.entries.indexOf(h)
+  val physicalStep=when{dx>32f->1;dx< -32f->-1;else->0}
+  val logicalStep=if(rtl)-physicalStep else physicalStep
+  return WidgetAlign.entries[(current+logicalStep).coerceIn(0,2)]
+ }
+ fun verticalTarget():WidgetVAlign{
+  val current=WidgetVAlign.entries.indexOf(v);val step=when{dy>24f->1;dy< -24f->-1;else->0}
+  return WidgetVAlign.entries[(current+step).coerceIn(0,2)]
+ }
+ Text(label,color=Color.White,fontSize=9.sp,fontWeight=FontWeight.Bold,modifier=Modifier.align(placementAlignment(h,v)).offset{IntOffset(dx.roundToInt(),dy.roundToInt())}.clip(RoundedCornerShape(9.dp)).background(color.copy(alpha=.92f)).border(1.dp,Color.White.copy(.46f),RoundedCornerShape(9.dp)).padding(horizontal=7.dp,vertical=5.dp).pointerInput(h,v){detectDragGestures(onDragEnd={onPlaced?.invoke(horizontalTarget(),verticalTarget());dx=0f;dy=0f},onDragCancel={dx=0f;dy=0f}){change,drag->change.consume();dx+=drag.x;dy+=drag.y}})
 }
