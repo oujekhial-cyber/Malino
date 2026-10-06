@@ -5,9 +5,9 @@
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :app:mergeReleaseNativeLibs
 > Task :app:checkReleaseDuplicateClasses
-> Task :app:checkReleaseAarMetadata
 > Task :app:generateReleaseResValues
 > Task :app:mapReleaseSourceSetPaths
+> Task :app:checkReleaseAarMetadata
 > Task :app:generateReleaseResources
 
 > Task :app:stripReleaseDebugSymbols
@@ -22,7 +22,6 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
 > Task :app:javaPreCompileRelease FROM-CACHE
-> Task :app:processReleaseManifestForPackage
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseStartupProfile
 > Task :app:mergeReleaseArtProfile
@@ -30,6 +29,7 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
 > Task :app:mergeReleaseAssets
+> Task :app:processReleaseManifestForPackage
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:processApplicationManifestReleaseForBundle
 > Task :app:collectReleaseDependencies
@@ -104,5 +104,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 2m 58s
+BUILD SUCCESSFUL in 2m 19s
 48 actionable tasks: 45 executed, 3 from cache
