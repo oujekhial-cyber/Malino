@@ -16,7 +16,9 @@ class WidgetSplitDefaultIntegrationGuardTest {
   val layout=File("src/main/res/layout/w_split.xml").readText()
   val widget=File("src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt").readText()
   val title=layout.substringAfter("android:id=\"@+id/w_title\"").substringBefore("/>")
-  assertTrue(title.contains("android:layout_width=\"match_parent\"")&&title.contains("android:gravity=\"right\""))
+  assertTrue(title.contains("android:layout_width=\"wrap_content\""))
+  val appArea=layout.substringAfter("android:id=\"@+id/w_app_area\"").substringBefore(">")
+  assertTrue(appArea.contains("android:gravity=\"top|end\""))
   assertTrue(widget.contains("views.setInt(R.id.w_app_area,\"setGravity\",titleGravity)"))
   assertTrue(widget.contains("views.setInt(R.id.w_clock_area,\"setGravity\",clockGravity)"))
  }
