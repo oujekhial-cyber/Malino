@@ -78,7 +78,10 @@ fun WidgetPreview(
     titleVAlign: WidgetVAlign = WidgetVAlign.TOP,
     clockAlign: WidgetAlign = WidgetAlign.END,
     clockVAlign: WidgetVAlign = WidgetVAlign.TOP,
+    valuesAlign: WidgetAlign = WidgetAlign.START,
+    valuesVAlign: WidgetVAlign = WidgetVAlign.CENTER,
     onTitlePlaced: ((WidgetAlign, WidgetVAlign) -> Unit)? = null,
+    onValuesPlaced: ((WidgetAlign, WidgetVAlign) -> Unit)? = null,
     onClockPlaced: ((WidgetAlign, WidgetVAlign) -> Unit)? = null
 ) {
     val skin = LocalAppSkin.current
@@ -116,8 +119,9 @@ fun WidgetPreview(
             }
             if (editable) {
                 PlacementGrid(skin.onBackdrop.copy(alpha=.18f))
-                DraggablePreviewElement("نام، مبالغ و خط", titleAlign, titleVAlign, skin.accent, onTitlePlaced)
-                DraggablePreviewElement("ساعت، تاریخ و خط", clockAlign, clockVAlign, skin.incomeColor, onClockPlaced)
+                DraggablePreviewElement("خرج‌یار و خط", titleAlign, titleVAlign, skin.accent, onTitlePlaced)
+                DraggablePreviewElement("قیمت‌ها", valuesAlign, valuesVAlign, skin.expenseColor, onValuesPlaced)
+                DraggablePreviewElement("ساعت و تاریخ", clockAlign, clockVAlign, skin.incomeColor, onClockPlaced)
             }
         }
     }
@@ -153,7 +157,7 @@ private fun SplitPreview(
                     fontWeight = FontWeight.Bold,
                     color = skin.accent
                 )
-                Spacer(Modifier.height(5.dp))
+                Spacer(Modifier.height(if (big) 5.dp else 2.dp))
                 Box(
                     Modifier
                         .width(44.dp)

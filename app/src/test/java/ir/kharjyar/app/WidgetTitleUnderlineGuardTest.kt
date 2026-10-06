@@ -15,5 +15,9 @@ class WidgetTitleUnderlineGuardTest {
   assertFalse(panels.substringAfter("@+id/w_title_rule").substringBefore("<!-- نوار درآمد -->").contains("layout_width=\"match_parent\""))
   assertTrue(split.substringAfter("@+id/w_title").substringBefore("android:text=\"خرج‌یار\"").contains("layout_width=\"wrap_content\""))
   assertTrue(split.substringAfter("@+id/w_title_rule").contains("layout_width=\"52dp\""))
+  val splitTitle=split.substringAfter("@+id/w_title").substringBefore("/>")
+  val splitRule=split.substringAfter("@+id/w_title_rule").substringBefore("/>")
+  assertTrue(splitTitle.contains("translationY=\"-4dp\""))
+  assertTrue(splitRule.contains("layout_marginTop=\"3dp\"")&&splitRule.contains("translationY=\"-4dp\""))
  }
 }

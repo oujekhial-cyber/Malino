@@ -109,9 +109,12 @@ data class AppSettings(
     val vehicleOrder: List<Long> = emptyList(),
     /** چیدمان متن‌های ویجت. */
     val widgetTitleAlign: WidgetAlign = WidgetAlign.START,
+    /** جای مستقل قیمت‌ها و برچسب‌های مالی. */
+    val widgetValuesAlign: WidgetAlign = WidgetAlign.START,
     val widgetClockAlign: WidgetAlign = WidgetAlign.CENTER,
-    /** جای عمودی ستون مقادیر مالی. */
-    val widgetTitleVAlign: WidgetVAlign = WidgetVAlign.CENTER,
+    /** جای عمودی مستقل نام برنامه و خط زیر آن. */
+    val widgetTitleVAlign: WidgetVAlign = WidgetVAlign.TOP,
+    val widgetValuesVAlign: WidgetVAlign = WidgetVAlign.CENTER,
     /** جای عمودی ستون ساعت و تاریخ. */
     val widgetClockVAlign: WidgetVAlign = WidgetVAlign.CENTER,
     /** ترتیب عمودی پنل ساعت نسبت به تاریخ‌ها. */
@@ -162,6 +165,8 @@ class SettingsRepository(private val context: Context) {
         val DASHBOARD_ACCOUNT_ORDER = stringPreferencesKey("dashboard_account_order")
         val VEHICLE_ORDER = stringPreferencesKey("vehicle_order")
         val W_TITLE_ALIGN = stringPreferencesKey("w_title_align")
+        val W_VALUES_ALIGN = stringPreferencesKey("w_values_align")
+        val W_VALUES_VALIGN = stringPreferencesKey("w_values_valign")
         val W_CLOCK_ALIGN = stringPreferencesKey("w_clock_align")
         val W_LAYOUT = stringPreferencesKey("w_layout")
         val W_TITLE_VALIGN = stringPreferencesKey("w_title_valign")
@@ -215,8 +220,10 @@ class SettingsRepository(private val context: Context) {
             dashboardAccountOrder = p[Keys.DASHBOARD_ACCOUNT_ORDER]?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList(),
             vehicleOrder = p[Keys.VEHICLE_ORDER]?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList(),
             widgetTitleAlign = enumOf(p[Keys.W_TITLE_ALIGN], WidgetAlign.START),
+            widgetValuesAlign = enumOf(p[Keys.W_VALUES_ALIGN], WidgetAlign.START),
             widgetClockAlign = enumOf(p[Keys.W_CLOCK_ALIGN], WidgetAlign.CENTER),
-            widgetTitleVAlign = enumOf(p[Keys.W_TITLE_VALIGN], WidgetVAlign.CENTER),
+            widgetTitleVAlign = enumOf(p[Keys.W_TITLE_VALIGN], WidgetVAlign.TOP),
+            widgetValuesVAlign = enumOf(p[Keys.W_VALUES_VALIGN], WidgetVAlign.CENTER),
             widgetClockVAlign = enumOf(p[Keys.W_CLOCK_VALIGN], WidgetVAlign.CENTER),
             widgetDatesBelowClock = p[Keys.W_DATES_BELOW] ?: true,
             widgetClockOffsetY = (p[Keys.W_CLOCK_OFFSET_Y] ?: 0).coerceIn(-40, 40),
@@ -257,7 +264,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetWeatherVAlign(v: WidgetVAlign) = edit { it[Keys.W_WEATHER_VALIGN] = v.name }
     suspend fun resetWidget() = edit { p ->
         p.remove(Keys.W_LAYOUT); p.remove(Keys.WIDGET_CONTENT); p.remove(Keys.WIDGET_PALETTE)
-        p.remove(Keys.W_TITLE_ALIGN); p.remove(Keys.W_CLOCK_ALIGN); p.remove(Keys.W_TITLE_VALIGN); p.remove(Keys.W_CLOCK_VALIGN)
+        p.remove(Keys.W_TITLE_ALIGN); p.remove(Keys.W_VALUES_ALIGN); p.remove(Keys.W_VALUES_VALIGN); p.remove(Keys.W_CLOCK_ALIGN); p.remove(Keys.W_TITLE_VALIGN); p.remove(Keys.W_CLOCK_VALIGN)
         p.remove(Keys.W_WEATHER_ALIGN); p.remove(Keys.W_WEATHER_VALIGN)
         p.remove(Keys.WIDGET_CLOCK); p.remove(Keys.WIDGET_DATES); p.remove(Keys.WIDGET_TITLE); p.remove(Keys.WIDGET_WEATHER); p.remove(Keys.WIDGET_NUMBERS)
         p.remove(Keys.WIDGET_OPACITY); p.remove(Keys.WIDGET_CLOCK_SIZE); p.remove(Keys.WIDGET_DATE_SIZE); p.remove(Keys.WIDGET_VALUE_SIZE); p.remove(Keys.WIDGET_LABEL_SIZE); p.remove(Keys.WIDGET_TITLE_SIZE); p.remove(Keys.WIDGET_WEATHER_SIZE)
@@ -272,6 +279,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDashboardAccountOrder(ids: List<Long>) = edit { it[Keys.DASHBOARD_ACCOUNT_ORDER] = ids.joinToString(",") }
     suspend fun setVehicleOrder(ids: List<Long>) = edit { it[Keys.VEHICLE_ORDER] = ids.joinToString(",") }
     suspend fun setWidgetTitleAlign(v: WidgetAlign) = edit { it[Keys.W_TITLE_ALIGN] = v.name }
+    suspend fun setWidgetValuesAlign(v: WidgetAlign) = edit { it[Keys.W_VALUES_ALIGN] = v.name }
+    suspend fun setWidgetValuesVAlign(v: WidgetVAlign) = edit { it[Keys.W_VALUES_VALIGN] = v.name }
     suspend fun setWidgetClockAlign(v: WidgetAlign) = edit { it[Keys.W_CLOCK_ALIGN] = v.name }
     suspend fun setWidgetTitleVAlign(v: WidgetVAlign) = edit { it[Keys.W_TITLE_VALIGN] = v.name }
     suspend fun setWidgetClockVAlign(v: WidgetVAlign) = edit { it[Keys.W_CLOCK_VALIGN] = v.name }
@@ -295,7 +304,7 @@ class SettingsRepository(private val context: Context) {
             "w_weather_align" to s.widgetWeatherAlign.name, "w_weather_valign" to s.widgetWeatherVAlign.name, "widget_auto_pin" to s.widgetAutoPinned.toString(),
             "secure_screen" to s.secureScreen.toString(), "digit_style" to s.digitStyle.name, "card_shine" to s.cardShine.toString(),
             "app_font_scale" to s.appFontScale.toString(), "amounts_visible" to s.amountsVisible.toString(), "bank_fee_percent" to s.bankFeePercent.toString(),
-            "dashboard_account_order" to s.dashboardAccountOrder.joinToString(","), "vehicle_order" to s.vehicleOrder.joinToString(","), "w_title_align" to s.widgetTitleAlign.name, "w_clock_align" to s.widgetClockAlign.name,
+            "dashboard_account_order" to s.dashboardAccountOrder.joinToString(","), "vehicle_order" to s.vehicleOrder.joinToString(","), "w_title_align" to s.widgetTitleAlign.name, "w_values_align" to s.widgetValuesAlign.name, "w_values_valign" to s.widgetValuesVAlign.name, "w_clock_align" to s.widgetClockAlign.name,
             "w_title_valign" to s.widgetTitleVAlign.name, "w_clock_valign" to s.widgetClockVAlign.name, "w_dates_below" to s.widgetDatesBelowClock.toString(),
             "w_clock_offset_y" to s.widgetClockOffsetY.toString(), "w_title_offset_y" to s.widgetTitleOffsetY.toString(),
             "weather_city" to ir.kharjyar.app.weather.WeatherService.city(context)
@@ -322,7 +331,7 @@ class SettingsRepository(private val context: Context) {
             enum("w_weather_align",Keys.W_WEATHER_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_weather_valign",Keys.W_WEATHER_VALIGN,WidgetVAlign.entries.toTypedArray())
             bool("widget_auto_pin",Keys.WIDGET_AUTO_PIN); bool("secure_screen",Keys.SECURE_SCREEN); enum("digit_style",Keys.DIGIT_STYLE,DigitStyle.entries.toTypedArray())
             bool("card_shine",Keys.CARD_SHINE); int("app_font_scale",Keys.APP_FONT_SCALE,85..130); bool("amounts_visible",Keys.AMOUNTS_VISIBLE); float("bank_fee_percent",Keys.BANK_FEE_PERCENT,0f..100f)
-            map["dashboard_account_order"]?.let { p[Keys.DASHBOARD_ACCOUNT_ORDER]=it }; map["vehicle_order"]?.let { p[Keys.VEHICLE_ORDER]=it }; enum("w_title_align",Keys.W_TITLE_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_clock_align",Keys.W_CLOCK_ALIGN,WidgetAlign.entries.toTypedArray())
+            map["dashboard_account_order"]?.let { p[Keys.DASHBOARD_ACCOUNT_ORDER]=it }; map["vehicle_order"]?.let { p[Keys.VEHICLE_ORDER]=it }; enum("w_title_align",Keys.W_TITLE_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_values_align",Keys.W_VALUES_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_values_valign",Keys.W_VALUES_VALIGN,WidgetVAlign.entries.toTypedArray()); enum("w_clock_align",Keys.W_CLOCK_ALIGN,WidgetAlign.entries.toTypedArray())
             enum("w_title_valign",Keys.W_TITLE_VALIGN,WidgetVAlign.entries.toTypedArray()); enum("w_clock_valign",Keys.W_CLOCK_VALIGN,WidgetVAlign.entries.toTypedArray()); bool("w_dates_below",Keys.W_DATES_BELOW)
             int("w_clock_offset_y",Keys.W_CLOCK_OFFSET_Y,-40..40); int("w_title_offset_y",Keys.W_TITLE_OFFSET_Y,-40..40)
         }

@@ -946,9 +946,11 @@ private fun AccountBelowCardPanel(
 
 @Composable
 private fun CompactAccountFlow(label:String,value:String,tint:Color,icon:ImageVector,modifier:Modifier=Modifier){
-    Row(modifier.background(tint.copy(alpha=.10f),RoundedCornerShape(11.dp)).border(1.dp,tint.copy(alpha=.28f),RoundedCornerShape(11.dp)).padding(horizontal=8.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){
-        Box(Modifier.size(23.dp).background(tint.copy(alpha=.16f),CircleShape),contentAlignment=Alignment.Center){Icon(icon,null,tint=tint,modifier=Modifier.size(15.dp))}
-        Column(Modifier.weight(1f)){Text(label,style=MaterialTheme.typography.labelSmall,color=Color.White.copy(.72f));Text(value,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Black,color=Color.White,maxLines=1)}
+    Row(modifier.background(tint.copy(alpha=.10f),RoundedCornerShape(9.dp)).border(1.dp,tint.copy(alpha=.28f),RoundedCornerShape(9.dp)).padding(horizontal=7.dp,vertical=2.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){
+        Icon(icon,null,tint=tint,modifier=Modifier.size(14.dp))
+        Text(label,style=MaterialTheme.typography.labelSmall,color=Color.White.copy(.76f),maxLines=1)
+        Spacer(Modifier.weight(1f))
+        Text(value,style=MaterialTheme.typography.labelSmall,fontWeight=FontWeight.Black,color=Color.White,maxLines=1)
     }
 }
 
@@ -979,42 +981,26 @@ private fun SummaryChip(
             // حاشیه نازک هم‌رنگ مقدار؛ در حالت انتخاب‌شده پررنگ‌تر
             .border(if (selected) 2.dp else 1.dp, tint.copy(alpha = if (selected) 0.95f else 0.55f), shape)
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 9.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // آیکون فلش داخل دایره هم‌رنگ، مطابق طرح کارت‌ها
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(CircleShape)
-                .background(tint.copy(alpha = 0.20f))
-                .border(1.dp, tint.copy(alpha = 0.6f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                if (deposit) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(17.dp)
-            )
-        }
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                color = fg.copy(alpha = 0.92f),
-                maxLines = 1
-            )
-            EmbossedText(
-                value,
-                style = MaterialTheme.typography.titleSmall.copy(textAlign = TextAlign.Start),
-                fontWeight = FontWeight.Bold,
-                color = tint,
-                maxLines = 1,
-                depth = 0.8f
-            )
-        }
+        Icon(
+            if (deposit) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(Modifier.width(5.dp))
+        Text(label,style=MaterialTheme.typography.labelSmall,color=fg.copy(alpha=.92f),maxLines=1)
+        Spacer(Modifier.weight(1f))
+        EmbossedText(
+            value,
+            style = MaterialTheme.typography.labelMedium.copy(textAlign = TextAlign.Start),
+            fontWeight = FontWeight.Bold,
+            color = tint,
+            maxLines = 1,
+            depth = 0.6f
+        )
     }
 }
 

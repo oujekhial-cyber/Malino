@@ -312,8 +312,10 @@ object WidgetRenderer {
             return horizontal or vertical
         }
         val titleGravity=gravity(settings.widgetTitleAlign,settings.widgetTitleVAlign)
+        val valuesGravity=gravity(settings.widgetValuesAlign,settings.widgetValuesVAlign)
         val clockGravity=gravity(settings.widgetClockAlign,settings.widgetClockVAlign)
         views.setInt(R.id.w_app_area,"setGravity",titleGravity)
+        listOf(R.id.w_row_1,R.id.w_row_2,R.id.w_row_3).forEach { views.setInt(it,"setGravity",valuesGravity) }
         views.setInt(R.id.w_clock_area,"setGravity",clockGravity)
         views.setInt(R.id.w_title, "setGravity", titleGravity)
         // خط عنوان داخل w_app_area است و همراه نام/مبالغ به جای انتخابی می‌رود.

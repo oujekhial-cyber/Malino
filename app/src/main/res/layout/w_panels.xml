@@ -121,6 +121,7 @@
 
     <!-- نوار درآمد -->
     <LinearLayout
+            android:id="@+id/w_row_1"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"

@@ -51,6 +51,7 @@
             android:background="#66C9A4F0" android:contentDescription="@null" />
 
         <LinearLayout
+            android:id="@+id/w_row_1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
