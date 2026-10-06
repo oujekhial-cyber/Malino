@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 31895793df131a7abe1297f9ea34559ae8e9618a
-- تاریخ: 2026-10-03 13:40 UTC
-- unit tests: success
+- commit: b0fb8891b78467cf129337583c656765154b5516
+- تاریخ: 2026-10-06 08:02 UTC
+- unit tests: failure
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,7 +10,8 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=510 failures=0 errors=0 skipped=0
+tests=512 failures=1 errors=0 skipped=0
+FAIL ir.kharjyar.app.WidgetSplitDefaultIntegrationGuardTest.split widget app name stays on physical right: java.lang.AssertionError
 ```
 
 ## نسخه انتشار

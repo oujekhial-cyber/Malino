@@ -354,7 +354,7 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/Surfaces.kt:323: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier,
     ~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:354: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:360: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
     modifier: Modifier = Modifier
     ~~~~~~~~
 
@@ -411,9 +411,9 @@ espresso = "3.6.1"
    where the version qualifier is less than or equal to the minSdkVersion,
    where the contents should be merged into the best folder.
 
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:38: Warning: This tag and its children can be replaced by one <TextView/> and a compound drawable [UseCompoundDrawables]
-        <LinearLayout
-         ~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:53: Warning: This tag and its children can be replaced by one <TextView/> and a compound drawable [UseCompoundDrawables]
+            <LinearLayout
+             ~~~~~~~~~~~~
 
    Explanation for issues of type "UseCompoundDrawables":
    A LinearLayout which contains an ImageView and a TextView can be more
@@ -558,10 +558,10 @@ var fromDate by remember{mutableStateOf(PersianDate.today().plusDays(-30))};var 
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionEditScreen.kt:69: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var minute by remember { mutableStateOf(0) }
                              ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:389: Information: Prefer mutableFloatStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:407: Information: Prefer mutableFloatStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
  var dx by remember(h,v){mutableStateOf(0f)};var dy by remember(h,v){mutableStateOf(0f)}
                          ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:389: Information: Prefer mutableFloatStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/components/WidgetPreview.kt:407: Information: Prefer mutableFloatStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
  var dx by remember(h,v){mutableStateOf(0f)};var dy by remember(h,v){mutableStateOf(0f)}
                                                                      ~~~~~~~~~~~~~~
 
@@ -580,13 +580,13 @@ var fromDate by remember{mutableStateOf(PersianDate.today().plusDays(-30))};var 
    Identifier: androidx.compose.runtime
    Feedback: https://issuetracker.google.com/issues/new?component=612128
 
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:142: Warning: Nested weights are bad for performance [NestedWeights]
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:150: Warning: Nested weights are bad for performance [NestedWeights]
             android:layout_weight="1"
             ~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:188: Warning: Nested weights are bad for performance [NestedWeights]
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:196: Warning: Nested weights are bad for performance [NestedWeights]
             android:layout_weight="1"
             ~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:222: Warning: Nested weights are bad for performance [NestedWeights]
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:230: Warning: Nested weights are bad for performance [NestedWeights]
             android:layout_weight="1"
             ~~~~~~~~~~~~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_royal.xml:41: Warning: Nested weights are bad for performance [NestedWeights]
@@ -637,7 +637,7 @@ var fromDate by remember{mutableStateOf(PersianDate.today().plusDays(-30))};var 
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_minimal.xml:208: Warning: Avoid using sizes smaller than 11sp: 10sp [SmallSp]
             android:textSize="10sp"
             ~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:101: Warning: Avoid using sizes smaller than 11sp: 10sp [SmallSp]
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:116: Warning: Avoid using sizes smaller than 11sp: 10sp [SmallSp]
                 android:textSize="10sp"
                 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -647,22 +647,22 @@ var fromDate by remember{mutableStateOf(PersianDate.today().plusDays(-30))};var 
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_minimal.xml:39: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
             android:text="خرج‌یار"
             ~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_minimal.xml:233: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_minimal.xml:234: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
         android:contentDescription="بروزرسانی اطلاعات ویجت" />
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:58: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
-                android:text="خرج‌یار"
-                ~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:258: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:64: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
+                    android:text="خرج‌یار"
+                    ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_panels.xml:267: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
         android:contentDescription="بروزرسانی اطلاعات ویجت" />
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_royal.xml:57: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
                 android:text="خرج‌یار"
                 ~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_royal.xml:257: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_royal.xml:258: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
         android:contentDescription="بروزرسانی اطلاعات ویجت" />
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_split.xml:44: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
+/home/runner/work/Malino/Malino/app/src/main/res/layout/w_split.xml:43: Warning: Hardcoded string "خرج‌یار", should use @string resource [HardcodedText]
             android:text="خرج‌یار"
             ~~~~~~~~~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/res/layout/w_split.xml:248: Warning: Hardcoded string "بروزرسانی اطلاعات ویجت", should use @string resource [HardcodedText]
@@ -683,30 +683,4 @@ var fromDate by remember{mutableStateOf(PersianDate.today().plusDays(-30))};var 
    There are quickfixes to automatically extract this hardcoded string into a
    resource lookup.
 
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt:316: Warning: Use "Gravity.END" instead of "Gravity.RIGHT" to ensure correct behavior in right-to-left locales [RtlHardcoded]
-            views.setInt(R.id.w_title, "setGravity", android.view.Gravity.RIGHT or android.view.Gravity.TOP)
-                                                                          ~~~~~
-/home/runner/work/Malino/Malino/app/src/main/res/layout/w_split.xml:43: Warning: Use "end" instead of "right" to ensure correct behavior in right-to-left locales [RtlHardcoded]
-            android:gravity="right"
-                             ~~~~~
-
-   Explanation for issues of type "RtlHardcoded":
-   Using Gravity#LEFT and Gravity#RIGHT can lead to problems when a layout is
-   rendered in locales where text flows from right to left. Use Gravity#START
-   and Gravity#END instead. Similarly, in XML gravity and layout_gravity
-   attributes, use start rather than left.
-
-   For XML attributes such as paddingLeft and layout_marginLeft, use
-   paddingStart and layout_marginStart. NOTE: If your minSdkVersion is less
-   than 17, you should add both the older left/right attributes as well as the
-   new start/end attributes. On older platforms, where RTL is not supported
-   and the start/end attributes are unknown and therefore ignored, you need
-   the older left/right attributes. There is a separate lint check which
-   catches that type of error.
-
-   (Note: For Gravity#LEFT and Gravity#START, you can use these constants even
-   when targeting older platforms, because the start bitmask is a superset of
-   the left bitmask. Therefore, you can use gravity="start" rather than
-   gravity="left|start".)
-
-2 errors, 118 warnings
+2 errors, 116 warnings

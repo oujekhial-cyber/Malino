@@ -6,9 +6,9 @@
 > Task :app:generateReleaseResValues
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:generateReleaseResources
+> Task :app:mergeReleaseNativeLibs
 > Task :app:checkReleaseAarMetadata
 > Task :app:checkReleaseDuplicateClasses
-> Task :app:mergeReleaseNativeLibs
 > Task :app:packageReleaseResources
 > Task :app:parseReleaseLocalResources FROM-CACHE
 > Task :app:createReleaseCompatibleScreenManifests
@@ -20,8 +20,8 @@
 Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libimage_processing_util_jni.so, libmlkit_google_ocr_pipeline.so, libsqlcipher.so.
 
 > Task :app:javaPreCompileRelease FROM-CACHE
-> Task :app:processReleaseManifestForPackage
 > Task :app:extractReleaseNativeSymbolTables
+> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseStartupProfile
@@ -29,6 +29,7 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
 > Task :app:mergeReleaseAssets
+> Task :app:processReleaseManifestForPackage
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:processApplicationManifestReleaseForBundle
 > Task :app:collectReleaseDependencies
@@ -37,7 +38,6 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:writeReleaseAppMetadata
 > Task :app:writeReleaseSigningConfigVersions
 > Task :app:compressReleaseAssets
-> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseResources
 > Task :app:processReleaseResources
 > Task :app:bundleReleaseResources
@@ -104,5 +104,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 2m 51s
+BUILD SUCCESSFUL in 2m 50s
 48 actionable tasks: 45 executed, 3 from cache
