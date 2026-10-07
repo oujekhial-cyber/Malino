@@ -3,32 +3,32 @@
 > Task :app:mergeReleaseJniLibFolders
 > Task :app:buildKotlinToolingMetadata
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :app:checkReleaseDuplicateClasses
-> Task :app:mergeReleaseNativeLibs
-> Task :app:checkReleaseAarMetadata
 > Task :app:generateReleaseResValues
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:generateReleaseResources
-
-> Task :app:stripReleaseDebugSymbols
-Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libimage_processing_util_jni.so, libmlkit_google_ocr_pipeline.so, libsqlcipher.so.
-
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:checkReleaseAarMetadata
+> Task :app:mergeReleaseNativeLibs
 > Task :app:packageReleaseResources
 > Task :app:parseReleaseLocalResources FROM-CACHE
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
-> Task :app:processReleaseManifestForPackage
-> Task :app:extractReleaseNativeSymbolTables
 > Task :app:javaPreCompileRelease FROM-CACHE
-> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+
+> Task :app:stripReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libimage_processing_util_jni.so, libmlkit_google_ocr_pipeline.so, libsqlcipher.so.
+
+> Task :app:processReleaseManifestForPackage
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseStartupProfile
-> Task :app:mergeReleaseArtProfile
+> Task :app:extractReleaseNativeSymbolTables
 > Task :app:mergeReleaseShaders
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseAssets
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:processApplicationManifestReleaseForBundle
@@ -72,8 +72,8 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CivicCenterScreen.kt:103:173 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CivicCenterScreen.kt:103:776 'val Icons.Filled.FactCheck: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FactCheck.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:152:456 'val Icons.Filled.ShowChart: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ShowChart.
-w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:580:38 'fun Modifier.animateItemPlacement(animationSpec: FiniteAnimationSpec<IntOffset> = ...): Modifier' is deprecated. Use Modifier.animateItem() instead.
-w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:665:67 Condition is always 'true'.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:581:38 'fun Modifier.animateItemPlacement(animationSpec: FiniteAnimationSpec<IntOffset> = ...): Modifier' is deprecated. Use Modifier.animateItem() instead.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:666:67 Condition is always 'true'.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:91:225 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:91:341 'val Icons.Filled.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingDown.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:130:192 'val Icons.Filled.CallReceived: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallReceived.
@@ -104,5 +104,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 2m 48s
+BUILD SUCCESSFUL in 2m 47s
 48 actionable tasks: 45 executed, 3 from cache
