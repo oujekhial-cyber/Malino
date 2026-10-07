@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 67b5b338c5d6c2628fc325c4f7493458af3cf1b7
-- تاریخ: 2026-10-07 11:00 UTC
-- unit tests: failure
+- commit: 71e18907d368129ea1729b0a146e3cbe49f88d94
+- تاریخ: 2026-10-07 11:11 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,8 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=517 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.TransactionEasyFiltersGuardTest.transaction filters expose one tap shortcuts and simple sheet: java.lang.AssertionError
+tests=517 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
