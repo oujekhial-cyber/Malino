@@ -4,7 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -159,11 +159,9 @@ fun BankCard(
     val shape = RoundedCornerShape(20.dp)
 
     var targetRotation by remember(title, cardNumber) { mutableFloatStateOf(0f) }
-    var dragX by remember { mutableFloatStateOf(0f) }
-    var dragY by remember { mutableFloatStateOf(0f) }
-    var horizontalFlip by remember(title, cardNumber) { mutableStateOf(false) }
-    // هر حرکت، نیم‌دور را با علامت همان جهت به زاویه می‌افزاید؛ بنابراین کارت
-    // به راست/چپ یا بالا/پایین دقیقاً در امتداد حرکت انگشت می‌چرخد.
+    var verticalDrag by remember { mutableFloatStateOf(0f) }
+    // زاویه تجمعی است: حتی اگر کاربر ده بار پیاپی از بالا به پایین بکشد، هر بار
+    // یک نیم‌دور دیگر در همان جهت افزوده می‌شود و جهت به‌صورت یکی‌درمیان برنمی‌گردد.
     val flipRotation by animateFloatAsState(
         targetValue = targetRotation,
         animationSpec = tween(
@@ -182,30 +180,27 @@ fun BankCard(
     Box(
         modifier = modifier
             .graphicsLayer {
-                if(horizontalFlip) rotationY = flipRotation else rotationX = flipRotation
-                cameraDistance = 26f * density
-                scaleX = 1f - (.035f * flipWave)
-                scaleY = 1f - (.055f * flipWave)
-                translationY = -7.dp.toPx() * flipWave
-                shadowElevation = 10.dp.toPx() * flipWave
+                rotationX = flipRotation
+                cameraDistance = 28f * density
+                scaleX = 1f - (.025f * flipWave)
+                scaleY = 1f - (.045f * flipWave)
+                translationY = -5.dp.toPx() * flipWave
+                // سایه برجسته قدیمی حذف شده؛ در میانه چرخش یک برق نرم داخل خود
+                // کارت دیده می‌شود و لبه بیرونی تمیز باقی می‌ماند.
+                shadowElevation = 0f
                 clip = false
             }
             .pointerInput(title,cardNumber) {
-                detectDragGestures(
-                    onDrag = { change, amount -> change.consume();dragX+=amount.x;dragY+=amount.y },
+                detectVerticalDragGestures(
+                    onVerticalDrag = { change, amount -> change.consume();verticalDrag+=amount },
                     onDragEnd = {
-                        val horizontal=kotlin.math.abs(dragX)>=kotlin.math.abs(dragY)
-                        val primary=if(horizontal)dragX else dragY
-                        if(kotlin.math.abs(primary)>42f){
-                            horizontalFlip=horizontal
-                            // راست/چپ روی محور Y و بالا/پایین روی محور X؛ علامت
-                            // عمودی معکوس است تا سطح کارت همراه انگشت حرکت کند.
-                            val direction=if(horizontal){if(primary>0)1f else -1f}else{if(primary>0)-1f else 1f}
+                        if(kotlin.math.abs(verticalDrag)>42f){
+                            val direction=if(verticalDrag>0f)-1f else 1f
                             targetRotation+=direction*180f
                         }
-                        dragX=0f;dragY=0f
+                        verticalDrag=0f
                     },
-                    onDragCancel={dragX=0f;dragY=0f}
+                    onDragCancel={verticalDrag=0f}
                 )
             }
             .clip(shape)
@@ -213,6 +208,20 @@ fun BankCard(
             // انتخاب با نشان تیک مشخص است؛ قاب خطی هنگام چرخش حذف شده تا لبه‌ها نرم بمانند.
             .clickable(onClick = onClick)
     ) {
+        // هاله شیشه‌ای داخلی جای سایه سنگین قدیمی را گرفته است. شدت آن فقط نزدیک
+        // لبه چرخش بیشتر می‌شود و در ابتدا/انتهای حرکت کاملاً محو است.
+        Box(
+            Modifier.matchParentSize().background(
+                Brush.linearGradient(
+                    listOf(
+                        Color.Transparent,
+                        onCard.copy(alpha=.16f*flipWave),
+                        base.lighten(.28f).copy(alpha=.10f*flipWave),
+                        Color.Transparent
+                    )
+                )
+            )
+        )
         // نشان بانک به‌صورت واترمارک: تک‌رنگ و بسیار کم‌رنگ، در گوشه کارت.
         // آن‌قدر محو است که خواندن مبلغ و شماره کارت را سخت نمی‌کند.
         bankLogoRes(bankName)?.let { logo ->
@@ -336,7 +345,7 @@ fun BankCard(
             Modifier
                 .matchParentSize()
                 .graphicsLayer {
-                    if(horizontalFlip) rotationY = 180f else rotationX = 180f
+                    rotationX = 180f
                     alpha = backVisible
                     translationY = -3.dp.toPx() * flipWave
                 }

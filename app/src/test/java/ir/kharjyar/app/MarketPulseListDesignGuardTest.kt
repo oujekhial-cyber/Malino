@@ -7,7 +7,8 @@ class MarketPulseListDesignGuardTest{
   val s=File("src/main/java/ir/kharjyar/app/ui/screens/MarketPulseScreen.kt").readText()
   assertTrue(s.contains("LazyColumn")&&s.contains("MarketList(groupItems")&&s.contains("0->metalItems")&&s.contains("1->coinItems")&&s.contains("else->currencyItems"))
   assertFalse("Old two-column price grid must not return",s.contains("items.chunked(2)"))
-  assertTrue("Trend must compare two fetched values",s.contains("previousValues=values")&&s.contains("value.compareTo(previous)"))
-  assertTrue(s.contains("if(values.values.any{it!=null})"))
+  assertTrue("Daily trend must come from the online quote",s.contains("GoldPriceService.marketQuote")&&s.contains("dailyChanges=fresh.mapValues"))
+  assertTrue(s.contains("٪ روزانه")&&s.contains("dailyChange?.compareTo(0.0)"))
+  assertFalse("Refresh-to-refresh changes are not daily market changes",s.contains("previousValues=values"))
  }
 }

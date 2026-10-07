@@ -3,6 +3,7 @@ package ir.kharjyar.app.ui.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -196,7 +197,21 @@ fun BackupScreen(viewModel: AppViewModel) {
         }
 
         Text("پشتیبان‌گیری آنلاین", style = MaterialTheme.typography.titleMedium, color = skin.onBackdrop)
-        SkinCard(modifier = Modifier.fillMaxWidth(), tonal = true, glow = true) {
+        val onlineBackupShape = RoundedCornerShape(skin.cardCorner)
+        val onlineBackupGlass = if (skin.dark) {
+            listOf(Color.Black.copy(alpha = .52f), Color(0xFF17131D).copy(alpha = .82f))
+        } else {
+            listOf(Color.White.copy(alpha = .92f), Color.White.copy(alpha = .76f))
+        }
+        Box(
+            modifier = Modifier.fillMaxWidth().clip(onlineBackupShape)
+                .background(Brush.linearGradient(onlineBackupGlass))
+                .border(
+                    width = 1.dp,
+                    color = if (skin.dark) Color.White.copy(alpha = .14f) else skin.accent.copy(alpha = .24f),
+                    shape = onlineBackupShape
+                )
+        ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(

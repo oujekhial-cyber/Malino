@@ -5,6 +5,8 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class MarketQuote(val valueRial:Long,val dailyChangePercent:Double?)
+
 /** نرخ‌های عمومی بازار ایران از صفحات TGJU، بدون ارسال هیچ داده کاربری. */
 object GoldPriceService {
     private fun digitsToLong(raw:String):Long? = raw.mapNotNull {
@@ -40,6 +42,23 @@ object GoldPriceService {
         return (labelled+rawCandidates).firstOrNull { it>=minimum }
     }
 
+    private fun digitsToDouble(raw:String):Double?=buildString{
+        raw.forEach{c->append(when(c){in '۰'..'۹'->('0'.code+c.code-'۰'.code).toChar();in '٠'..'٩'->('0'.code+c.code-'٠'.code).toChar();'٫',','->'.';else->c})}
+    }.filter{it.isDigit()||it=='.'||it=='-'}.toDoubleOrNull()
+
+    /** درصد واقعی تغییر روزانه TGJU؛ علامت از مقایسه نرخ فعلی و نرخ روز گذشته می‌آید. */
+    fun parseDailyChangePercent(html:String,profile:String):Double?{
+        val text=html.replace(Regex("(?is)<script[^>]*>.*?</script>")," ")
+            .replace(Regex("(?is)<style[^>]*>.*?</style>")," ")
+            .replace(Regex("(?s)<[^>]+>")," ").replace("&nbsp;"," ").replace(Regex("\\s+")," ")
+        val percent=Regex("درصد تغییر نسبت به روز گذشته\\s*:?\\s*([0-9۰-۹٠-٩]+(?:[.,٫][0-9۰-۹٠-٩]+)?)\\s*%")
+            .find(text)?.groupValues?.get(1)?.let(::digitsToDouble) ?: return null
+        val current=parseCurrentRial(html,profile) ?: return null
+        val yesterday=Regex("نرخ روز گذشته\\s*:?\\s*([0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬]{3,})")
+            .find(text)?.groupValues?.get(1)?.let(::digitsToLong) ?: return null
+        return when{current>yesterday->kotlin.math.abs(percent);current<yesterday->-kotlin.math.abs(percent);else->0.0}
+    }
+
     private fun fetch(url:String):String? = runCatching {
         val connection=URL(url).openConnection() as HttpURLConnection
         connection.connectTimeout=10_000;connection.readTimeout=10_000
@@ -54,14 +73,15 @@ object GoldPriceService {
         connection.disconnect();result
     }.getOrNull()
 
-    private suspend fun currentRial(profile:String):Long? = withContext(Dispatchers.IO) {
+    private suspend fun currentQuote(profile:String):MarketQuote? = withContext(Dispatchers.IO) {
         val urls=listOf(
             "https://www.tgju.org/profile/$profile",
             "https://www.tgju.org/profile/$profile/today",
             "https://www.tgju.org/profile/$profile/history"
         )
-        urls.asSequence().mapNotNull { url -> fetch(url)?.let { parseCurrentRial(it,profile) } }.firstOrNull()
+        urls.asSequence().mapNotNull { url -> fetch(url)?.let { html -> parseCurrentRial(html,profile)?.let { MarketQuote(it,parseDailyChangePercent(html,profile)) } } }.firstOrNull()
     }
+    private suspend fun currentRial(profile:String):Long? = currentQuote(profile)?.valueRial
 
     /** نرخ هر گرم طلای ۱۸ عیار بازار ایران به ریال. */
     suspend fun gram18Rial():Long? = currentRial("geram18")
@@ -91,6 +111,9 @@ object GoldPriceService {
         "COIN_QUARTER" to "rob", "COIN_GRAM" to "gerami"
     )
     suspend fun coinRial(code:String):Long? = coinProfiles[code]?.let { currentRial(it) }
+
+    /** قیمت و درصد تغییر نسبت به روز گذشته در یک درخواست آنلاین، بدون مقایسه ساختگی refreshها. */
+    suspend fun marketQuote(code:String):MarketQuote?=(preciousMetalProfiles[code]?:coinProfiles[code]?:currencyProfiles[code])?.let{currentQuote(it)}
 }
 
 object IranianGoldCalculator {

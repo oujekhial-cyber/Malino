@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import ir.kharjyar.app.ui.components.ThemedFloatingActionButton
 import ir.kharjyar.app.ui.components.ModernChoiceDialog
 import ir.kharjyar.app.ui.components.ModernChoiceOption
 import androidx.compose.material.icons.filled.Add
@@ -125,7 +126,7 @@ fun DebtsScreen(vm: AppViewModel) {
                 }
             }
         }
-        FloatingActionButton(onClick = { showChooser = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) { Icon(Icons.Filled.Add, "افزودن طلب یا بدهی") }
+        ThemedFloatingActionButton(onClick = { showChooser = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) { Icon(Icons.Filled.Add, "افزودن طلب یا بدهی") }
     }
     if(showChooser)ModernChoiceDialog("طلب یا بدهی","نوع تعهد مالی را انتخاب کنید",listOf(ModernChoiceOption("ثبت طلب","مبلغی که باید از شخص دیگری دریافت کنید",Color(0xFF1B8F52),Icons.Filled.CallReceived){showChooser=false;entryKind=DebtKind.RECEIVABLE},ModernChoiceOption("ثبت بدهی","مبلغی که باید به شخص دیگری پرداخت کنید",Color(0xFFD33B45),Icons.Filled.CallMade){showChooser=false;entryKind=DebtKind.PAYABLE}),{showChooser=false})
 }

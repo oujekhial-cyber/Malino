@@ -97,6 +97,8 @@ import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -355,6 +357,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 var floatingY by remember { mutableStateOf(0f) }
                 var floatingOriginX by remember { mutableStateOf(0f) }
                 var floatingOriginY by remember { mutableStateOf(0f) }
+                var edgeHoverDirection by remember { mutableStateOf(0) }
+                var edgeScrollJob by remember { mutableStateOf<Job?>(null) }
+                val edgeThresholdPx=with(LocalDensity.current){52.dp.toPx()}
+                val screenWidthPx=with(LocalDensity.current){LocalConfiguration.current.screenWidthDp.dp.toPx()}
                 // مختصات فیزیکی slot هر کارت؛ محاسبه مقصد بر پایه موقعیت واقعی است،
                 // بنابراین در RTL و LTR و با عبور از چند کارت یکسان رفتار می‌کند.
                 val accountCardX = remember { mutableMapOf<Long, Float>() }
@@ -473,25 +479,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             )
                                         }
                                     }
-                                    Spacer(Modifier.height(10.dp))
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        SummaryChip(
-                                            label = "واریز",
-                                            value = if (amountVisible) Money.format(total.incomeRial, settings.moneyUnit) else "••••",
-                                            tint = skin.incomeColor,
-                                            deposit = true,
-                                            selected = false,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        SummaryChip(
-                                            label = "برداشت",
-                                            value = if (amountVisible) Money.format(total.expenseRial, settings.moneyUnit) else "••••",
-                                            tint = skin.expenseColor,
-                                            deposit = false,
-                                            selected = false,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    }
                                     // مجموع مانده حساب‌ها، همان چیزی که پیش‌تر کارت جدا داشت
                                     if (active.isNotEmpty()) {
                                         Spacer(Modifier.height(10.dp))
@@ -518,6 +505,12 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             style = MaterialTheme.typography.bodySmall,
                                             color = skin.onHero.copy(alpha = 0.8f)
                                         )
+                                    }
+                                    // دقیقاً مانند کارت‌های حساب، دو نوار هم‌اندازه به پایین کارت می‌چسبند.
+                                    Spacer(Modifier.weight(1f))
+                                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                                        CompactAccountFlow("واریز",if(amountVisible)Money.format(total.incomeRial,settings.moneyUnit)else "••••",skin.incomeColor,Icons.Filled.SouthWest,Modifier.weight(1f))
+                                        CompactAccountFlow("برداشت",if(amountVisible)Money.format(total.expenseRial,settings.moneyUnit)else "••••",skin.expenseColor,Icons.Filled.NorthEast,Modifier.weight(1f))
                                     }
                                 }
                             }
@@ -599,6 +592,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                 dragTargetIndex = idx
                                                 floatingX = 0f
                                                 floatingY = 0f
+                                                edgeHoverDirection=0
+                                                edgeScrollJob?.cancel();edgeScrollJob=null
                                             },
                                             onDrag = { change, amount ->
                                                 change.consume()
@@ -621,6 +616,26 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                         (accountCardWidth[candidateId] ?: size.width.toFloat()) / 2f
                                                     kotlin.math.abs(center - draggedCenter)
                                                 } ?: dragOriginIndex
+
+                                                // وقتی کارت کنار لبه فیزیکی چپ/راست نگه داشته شود، پس از
+                                                // یک مکث کوتاه چرخ‌فلک فقط یک کارت جلو می‌رود؛ با ادامه نگه‌داشتن
+                                                // همین رفتار تکرار می‌شود و جابه‌جایی بین چند کارت ممکن است.
+                                                val edge=when{draggedCenter<edgeThresholdPx->-1;draggedCenter>screenWidthPx-edgeThresholdPx->1;else->0}
+                                                if(edge!=edgeHoverDirection){
+                                                    edgeHoverDirection=edge
+                                                    edgeScrollJob?.cancel();edgeScrollJob=null
+                                                    if(edge!=0) edgeScrollJob=scope.launch{
+                                                        while(draggingId==account.id&&edgeHoverDirection==edge){
+                                                            delay(520)
+                                                            if(draggingId!=account.id||edgeHoverDirection!=edge) break
+                                                            val logicalDelta=edge*(if(dashboardLayoutDirection==LayoutDirection.Rtl)-1 else 1)
+                                                            val next=(dragTargetIndex+logicalDelta).coerceIn(active.indices)
+                                                            if(next==dragTargetIndex) break
+                                                            dragTargetIndex=next
+                                                            rowState.animateScrollToItem(next+1)
+                                                        }
+                                                    }
+                                                }
                                             },
                                             onDragEnd = {
                                                 if (dragOriginIndex >= 0 && dragTargetIndex >= 0 && dragOriginIndex != dragTargetIndex) {
@@ -629,9 +644,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                     ids.add(dragTargetIndex, account.id)
                                                     scope.launch { viewModel.settingsRepo.setDashboardAccountOrder(ids) }
                                                 }
+                                                edgeScrollJob?.cancel();edgeScrollJob=null;edgeHoverDirection=0
                                                 draggingId = null; floatingX = 0f; floatingY = 0f
                                             },
-                                            onDragCancel = { draggingId = null; floatingX = 0f; floatingY = 0f }
+                                            onDragCancel = { edgeScrollJob?.cancel();edgeScrollJob=null;edgeHoverDirection=0;draggingId = null; floatingX = 0f; floatingY = 0f }
                                         )
                                     },
                                 onClick = {

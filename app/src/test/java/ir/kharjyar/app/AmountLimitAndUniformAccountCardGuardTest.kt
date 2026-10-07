@@ -15,6 +15,6 @@ class AmountLimitAndUniformAccountCardGuardTest {
   assertTrue(dashboard.contains("val accountCarouselHeight = 240.dp") && dashboard.contains(".height(accountCarouselHeight)"))
   assertFalse(dashboard.contains("365.dp else 205.dp"))
   assertTrue(dashboard.contains("showDetailsWhenSelected = false"))
-  assertTrue(card.contains("detectDragGestures")&&card.contains("rotationY = flipRotation else rotationX = flipRotation"))
+  assertTrue(card.contains("detectVerticalDragGestures")&&card.contains("rotationX = flipRotation"))
  }
 }

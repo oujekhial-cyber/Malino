@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import ir.kharjyar.app.ui.components.ThemedFloatingActionButton
+import ir.kharjyar.app.ui.components.ThemedExtendedFloatingActionButton
 import ir.kharjyar.app.ui.components.ModernChoiceDialog
 import ir.kharjyar.app.ui.components.ModernChoiceOption
 import androidx.compose.material.icons.filled.Add
@@ -70,8 +72,8 @@ fun CivicCenterScreen(vm:AppViewModel){
     shown.forEach{m->Card(colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.10f)),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().border(1.3.dp,accent,RoundedCornerShape(16.dp))){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(m.kind==CivicMessageKind.UTILITY_BILL)utilityBills.firstOrNull{it.id==m.utilityBillId}?.let{"${it.title} • ${it.type}"}?:civicTitle(m.kind) else civicTitle(m.kind),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text(if(m.read)"خوانده‌شده" else "جدید",color=if(m.read)Color(0xFF1B8F52) else Color(0xFFD33B45),fontWeight=FontWeight.Bold)};Text("${m.sender} • ${PersianDate.formatDateTime(m.receivedAt)}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(m.body);Row{if(!m.read)TextButton({scope.launch{dao.updateMessage(m.copy(read=true))}}){Text("خواندم")};TextButton({scope.launch{dao.deleteMessage(m.id)}}){Text("حذف",color=MaterialTheme.colorScheme.error)}}}}}
    }
   }
-  if(selectedKind==null)FloatingActionButton({chooser=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن پروفایل")}
-  if(selectedKind==CivicMessageKind.UTILITY_BILL)ExtendedFloatingActionButton(text={Text("ثبت اشتراک قبض")},onClick={entry=ENTRY_UTILITY_BILL},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),icon={Icon(Icons.Filled.Add,null)})
+  if(selectedKind==null)ThemedFloatingActionButton({chooser=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن پروفایل")}
+  if(selectedKind==CivicMessageKind.UTILITY_BILL)ThemedExtendedFloatingActionButton(text={Text("ثبت اشتراک قبض")},onClick={entry=ENTRY_UTILITY_BILL},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),icon={Icon(Icons.Filled.Add,null)})
   if(chooser)ModernChoiceDialog("افزودن پرونده","اطلاعاتی که می‌خواهید مدیریت کنید را انتخاب کنید",listOf(ModernChoiceOption("فرد تحت پوشش","ثبت مشخصات اعضای خانواده یا افراد مرتبط",Color(0xFF1B8F52),Icons.Filled.PersonAdd){chooser=false;entry=ENTRY_PERSON},ModernChoiceOption("وسیله نقلیه و پلاک","ثبت وسیله، مالک و شماره پلاک",Color(0xFF397BD5),Icons.Filled.DirectionsCar){chooser=false;entry=ENTRY_VEHICLE}),{chooser=false})
  }
 }

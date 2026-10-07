@@ -37,6 +37,7 @@ import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.*
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.ThemedFloatingActionButton
 import ir.kharjyar.app.ui.components.showSavedMessage
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.ComboBox
@@ -61,7 +62,7 @@ import kotlinx.coroutines.launch
   Text("دارایی‌های من",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);if(active.isEmpty())Card(Modifier.fillMaxWidth()){Column(Modifier.padding(28.dp),horizontalAlignment=Alignment.CenterHorizontally){Text("هنوز دارایی ثبت نشده است");Text("با دکمه + اولین دارایی را اضافه کنید",style=MaterialTheme.typography.bodySmall)}}
   active.forEach{asset->SwipeActionRow(onDelete={pendingDelete=asset},onEdit={editor=asset}){AssetGraphicCard(asset,trades.filter{it.assetId==asset.id},settings.moneyUnit,active.sumOf{it.currentValueRial},onAddPurchase={purchaseAsset=asset},onUpdate={value->scope.launch{vm.repo.db.assetDao().update(asset.copy(currentValueRial=value))}},onSale={scope.launch{vm.repo.db.assetDao().insertTrade(AssetTradeEntity(assetId=asset.id,isSale=true,quantity=asset.quantity,amountRial=asset.currentValueRial,tradedAt=System.currentTimeMillis()));vm.repo.db.assetDao().update(asset.copy(active=false))}})}}
  }
- FloatingActionButton({adding=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن دارایی")}}
+ ThemedFloatingActionButton({adding=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن دارایی")}}
  pendingDelete?.let{asset->AlertDialog(onDismissRequest={pendingDelete=null},title={Text("حذف دارایی")},text={Text("آیا «${asset.title}» و سوابق خرید و فروش آن حذف شود؟")},confirmButton={TextButton({pendingDelete=null;scope.launch{vm.repo.db.assetDao().deleteTrades(asset.id);vm.repo.db.assetDao().delete(asset.id)}}){Text("حذف",color=MaterialTheme.colorScheme.error)}},dismissButton={TextButton({pendingDelete=null}){Text("انصراف")}})}
 }
 
@@ -77,7 +78,7 @@ private fun assetKindTitle(kind:Int)=when(kind){AssetKind.GOLD->"دارایی‌
    Text("انواع دارایی",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
    kinds.forEach{kind->val list=assets.filter{it.kind==kind};val color=colors.getValue(kind);Card(Modifier.fillMaxWidth().clickable{onSelect(kind)},shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=color.copy(.10f))){Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically){AssetKindGraphic(kind,color);Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)){Text(assetKindTitle(kind),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text("${Digits.toPersian(list.size.toString())} مورد • ${Money.format(list.sumOf{it.currentValueRial},unit)}",style=MaterialTheme.typography.bodySmall)};Text("←",color=color,style=MaterialTheme.typography.titleLarge)}}}
   }
-  FloatingActionButton(onClick=onAdd,modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن دارایی")}
+  ThemedFloatingActionButton(onClick=onAdd,modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن دارایی")}
  }
 }
 

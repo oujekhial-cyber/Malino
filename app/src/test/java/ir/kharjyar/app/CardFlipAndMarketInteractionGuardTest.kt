@@ -5,12 +5,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CardFlipAndMarketInteractionGuardTest {
- @Test fun bankCardFollowsSwipeDirectionAndDetailsLiveOnBack(){
+ @Test fun bankCardFollowsRepeatedVerticalSwipeDirectionAndDetailsLiveOnBack(){
   val s=File("src/main/java/ir/kharjyar/app/ui/components/BankCard.kt").readText()
-  assertTrue(s.contains("detectDragGestures"))
-  assertTrue(s.contains("rotationY = flipRotation else rotationX = flipRotation")&&s.contains("durationMillis = 880"))
+  assertTrue(s.contains("detectVerticalDragGestures"))
+  assertTrue(s.contains("rotationX = flipRotation")&&s.contains("durationMillis = 880"))
   assertTrue(s.contains("bankCardDirectionalFlip")&&s.contains("CubicBezierEasing(.22f, 0f, .18f, 1f)"))
-  assertTrue(s.contains("scaleX = 1f - (.035f * flipWave)")&&s.contains("shadowElevation = 10.dp.toPx() * flipWave"))
+  assertTrue(s.contains("scaleX = 1f - (.025f * flipWave)")&&s.contains("shadowElevation = 0f"))
   assertTrue(!s.contains("border(borderWidth, borderColor, shape)")&&!s.contains("لبه کارت برای یک لحظه"))
   assertTrue(s.contains("اطلاعات کامل حساب")&&s.contains("شماره حساب")&&s.contains("شبا")&&s.contains("CVV2"))
   assertTrue(!s.contains("AnimatedVisibility(\n            visible = selected && showDetailsWhenSelected"))
