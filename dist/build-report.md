@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 56603ca707d0ac086d8374646a76eaf7dadffa01
-- تاریخ: 2026-10-07 12:19 UTC
-- unit tests: failure
+- commit: baa2d163091d7b235988eec24a9a655e2f12adfb
+- تاریخ: 2026-10-07 12:31 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,9 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=523 failures=2 errors=0 skipped=0
-FAIL ir.kharjyar.app.ThemedManagementFabGuardTest.requested management pages use skin colored add buttons: java.lang.AssertionError: CivicCenterScreen.kt
-FAIL ir.kharjyar.app.MarketOfflineCacheGuardTest.popupAndFullPageFallBackToTimestampedCache: java.lang.AssertionError
+tests=523 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
