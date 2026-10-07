@@ -13,7 +13,7 @@ class ThemedManagementFabGuardTest {
   listOf("DebtsScreen.kt","AssetsScreen.kt","RemindersScreen.kt","CivicCenterScreen.kt","VehiclesScreen.kt").forEach{name->
    val source=File("src/main/java/ir/kharjyar/app/ui/screens/$name").readText()
    assertTrue(name,source.contains("ThemedFloatingActionButton"))
-   assertFalse(name,Regex("(?<!Themed)FloatingActionButton\\(").containsMatchIn(source))
+   assertFalse(name,Regex("(?<!Themed)(?<!Extended)FloatingActionButton\\(").containsMatchIn(source))
   }
   val civic=File("src/main/java/ir/kharjyar/app/ui/screens/CivicCenterScreen.kt").readText()
   assertTrue(civic.contains("ThemedExtendedFloatingActionButton"))
