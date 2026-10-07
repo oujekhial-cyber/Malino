@@ -319,7 +319,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             item {
                 val order=settings.dashboardAccountOrder
                 val active = accounts.filter { !it.archived }.sortedBy { a -> order.indexOf(a.id).let { if(it<0) Int.MAX_VALUE else it } }
-                val monthRange = remember { viewModel.repo.currentPersianMonthRange() }
+                // با تغییر خودکار عنوان ماه در نیمه‌شب، بازه کارت‌های حساب نیز نوسازی می‌شود.
+                val monthRange = remember(summary.monthTitle) { viewModel.repo.currentPersianMonthRange() }
                 val wholeRange = summary.range == AppViewModel.SummaryRange.ALL
                 // خلاصه هر حساب (یا همه حساب‌ها) با همان بازه‌ای که کاربر انتخاب کرده
                 fun rangeSummary(accountId: Long?) =
@@ -946,11 +947,11 @@ private fun AccountBelowCardPanel(
 
 @Composable
 private fun CompactAccountFlow(label:String,value:String,tint:Color,icon:ImageVector,modifier:Modifier=Modifier){
-    Row(modifier.background(tint.copy(alpha=.10f),RoundedCornerShape(9.dp)).border(1.dp,tint.copy(alpha=.28f),RoundedCornerShape(9.dp)).padding(horizontal=7.dp,vertical=2.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){
-        Icon(icon,null,tint=tint,modifier=Modifier.size(14.dp))
-        Text(label,style=MaterialTheme.typography.labelSmall,color=Color.White.copy(.76f),maxLines=1)
+    Row(modifier.background(Color.Black.copy(alpha=.32f),RoundedCornerShape(10.dp)).border(1.dp,Color.White.copy(alpha=.16f),RoundedCornerShape(10.dp)).padding(horizontal=8.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){
+        Icon(icon,null,tint=tint,modifier=Modifier.size(15.dp))
+        Text(label,style=MaterialTheme.typography.labelSmall,color=Color.White.copy(.82f),maxLines=1)
         Spacer(Modifier.weight(1f))
-        Text(value,style=MaterialTheme.typography.labelSmall,fontWeight=FontWeight.Black,color=Color.White,maxLines=1)
+        Text(value,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Black,color=Color.White,maxLines=1)
     }
 }
 

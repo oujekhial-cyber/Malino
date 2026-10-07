@@ -4,7 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -158,28 +158,31 @@ fun BankCard(
     val onCard = if (base.luminance() > 0.55f) Color(0xFF14121A) else Color.White
     val shape = RoundedCornerShape(20.dp)
 
-    var flipped by remember(title, cardNumber) { mutableStateOf(false) }
-    var verticalDrag by remember { mutableFloatStateOf(0f) }
-    // یک منحنی پیوسته به‌جای keyframeهای پله‌ای؛ حرکت بدون مکث یا شکست سرعت
-    // آغاز می‌شود، در میانه روان شتاب می‌گیرد و بسیار نرم روی سمت دیگر می‌نشیند.
+    var targetRotation by remember(title, cardNumber) { mutableFloatStateOf(0f) }
+    var dragX by remember { mutableFloatStateOf(0f) }
+    var dragY by remember { mutableFloatStateOf(0f) }
+    var horizontalFlip by remember(title, cardNumber) { mutableStateOf(false) }
+    // هر حرکت، نیم‌دور را با علامت همان جهت به زاویه می‌افزاید؛ بنابراین کارت
+    // به راست/چپ یا بالا/پایین دقیقاً در امتداد حرکت انگشت می‌چرخد.
     val flipRotation by animateFloatAsState(
-        targetValue = if (flipped) 180f else 0f,
+        targetValue = targetRotation,
         animationSpec = tween(
             durationMillis = 880,
             easing = CubicBezierEasing(.22f, 0f, .18f, 1f)
         ),
-        label = "bankCardCinematicFlip"
+        label = "bankCardDirectionalFlip"
     )
-    val flipWave = kotlin.math.abs(kotlin.math.sin(Math.toRadians(flipRotation.toDouble())).toFloat())
-    // محتوای هر سمت پیش از رسیدن به لبه به‌تدریج محو می‌شود؛ بنابراین در زاویه
-    // میانی نه نوشته وارونه داریم و نه تعویض ناگهانی یک فریم به فریم دیگر.
-    val frontVisible = ((90f - flipRotation) / 18f).coerceIn(0f, 1f)
-    val backVisible = ((flipRotation - 90f) / 18f).coerceIn(0f, 1f)
+    val radians = Math.toRadians(flipRotation.toDouble())
+    val flipWave = kotlin.math.abs(kotlin.math.sin(radians).toFloat())
+    val faceStrength = ((kotlin.math.abs(kotlin.math.cos(radians)).toFloat() - .10f) / .35f).coerceIn(0f,1f)
+    val showingFront = kotlin.math.cos(radians) >= 0.0
+    val frontVisible = if(showingFront) faceStrength else 0f
+    val backVisible = if(showingFront) 0f else faceStrength
 
     Box(
         modifier = modifier
             .graphicsLayer {
-                rotationX = flipRotation
+                if(horizontalFlip) rotationY = flipRotation else rotationX = flipRotation
                 cameraDistance = 26f * density
                 scaleX = 1f - (.035f * flipWave)
                 scaleY = 1f - (.055f * flipWave)
@@ -187,11 +190,22 @@ fun BankCard(
                 shadowElevation = 10.dp.toPx() * flipWave
                 clip = false
             }
-            .pointerInput(flipped) {
-                detectVerticalDragGestures(
-                    onVerticalDrag = { change, amount -> change.consume(); verticalDrag += amount },
-                    onDragEnd = { if (kotlin.math.abs(verticalDrag) > 42f) flipped = !flipped; verticalDrag = 0f },
-                    onDragCancel = { verticalDrag = 0f }
+            .pointerInput(title,cardNumber) {
+                detectDragGestures(
+                    onDrag = { change, amount -> change.consume();dragX+=amount.x;dragY+=amount.y },
+                    onDragEnd = {
+                        val horizontal=kotlin.math.abs(dragX)>=kotlin.math.abs(dragY)
+                        val primary=if(horizontal)dragX else dragY
+                        if(kotlin.math.abs(primary)>42f){
+                            horizontalFlip=horizontal
+                            // راست/چپ روی محور Y و بالا/پایین روی محور X؛ علامت
+                            // عمودی معکوس است تا سطح کارت همراه انگشت حرکت کند.
+                            val direction=if(horizontal){if(primary>0)1f else -1f}else{if(primary>0)-1f else 1f}
+                            targetRotation+=direction*180f
+                        }
+                        dragX=0f;dragY=0f
+                    },
+                    onDragCancel={dragX=0f;dragY=0f}
                 )
             }
             .clip(shape)
@@ -219,6 +233,7 @@ fun BankCard(
 
     Column(
         modifier = Modifier
+            .matchParentSize()
             .padding(16.dp)
             .graphicsLayer {
                 alpha = frontVisible
@@ -309,6 +324,9 @@ fun BankCard(
             }
         }
 
+        // خلاصه واریز/برداشت همیشه به لبه پایین کارت تکیه می‌کند؛ محتوای
+        // بالایی با تغییر طول شماره یا مانده، جای این نوارها را عوض نمی‌کند.
+        Spacer(Modifier.weight(1f))
         content()
 
         // جزئیات کامل روی پشت کارت نمایش داده می‌شوند.
@@ -318,7 +336,7 @@ fun BankCard(
             Modifier
                 .matchParentSize()
                 .graphicsLayer {
-                    rotationX = 180f
+                    if(horizontalFlip) rotationY = 180f else rotationX = 180f
                     alpha = backVisible
                     translationY = -3.dp.toPx() * flipWave
                 }
@@ -371,7 +389,7 @@ private fun CashFundCard(
         Box(Modifier.size(190.dp).offset(x=(-58).dp,y=(-82).dp).border(28.dp,accent.copy(.10f),CircleShape))
         Box(Modifier.size(130.dp).align(Alignment.BottomEnd).offset(x=42.dp,y=48.dp).background(Color(0xFFFFD66B).copy(.07f),CircleShape))
         Text("﷼",fontSize=92.sp,fontWeight=FontWeight.Black,color=Color.White.copy(.055f),modifier=Modifier.align(Alignment.CenterEnd).offset(x=(-20).dp))
-        Column(Modifier.fillMaxWidth().padding(17.dp)) {
+        Column(Modifier.matchParentSize().padding(17.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(title,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleMedium,color=Color.White,maxLines=1)
@@ -394,6 +412,7 @@ private fun CashFundCard(
                     if(location.isNotBlank()) CashMetaPill(Icons.Filled.Place,location,Modifier.weight(1f))
                 }
             }
+            Spacer(Modifier.weight(1f))
             content()
         }
     }

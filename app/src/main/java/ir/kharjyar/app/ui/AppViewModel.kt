@@ -15,11 +15,15 @@ import ir.kharjyar.app.data.db.SmsStatus
 import ir.kharjyar.app.data.db.TransactionEntity
 import ir.kharjyar.app.data.prefs.AppSettings
 import ir.kharjyar.app.data.prefs.SettingsRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 /**
  * ViewModel سراسری: تنظیمات، وضعیت قفل و جریان‌های داده مشترک.
@@ -112,6 +116,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             if (_summaryRange.value == SummaryRange.MONTH) SummaryRange.ALL else SummaryRange.MONTH
     }
 
+    /** در نیمه‌شب تهران دوباره منتشر می‌شود؛ روز اول ماه، بازه ماهانه را بی‌درنگ عوض می‌کند. */
+    private val calendarDay = flow {
+        while (true) {
+            val now = ZonedDateTime.now(PersianDate.TEHRAN)
+            emit(PersianDate.today())
+            val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(PersianDate.TEHRAN)
+            delay(ChronoUnit.MILLIS.between(now, nextMidnight).coerceAtLeast(1_000L) + 500L)
+        }
+    }
+
     /**
      * خلاصه کارت اصلی مستقیماً از همان فهرست تراکنش‌های حافظه ساخته می‌شود که
      * کارت‌ها و نمودار از آن استفاده می‌کنند. به همین دلیل با تعویض کارت یا با
@@ -119,8 +133,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * فیلترشده به‌روز می‌شود.
      */
     val monthSummary: StateFlow<MonthSummary> =
-        combine(allTransactions, defaultAccount, _summaryRange) { txs, acc, range ->
-            val today = PersianDate.today()
+        combine(allTransactions, defaultAccount, _summaryRange, calendarDay) { txs, acc, range, today ->
             val (from, to) = repo.currentPersianMonthRange()
             val accountId = acc?.id
             val month = TxSummarizer.summarize(txs, accountId, from, to)

@@ -63,6 +63,7 @@ import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
 import ir.kharjyar.app.ui.components.GlassSnackbarHost
@@ -70,6 +71,10 @@ import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
+
+private data class TransactionMonthPeriod(val year:Int?,val month:Int?,val label:String){
+ fun contains(time:Long):Boolean=year==null||PersianDate.fromMillis(time).let{it.year==year&&it.month==month}
+}
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +94,12 @@ fun TransactionsScreen(
     var query by remember { mutableStateOf("") }
     var filterAccount by remember { mutableStateOf<Long?>(null) }
     var filterNature by remember { mutableStateOf<Int?>(null) }
+    val monthPeriods=remember(all){
+        val current=PersianDate.today()
+        val keys=(all.map{PersianDate.fromMillis(it.occurredAt)}.map{it.year to it.month}+(current.year to current.month)).distinct().sortedWith(compareByDescending<Pair<Int,Int>>{it.first}.thenByDescending{it.second})
+        listOf(TransactionMonthPeriod(null,null,"همه ماه‌ها"))+keys.map{(year,month)->TransactionMonthPeriod(year,month,"${PersianDate(year,month,1).monthName()} ${Digits.toPersian(year.toString())}")}
+    }
+    var filterPeriod by remember { mutableStateOf(TransactionMonthPeriod(null,null,"همه ماه‌ها")) }
     // میان‌بر چیپ کارت خانه، واریز/برداشت را بر اساس جهت بانکی فیلتر می‌کند؛
     // انتقال‌ها هم بسته به جهت خود در نتیجه باقی می‌مانند.
     var filterDirection by remember(presetDirection) { mutableStateOf(presetDirection) }
@@ -120,6 +131,7 @@ fun TransactionsScreen(
             (filterAccount == null || tx.accountId == filterAccount) &&
             (filterNature == null || tx.nature == filterNature) &&
             (filterDirection == null || tx.direction == filterDirection) &&
+            filterPeriod.contains(tx.occurredAt) &&
             (!onlyPending || tx.status == TxStatus.PENDING)
     }
 
@@ -207,7 +219,7 @@ fun TransactionsScreen(
 
             // فیلترهای پرکاربرد همیشه جلوی چشم و با یک لمس قابل انتخاب‌اند.
             val activeFilterCount = listOf(
-                filterDirection != null, filterNature != null, filterAccount != null, onlyPending
+                filterDirection != null, filterNature != null, filterAccount != null, filterPeriod.year != null, onlyPending
             ).count { it }
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -215,7 +227,7 @@ fun TransactionsScreen(
             ) {
                 item {
                     ProfessionalFilterChip("همه", activeFilterCount == 0) {
-                        filterDirection = null; filterNature = null; filterAccount = null; onlyPending = false
+                        filterDirection = null; filterNature = null; filterAccount = null; filterPeriod=monthPeriods.first(); onlyPending = false
                     }
                 }
                 item {
@@ -234,11 +246,11 @@ fun TransactionsScreen(
                 item {
                     ProfessionalFilterChip(
                         if (activeFilterCount == 0) "فیلترهای بیشتر" else "بیشتر ($activeFilterCount)",
-                        filterNature != null || filterAccount != null
+                        filterNature != null || filterAccount != null || filterPeriod.year != null
                     ) { showFilters = true }
                 }
             }
-            if (filterAccount != null || filterNature != null) {
+            if (filterAccount != null || filterNature != null || filterPeriod.year != null) {
                 Row(
                     Modifier.fillMaxWidth().padding(top = 5.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -251,6 +263,7 @@ fun TransactionsScreen(
                     filterNature?.let { nature ->
                         ProfessionalFilterChip(when (nature) { TxNature.INCOME -> "درآمد"; TxNature.EXPENSE -> "هزینه"; else -> "انتقال" }, true) { filterNature = null }
                     }
+                    if(filterPeriod.year!=null) ProfessionalFilterChip(filterPeriod.label,true){filterPeriod=monthPeriods.first()}
                 }
             }
 
@@ -301,6 +314,7 @@ fun TransactionsScreen(
                         ProfessionalFilterChip(label, filterDirection == value, when(value){TxDirection.DEPOSIT->skin.incomeColor;TxDirection.WITHDRAW->skin.expenseColor;else->MaterialTheme.colorScheme.primary}) { filterDirection = value }
                     }
                 }
+                ComboBox("ماه",monthPeriods,filterPeriod,{filterPeriod=it},labelOf={it.label})
                 Text("ماهیت تراکنش", style = MaterialTheme.typography.titleSmall)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     items(4) { index ->
@@ -321,7 +335,7 @@ fun TransactionsScreen(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;filterAccount=null;onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
+                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;filterAccount=null;filterPeriod=monthPeriods.first();onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
                     androidx.compose.material3.Button(onClick = { showFilters=false }, modifier = Modifier.weight(1f)) { Text("نمایش ${Digits.toPersian(filtered.size.toString())} نتیجه") }
                 }
             }
