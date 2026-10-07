@@ -217,6 +217,10 @@ fun TransactionsScreen(
                 )
             }
 
+            // انتخاب ماه، کمبوباکس کلاسیک روی خود صفحه است و فهرست آن مستقیم زیر
+            // کنترل باز می‌شود؛ برای انتخاب بازه پنجره یا دیالوگ جدا نمایش نمی‌دهیم.
+            ComboBox("ماه",monthPeriods,filterPeriod,{filterPeriod=it},labelOf={it.label})
+
             // فیلترهای پرکاربرد همیشه جلوی چشم و با یک لمس قابل انتخاب‌اند.
             val activeFilterCount = listOf(
                 filterDirection != null, filterNature != null, filterAccount != null, filterPeriod.year != null, onlyPending
@@ -314,7 +318,6 @@ fun TransactionsScreen(
                         ProfessionalFilterChip(label, filterDirection == value, when(value){TxDirection.DEPOSIT->skin.incomeColor;TxDirection.WITHDRAW->skin.expenseColor;else->MaterialTheme.colorScheme.primary}) { filterDirection = value }
                     }
                 }
-                ComboBox("ماه",monthPeriods,filterPeriod,{filterPeriod=it},labelOf={it.label})
                 Text("ماهیت تراکنش", style = MaterialTheme.typography.titleSmall)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     items(4) { index ->
