@@ -5,13 +5,15 @@ import org.junit.Test
 import java.io.File
 
 class DashboardCardEdgeAutoScrollGuardTest {
- @Test fun `held account card advances after pause at either physical edge`() {
+ @Test fun `held account card advances one animated slot per pause and can reverse`() {
   val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
   assertTrue(s.contains("edgeThresholdPx")&&s.contains("screenWidthPx-edgeThresholdPx"))
-  assertTrue(s.contains("delay(520)"))
-  assertTrue(s.contains("while(draggingId==account.id&&edgeHoverDirection==edge)"))
-  assertTrue(s.contains("rowState.animateScrollToItem(next+1)"))
-  assertTrue(s.contains("if(dashboardLayoutDirection==LayoutDirection.Rtl)-1 else 1"))
-  assertTrue(s.contains("edgeScrollJob?.cancel()"))
+  assertTrue(s.contains("delay(680)"))
+  assertTrue(s.contains("while(draggingId==account.id&&dragTargetIndex!=hoverTargetIndex)"))
+  assertTrue(s.contains("val step=if(hoverTargetIndex>dragTargetIndex)1 else -1"))
+  assertTrue(s.contains("dragTargetIndex=(dragTargetIndex+step).coerceIn(active.indices)"))
+  assertTrue(s.contains("rowState.animateScrollToItem(dragTargetIndex+1)"))
+  assertTrue(s.contains("reorderStepJob?.cancel()"))
+  assertTrue(s.contains("durationMillis = 560")&&s.contains("neighborCardSlowShift"))
  }
 }

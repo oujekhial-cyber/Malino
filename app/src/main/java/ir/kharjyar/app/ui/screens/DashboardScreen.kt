@@ -357,8 +357,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 var floatingY by remember { mutableStateOf(0f) }
                 var floatingOriginX by remember { mutableStateOf(0f) }
                 var floatingOriginY by remember { mutableStateOf(0f) }
-                var edgeHoverDirection by remember { mutableStateOf(0) }
-                var edgeScrollJob by remember { mutableStateOf<Job?>(null) }
+                var hoverTargetIndex by remember { mutableStateOf(-1) }
+                var reorderStepJob by remember { mutableStateOf<Job?>(null) }
                 val edgeThresholdPx=with(LocalDensity.current){52.dp.toPx()}
                 val screenWidthPx=with(LocalDensity.current){LocalConfiguration.current.screenWidthDp.dp.toPx()}
                 // مختصات فیزیکی slot هر کارت؛ محاسبه مقصد بر پایه موقعیت واقعی است،
@@ -534,8 +534,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 else (accountCardX[targetSlotId] ?: 0f) - (accountCardX[account.id] ?: 0f)
                             val neighborOffset by animateFloatAsState(
                                 targetValue = liveShiftPx,
-                                animationSpec = tween(durationMillis = 360),
-                                label = "neighborCardShift"
+                                animationSpec = tween(durationMillis = 560),
+                                label = "neighborCardSlowShift"
                             )
                             val est = AccountBalance.estimate(account, allTx)
                             val accSum = rangeSummary(account.id)
@@ -592,8 +592,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                 dragTargetIndex = idx
                                                 floatingX = 0f
                                                 floatingY = 0f
-                                                edgeHoverDirection=0
-                                                edgeScrollJob?.cancel();edgeScrollJob=null
+                                                hoverTargetIndex=idx
+                                                reorderStepJob?.cancel();reorderStepJob=null
                                             },
                                             onDrag = { change, amount ->
                                                 change.consume()
@@ -606,7 +606,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                     (accountCardWidth[account.id] ?: size.width.toFloat()) / 2f
                                                 val physicalStep = size.width.toFloat() + 10.dp.toPx()
                                                 val indexDirection = if (dashboardLayoutDirection == LayoutDirection.Rtl) -1f else 1f
-                                                dragTargetIndex = active.indices.minByOrNull { candidate ->
+                                                val nearestTarget = active.indices.minByOrNull { candidate ->
                                                     val candidateId = active[candidate].id
                                                     // کارت‌های خارج viewport هنوز compose نشده‌اند؛ مرکز slot آن‌ها
                                                     // از فاصله ثابت صفحات extrapolate می‌شود تا عبور چندکارتی ممکن باشد.
@@ -616,23 +616,23 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                         (accountCardWidth[candidateId] ?: size.width.toFloat()) / 2f
                                                     kotlin.math.abs(center - draggedCenter)
                                                 } ?: dragOriginIndex
+                                                val physicalEdge=when{draggedCenter<edgeThresholdPx->-1;draggedCenter>screenWidthPx-edgeThresholdPx->1;else->0}
+                                                val logicalEdge=physicalEdge*(if(dashboardLayoutDirection==LayoutDirection.Rtl)-1 else 1)
+                                                val desiredTarget=when{logicalEdge<0->active.indices.first;logicalEdge>0->active.indices.last;else->nearestTarget}
 
-                                                // وقتی کارت کنار لبه فیزیکی چپ/راست نگه داشته شود، پس از
-                                                // یک مکث کوتاه چرخ‌فلک فقط یک کارت جلو می‌رود؛ با ادامه نگه‌داشتن
-                                                // همین رفتار تکرار می‌شود و جابه‌جایی بین چند کارت ممکن است.
-                                                val edge=when{draggedCenter<edgeThresholdPx->-1;draggedCenter>screenWidthPx-edgeThresholdPx->1;else->0}
-                                                if(edge!=edgeHoverDirection){
-                                                    edgeHoverDirection=edge
-                                                    edgeScrollJob?.cancel();edgeScrollJob=null
-                                                    if(edge!=0) edgeScrollJob=scope.launch{
-                                                        while(draggingId==account.id&&edgeHoverDirection==edge){
-                                                            delay(520)
-                                                            if(draggingId!=account.id||edgeHoverDirection!=edge) break
-                                                            val logicalDelta=edge*(if(dashboardLayoutDirection==LayoutDirection.Rtl)-1 else 1)
-                                                            val next=(dragTargetIndex+logicalDelta).coerceIn(active.indices)
-                                                            if(next==dragTargetIndex) break
-                                                            dragTargetIndex=next
-                                                            rowState.animateScrollToItem(next+1)
+                                                // مقصد فقط به‌صورت یک خانه در هر مرحله تغییر می‌کند. بین دو مرحله
+                                                // ۶۸۰ms مکث داریم تا کارت کناری فرصت کند طی انیمیشن نرم جای خالی را
+                                                // پر کند و کاربر بتواند همان‌جا رها کند یا مسیر را برگرداند.
+                                                if(desiredTarget!=hoverTargetIndex){
+                                                    hoverTargetIndex=desiredTarget
+                                                    reorderStepJob?.cancel();reorderStepJob=null
+                                                    if(desiredTarget!=dragTargetIndex) reorderStepJob=scope.launch{
+                                                        while(draggingId==account.id&&dragTargetIndex!=hoverTargetIndex){
+                                                            delay(680)
+                                                            if(draggingId!=account.id) break
+                                                            val step=if(hoverTargetIndex>dragTargetIndex)1 else -1
+                                                            dragTargetIndex=(dragTargetIndex+step).coerceIn(active.indices)
+                                                            rowState.animateScrollToItem(dragTargetIndex+1)
                                                         }
                                                     }
                                                 }
@@ -644,10 +644,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                     ids.add(dragTargetIndex, account.id)
                                                     scope.launch { viewModel.settingsRepo.setDashboardAccountOrder(ids) }
                                                 }
-                                                edgeScrollJob?.cancel();edgeScrollJob=null;edgeHoverDirection=0
+                                                reorderStepJob?.cancel();reorderStepJob=null;hoverTargetIndex=-1
                                                 draggingId = null; floatingX = 0f; floatingY = 0f
                                             },
-                                            onDragCancel = { edgeScrollJob?.cancel();edgeScrollJob=null;edgeHoverDirection=0;draggingId = null; floatingX = 0f; floatingY = 0f }
+                                            onDragCancel = { reorderStepJob?.cancel();reorderStepJob=null;hoverTargetIndex=-1;draggingId = null; floatingX = 0f; floatingY = 0f }
                                         )
                                     },
                                 onClick = {
