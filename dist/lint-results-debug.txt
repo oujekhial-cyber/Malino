@@ -493,8 +493,8 @@ espresso = "3.6.1"
                 var floatingOriginY by remember { mutableStateOf(0f) }
                                                   ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:360: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
-                var edgeHoverDirection by remember { mutableStateOf(0) }
-                                                     ~~~~~~~~~~~~~~
+                var hoverTargetIndex by remember { mutableStateOf(-1) }
+                                                   ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:35: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
  val active=accounts.filter{!it.archived};var accountId by remember{mutableStateOf<Long?>(null)};var amountText by remember{mutableStateOf("")};var direction by remember{mutableStateOf(presetDirection?:TxDirection.WITHDRAW)};var categoryId by remember{mutableStateOf<Long?>(null)};var description by remember{mutableStateOf("")};var transferToOwn by remember{mutableStateOf(true)};var targetAccountId by remember{mutableStateOf<Long?>(null)};var detailsOpen by remember{mutableStateOf(false)};var error by remember{mutableStateOf<String?>(null)};var receiptPath by remember{mutableStateOf("")}
                                                                                                                                                                           ~~~~~~~~~~~~~~
