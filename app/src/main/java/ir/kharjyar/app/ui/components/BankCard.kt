@@ -195,10 +195,13 @@ fun BankCard(
                     onVerticalDrag = { change, amount -> change.consume();verticalDrag+=amount },
                     onDragEnd = {
                         if(kotlin.math.abs(verticalDrag)>42f){
-                            // در مختصات Compose، rotationX مثبت لبه بالایی را به سمت
-                            // پایین می‌آورد؛ پس علامت باید مستقیماً هم‌جهت drag باشد.
-                            val direction=if(verticalDrag>0f)1f else -1f
-                            targetRotation+=direction*180f
+                            // پشت کارت نسبت به روی آن ۱۸۰ درجه برعکس است؛ برای اینکه
+                            // جهت «قابل مشاهده» در تکرارهای پیاپی ثابت بماند، علامت
+                            // چرخش جهانی روی پشت معکوس می‌شود.
+                            val gestureDirection=if(verticalDrag>0f)1f else -1f
+                            val turns=kotlin.math.round(kotlin.math.abs(targetRotation)/180f).toInt()
+                            val visibleFaceDirection=if(turns%2==0)1f else -1f
+                            targetRotation+=gestureDirection*visibleFaceDirection*180f
                         }
                         verticalDrag=0f
                     },

@@ -632,7 +632,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                             if(draggingId!=account.id) break
                                                             val step=if(hoverTargetIndex>dragTargetIndex)1 else -1
                                                             dragTargetIndex=(dragTargetIndex+step).coerceIn(active.indices)
-                                                            rowState.animateScrollToItem(dragTargetIndex+1)
+                                                            // حین نگه‌داشتن LazyRow را اسکرول نمی‌کنیم؛ خارج‌شدن
+                                                            // آیتم مبدأ از viewport، pointer را cancel و کارت را خودکار رها می‌کرد.
                                                         }
                                                     }
                                                 }
@@ -642,7 +643,13 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                     val ids = active.map { it.id }.toMutableList()
                                                     ids.removeAt(dragOriginIndex)
                                                     ids.add(dragTargetIndex, account.id)
-                                                    scope.launch { viewModel.settingsRepo.setDashboardAccountOrder(ids) }
+                                                    val settledIndex=dragTargetIndex
+                                                    scope.launch {
+                                                        viewModel.settingsRepo.setDashboardAccountOrder(ids)
+                                                        // پیمایش فقط بعد از برداشتن انگشت انجام می‌شود؛ بنابراین
+                                                        // gesture تا آخر در اختیار کاربر می‌ماند.
+                                                        rowState.animateScrollToItem(settledIndex+1)
+                                                    }
                                                 }
                                                 reorderStepJob?.cancel();reorderStepJob=null;hoverTargetIndex=-1
                                                 draggingId = null; floatingX = 0f; floatingY = 0f
