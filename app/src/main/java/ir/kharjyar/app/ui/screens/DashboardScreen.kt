@@ -74,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
@@ -358,6 +359,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 // بنابراین در RTL و LTR و با عبور از چند کارت یکسان رفتار می‌کند.
                 val accountCardX = remember { mutableMapOf<Long, Float>() }
                 val accountCardWidth = remember { mutableMapOf<Long, Float>() }
+                val accountAutoScrollEdgePx = with(LocalDensity.current) { 54.dp.toPx() }
+                val accountAutoScrollStepPx = with(LocalDensity.current) { 22.dp.toPx() }
+                val dashboardWindowWidthPx = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
 
                 EnterCard(0) {
                     LazyRow(
@@ -593,6 +597,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                 // مقصد نیز بی‌درنگ در جهت معکوس برمی‌گردد.
                                                 val physicalStep=(accountCardWidth[account.id]?:size.width.toFloat())+10.dp.toPx()
                                                 val indexDirection=if(dashboardLayoutDirection==LayoutDirection.Rtl)-1f else 1f
+                                                val fingerWindowX=(accountCardX[account.id]?:0f)+change.position.x
+                                                val physicalEdge=when{fingerWindowX<accountAutoScrollEdgePx->-1;fingerWindowX>dashboardWindowWidthPx-accountAutoScrollEdgePx->1;else->0}
+                                                if(physicalEdge!=0){
+                                                    scope.launch{
+                                                        val requested=physicalEdge*accountAutoScrollStepPx*indexDirection
+                                                        val consumed=rowState.scrollBy(requested)
+                                                        // جبران جابه‌جایی محتوا، کارت را دقیقاً زیر انگشت نگه می‌دارد.
+                                                        floatingX+=consumed*indexDirection
+                                                    }
+                                                }
                                                 dragTargetIndex=(dragOriginIndex+kotlin.math.round(floatingX/(physicalStep*indexDirection)).toInt()).coerceIn(active.indices)
                                             },
                                             onDragEnd = {

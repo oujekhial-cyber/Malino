@@ -6,6 +6,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
@@ -51,7 +53,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -90,6 +94,11 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var categoryDragStart by remember { mutableIntStateOf(-1) }
     var categoryDragTarget by remember { mutableIntStateOf(-1) }
     val categoryHeights = remember { mutableStateMapOf<Long, Float>() }
+    val categoryWindowY = remember { mutableStateMapOf<Long, Float>() }
+    val categoryListState = rememberLazyListState()
+    val categoryEdgePx = with(LocalDensity.current) { 56.dp.toPx() }
+    val categoryScrollStepPx = with(LocalDensity.current) { 22.dp.toPx() }
+    val categoryWindowHeightPx = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
     LaunchedEffect(categories.map { it.id }) {
         if (draggingCategoryId == null) {
             val valid = categoryOrder.filter { id -> categories.any { it.id == id } }
@@ -170,7 +179,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             Text("برای جابه‌جایی، کارت را لمس و نگه دارید و بالا یا پایین ببرید.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             val fallbackCategoryHeightPx = with(LocalDensity.current) { 68.dp.toPx() }
             val categoryGapPx = with(LocalDensity.current) { 8.dp.toPx() }
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(state = categoryListState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(orderedCategories.size, key = { orderedCategories[it].id }) { index ->
                     val category = orderedCategories[index]
                     val dragging = draggingCategoryId == category.id
@@ -198,7 +207,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                         enabled = draggingCategoryId == null,
                         modifier = Modifier
                             .animateItemPlacement(animationSpec = tween(760))
-                            .onGloballyPositioned { categoryHeights[category.id] = it.size.height.toFloat() }
+                            .onGloballyPositioned { coordinates -> categoryHeights[category.id] = coordinates.size.height.toFloat(); categoryWindowY[category.id] = coordinates.positionInWindow().y }
                             .zIndex(if (dragging) 2f else 0f)
                             .graphicsLayer {
                                 translationY = if (dragging) categoryDragY else neighborY
@@ -217,6 +226,9 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                     onDrag = { change, amount ->
                                         change.consume()
                                         categoryDragY += amount.y
+                                        val fingerWindowY=(categoryWindowY[category.id]?:0f)+change.position.y
+                                        val edge=when{fingerWindowY<categoryEdgePx->-1;fingerWindowY>categoryWindowHeightPx-categoryEdgePx->1;else->0}
+                                        if(edge!=0)scope.launch{val consumed=categoryListState.scrollBy(edge*categoryScrollStepPx);categoryDragY+=consumed}
                                         val liveStep = (categoryHeights.values.average()
                                             .takeIf { !it.isNaN() && it > 0 }
                                             ?.toFloat() ?: size.height.toFloat()) + categoryGapPx

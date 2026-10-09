@@ -16,7 +16,8 @@ class VehicleVerticalPlateReorderGuardTest {
   val screen=File("src/main/java/ir/kharjyar/app/ui/screens/VehiclesScreen.kt").readText()
   listOf("cardHeights.values.average()","targetIndex","settlingVehicleIds=affected","displacedCardY.animateTo(0f,tween(760))","onGloballyPositioned","draggingPlateId==vehicle.id->plateDragY").forEach{assertTrue(it,screen.contains(it))}
   assertTrue(screen.contains("liveDisplacement")&&screen.contains("vehicleNeighborSettle")&&screen.contains("tween(620)"))
-  assertTrue(screen.contains("vehicleListScroll.scrollBy(-22.dp.toPx())")&&screen.contains("vehicleListScroll.scrollBy(22.dp.toPx())"))
+  assertTrue(screen.contains("vehicleListScroll.scrollBy(edge*vehicleScrollStepPx)"))
+  assertTrue(screen.contains("cardWindowY[vehicle.id]")&&screen.contains("vehicleWindowHeightPx"))
   assertTrue(screen.contains("هر جای کارت را نگه دارید و آزادانه بالا یا پایین بکشید"))
  }
 }
