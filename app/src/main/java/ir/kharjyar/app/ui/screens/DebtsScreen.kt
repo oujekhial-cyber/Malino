@@ -117,8 +117,8 @@ fun DebtsScreen(vm: AppViewModel) {
                 val receivable = receivableDebts.sumOf(::remaining)
                 val payable = payableDebts.sumOf(::remaining)
                 // نزدیک‌ترین موعد باز برای دریافت طلب یا پرداخت بدهی روی کارت شخص دیده می‌شود.
-                val receivableDate = receivableDebts.filter { remaining(it) > 0 }.minOfOrNull { it.dueAt }
-                val payableDate = payableDebts.filter { remaining(it) > 0 }.minOfOrNull { it.dueAt }
+                val receivableDate: Long? = receivableDebts.filter { remaining(it) > 0 }.mapNotNull { it.dueAt }.minOrNull()
+                val payableDate: Long? = payableDebts.filter { remaining(it) > 0 }.mapNotNull { it.dueAt }.minOrNull()
                 val isCreditor = receivable > payable
                 val isDebtor = payable > receivable
                 val relationAccent = when {

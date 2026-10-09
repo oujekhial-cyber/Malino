@@ -2,6 +2,7 @@ package ir.kharjyar.app.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -70,6 +71,7 @@ private fun normalizedCategoryName(value:String):String = Digits.normalizeForMat
     .replace('\u200c',' ').trim().replace(Regex("\\s+")," ")
 
 /** مدیریت دسته‌بندی‌ها و قوانین خودکار. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CategoriesScreen(viewModel: AppViewModel) {
     val scope = rememberCoroutineScope()
@@ -166,14 +168,16 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                 ) { Text("دسته‌های پیشنهادی") }
             }
             Text("برای جابه‌جایی، کارت را لمس و نگه دارید و بالا یا پایین ببرید.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            val fallbackCategoryHeightPx = with(LocalDensity.current) { 68.dp.toPx() }
+            val categoryGapPx = with(LocalDensity.current) { 8.dp.toPx() }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(orderedCategories.size, key = { orderedCategories[it].id }) { index ->
                     val category = orderedCategories[index]
                     val dragging = draggingCategoryId == category.id
                     val averageHeight = categoryHeights.values.average()
                         .takeIf { !it.isNaN() && it > 0 }
-                        ?.toFloat() ?: 68.dp.toPx()
-                    val step = averageHeight + 8.dp.toPx()
+                        ?.toFloat() ?: fallbackCategoryHeightPx
+                    val step = averageHeight + categoryGapPx
                     val neighborDisplacement = when {
                         draggingCategoryId == null || dragging -> 0f
                         categoryDragStart < categoryDragTarget &&
@@ -215,7 +219,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                         categoryDragY += amount.y
                                         val liveStep = (categoryHeights.values.average()
                                             .takeIf { !it.isNaN() && it > 0 }
-                                            ?.toFloat() ?: size.height.toFloat()) + 8.dp.toPx()
+                                            ?.toFloat() ?: size.height.toFloat()) + categoryGapPx
                                         categoryDragTarget = (categoryDragStart +
                                             kotlin.math.round(categoryDragY / liveStep).toInt())
                                             .coerceIn(0, orderedCategories.lastIndex.coerceAtLeast(0))
