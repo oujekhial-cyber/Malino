@@ -56,6 +56,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.sp
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
@@ -89,7 +90,7 @@ private const val SERVICE_ENTRY=2
  val liveStep=(cardHeights.values.average().takeIf{!it.isNaN()&&it>0}?:220.0).toFloat()+10f
  val liveDisplacement=when{draggingPlateId==null||vehicle.id==draggingPlateId->0f;dragStartIndex<dragTargetIndex&&cardIndex in (dragStartIndex+1)..dragTargetIndex->-liveStep;dragTargetIndex<dragStartIndex&&cardIndex in dragTargetIndex until dragStartIndex->liveStep;else->0f}
  val liveCardY by animateFloatAsState(liveDisplacement,tween(620),label="vehicleNeighborSettle")
- SwipeActionRow(onDelete={pendingDelete=vehicle},onEdit={editingVehicleId=vehicle.id;entry=VEHICLE_ENTRY},enabled=draggingPlateId==null,modifier=Modifier.onGloballyPositioned{coordinates->cardHeights[vehicle.id]=coordinates.size.height.toFloat();cardWindowY[vehicle.id]=coordinates.positionInWindow().y}.graphicsLayer{translationY=when{draggingPlateId==vehicle.id->plateDragY;vehicle.id in settlingVehicleIds->displacedCardY.value;else->liveCardY};scaleX=if(draggingPlateId==vehicle.id)1.018f else 1f;scaleY=if(draggingPlateId==vehicle.id)1.018f else 1f;shadowElevation=if(draggingPlateId==vehicle.id)18f else 0f}.pointerInput(vehicle.id,shown.map{it.id}){detectDragGesturesAfterLongPress(
+ SwipeActionRow(onDelete={pendingDelete=vehicle},onEdit={editingVehicleId=vehicle.id;entry=VEHICLE_ENTRY},enabled=draggingPlateId==null,modifier=Modifier.onGloballyPositioned{coordinates->cardHeights[vehicle.id]=coordinates.size.height.toFloat();cardWindowY[vehicle.id]=coordinates.positionInWindow().y}.zIndex(if(draggingPlateId==vehicle.id)10f else 0f).graphicsLayer{translationY=when{draggingPlateId==vehicle.id->plateDragY;vehicle.id in settlingVehicleIds->displacedCardY.value;else->liveCardY};scaleX=if(draggingPlateId==vehicle.id)1.018f else 1f;scaleY=if(draggingPlateId==vehicle.id)1.018f else 1f;shadowElevation=if(draggingPlateId==vehicle.id)18f else 0f}.pointerInput(vehicle.id,shown.map{it.id}){detectDragGesturesAfterLongPress(
   onDragStart={draggingPlateId=vehicle.id;plateDragY=0f;dragStartIndex=shown.indexOfFirst{it.id==vehicle.id};dragTargetIndex=dragStartIndex},
   onDragCancel={draggingPlateId=null;plateDragY=0f;dragStartIndex=-1;dragTargetIndex=-1},
   onDragEnd={

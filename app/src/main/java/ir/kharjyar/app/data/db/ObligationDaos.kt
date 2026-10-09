@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.Flow
     @Insert suspend fun insertDebt(v: DebtEntity): Long
     @Insert suspend fun insertPayment(v: DebtPaymentEntity): Long
     @Update suspend fun updateDebt(v: DebtEntity)
+    @Query("DELETE FROM debt_payments WHERE debtId = :debtId") suspend fun deletePaymentsOf(debtId: Long)
+    @Delete suspend fun deleteDebt(v: DebtEntity)
     @Query("SELECT * FROM debts WHERE settled = 0 AND reminderAt IS NOT NULL AND reminderAt <= :until") suspend fun dueReminders(until: Long): List<DebtEntity>
 }
 @Dao interface CheckDao {

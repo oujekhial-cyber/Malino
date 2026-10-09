@@ -2,7 +2,6 @@ package ir.kharjyar.app.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -17,8 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
@@ -75,7 +74,6 @@ private fun normalizedCategoryName(value:String):String = Digits.normalizeForMat
     .replace('\u200c',' ').trim().replace(Regex("\\s+")," ")
 
 /** مدیریت دسته‌بندی‌ها و قوانین خودکار. */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CategoriesScreen(viewModel: AppViewModel) {
     val scope = rememberCoroutineScope()
@@ -95,7 +93,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var categoryDragTarget by remember { mutableIntStateOf(-1) }
     val categoryHeights = remember { mutableStateMapOf<Long, Float>() }
     val categoryWindowY = remember { mutableStateMapOf<Long, Float>() }
-    val categoryListState = rememberLazyListState()
+    val categoryListState = rememberScrollState()
     val categoryEdgePx = with(LocalDensity.current) { 56.dp.toPx() }
     val categoryScrollStepPx = with(LocalDensity.current) { 22.dp.toPx() }
     val categoryWindowHeightPx = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
@@ -179,9 +177,13 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             Text("برای جابه‌جایی، کارت را لمس و نگه دارید و بالا یا پایین ببرید.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             val fallbackCategoryHeightPx = with(LocalDensity.current) { 68.dp.toPx() }
             val categoryGapPx = with(LocalDensity.current) { 8.dp.toPx() }
-            LazyColumn(state = categoryListState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(orderedCategories.size, key = { orderedCategories[it].id }) { index ->
-                    val category = orderedCategories[index]
+            // همه دسته‌ها هم‌زمان compose می‌شوند تا کارت مبدأ هنگام پیمایش لبه‌ای
+            // از درخت UI حذف و gesture لغو نشود.
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(categoryListState),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                orderedCategories.forEachIndexed { index, category ->
                     val dragging = draggingCategoryId == category.id
                     val averageHeight = categoryHeights.values.average()
                         .takeIf { !it.isNaN() && it > 0 }
@@ -206,9 +208,8 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                         removeOnDelete = false,
                         enabled = draggingCategoryId == null,
                         modifier = Modifier
-                            .animateItemPlacement(animationSpec = tween(760))
                             .onGloballyPositioned { coordinates -> categoryHeights[category.id] = coordinates.size.height.toFloat(); categoryWindowY[category.id] = coordinates.positionInWindow().y }
-                            .zIndex(if (dragging) 2f else 0f)
+                            .zIndex(if (dragging) 10f else 0f)
                             .graphicsLayer {
                                 translationY = if (dragging) categoryDragY else neighborY
                                 scaleX = if (dragging) 1.018f else 1f

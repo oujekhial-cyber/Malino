@@ -87,7 +87,7 @@ fun DateTimeField(
     }
 
     if (showDate) {
-        PersianDatePickerDialog(
+        PersianWheelDatePickerDialog(
             initial = date,
             onDismiss = { showDate = false },
             onConfirm = { picked -> onDate(picked); showDate = false }
@@ -269,6 +269,75 @@ private fun NavArrow(
     }
 }
 
+/**
+ * انتخاب تاریخ شمسی با سه چرخ استوانه‌ای مستقل روز، ماه و سال.
+ * تعداد روزها با تغییر ماه/سال اصلاح و روز انتخابی به آخرین روز معتبر محدود می‌شود.
+ */
+@Composable
+fun PersianWheelDatePickerDialog(
+    initial: PersianDate,
+    onDismiss: () -> Unit,
+    onConfirm: (PersianDate) -> Unit
+) {
+    val skin = LocalAppSkin.current
+    var year by remember { mutableStateOf(initial.year) }
+    var month by remember { mutableStateOf(initial.month) }
+    var day by remember { mutableStateOf(initial.day) }
+    val today = remember { PersianDate.today() }
+    val yearRange = remember(initial.year, today.year) {
+        (minOf(initial.year, today.year) - 100)..(maxOf(initial.year, today.year) + 30)
+    }
+    val maxDay = PersianDate.monthLength(year, month)
+    LaunchedEffect(year, month, maxDay) {
+        if (day > maxDay) day = maxDay
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = skin.dialogColor,
+        title = { Text("انتخاب تاریخ شمسی") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth()) {
+                    Text("روز", Modifier.weight(1f), textAlign = TextAlign.Center, color = skin.onBackdrop.copy(alpha = .65f))
+                    Text("ماه", Modifier.weight(1f), textAlign = TextAlign.Center, color = skin.onBackdrop.copy(alpha = .65f))
+                    Text("سال", Modifier.weight(1.25f), textAlign = TextAlign.Center, color = skin.onBackdrop.copy(alpha = .65f))
+                }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier.fillMaxWidth().height(WHEEL_ITEM_HEIGHT.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(skin.accent.copy(alpha = .14f))
+                            .border(1.dp, skin.accent.copy(alpha = .22f), RoundedCornerShape(12.dp))
+                    )
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        WheelPicker(1..maxDay, day, { day = it }, Modifier.weight(1f))
+                        WheelPicker(1..12, month, { month = it }, Modifier.weight(1f)) { value ->
+                            PersianDate.MONTH_NAMES[value - 1]
+                        }
+                        WheelPicker(yearRange, year, { year = it }, Modifier.weight(1.25f)) { value ->
+                            Digits.toPersian(value.toString())
+                        }
+                    }
+                }
+                Text(
+                    "${Digits.toPersian(day.toString())} ${PersianDate.MONTH_NAMES[month - 1]} ${Digits.toPersian(year.toString())}",
+                    Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = skin.accent
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(PersianDate(year, month, day.coerceAtMost(maxDay))) }) {
+                Text("تأیید")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("انصراف") } }
+    )
+}
+
 /** پنجره انتخاب ساعت با چرخ اسکرولی استوانه‌ای (شبیه انتخابگر آیفون). */
 @Composable
 fun TimePickerDialog(
@@ -339,7 +408,8 @@ private fun WheelPicker(
     range: IntRange,
     value: Int,
     onValueChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    labelOf: (Int) -> String = { Digits.toPersian("%02d".format(it)) }
 ) {
     val skin = LocalAppSkin.current
     val items = remember(range) { range.toList() }
@@ -386,7 +456,7 @@ private fun WheelPicker(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    Digits.toPersian("%02d".format(item)),
+                    labelOf(item),
                     style = if (selected) MaterialTheme.typography.headlineSmall
                     else MaterialTheme.typography.titleMedium,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
@@ -406,5 +476,5 @@ fun PersianDateField(date: PersianDate, onDate: (PersianDate) -> Unit, modifier:
         Spacer(Modifier.height(6.dp))
         PickerButton(Icons.Filled.CalendarMonth, "${Digits.toPersian(date.day.toString())} ${date.monthName()} ${Digits.toPersian(date.year.toString())}", Modifier.fillMaxWidth()) { show = true }
     }
-    if (show) PersianDatePickerDialog(date, { show = false }, { onDate(it); show = false })
+    if (show) PersianWheelDatePickerDialog(date, { show = false }, { onDate(it); show = false })
 }

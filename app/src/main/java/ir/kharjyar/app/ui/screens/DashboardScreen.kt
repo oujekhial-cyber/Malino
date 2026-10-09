@@ -25,11 +25,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -327,18 +326,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     if (wholeRange) TxSummarizer.summarize(allTx, accountId)
                     else TxSummarizer.summarize(allTx, accountId, monthRange.first, monthRange.second)
 
-                // چرخ‌فلک کارت‌ها: با هر کشیدن انگشت دقیقاً یک کارت وسط صفحه می‌ایستد
-                // (پهنای هر صفحه = عرض فهرست منهای دو لبه، و چسبیدن با snap).
-                val rowState = rememberLazyListState()
-                val snapFling = rememberSnapFlingBehavior(lazyListState = rowState)
-                // سرعت پرتاب محدود می‌شود تا حتی با کشیدن محکم، دو یا سه کارت
-                // یک‌جا رد نشود و کنترل همیشه نزدیک به یک کارت بماند.
-                val controlledFling = remember(snapFling) {
-                    object : androidx.compose.foundation.gestures.FlingBehavior {
-                        override suspend fun androidx.compose.foundation.gestures.ScrollScope.performFling(initialVelocity: Float): Float =
-                            with(snapFling) { performFling(initialVelocity.coerceIn(-1100f, 1100f)) }
-                    }
-                }
+                // همه کارت‌ها در Row نگه داشته می‌شوند؛ بنابراین پیمایش خودکار حین
+                // نگه‌داشتن کارت، آیتم مبدأ را dispose و gesture را لغو نمی‌کند.
+                val rowState = rememberScrollState()
                 val peek = 22.dp
                 val pageWidth = (LocalConfiguration.current.screenWidthDp.dp - 32.dp - peek * 2)
                     .coerceAtLeast(180.dp)
@@ -364,15 +354,15 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 val dashboardWindowWidthPx = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
 
                 EnterCard(0) {
-                    LazyRow(
-                        modifier = Modifier.height(accountCarouselHeight).animateContentSize(animationSpec=tween(320)),
-                        state = rowState,
-                        flingBehavior = controlledFling,
-                        contentPadding = PaddingValues(horizontal = peek),
+                    Row(
+                        modifier = Modifier
+                            .height(accountCarouselHeight)
+                            .animateContentSize(animationSpec=tween(320))
+                            .horizontalScroll(rowState)
+                            .padding(horizontal = peek),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         // ----- صفحه نخست: خلاصه همه حساب‌ها -----
-                        item {
                             val total = rangeSummary(null)
                             val totalRial = active.sumOf { acc -> AccountBalance.estimate(acc, allTx).rial ?: 0L }
                             HeroCard(
@@ -511,11 +501,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     }
                                 }
                             }
-                        }
 
                         // ----- صفحه‌های بعدی: هر حساب یک کارت، با خلاصه خودش -----
-                        items(active.size, key = { active[it].id }) { idx ->
-                            val account = active[idx]
+                        active.forEachIndexed { idx, account ->
                             val isDragging = draggingId == account.id
                             // پیش‌نمایش زنده ترتیب: کارت درگ‌شده از آرایه برداشته و در مقصد
                             // موقت قرار می‌گیرد؛ هر کارت زیر مسیر فوراً به slot خالی قبلی می‌لغزد.
@@ -565,7 +553,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 modifier = Modifier
                                     .width(pageWidth)
                                     .height(compactAccountCardHeight)
-                                    .animateItemPlacement(animationSpec = tween(durationMillis = 760))
+                                    .zIndex(if (isDragging) 10f else 0f)
                                     .onGloballyPositioned { coordinates ->
                                         val physical = coordinates.positionInWindow()
                                         accountCardX[account.id] = physical.x
@@ -660,7 +648,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         }
 
                         // ----- آخرین صفحه: افزودن حساب -----
-                        item {
                             SkinCard(
                                 modifier = Modifier
                                     .width(if (active.isEmpty()) pageWidth else pageWidth * 0.55f)
@@ -688,7 +675,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     )
                                 }
                             }
-                        }
                     }
                 }
             }
