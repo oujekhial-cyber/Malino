@@ -19,7 +19,7 @@ class CategoryGraphicIconsGuardTest {
 
     @Test fun `category list and editor use graphical category component`() {
         val source=File("src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt").readText()
-        assertTrue(source.contains("CategoryGraphic(name = c.name"))
+        assertTrue(source.contains("CategoryGraphic(name = category.name"))
         assertTrue(source.contains("CategoryGraphic(name = name"))
         val graphic=File("src/main/java/ir/kharjyar/app/ui/components/CategoryGraphic.kt").readText()
         listOf("Brush.linearGradient","contentDescription = \"آیکون \$name\"","Icons.Filled.Category").forEach { assertTrue(it,graphic.contains(it)) }

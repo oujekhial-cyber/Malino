@@ -11,7 +11,7 @@ class SayadCheckDetailGuardTest {
   assertTrue(manifest.contains("android:configChanges=\"orientation|screenSize\""))
   listOf(
    ".clickable(onClick=onOpen)",
-   "SayadCheckDetail(check,settings.moneyUnit){selectedCheck=null}",
+   "SayadCheckDetail(vm,check,settings.moneyUnit,{selectedCheck=it}){selectedCheck=null}",
    "SCREEN_ORIENTATION_SENSOR_LANDSCAPE",
    "SCREEN_ORIENTATION_UNSPECIFIED",
    "BackHandler{onBack()}",

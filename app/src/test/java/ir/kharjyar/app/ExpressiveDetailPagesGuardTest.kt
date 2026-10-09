@@ -9,6 +9,6 @@ class ExpressiveDetailPagesGuardTest {
  }
  @Test fun `loan details use elevated gradient and accented history cards`() {
   val source=File("src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt").readText()
-  listOf("Brush.linearGradient","CardDefaults.cardElevation(5.dp)","accent.copy(alpha=.08f)","RoundedCornerShape(18.dp)").forEach{assertTrue(it,source.contains(it))}
+  listOf("Brush.linearGradient","CardDefaults.cardElevation(5.dp)","rowAccent.copy(.11f)","RoundedCornerShape(18.dp)").forEach{assertTrue(it,source.contains(it))}
  }
 }
