@@ -198,7 +198,9 @@ fun BankCard(
                             // پشت کارت نسبت به روی آن ۱۸۰ درجه برعکس است؛ برای اینکه
                             // جهت «قابل مشاهده» در تکرارهای پیاپی ثابت بماند، علامت
                             // چرخش جهانی روی پشت معکوس می‌شود.
-                            val gestureDirection=if(verticalDrag>0f)1f else -1f
+                            // علامت rotationX در مختصات صحنه نسبت به جهت دیداری
+                            // لبه کارت معکوس است: drag رو به پایین باید زاویه منفی بگیرد.
+                            val gestureDirection=if(verticalDrag>0f)-1f else 1f
                             val turns=kotlin.math.round(kotlin.math.abs(targetRotation)/180f).toInt()
                             val visibleFaceDirection=if(turns%2==0)1f else -1f
                             targetRotation+=gestureDirection*visibleFaceDirection*180f
@@ -487,11 +489,7 @@ private fun CardField(
  * «سال/ماه» نمایش داده می‌شود تا سال سمت چپ و ماه سمت راست قرار بگیرد.
  */
 internal fun formatCardExpiry(raw: String): String {
-    val normalized = Digits.normalize(raw.trim())
-    val parts = normalized.split(Regex("[/\\-.\\s]+"), limit = 2)
-    val visual = if (parts.size == 2 && parts.all { it.isNotBlank() }) {
-        "${parts[1]}/${parts[0]}"
-    } else normalized
+    val visual = ir.kharjyar.app.core.card.CardExpiry.storageToDisplay(raw)
     return Digits.ltr(Digits.toPersian(visual))
 }
 

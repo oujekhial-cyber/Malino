@@ -10,7 +10,7 @@ class DirectionalBankCardFlipGuardTest {
   val s=File("src/main/java/ir/kharjyar/app/ui/components/BankCard.kt").readText()
   assertTrue(s.contains("detectVerticalDragGestures"))
   assertTrue(s.contains("verticalDrag+=amount"))
-  assertTrue(s.contains("val gestureDirection=if(verticalDrag>0f)1f else -1f"))
+  assertTrue(s.contains("val gestureDirection=if(verticalDrag>0f)-1f else 1f"))
   assertTrue(s.contains("val visibleFaceDirection=if(turns%2==0)1f else -1f"))
   assertTrue(s.contains("targetRotation+=gestureDirection*visibleFaceDirection*180f"))
   assertTrue(s.contains("rotationX = flipRotation")&&s.contains("rotationX = 180f"))

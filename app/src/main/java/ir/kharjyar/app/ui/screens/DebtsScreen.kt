@@ -2,9 +2,12 @@ package ir.kharjyar.app.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,7 +26,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.date.PersianDate
@@ -32,6 +37,7 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.*
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.PersianDateField
 import ir.kharjyar.app.ui.components.showSavedMessage
 import kotlinx.coroutines.launch
@@ -106,22 +112,141 @@ fun DebtsScreen(vm: AppViewModel) {
             if (shownPeople.isEmpty()) Text("هنوز طلب یا بدهی ثبت نشده است.", modifier = Modifier.padding(vertical = 24.dp))
             shownPeople.forEach { person ->
                 val personDebts = shownDebts.filter { it.personId == person.id }
-                val receivable = personDebts.filter { it.kind == DebtKind.RECEIVABLE }.sumOf(::remaining)
-                val payable = personDebts.filter { it.kind == DebtKind.PAYABLE }.sumOf(::remaining)
+                val receivableDebts = personDebts.filter { it.kind == DebtKind.RECEIVABLE }
+                val payableDebts = personDebts.filter { it.kind == DebtKind.PAYABLE }
+                val receivable = receivableDebts.sumOf(::remaining)
+                val payable = payableDebts.sumOf(::remaining)
+                // نزدیک‌ترین موعد باز برای دریافت طلب یا پرداخت بدهی روی کارت شخص دیده می‌شود.
+                val receivableDate = receivableDebts.filter { remaining(it) > 0 }.minOfOrNull { it.dueAt }
+                val payableDate = payableDebts.filter { remaining(it) > 0 }.minOfOrNull { it.dueAt }
+                val isCreditor = receivable > payable
+                val isDebtor = payable > receivable
+                val relationAccent = when {
+                    isCreditor -> Color(0xFF15966A)
+                    isDebtor -> Color(0xFFE0525E)
+                    else -> MaterialTheme.colorScheme.primary
+                }
+                val relationText = when {
+                    isCreditor -> "شما از ${person.name} طلبکار هستید"
+                    isDebtor -> "شما به ${person.name} بدهکار هستید"
+                    else -> "طلب و بدهی شما با ${person.name} برابر است"
+                }
                 Card(
-                    modifier = Modifier.fillMaxWidth().clickable { selectedPersonId = person.id },
-                    shape = RoundedCornerShape(18.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, relationAccent.copy(alpha = .34f), RoundedCornerShape(24.dp))
+                        .clickable { selectedPersonId = person.id },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                 ) {
-                    Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(person.name, style = MaterialTheme.typography.titleMedium)
-                            Text("مشاهده جزئیات ←", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        relationAccent.copy(alpha = .16f),
+                                        MaterialTheme.colorScheme.surface,
+                                        MaterialTheme.colorScheme.surface
+                                    )
+                                )
+                            )
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(13.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(50.dp)
+                                    .background(relationAccent.copy(alpha = .17f), CircleShape)
+                                    .border(1.dp, relationAccent.copy(alpha = .38f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    person.name.trim().take(1).ifBlank { "؟" },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = relationAccent
+                                )
+                            }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(person.name, style = MaterialTheme.typography.titleMedium)
+                                Surface(
+                                    color = relationAccent.copy(alpha = .13f),
+                                    shape = RoundedCornerShape(50)
+                                ) {
+                                    Row(
+                                        Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Icon(
+                                            if (isCreditor) Icons.Filled.CallReceived else if (isDebtor) Icons.Filled.CallMade else Icons.Filled.Balance,
+                                            contentDescription = null,
+                                            tint = relationAccent,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(relationText, style = MaterialTheme.typography.labelMedium, color = relationAccent)
+                                    }
+                                }
+                            }
+                            Icon(Icons.Filled.ChevronLeft, "مشاهده جزئیات", tint = relationAccent)
+                        }
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)
+                        ) {
+                            DebtAmountTile(
+                                title = "طلب شما",
+                                amount = Money.format(receivable, settings.moneyUnit),
+                                accent = Color(0xFF15966A),
+                                icon = Icons.Filled.TrendingUp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            DebtAmountTile(
+                                title = "بدهی شما",
+                                amount = Money.format(payable, settings.moneyUnit),
+                                accent = Color(0xFFE0525E),
+                                icon = Icons.Filled.TrendingDown,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (receivableDate != null || payableDate != null) {
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = .58f), RoundedCornerShape(14.dp))
+                                    .padding(horizontal = 11.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                receivableDate?.let {
+                                    DebtDateRow(
+                                        label = "تاریخ دریافت طلب",
+                                        date = PersianDate.fromMillis(it).format(),
+                                        accent = Color(0xFF15966A)
+                                    )
+                                }
+                                payableDate?.let {
+                                    DebtDateRow(
+                                        label = "تاریخ پرداخت بدهی",
+                                        date = PersianDate.fromMillis(it).format(),
+                                        accent = Color(0xFFE0525E)
+                                    )
+                                }
+                            }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("طلب: ${Money.format(receivable, settings.moneyUnit)}", color = Color(0xFF1B8F52))
-                            Text("بدهی: ${Money.format(payable, settings.moneyUnit)}", color = Color(0xFFD33B45))
+                            Text(
+                                "${Digits.toPersian(personDebts.size.toString())} مورد ثبت‌شده",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text("مشاهده گردش حساب", style = MaterialTheme.typography.labelSmall, color = relationAccent)
                         }
-                        Text("${Digits.toPersian(personDebts.size.toString())} مورد ثبت‌شده", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -129,6 +254,44 @@ fun DebtsScreen(vm: AppViewModel) {
         ThemedFloatingActionButton(onClick = { showChooser = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) { Icon(Icons.Filled.Add, "افزودن طلب یا بدهی") }
     }
     if(showChooser)ModernChoiceDialog("طلب یا بدهی","نوع تعهد مالی را انتخاب کنید",listOf(ModernChoiceOption("ثبت طلب","مبلغی که باید از شخص دیگری دریافت کنید",Color(0xFF1B8F52),Icons.Filled.CallReceived){showChooser=false;entryKind=DebtKind.RECEIVABLE},ModernChoiceOption("ثبت بدهی","مبلغی که باید به شخص دیگری پرداخت کنید",Color(0xFFD33B45),Icons.Filled.CallMade){showChooser=false;entryKind=DebtKind.PAYABLE}),{showChooser=false})
+}
+
+@Composable
+private fun DebtDateRow(label: String, date: String, accent: Color) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp)
+    ) {
+        Icon(Icons.Filled.EventAvailable, contentDescription = null, tint = accent, modifier = Modifier.size(17.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.weight(1f))
+        Text(date, style = MaterialTheme.typography.labelLarge, color = accent)
+    }
+}
+
+@Composable
+private fun DebtAmountTile(
+    title: String,
+    amount: String,
+    accent: Color,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = accent.copy(alpha = .09f),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = .2f))
+    ) {
+        Column(Modifier.padding(horizontal = 11.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(17.dp))
+                Text(title, style = MaterialTheme.typography.labelSmall, color = accent)
+            }
+            Text(amount, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
 }
 
 @Composable
@@ -227,7 +390,11 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
 @Composable
 private fun DebtEntryPage(vm: AppViewModel, kind: Int, people: List<DebtPersonEntity>, onDone: () -> Unit, onCancel: () -> Unit) {
     val scope = rememberCoroutineScope(); val context = LocalContext.current; val settings by vm.settings.collectAsState()
+    val accounts by vm.accounts.collectAsState()
+    val activeAccounts = accounts.filter { !it.archived }
     var person by remember { mutableStateOf("") }; var title by remember { mutableStateOf("") }; var amount by remember { mutableStateOf("") }; var due by remember { mutableStateOf(PersianDate.today()) }
+    var registerAccountTransaction by remember { mutableStateOf(false) }
+    var accountId by remember { mutableStateOf<Long?>(null) }
     val receivable = kind == DebtKind.RECEIVABLE
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onCancel) { Icon(Icons.Filled.ArrowBack, null); Text("بازگشت به فهرست") }
@@ -236,11 +403,67 @@ private fun DebtEntryPage(vm: AppViewModel, kind: Int, people: List<DebtPersonEn
         OutlinedTextField(title, { title = it }, label = { Text("عنوان یا توضیح") }, modifier = Modifier.fillMaxWidth())
         AmountTextField(amount, { amount = it }, "مبلغ", Modifier.fillMaxWidth(), unit = settings.moneyUnit)
         Text("تاریخ سررسید"); PersianDateField(due, { due = it })
+        Card(
+            colors = CardDefaults.cardColors(containerColor = (if (receivable) Color(0xFF1B8F52) else Color(0xFFD33B45)).copy(alpha = .09f)),
+            border = BorderStroke(1.dp, (if (receivable) Color(0xFF1B8F52) else Color(0xFFD33B45)).copy(alpha = .25f))
+        ) {
+            Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("اعمال در حساب و ثبت تراکنش", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (receivable) "مبلغ طلب از حساب انتخابی کم می‌شود" else "مبلغ بدهی به حساب انتخابی اضافه می‌شود",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = registerAccountTransaction,
+                        onCheckedChange = {
+                            registerAccountTransaction = it
+                            if (it && accountId == null) accountId = activeAccounts.firstOrNull()?.id
+                        },
+                        enabled = activeAccounts.isNotEmpty()
+                    )
+                }
+                if (registerAccountTransaction) {
+                    ComboBox(
+                        label = if (receivable) "پرداخت طلب از حساب" else "واریز مبلغ بدهی به حساب",
+                        options = activeAccounts.map { it.id },
+                        selected = accountId,
+                        labelOf = { id -> activeAccounts.firstOrNull { it.id == id }?.title ?: "انتخاب حساب" },
+                        onSelect = { accountId = it }
+                    )
+                    Text(
+                        if (receivable) "یک تراکنش برداشت با ماهیت انتقال ثبت می‌شود." else "یک تراکنش واریز با ماهیت انتقال ثبت می‌شود.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Text("بدون تغییر مانده حساب و بدون ساخت تراکنش", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
         Button(onClick = { scope.launch {
+            val value = Money.inputToRial(amount, settings.moneyUnit) ?: 0
+            val now = System.currentTimeMillis()
             val old = people.firstOrNull { it.name.trim() == person.trim() }
-            val personId = old?.id ?: vm.repo.db.debtDao().insertPerson(DebtPersonEntity(name = person.trim(), createdAt = System.currentTimeMillis()))
-            vm.repo.db.debtDao().insertDebt(DebtEntity(personId = personId, kind = kind, amountRial = Money.inputToRial(amount, settings.moneyUnit) ?: 0, title = title.trim(), createdAt = System.currentTimeMillis(), dueAt = due.startOfDayMillis(), reminderAt = due.startOfDayMillis()))
+            val personId = old?.id ?: vm.repo.db.debtDao().insertPerson(DebtPersonEntity(name = person.trim(), createdAt = now))
+            vm.repo.db.debtDao().insertDebt(DebtEntity(personId = personId, kind = kind, amountRial = value, title = title.trim(), createdAt = now, dueAt = due.startOfDayMillis(), reminderAt = due.startOfDayMillis()))
+            if (registerAccountTransaction) {
+                val selectedAccount = accountId ?: return@launch
+                vm.repo.addManualTransaction(
+                    accountId = selectedAccount,
+                    amountRial = value,
+                    direction = if (receivable) TxDirection.WITHDRAW else TxDirection.DEPOSIT,
+                    nature = TxNature.TRANSFER,
+                    categoryId = null,
+                    description = title.trim().ifBlank { if (receivable) "پرداخت به ${person.trim()} و ثبت طلب" else "دریافت از ${person.trim()} و ثبت بدهی" },
+                    occurredAt = now,
+                    counterparty = person.trim()
+                )
+            }
             showSavedMessage(context, "طلب یا بدهی"); onDone()
-        } }, enabled = person.isNotBlank() && (Money.inputToRial(amount, settings.moneyUnit) ?: 0) > 0, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.5.dp, if (receivable) Color(0xFF1B8F52) else Color(0xFFD33B45))) { Text(if (receivable) "ثبت طلب و یادآور" else "ثبت بدهی و یادآور") }
+        } }, enabled = person.isNotBlank() && (Money.inputToRial(amount, settings.moneyUnit) ?: 0) > 0 && (!registerAccountTransaction || accountId != null), modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.5.dp, if (receivable) Color(0xFF1B8F52) else Color(0xFFD33B45))) { Text(if (receivable) "ثبت طلب و یادآور" else "ثبت بدهی و یادآور") }
     }
 }

@@ -1,9 +1,12 @@
 package ir.kharjyar.app
-import java.io.File
 import org.junit.Assert.*
 import org.junit.Test
-class DashboardCardDragOverlayGuardTest {
- @Test fun `dashboard card drag stays captured in a global overlay until user releases`(){val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();assertTrue(s.contains("Popup("));assertTrue(s.contains("PopupProperties(focusable = false, clippingEnabled = false)"));assertTrue(s.contains("positionInWindow()"));assertTrue(s.contains("draggingId = account.id"));assertTrue(s.contains("onDragEnd"));assertTrue(s.indexOf("setDashboardAccountOrder(ids)")>s.indexOf("onDragEnd"));assertFalse(s.substringAfter("onDrag = { change, amount ->").substringBefore("onDragEnd").contains("setDashboardAccountOrder"))}
- @Test fun `drag follows physical finger axis and preserves grabbed point`(){val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();assertTrue(s.contains("popupPositionProvider = object : PopupPositionProvider"));assertTrue(s.contains("override fun calculatePosition("));assertTrue(s.contains("(floatingOriginX + floatingX).roundToInt()"));assertTrue(s.contains("cardWindowPosition by remember(account.id)"));assertTrue(s.contains("floatingOriginX = cardWindowPosition.x"));assertTrue(s.contains("floatingOriginY = cardWindowPosition.y"));assertTrue(s.contains("floatingX += amount.x"));assertTrue(s.contains("floatingY += amount.y"));assertTrue(s.contains("scaleX = 1f")&&s.contains("scaleY = 1f"))}
- @Test fun `all crossed neighbor cards shift live toward the vacated slot in either physical direction`(){val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText();listOf("previewIds","ids.removeAt(dragOriginIndex)","ids.add(dragTargetIndex, draggingId!!)","liveShiftPx","accountCardX[targetSlotId]","draggedCenter","active.indices.minByOrNull","physicalStep","indexDirection","candidate - dragOriginIndex","kotlin.math.abs(center - draggedCenter)","tween(durationMillis = 560)").forEach{assertTrue(it,s.contains(it))};assertTrue(s.contains("floatingY += amount.y"));assertTrue(s.contains("shape = RoundedCornerShape(22.dp)"));assertTrue(s.contains("ambientShadowColor")&&s.contains("spotShadowColor"))}
+import java.io.File
+class DashboardCardDragOverlayGuardTest{
+ @Test fun `account cards use same in-place multi-card movement as vehicle plates`(){
+  val s=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
+  listOf("previewIds","ids.removeAt(dragOriginIndex)","ids.add(dragTargetIndex, draggingId!!)","liveShiftPx","floatingX/(physicalStep*indexDirection)","kotlin.math.round","coerceIn(active.indices)","translationX = if (isDragging) floatingX else neighborOffset","tween(durationMillis = 620)","animateItemPlacement(animationSpec = tween(durationMillis = 760))").forEach{assertTrue(it,s.contains(it))}
+  assertFalse("dragged card must stay in place instead of a disposable popup",s.contains("floatingOriginX + floatingX).roundToInt()"))
+  assertTrue(s.contains("floatingY += amount.y"))
+ }
 }

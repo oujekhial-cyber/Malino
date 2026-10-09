@@ -6,6 +6,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.sms.*
@@ -23,6 +25,8 @@ fun SmsPasteScreen(viewModel: AppViewModel, nav: NavHostController) {
     val accounts by viewModel.accounts.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val scope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     var body by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<ExtractionResult?>(null) }
     var accountId by remember { mutableStateOf<Long?>(null) }
@@ -33,6 +37,10 @@ fun SmsPasteScreen(viewModel: AppViewModel, nav: NavHostController) {
         Text("متن کامل پیامک بانک را اینجا جایگذاری کنید. تحلیل روی گوشی انجام می‌شود.")
         OutlinedTextField(body, { body = it }, label = { Text("متن پیامک بانکی") }, minLines = 7, modifier = Modifier.fillMaxWidth())
         Button(onClick = {
+            // با پایان ورود متن، فوکوس را هم آزاد می‌کنیم؛ hide به‌تنهایی در بعضی
+            // کیبوردها (از جمله MIUI) با recomposition دوباره صفحه‌کلید را باز می‌کند.
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
             val extracted = Extractor.autoExtract(body)
             result = extracted
             accountId = when (val match = AccountNumberMatcher.match(body, active.map {

@@ -85,21 +85,18 @@ fun LoansScreen(vm:AppViewModel) {
    shown.forEach { loan ->
     val rows=installments.filter { it.loanId==loan.id }
     val paid=rows.count { it.paid }
-    val lent=loan.kind==LoanKind.LENT
-    val accent=if(lent) Color(0xFF20A565) else Color(0xFFE14B55)
-    Card(
-     colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.10f)),
-     modifier=Modifier.fillMaxWidth().border(1.4.dp,accent,RoundedCornerShape(16.dp)).clickable { selectedLoanId=loan.id }
-    ) {
-     Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-       Text(loan.title,style=MaterialTheme.typography.titleMedium)
-       Text(if(lent) "وام پرداختی" else "وام دریافتی",color=accent,style=MaterialTheme.typography.labelLarge)
-      }
-      Text(loan.party)
-      Text("${Digits.toPersian(paid.toString())} از ${Digits.toPersian(loan.installmentCount.toString())} قسط پرداخت شده",style=MaterialTheme.typography.bodySmall)
-     }
-    }
+    val paidAmount=rows.filter { it.paid }.sumOf { it.amountRial }
+    val remaining=rows.filterNot { it.paid }.sumOf { it.amountRial }
+    val nextDue=rows.filterNot { it.paid }.minByOrNull { it.number }?.dueAt
+    ModernLoanCard(
+     loan=loan,
+     paidCount=paid,
+     paidAmount=paidAmount,
+     remaining=remaining,
+     nextDueAt=nextDue,
+     moneyUnit=settings.moneyUnit,
+     onClick={selectedLoanId=loan.id}
+    )
    }
   }
   FloatingActionButton(
@@ -110,6 +107,30 @@ fun LoansScreen(vm:AppViewModel) {
  }
  if(showChooser)ModernChoiceDialog("نوع وام","جهت پرداخت و بازپرداخت وام را انتخاب کنید",listOf(ModernChoiceOption("وام پرداختی","مبلغی که شما به شخص دیگری وام می‌دهید",Color(0xFF1B8F52),Icons.Filled.NorthEast){showChooser=false;entryKind=LoanKind.LENT},ModernChoiceOption("وام دریافتی","مبلغی که از شخص یا مؤسسه دریافت می‌کنید",Color(0xFFD33B45),Icons.Filled.SouthWest){showChooser=false;entryKind=LoanKind.BORROWED}),{showChooser=false})
 }
+
+@Composable
+private fun ModernLoanCard(loan:LoanEntity,paidCount:Int,paidAmount:Long,remaining:Long,nextDueAt:Long?,moneyUnit:ir.kharjyar.app.core.money.MoneyUnit,onClick:()->Unit){
+ val lent=loan.kind==LoanKind.LENT
+ val accent=if(lent)Color(0xFF159B73) else Color(0xFFE0525E)
+ val progress=(paidCount.toFloat()/loan.installmentCount.coerceAtLeast(1)).coerceIn(0f,1f)
+ Card(modifier=Modifier.fillMaxWidth().border(1.dp,accent.copy(.32f),RoundedCornerShape(24.dp)).clickable(onClick=onClick),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=Color.Transparent),elevation=CardDefaults.cardElevation(3.dp)){
+  Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(accent.copy(.17f),MaterialTheme.colorScheme.surface,MaterialTheme.colorScheme.surface))).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
+    Box(Modifier.size(50.dp).background(accent.copy(.16f),RoundedCornerShape(16.dp)).border(1.dp,accent.copy(.34f),RoundedCornerShape(16.dp)),contentAlignment=Alignment.Center){Icon(if(lent)Icons.Filled.NorthEast else Icons.Filled.SouthWest,null,tint=accent,modifier=Modifier.size(27.dp))}
+    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){Text(loan.title,style=MaterialTheme.typography.titleMedium);Text((if(lent)"وام‌گیرنده: " else "وام‌دهنده: ")+loan.party,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+    Surface(color=accent.copy(.13f),shape=RoundedCornerShape(50),border=BorderStroke(1.dp,accent.copy(.25f))){Text(if(lent)"وام پرداختی" else "وام دریافتی",Modifier.padding(horizontal=10.dp,vertical=5.dp),color=accent,style=MaterialTheme.typography.labelMedium)}
+   }
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp)){
+    LoanMetricTile("پرداخت‌شده",Money.format(paidAmount,moneyUnit),Color(0xFF159B73),Icons.Filled.CheckCircle,Modifier.weight(1f))
+    LoanMetricTile("مانده اقساط",Money.format(remaining,moneyUnit),if(remaining>0)accent else Color(0xFF159B73),Icons.Filled.Payments,Modifier.weight(1f))
+   }
+   Column(verticalArrangement=Arrangement.spacedBy(6.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("پیشرفت بازپرداخت",style=MaterialTheme.typography.labelMedium);Text("${Digits.toPersian(paidCount.toString())} از ${Digits.toPersian(loan.installmentCount.toString())} قسط",style=MaterialTheme.typography.labelMedium,color=accent)};Box(Modifier.fillMaxWidth().height(7.dp).background(accent.copy(.12f),RoundedCornerShape(50))){Box(Modifier.fillMaxWidth(progress).height(7.dp).background(accent,RoundedCornerShape(50)))}}
+   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Filled.EventAvailable,null,tint=accent,modifier=Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(if(nextDueAt!=null)"قسط بعدی: ${PersianDate.fromMillis(nextDueAt).format()}" else "همه اقساط پرداخت شده",Modifier.weight(1f),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text("مشاهده جزئیات",style=MaterialTheme.typography.labelSmall,color=accent);Icon(Icons.Filled.ChevronLeft,null,tint=accent)}
+  }
+ }
+}
+
+@Composable private fun LoanMetricTile(title:String,value:String,accent:Color,icon:androidx.compose.ui.graphics.vector.ImageVector,modifier:Modifier=Modifier){Surface(modifier=modifier,color=accent.copy(.08f),shape=RoundedCornerShape(15.dp),border=BorderStroke(1.dp,accent.copy(.18f))){Column(Modifier.padding(11.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){Icon(icon,null,tint=accent,modifier=Modifier.size(17.dp));Text(title,style=MaterialTheme.typography.labelSmall,color=accent)};Text(value,style=MaterialTheme.typography.titleSmall)}}}
 
 @Composable
 private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<LoanInstallmentEntity>,onBack:()->Unit) {
@@ -126,7 +147,7 @@ private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<Lo
   verticalArrangement=Arrangement.spacedBy(12.dp)
  ) {
   TextButton(onBack) { Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به فهرست وام‌ها") }
-  Text(loan.title,style=MaterialTheme.typography.headlineSmall)
+  ModernSummaryHero(loan.title,if(lent)"وام پرداختی به ${loan.party}" else "وام دریافتی از ${loan.party}",accent,listOf(SummaryMetric("پرداخت‌شده",Money.format(paidAmount,settings.moneyUnit),Color(0xFF159B73),Icons.Filled.CheckCircle),SummaryMetric("مانده",Money.format(remaining,settings.moneyUnit),accent,Icons.Filled.Payments)),if(lent)Icons.Filled.NorthEast else Icons.Filled.SouthWest)
   Card(
    colors=CardDefaults.cardColors(containerColor=Color.Transparent),
    shape=RoundedCornerShape(24.dp),
@@ -157,17 +178,17 @@ private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<Lo
   } ?: Text("تمام اقساط پرداخت شده است",color=accent)
 
   HorizontalDivider()
-  Text("اقساط پرداخت‌شده",style=MaterialTheme.typography.titleMedium)
-  if(paidRows.isEmpty()) {
-   Text("هنوز قسطی پرداخت نشده است.",color=MaterialTheme.colorScheme.onSurfaceVariant)
-  } else paidRows.forEach { installment ->
-   Card(colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.08f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().border(1.dp,accent.copy(alpha=.32f),RoundedCornerShape(18.dp))) {
-    Row(Modifier.fillMaxWidth().padding(14.dp),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
-     Column(verticalArrangement=Arrangement.spacedBy(3.dp)) {
+  Text("برنامه اقساط",style=MaterialTheme.typography.titleMedium)
+  installments.sortedBy { it.number }.forEach { installment ->
+   val rowAccent=if(installment.paid)Color(0xFF159B73) else accent
+   Card(colors=CardDefaults.cardColors(containerColor=Color.Transparent),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().border(1.dp,rowAccent.copy(alpha=.28f),RoundedCornerShape(18.dp))) {
+    Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(rowAccent.copy(.11f),MaterialTheme.colorScheme.surface))).padding(14.dp),horizontalArrangement=Arrangement.spacedBy(10.dp),verticalAlignment=Alignment.CenterVertically) {
+     Box(Modifier.size(40.dp).background(rowAccent.copy(.14f),RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Icon(if(installment.paid)Icons.Filled.CheckCircle else Icons.Filled.Schedule,null,tint=rowAccent)}
+     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
       Text("قسط ${Digits.toPersian(installment.number.toString())}",style=MaterialTheme.typography.titleSmall)
-      Text("تاریخ پرداخت: ${PersianDate.fromMillis(installment.paidAt?:installment.dueAt).format()}",style=MaterialTheme.typography.bodySmall)
+      Text(if(installment.paid)"پرداخت‌شده در ${PersianDate.fromMillis(installment.paidAt?:installment.dueAt).format()}" else "سررسید ${PersianDate.fromMillis(installment.dueAt).format()}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
      }
-     Text(Money.format(installment.amountRial,settings.moneyUnit),color=accent)
+     Column(horizontalAlignment=Alignment.End,verticalArrangement=Arrangement.spacedBy(4.dp)){Text(Money.format(installment.amountRial,settings.moneyUnit),color=rowAccent);Surface(color=rowAccent.copy(.13f),shape=RoundedCornerShape(50)){Text(if(installment.paid)"پرداخت‌شده" else "در انتظار",Modifier.padding(horizontal=8.dp,vertical=3.dp),style=MaterialTheme.typography.labelSmall,color=rowAccent)}}
     }
    }
   }

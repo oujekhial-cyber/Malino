@@ -21,5 +21,6 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM checks ORDER BY status, dueAt") fun observeAll(): Flow<List<CheckEntity>>
     @Insert suspend fun insert(v: CheckEntity): Long
     @Update suspend fun update(v: CheckEntity)
+    @Delete suspend fun delete(v: CheckEntity)
     @Query("SELECT * FROM checks WHERE status = 0 AND reminderAt IS NOT NULL AND reminderAt <= :until") suspend fun dueReminders(until: Long): List<CheckEntity>
 }

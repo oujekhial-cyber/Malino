@@ -83,7 +83,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -97,8 +96,6 @@ import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -355,12 +352,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 var dragTargetIndex by remember { mutableStateOf(-1) }
                 var floatingX by remember { mutableStateOf(0f) }
                 var floatingY by remember { mutableStateOf(0f) }
-                var floatingOriginX by remember { mutableStateOf(0f) }
-                var floatingOriginY by remember { mutableStateOf(0f) }
-                var hoverTargetIndex by remember { mutableStateOf(-1) }
-                var reorderStepJob by remember { mutableStateOf<Job?>(null) }
-                val edgeThresholdPx=with(LocalDensity.current){52.dp.toPx()}
-                val screenWidthPx=with(LocalDensity.current){LocalConfiguration.current.screenWidthDp.dp.toPx()}
+                // مانند کارت‌های پلاک: مقصد مستقیماً از فاصله تجمعی drag محاسبه می‌شود
+                // و کارت‌های بین مبدأ و مقصد زنده و نرم به خانه خالی حرکت می‌کنند.
                 // مختصات فیزیکی slot هر کارت؛ محاسبه مقصد بر پایه موقعیت واقعی است،
                 // بنابراین در RTL و LTR و با عبور از چند کارت یکسان رفتار می‌کند.
                 val accountCardX = remember { mutableMapOf<Long, Float>() }
@@ -534,8 +527,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 else (accountCardX[targetSlotId] ?: 0f) - (accountCardX[account.id] ?: 0f)
                             val neighborOffset by animateFloatAsState(
                                 targetValue = liveShiftPx,
-                                animationSpec = tween(durationMillis = 560),
-                                label = "neighborCardSlowShift"
+                                animationSpec = tween(durationMillis = 620),
+                                label = "accountNeighborSettleLikeVehicle"
                             )
                             val est = AccountBalance.estimate(account, allTx)
                             val accSum = rangeSummary(account.id)
@@ -543,9 +536,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                             val hasDiscrepancy = est.rial != null && bankSnapshot != null && est.rial != bankSnapshot.balanceRial
                             // رنگ متن روی کارت، مثل خود BankCard از روشنایی رنگ حساب می‌آید
                             val onCard = if (account.accountType == ir.kharjyar.app.data.db.AccountType.CASH) Color.White else if (Color(account.colorArgb).luminance() > 0.55f) Color(0xFF14121A) else Color.White
-                            // مختصات هر کارت مستقل نگه داشته می‌شود؛ یک مختصات مشترک بین
-                            // کارت‌ها باعث می‌شد کارت شناور هنگام شروع در محل کارت دیگری ظاهر شود.
-                            var cardWindowPosition by remember(account.id) { mutableStateOf(Offset.Zero) }
                             BankCard(
                                 title = account.title,
                                 bankName = account.bankName,
@@ -571,90 +561,50 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 modifier = Modifier
                                     .width(pageWidth)
                                     .height(compactAccountCardHeight)
-                                    .animateItemPlacement(animationSpec = tween(durationMillis = 480))
+                                    .animateItemPlacement(animationSpec = tween(durationMillis = 760))
                                     .onGloballyPositioned { coordinates ->
                                         val physical = coordinates.positionInWindow()
                                         accountCardX[account.id] = physical.x
                                         accountCardWidth[account.id] = coordinates.size.width.toFloat()
-                                        if (!isDragging) cardWindowPosition = physical
                                     }
                                     .graphicsLayer {
-                                        translationX = neighborOffset
-                                        alpha = if (isDragging) 0f else 1f
+                                        translationX = if (isDragging) floatingX else neighborOffset
+                                        scaleX = if (isDragging) 1.018f else 1f
+                                        scaleY = if (isDragging) 1.018f else 1f
+                                        shadowElevation = if (isDragging) 18f else 0f
+                                        alpha = 1f
                                     }
                                     .pointerInput(account.id, active.map { it.id }) {
                                         detectDragGesturesAfterLongPress(
                                             onDragStart = {
-                                                floatingOriginX = cardWindowPosition.x
-                                                floatingOriginY = cardWindowPosition.y
                                                 draggingId = account.id
                                                 dragOriginIndex = idx
                                                 dragTargetIndex = idx
                                                 floatingX = 0f
                                                 floatingY = 0f
-                                                hoverTargetIndex=idx
-                                                reorderStepJob?.cancel();reorderStepJob=null
+                                                // مقصد در شروع همان خانه مبدأ است؛ حرکت جزئی ترتیب را عوض نمی‌کند.
                                             },
                                             onDrag = { change, amount ->
                                                 change.consume()
                                                 floatingX += amount.x
                                                 floatingY += amount.y
-                                                // مرکز کارت شناور با مرکز همه slotهای واقعی مقایسه می‌شود.
-                                                // نزدیک‌ترین slot مقصد است؛ در یک حرکت می‌توان از هر تعداد
-                                                // کارت عبور کرد و جهت فیزیکی چپ/راست وابسته به RTL نیست.
-                                                val draggedCenter = floatingOriginX + floatingX +
-                                                    (accountCardWidth[account.id] ?: size.width.toFloat()) / 2f
-                                                val physicalStep = size.width.toFloat() + 10.dp.toPx()
-                                                val indexDirection = if (dashboardLayoutDirection == LayoutDirection.Rtl) -1f else 1f
-                                                val nearestTarget = active.indices.minByOrNull { candidate ->
-                                                    val candidateId = active[candidate].id
-                                                    // کارت‌های خارج viewport هنوز compose نشده‌اند؛ مرکز slot آن‌ها
-                                                    // از فاصله ثابت صفحات extrapolate می‌شود تا عبور چندکارتی ممکن باشد.
-                                                    val fallbackLeft = floatingOriginX +
-                                                        (candidate - dragOriginIndex) * physicalStep * indexDirection
-                                                    val center = (accountCardX[candidateId] ?: fallbackLeft) +
-                                                        (accountCardWidth[candidateId] ?: size.width.toFloat()) / 2f
-                                                    kotlin.math.abs(center - draggedCenter)
-                                                } ?: dragOriginIndex
-                                                val physicalEdge=when{draggedCenter<edgeThresholdPx->-1;draggedCenter>screenWidthPx-edgeThresholdPx->1;else->0}
-                                                val logicalEdge=physicalEdge*(if(dashboardLayoutDirection==LayoutDirection.Rtl)-1 else 1)
-                                                val desiredTarget=when{logicalEdge<0->active.indices.first;logicalEdge>0->active.indices.last;else->nearestTarget}
-
-                                                // مقصد فقط به‌صورت یک خانه در هر مرحله تغییر می‌کند. بین دو مرحله
-                                                // ۶۸۰ms مکث داریم تا کارت کناری فرصت کند طی انیمیشن نرم جای خالی را
-                                                // پر کند و کاربر بتواند همان‌جا رها کند یا مسیر را برگرداند.
-                                                if(desiredTarget!=hoverTargetIndex){
-                                                    hoverTargetIndex=desiredTarget
-                                                    reorderStepJob?.cancel();reorderStepJob=null
-                                                    if(desiredTarget!=dragTargetIndex) reorderStepJob=scope.launch{
-                                                        while(draggingId==account.id&&dragTargetIndex!=hoverTargetIndex){
-                                                            delay(680)
-                                                            if(draggingId!=account.id) break
-                                                            val step=if(hoverTargetIndex>dragTargetIndex)1 else -1
-                                                            dragTargetIndex=(dragTargetIndex+step).coerceIn(active.indices)
-                                                            // حین نگه‌داشتن LazyRow را اسکرول نمی‌کنیم؛ خارج‌شدن
-                                                            // آیتم مبدأ از viewport، pointer را cancel و کارت را خودکار رها می‌کرد.
-                                                        }
-                                                    }
-                                                }
+                                                // دقیقاً مانند پلاک‌ها: نسبت فاصله تجمعی به پهنای متوسط کارت
+                                                // می‌تواند در یک لمس از هر تعداد کارت عبور کند و با برگشت انگشت
+                                                // مقصد نیز بی‌درنگ در جهت معکوس برمی‌گردد.
+                                                val physicalStep=(accountCardWidth[account.id]?:size.width.toFloat())+10.dp.toPx()
+                                                val indexDirection=if(dashboardLayoutDirection==LayoutDirection.Rtl)-1f else 1f
+                                                dragTargetIndex=(dragOriginIndex+kotlin.math.round(floatingX/(physicalStep*indexDirection)).toInt()).coerceIn(active.indices)
                                             },
                                             onDragEnd = {
                                                 if (dragOriginIndex >= 0 && dragTargetIndex >= 0 && dragOriginIndex != dragTargetIndex) {
                                                     val ids = active.map { it.id }.toMutableList()
                                                     ids.removeAt(dragOriginIndex)
                                                     ids.add(dragTargetIndex, account.id)
-                                                    val settledIndex=dragTargetIndex
-                                                    scope.launch {
-                                                        viewModel.settingsRepo.setDashboardAccountOrder(ids)
-                                                        // پیمایش فقط بعد از برداشتن انگشت انجام می‌شود؛ بنابراین
-                                                        // gesture تا آخر در اختیار کاربر می‌ماند.
-                                                        rowState.animateScrollToItem(settledIndex+1)
-                                                    }
+                                                    scope.launch { viewModel.settingsRepo.setDashboardAccountOrder(ids) }
                                                 }
-                                                reorderStepJob?.cancel();reorderStepJob=null;hoverTargetIndex=-1
-                                                draggingId = null; floatingX = 0f; floatingY = 0f
+                                                draggingId = null; floatingX = 0f; floatingY = 0f;dragOriginIndex=-1;dragTargetIndex=-1
                                             },
-                                            onDragCancel = { reorderStepJob?.cancel();reorderStepJob=null;hoverTargetIndex=-1;draggingId = null; floatingX = 0f; floatingY = 0f }
+                                            onDragCancel = { draggingId = null; floatingX = 0f; floatingY = 0f;dragOriginIndex=-1;dragTargetIndex=-1 }
                                         )
                                     },
                                 onClick = {
@@ -692,51 +642,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
                                     onRefresh = { requestBalanceRefresh(account) }
                                 )
-                            }
-                            if (isDragging) {
-                                Popup(
-                                    // offset در overload مبتنی بر Alignment داخل RTL دوباره آینه می‌شود.
-                                    // PositionProvider مختصات فیزیکی پنجره را مستقیماً برمی‌گرداند تا
-                                    // حرکت چپ/راست کارت دقیقاً هم‌جهت حرکت انگشت باقی بماند.
-                                    popupPositionProvider = object : PopupPositionProvider {
-                                        override fun calculatePosition(
-                                            anchorBounds: androidx.compose.ui.unit.IntRect,
-                                            windowSize: IntSize,
-                                            layoutDirection: LayoutDirection,
-                                            popupContentSize: IntSize
-                                        ): IntOffset = IntOffset(
-                                            (floatingOriginX + floatingX).roundToInt(),
-                                            (floatingOriginY + floatingY).roundToInt()
-                                        )
-                                    },
-                                    properties = PopupProperties(focusable = false, clippingEnabled = false)
-                                ) {
-                                    BankCard(
-                                        account = account,
-                                        balanceText = when {
-                                            !amountVisible -> "••••••"
-                                            est.rial != null -> Money.format(est.rial, settings.moneyUnit)
-                                            else -> "—"
-                                        },
-                                        balanceCaption = "مانده برآوردی",
-                                        selected = defaultAccount?.id == account.id,
-                                        masked = !amountVisible,
-                                        showDetailsWhenSelected = false,
-                                        modifier = Modifier.width(pageWidth).height(compactAccountCardHeight).graphicsLayer {
-                                            // اندازه در شروع Drag تغییر نمی‌کند تا نقطه‌ای که کاربر
-                                            // گرفته دقیقاً زیر همان نقطه انگشت باقی بماند.
-                                            scaleX = 1f
-                                            scaleY = 1f
-                                            // شکل سایه دقیقاً با گوشه‌های گرد کارت یکی است؛ رنگ کم‌غلظت
-                                            // و ارتفاع بیشتر، لبه خطی را به هاله نرم تبدیل می‌کند.
-                                            shape = RoundedCornerShape(22.dp)
-                                            clip = false
-                                            shadowElevation = 34.dp.toPx()
-                                            ambientShadowColor = Color.Black.copy(alpha = 0.20f)
-                                            spotShadowColor = Color.Black.copy(alpha = 0.28f)
-                                        }
-                                    )
-                                }
                             }
                         }
 

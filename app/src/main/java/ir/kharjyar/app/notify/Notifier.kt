@@ -43,6 +43,8 @@ object Notifier {
                     .build()
             )
             .setContentIntent(pi)
+            // همان پیش‌نویس با اقدام صریح اعلان مستقیماً در فرم قابل‌ویرایش باز می‌شود.
+            .addAction(android.R.drawable.ic_menu_edit, "ویرایش و تکمیل", pi)
             .setAutoCancel(true)
             .build()
         manager(context).notify(TAG_TX, smsId.toInt(), n)

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -249,7 +250,69 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                     }
                 }
             }
-            OutlinedButton({nav.navigate("accountEdit/0")},Modifier.fillMaxWidth()){Text("افزودن حساب جدید")}
+            // فراخوان افزودن حساب، هم‌رنگ پوسته فعال و هم‌خانواده کارت‌های برنامه است.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = .96f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = .88f)
+                            )
+                        )
+                    )
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.onPrimary.copy(alpha = .22f),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .clickable { nav.navigate("accountEdit/0") }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = .18f),
+                            CircleShape
+                        )
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = .26f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(25.dp)
+                    )
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "افزودن حساب جدید",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                        "حساب بانکی یا صندوق نقدی",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = .78f)
+                    )
+                }
+                Icon(
+                    Icons.Filled.ChevronLeft,
+                    contentDescription = "افزودن حساب جدید",
+                    tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = .9f),
+                    modifier = Modifier.size(23.dp)
+                )
+            }
             Text("برای ویرایش هر حساب، کارت آن را لمس کنید.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         }

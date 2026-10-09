@@ -1,16 +1,28 @@
 package ir.kharjyar.app
-import java.io.File
+
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+
 class CategoryLongPressReorderGuardTest {
- @Test fun `categories persist long press vertical reorder`() {
+ @Test fun `category reorder mirrors vehicle card motion without mutating lazy list during drag`() {
   val ui=File("src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt").readText()
-  val entity=File("src/main/java/ir/kharjyar/app/data/db/Entities.kt").readText()
-  val dao=File("src/main/java/ir/kharjyar/app/data/db/Daos.kt").readText()
-  val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
-  listOf("detectDragGesturesAfterLongPress","orderedCategories.removeAt","orderedCategories.add","setSortOrder(item.id,position)","Icons.Filled.DragHandle","لمس و نگه دارید").forEach{assertTrue(it,ui.contains(it))}
-  assertTrue(entity.contains("val sortOrder: Int = 0"))
-  assertTrue(dao.contains("ORDER BY sortOrder, name")&&dao.contains("suspend fun setSortOrder"))
-  assertTrue(db.contains("version = 19")&&db.contains("MIGRATION_17_18"))
+  listOf(
+   "detectDragGesturesAfterLongPress",
+   "categoryDragY += amount.y",
+   "kotlin.math.round(categoryDragY / liveStep)",
+   "categoryNeighborSettleLikeVehicle",
+   "animationSpec = tween(620)",
+   "animateItemPlacement(animationSpec = tween(760))",
+   "translationY = if (dragging) categoryDragY else neighborY",
+   "ids.removeAt(startIndex)",
+   "ids.add(targetIndex, category.id)",
+   "setSortOrder(id, position)",
+   "Icons.Filled.DragHandle",
+   "لمس و نگه دارید"
+  ).forEach{assertTrue(it,ui.contains(it))}
+  assertFalse("SnapshotStateList mutation during pointer drag caused the crash",ui.contains("orderedCategories.removeAt(current)"))
+  assertFalse(ui.contains("orderedCategories.add(current"))
  }
 }

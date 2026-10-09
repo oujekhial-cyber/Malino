@@ -141,6 +141,9 @@ fun ReviewScreen(viewModel: AppViewModel, nav: NavHostController) {
                             ) {
                                 AssistChip(onClick = {}, label = { Text(label) })
                                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    if (sms.status == SmsStatus.DRAFT_READY) {
+                                        TextButton(onClick = open) { Text("ویرایش و تکمیل") }
+                                    }
                                     // علامت‌گذاری فرستنده به‌عنوان تبلیغاتی:
                                     // پیام‌های بعدی همین فرستنده خودکار نادیده گرفته می‌شوند
                                     TextButton(onClick = { adSender = sms.sender }) {

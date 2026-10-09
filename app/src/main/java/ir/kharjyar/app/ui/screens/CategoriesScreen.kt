@@ -1,5 +1,7 @@
 package ir.kharjyar.app.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -37,7 +39,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -45,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -77,12 +82,20 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var editRule by remember { mutableStateOf<CategoryRuleEntity?>(null) }
     var pendingRuleDelete by remember { mutableStateOf<CategoryRuleEntity?>(null) }
     val snackbar = remember { SnackbarHostState() }
-    val orderedCategories = remember { mutableStateListOf<CategoryEntity>() }
+    var categoryOrder by remember { mutableStateOf<List<Long>>(emptyList()) }
     var draggingCategoryId by remember { mutableStateOf<Long?>(null) }
-    val dragStepPx = with(LocalDensity.current) { 68.dp.toPx() }
-    LaunchedEffect(categories,draggingCategoryId) {
-        if(draggingCategoryId==null){orderedCategories.clear();orderedCategories.addAll(categories)}
+    var categoryDragY by remember { mutableFloatStateOf(0f) }
+    var categoryDragStart by remember { mutableIntStateOf(-1) }
+    var categoryDragTarget by remember { mutableIntStateOf(-1) }
+    val categoryHeights = remember { mutableStateMapOf<Long, Float>() }
+    LaunchedEffect(categories.map { it.id }) {
+        if (draggingCategoryId == null) {
+            val valid = categoryOrder.filter { id -> categories.any { it.id == id } }
+            categoryOrder = valid + categories.map { it.id }.filterNot { it in valid }
+        }
     }
+    val orderedCategories = categoryOrder.mapNotNull { id -> categories.firstOrNull { it.id == id } } +
+        categories.filterNot { it.id in categoryOrder }
 
     /** حذف قانون با امکان بازگرداندن. */
     fun deleteRuleWithUndo(rule: CategoryRuleEntity) {
@@ -154,30 +167,121 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             }
             Text("برای جابه‌جایی، کارت را لمس و نگه دارید و بالا یا پایین ببرید.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(orderedCategories.size,key={orderedCategories[it].id}) { i ->
-                    val c = orderedCategories[i]
-                    var dragOffset by remember(c.id){mutableStateOf(0f)}
-                    val dragging=draggingCategoryId==c.id
+                items(orderedCategories.size, key = { orderedCategories[it].id }) { index ->
+                    val category = orderedCategories[index]
+                    val dragging = draggingCategoryId == category.id
+                    val averageHeight = categoryHeights.values.average()
+                        .takeIf { !it.isNaN() && it > 0 }
+                        ?.toFloat() ?: 68.dp.toPx()
+                    val step = averageHeight + 8.dp.toPx()
+                    val neighborDisplacement = when {
+                        draggingCategoryId == null || dragging -> 0f
+                        categoryDragStart < categoryDragTarget &&
+                            index in (categoryDragStart + 1)..categoryDragTarget -> -step
+                        categoryDragTarget < categoryDragStart &&
+                            index in categoryDragTarget until categoryDragStart -> step
+                        else -> 0f
+                    }
+                    val neighborY by animateFloatAsState(
+                        targetValue = neighborDisplacement,
+                        animationSpec = tween(620),
+                        label = "categoryNeighborSettleLikeVehicle"
+                    )
                     SwipeActionRow(
-                        onDelete = { pendingDelete = c },
-                        onEdit = { editCategory = c },
-                        removeOnDelete = false
+                        onDelete = { pendingDelete = category },
+                        onEdit = { editCategory = category },
+                        removeOnDelete = false,
+                        enabled = draggingCategoryId == null,
+                        modifier = Modifier
+                            .animateItemPlacement(animationSpec = tween(760))
+                            .onGloballyPositioned { categoryHeights[category.id] = it.size.height.toFloat() }
+                            .zIndex(if (dragging) 2f else 0f)
+                            .graphicsLayer {
+                                translationY = if (dragging) categoryDragY else neighborY
+                                scaleX = if (dragging) 1.018f else 1f
+                                scaleY = if (dragging) 1.018f else 1f
+                                shadowElevation = if (dragging) 18f else 0f
+                            }
+                            .pointerInput(category.id, orderedCategories.map { it.id }) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        draggingCategoryId = category.id
+                                        categoryDragY = 0f
+                                        categoryDragStart = orderedCategories.indexOfFirst { it.id == category.id }
+                                        categoryDragTarget = categoryDragStart
+                                    },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        categoryDragY += amount.y
+                                        val liveStep = (categoryHeights.values.average()
+                                            .takeIf { !it.isNaN() && it > 0 }
+                                            ?.toFloat() ?: size.height.toFloat()) + 8.dp.toPx()
+                                        categoryDragTarget = (categoryDragStart +
+                                            kotlin.math.round(categoryDragY / liveStep).toInt())
+                                            .coerceIn(0, orderedCategories.lastIndex.coerceAtLeast(0))
+                                    },
+                                    onDragEnd = {
+                                        val ids = orderedCategories.map { it.id }.toMutableList()
+                                        val startIndex = categoryDragStart
+                                        val targetIndex = categoryDragTarget
+                                        if (startIndex in ids.indices && targetIndex in ids.indices && startIndex != targetIndex) {
+                                            ids.removeAt(startIndex)
+                                            ids.add(targetIndex, category.id)
+                                            categoryOrder = ids
+                                            scope.launch {
+                                                ids.forEachIndexed { position, id ->
+                                                    viewModel.repo.categoryDao.setSortOrder(id, position)
+                                                }
+                                            }
+                                        }
+                                        draggingCategoryId = null
+                                        categoryDragY = 0f
+                                        categoryDragStart = -1
+                                        categoryDragTarget = -1
+                                    },
+                                    onDragCancel = {
+                                        draggingCategoryId = null
+                                        categoryDragY = 0f
+                                        categoryDragStart = -1
+                                        categoryDragTarget = -1
+                                    }
+                                )
+                            }
                     ) {
-                        SkinCard(modifier = Modifier.fillMaxWidth().zIndex(if(dragging)2f else 0f).graphicsLayer{translationY=if(dragging)dragOffset else 0f;scaleX=if(dragging)1.025f else 1f;scaleY=if(dragging)1.025f else 1f;shadowElevation=if(dragging)18.dp.toPx() else 0f}.pointerInput(c.id,orderedCategories.size){detectDragGesturesAfterLongPress(onDragStart={draggingCategoryId=c.id;dragOffset=0f},onDrag={change,amount->change.consume();dragOffset+=amount.y;var current=orderedCategories.indexOfFirst{it.id==c.id};if(dragOffset>dragStepPx&&current<orderedCategories.lastIndex){orderedCategories.removeAt(current);orderedCategories.add(current+1,c);dragOffset-=dragStepPx}else if(dragOffset< -dragStepPx&&current>0){orderedCategories.removeAt(current);orderedCategories.add(current-1,c);dragOffset+=dragStepPx}},onDragEnd={dragOffset=0f;draggingCategoryId=null;scope.launch{orderedCategories.forEachIndexed{position,item->viewModel.repo.categoryDao.setSortOrder(item.id,position)}}},onDragCancel={dragOffset=0f;draggingCategoryId=null})}.clickable { editCategory = c }) {
-                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-                                CategoryGraphic(name = c.name, color = Color(c.colorArgb), size = 42.dp)
+                        SkinCard(
+                            modifier = Modifier.fillMaxWidth().clickable { editCategory = category }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CategoryGraphic(name = category.name, color = Color(category.colorArgb), size = 42.dp)
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(c.name, style = MaterialTheme.typography.bodyLarge)
-                                    Text(if (c.builtin) "پیشنهادی خرج‌یار" else "ساخته‌شده توسط شما", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(category.name, style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        if (category.builtin) "پیشنهادی خرج‌یار" else "ساخته‌شده توسط شما",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
-                                if (c.archived) Text("بایگانی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Icon(Icons.Filled.DragHandle,"جابه‌جایی دسته",tint=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(start=6.dp))
+                                if (category.archived) Text(
+                                    "بایگانی",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Icon(
+                                    Icons.Filled.DragHandle,
+                                    "جابه‌جایی دسته",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 6.dp)
+                                )
                             }
                         }
                     }
                 }
             }
+
         } else {
             Button(onClick = { showNewRule = true }) { Text("قانون جدید") }
             Spacer(Modifier.padding(4.dp))
@@ -206,9 +310,6 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                 Switch(checked = r.enabled, onCheckedChange = { on ->
                                     scope.launch { viewModel.repo.categoryDao.updateRule(r.copy(enabled = on)) }
                                 })
-                                TextButton(onClick = { pendingRuleDelete = r }) {
-                                    Text("حذف", color = MaterialTheme.colorScheme.error)
-                                }
                             }
                         }
                         }

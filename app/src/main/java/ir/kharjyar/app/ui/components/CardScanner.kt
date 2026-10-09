@@ -277,7 +277,7 @@ fun CardScannerDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             FoundRow("شماره کارت", scan.cardNumber, group = true)
-                            FoundRow("تاریخ انقضا", scan.expiry)
+                            FoundRow("تاریخ انقضا", Digits.ltr(Digits.toPersian(ir.kharjyar.app.core.card.CardExpiry.storageToDisplay(scan.expiry))))
                             FoundRow("CVV2", scan.cvv2)
                             FoundRow("شبا", scan.iban)
                             Text(

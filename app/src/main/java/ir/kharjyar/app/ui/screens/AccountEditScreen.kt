@@ -58,6 +58,7 @@ import ir.kharjyar.app.data.db.AccountType
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.showSavedMessage
 import ir.kharjyar.app.core.card.CardScan
+import ir.kharjyar.app.core.card.CardExpiry
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.CardScannerDialog
 import ir.kharjyar.app.ui.components.ColorPicker
@@ -170,7 +171,7 @@ fun AccountEditScreen(
                 interestDestinationId = a.interestDestinationAccountId
                 maskedNumber = a.maskedNumber; archived = a.archived
                 accountNumber = a.accountNumber; iban = a.iban
-                cardNumber = a.cardNumber; cardExpiry = a.cardExpiry; cardCvv2 = a.cardCvv2
+                cardNumber = a.cardNumber; cardExpiry = CardExpiry.storageToDisplay(a.cardExpiry); cardCvv2 = a.cardCvv2
                 initialBalance = a.initialBalanceRial?.let { if (settings.moneyUnit == ir.kharjyar.app.core.money.MoneyUnit.TOMAN) Money.rialToTomanWhole(it).toString() else it.toString() } ?: ""
             }
             viewModel.repo.accountDao.sendersOf(accountId).forEach {
@@ -231,7 +232,7 @@ fun AccountEditScreen(
                 accountNumber = accountNumber,
                 iban = iban,
                 cardNumber = cardNumber,
-                cardExpiry = cardExpiry,
+                cardExpiry = CardExpiry.displayToStorage(cardExpiry),
                 cardCvv2 = cardCvv2,
                 createdAt = 0L
             ),
@@ -314,16 +315,9 @@ fun AccountEditScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = cardExpiry,
-                    onValueChange = { raw ->
-                        // فقط رقم نگه می‌داریم و ممیز را خودکار بعد از ماه می‌گذاریم
-                        val d = Digits.normalize(raw).filter(Char::isDigit).take(6)
-                        cardExpiry = when {
-                            d.length <= 2 -> d
-                            else -> d.substring(0, 2) + "/" + d.substring(2)
-                        }
-                    },
-                    label = { Text("انقضا (ماه/سال ۱۴۰۵)") },
-                    placeholder = { Text("۰۶/۱۴۰۸") },
+                    onValueChange = { cardExpiry = CardExpiry.formatDisplayInput(it) },
+                    label = { Text("انقضا (سال / ماه)") },
+                    placeholder = { Text(Digits.ltr("۱۴۰۸/۰۶")) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
                     singleLine = true
@@ -437,7 +431,7 @@ fun AccountEditScreen(
                                 bankAccountKind = bankAccountKind, monthlyInterestBearing = monthlyInterestBearing, monthlyInterestRatePercent = monthlyInterestRate.toDoubleOrNull(), interestDestinationAccountId = if(monthlyInterestBearing) interestDestinationId else null,
                                 maskedNumber = if(accountType==AccountType.BANK) maskedNumber.trim() else "",
                                 accountNumber = accountNumber.trim(), iban = iban.trim(),
-                                cardNumber = cardNumber.trim(), cardExpiry = cardExpiry.trim(),
+                                cardNumber = cardNumber.trim(), cardExpiry = CardExpiry.displayToStorage(cardExpiry),
                                 cardCvv2 = cardCvv2.trim(),
                                 initialBalanceRial = balanceRial,
                                 initialBalanceAt = if (balanceRial != null) now else null,
@@ -453,7 +447,7 @@ fun AccountEditScreen(
                                 bankAccountKind = bankAccountKind, monthlyInterestBearing = monthlyInterestBearing, monthlyInterestRatePercent = monthlyInterestRate.toDoubleOrNull(), interestDestinationAccountId = if(monthlyInterestBearing) interestDestinationId else null,
                                 maskedNumber = if(accountType==AccountType.BANK) maskedNumber.trim() else "",
                                 accountNumber = accountNumber.trim(), iban = iban.trim(),
-                                cardNumber = cardNumber.trim(), cardExpiry = cardExpiry.trim(),
+                                cardNumber = cardNumber.trim(), cardExpiry = CardExpiry.displayToStorage(cardExpiry),
                                 cardCvv2 = cardCvv2.trim(),
                                 initialBalanceRial = balanceRial,
                                 initialBalanceAt = if (balanceRial != null) (existing!!.initialBalanceAt ?: now) else null,
@@ -476,6 +470,13 @@ fun AccountEditScreen(
             modifier = Modifier.fillMaxWidth()
         ) { Text("ذخیره حساب") }
 
+        OutlinedButton(
+            onClick = { nav.popBackStack() },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (accountId > 0) "لغو ویرایش" else "انصراف")
+        }
+
         if (accountId > 0) {
             TextButton(onClick = { showDelete = true }) {
                 Text("حذف حساب", color = MaterialTheme.colorScheme.error)
@@ -490,7 +491,7 @@ fun AccountEditScreen(
                 showScanner = false
                 val filled = mutableListOf<String>()
                 if (result.cardNumber.isNotBlank()) { cardNumber = result.cardNumber; filled += "شماره کارت" }
-                if (result.expiry.isNotBlank()) { cardExpiry = result.expiry; filled += "تاریخ انقضا" }
+                if (result.expiry.isNotBlank()) { cardExpiry = CardExpiry.storageToDisplay(result.expiry); filled += "تاریخ انقضا" }
                 if (result.cvv2.isNotBlank()) { cardCvv2 = result.cvv2; filled += "CVV2" }
                 if (result.iban.isNotBlank()) { iban = result.iban; filled += "شبا" }
                 if (result.accountNumber.isNotBlank()) { accountNumber = result.accountNumber; filled += "شماره حساب" }
