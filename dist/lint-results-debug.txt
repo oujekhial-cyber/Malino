@@ -456,33 +456,36 @@ espresso = "3.6.1"
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/BlockedSendersScreen.kt:16: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
  val rows by vm.blockedSenders.collectAsState();val spam by vm.repo.db.spamSmsDao().observeAll().collectAsState(initial=emptyList());val scope=rememberCoroutineScope();var tab by remember{mutableStateOf(0)}
                                                                                                                                                                                             ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:84: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:86: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var tab by remember { mutableStateOf(0) }
                           ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:126: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:130: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var pendingDeleteUsage by remember { mutableStateOf(0) }
                                          ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:451: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/CategoriesScreen.kt:471: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var color by remember { mutableStateOf(existing?.colorArgb ?: categoryColors[0]) }
                             ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:141: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:143: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     val scope=rememberCoroutineScope();val context=LocalContext.current;var expanded by remember{mutableStateOf(false)};var panelVisible by remember{mutableStateOf(false)};var refreshKey by remember{mutableStateOf(0)};var loading by remember{mutableStateOf(false)};var gold by remember{mutableStateOf<Long?>(null)};var dollar by remember{mutableStateOf<Long?>(null)};var previousGold by remember{mutableStateOf<Long?>(null)};var previousDollar by remember{mutableStateOf<Long?>(null)};var failed by remember{mutableStateOf(false)};var stale by remember{mutableStateOf(false)};var updatedAt by remember{mutableStateOf<Long?>(null)}
                                                                                                                                                                                                        ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:262: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:264: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
     var recentFilter by remember { mutableStateOf(0) }
                                    ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:342: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:344: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
                 var dragOriginIndex by remember { mutableStateOf(-1) }
                                                   ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:343: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:345: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
                 var dragTargetIndex by remember { mutableStateOf(-1) }
                                                   ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:344: Information: Prefer mutableFloatStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:346: Information: Prefer mutableFloatStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
                 var floatingX by remember { mutableStateOf(0f) }
                                             ~~~~~~~~~~~~~~
-/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:345: Information: Prefer mutableFloatStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:347: Information: Prefer mutableFloatStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
                 var floatingY by remember { mutableStateOf(0f) }
                                             ~~~~~~~~~~~~~~
+/home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt:348: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+                var accountAutoScrollEdge by remember { mutableStateOf(0) }
+                                                        ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:35: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
  val active=accounts.filter{!it.archived};var accountId by remember{mutableStateOf<Long?>(null)};var amountText by remember{mutableStateOf("")};var direction by remember{mutableStateOf(presetDirection?:TxDirection.WITHDRAW)};var categoryId by remember{mutableStateOf<Long?>(null)};var description by remember{mutableStateOf("")};var transferToOwn by remember{mutableStateOf(true)};var targetAccountId by remember{mutableStateOf<Long?>(null)};var detailsOpen by remember{mutableStateOf(false)};var error by remember{mutableStateOf<String?>(null)};var receiptPath by remember{mutableStateOf("")}
                                                                                                                                                                           ~~~~~~~~~~~~~~
