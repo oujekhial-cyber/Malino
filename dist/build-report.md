@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: cc5a223fdcab5cf8499a94dcf244af30d485644d
-- تاریخ: 2026-10-09 09:20 UTC
-- unit tests: failure
+- commit: 5db8c94845ad01fa0bcb70366932315f73b61302
+- تاریخ: 2026-10-09 09:30 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,9 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=542 failures=2 errors=0 skipped=0
-FAIL ir.kharjyar.app.PersonDebtLedgerGuardTest.payment history retains date amount and note: java.lang.AssertionError: payment.note.ifBlank
-FAIL ir.kharjyar.app.WidgetOptionsGuardTest.home carousel snaps one card at a time: java.lang.AssertionError: چسبیدن کارت‌ها فعال نیست
+tests=542 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
