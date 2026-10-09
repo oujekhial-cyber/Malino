@@ -70,6 +70,8 @@ import ir.kharjyar.app.core.text.Digits
 import androidx.compose.runtime.LaunchedEffect
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.EmptyState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private fun normalizedCategoryName(value:String):String = Digits.normalizeForMatch(value)
@@ -93,6 +95,8 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var categoryDragY by remember { mutableFloatStateOf(0f) }
     var categoryDragStart by remember { mutableIntStateOf(-1) }
     var categoryDragTarget by remember { mutableIntStateOf(-1) }
+    var categoryAutoScrollEdge by remember { mutableIntStateOf(0) }
+    var categoryAutoScrollJob by remember { mutableStateOf<Job?>(null) }
     val categoryHeights = remember { mutableStateMapOf<Long, Float>() }
     val categoryWindowY = remember { mutableStateMapOf<Long, Float>() }
     val categoryListState = rememberScrollState()
@@ -225,13 +229,27 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                         categoryDragY = 0f
                                         categoryDragStart = orderedCategories.indexOfFirst { it.id == category.id }
                                         categoryDragTarget = categoryDragStart
+                                        categoryAutoScrollEdge=0;categoryAutoScrollJob?.cancel();categoryAutoScrollJob=null
                                     },
                                     onDrag = { change, amount ->
                                         change.consume()
                                         categoryDragY += amount.y
                                         val fingerWindowY=(categoryWindowY[category.id]?:0f)+change.position.y
                                         val edge=when{fingerWindowY<categoryEdgePx->-1;fingerWindowY>categoryWindowHeightPx-categoryEdgePx->1;else->0}
-                                        if(edge!=0)scope.launch{val consumed=categoryListState.scrollBy(edge*categoryScrollStepPx);categoryDragY+=consumed}
+                                        if(edge!=categoryAutoScrollEdge){
+                                            categoryAutoScrollEdge=edge
+                                            categoryAutoScrollJob?.cancel();categoryAutoScrollJob=null
+                                            if(edge!=0)categoryAutoScrollJob=scope.launch{
+                                                while(draggingCategoryId==category.id&&categoryAutoScrollEdge==edge){
+                                                    val consumed=categoryListState.scrollBy(edge*categoryScrollStepPx)
+                                                    if(kotlin.math.abs(consumed)<.5f)break
+                                                    categoryDragY+=consumed
+                                                    val autoStep=(categoryHeights.values.average().takeIf{!it.isNaN()&&it>0}?.toFloat()?:size.height.toFloat())+categoryGapPx
+                                                    categoryDragTarget=(categoryDragStart+kotlin.math.round(categoryDragY/autoStep).toInt()).coerceIn(0,orderedCategories.lastIndex.coerceAtLeast(0))
+                                                    delay(16)
+                                                }
+                                            }
+                                        }
                                         val liveStep = (categoryHeights.values.average()
                                             .takeIf { !it.isNaN() && it > 0 }
                                             ?.toFloat() ?: size.height.toFloat()) + categoryGapPx
@@ -253,12 +271,14 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                                 }
                                             }
                                         }
+                                        categoryAutoScrollJob?.cancel();categoryAutoScrollJob=null;categoryAutoScrollEdge=0
                                         draggingCategoryId = null
                                         categoryDragY = 0f
                                         categoryDragStart = -1
                                         categoryDragTarget = -1
                                     },
                                     onDragCancel = {
+                                        categoryAutoScrollJob?.cancel();categoryAutoScrollJob=null;categoryAutoScrollEdge=0
                                         draggingCategoryId = null
                                         categoryDragY = 0f
                                         categoryDragStart = -1

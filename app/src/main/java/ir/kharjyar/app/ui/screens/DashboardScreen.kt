@@ -96,6 +96,8 @@ import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -343,6 +345,8 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 var dragTargetIndex by remember { mutableStateOf(-1) }
                 var floatingX by remember { mutableStateOf(0f) }
                 var floatingY by remember { mutableStateOf(0f) }
+                var accountAutoScrollEdge by remember { mutableStateOf(0) }
+                var accountAutoScrollJob by remember { mutableStateOf<Job?>(null) }
                 // مانند کارت‌های پلاک: مقصد مستقیماً از فاصله تجمعی drag محاسبه می‌شود
                 // و کارت‌های بین مبدأ و مقصد زنده و نرم به خانه خالی حرکت می‌کنند.
                 // مختصات فیزیکی slot هر کارت؛ محاسبه مقصد بر پایه موقعیت واقعی است،
@@ -574,6 +578,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                 dragTargetIndex = idx
                                                 floatingX = 0f
                                                 floatingY = 0f
+                                                accountAutoScrollEdge=0;accountAutoScrollJob?.cancel();accountAutoScrollJob=null
                                                 // مقصد در شروع همان خانه مبدأ است؛ حرکت جزئی ترتیب را عوض نمی‌کند.
                                             },
                                             onDrag = { change, amount ->
@@ -587,12 +592,20 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                 val indexDirection=if(dashboardLayoutDirection==LayoutDirection.Rtl)-1f else 1f
                                                 val fingerWindowX=(accountCardX[account.id]?:0f)+change.position.x
                                                 val physicalEdge=when{fingerWindowX<accountAutoScrollEdgePx->-1;fingerWindowX>dashboardWindowWidthPx-accountAutoScrollEdgePx->1;else->0}
-                                                if(physicalEdge!=0){
-                                                    scope.launch{
-                                                        val requested=physicalEdge*accountAutoScrollStepPx*indexDirection
-                                                        val consumed=rowState.scrollBy(requested)
-                                                        // جبران جابه‌جایی محتوا، کارت را دقیقاً زیر انگشت نگه می‌دارد.
-                                                        floatingX+=consumed*indexDirection
+                                                if(physicalEdge!=accountAutoScrollEdge){
+                                                    accountAutoScrollEdge=physicalEdge
+                                                    accountAutoScrollJob?.cancel();accountAutoScrollJob=null
+                                                    if(physicalEdge!=0) accountAutoScrollJob=scope.launch{
+                                                        while(draggingId==account.id&&accountAutoScrollEdge==physicalEdge){
+                                                            val requested=physicalEdge*accountAutoScrollStepPx*indexDirection
+                                                            val consumed=rowState.scrollBy(requested)
+                                                            if(kotlin.math.abs(consumed)<.5f) break
+                                                            // پیمایش باید بخشی از مسافت drag باشد تا مقصد حتی بدون
+                                                            // حرکت دوباره انگشت، از روی کارت‌های تازه نمایان‌شده عبور کند.
+                                                            floatingX+=consumed*indexDirection
+                                                            dragTargetIndex=(dragOriginIndex+kotlin.math.round(floatingX/(physicalStep*indexDirection)).toInt()).coerceIn(active.indices)
+                                                            delay(16)
+                                                        }
                                                     }
                                                 }
                                                 dragTargetIndex=(dragOriginIndex+kotlin.math.round(floatingX/(physicalStep*indexDirection)).toInt()).coerceIn(active.indices)
@@ -604,9 +617,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                     ids.add(dragTargetIndex, account.id)
                                                     scope.launch { viewModel.settingsRepo.setDashboardAccountOrder(ids) }
                                                 }
+                                                accountAutoScrollJob?.cancel();accountAutoScrollJob=null;accountAutoScrollEdge=0
                                                 draggingId = null; floatingX = 0f; floatingY = 0f;dragOriginIndex=-1;dragTargetIndex=-1
                                             },
-                                            onDragCancel = { draggingId = null; floatingX = 0f; floatingY = 0f;dragOriginIndex=-1;dragTargetIndex=-1 }
+                                            onDragCancel = { accountAutoScrollJob?.cancel();accountAutoScrollJob=null;accountAutoScrollEdge=0;draggingId = null; floatingX = 0f; floatingY = 0f;dragOriginIndex=-1;dragTargetIndex=-1 }
                                         )
                                     },
                                 onClick = {
