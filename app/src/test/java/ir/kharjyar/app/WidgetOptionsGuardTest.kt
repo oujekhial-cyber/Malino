@@ -84,9 +84,10 @@ class WidgetOptionsGuardTest {
     }
 
     @Test
-    fun `home carousel snaps one card at a time`() {
+    fun `home account row keeps all cards composed for long range reorder`() {
         val dash = source("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt")
-        assertTrue("چسبیدن کارت‌ها فعال نیست", dash.contains("rememberSnapFlingBehavior"))
+        assertTrue("ردیف حساب‌ها اسکرول‌پذیر نیست", dash.contains("horizontalScroll(rowState)"))
+        assertTrue("همه کارت‌ها باید هنگام جابه‌جایی زنده بمانند", dash.contains("active.forEachIndexed"))
         assertTrue("پهنای ثابت صفحه کارت تعریف نشده", dash.contains("pageWidth"))
     }
 
