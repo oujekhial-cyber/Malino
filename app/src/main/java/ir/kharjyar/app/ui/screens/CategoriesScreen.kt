@@ -56,7 +56,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -99,10 +98,13 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var categoryAutoScrollJob by remember { mutableStateOf<Job?>(null) }
     val categoryHeights = remember { mutableStateMapOf<Long, Float>() }
     val categoryWindowY = remember { mutableStateMapOf<Long, Float>() }
+    var categoryViewportTop by remember { mutableFloatStateOf(0f) }
+    var categoryViewportBottom by remember { mutableFloatStateOf(Float.MAX_VALUE) }
     val categoryListState = rememberScrollState()
-    val categoryEdgePx = with(LocalDensity.current) { 56.dp.toPx() }
-    val categoryScrollStepPx = with(LocalDensity.current) { 22.dp.toPx() }
-    val categoryWindowHeightPx = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    // پیش از رسیدن انگشت به انتهای فیزیکی صفحه و هم‌زمان با ورود کارت به
+    // آخرین گزینه قابل‌دیدن، پیمایش نرم و آهسته آغاز می‌شود.
+    val categoryEdgePx = with(LocalDensity.current) { 96.dp.toPx() }
+    val categoryScrollStepPx = with(LocalDensity.current) { 7.dp.toPx() }
     LaunchedEffect(categories.map { it.id }) {
         if (draggingCategoryId == null) {
             val valid = categoryOrder.filter { id -> categories.any { it.id == id } }
@@ -186,7 +188,13 @@ fun CategoriesScreen(viewModel: AppViewModel) {
             // همه دسته‌ها هم‌زمان compose می‌شوند تا کارت مبدأ هنگام پیمایش لبه‌ای
             // از درخت UI حذف و gesture لغو نشود.
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(categoryListState),
+                modifier = Modifier
+                    .weight(1f)
+                    .onGloballyPositioned { coordinates ->
+                        categoryViewportTop = coordinates.positionInWindow().y
+                        categoryViewportBottom = categoryViewportTop + coordinates.size.height
+                    }
+                    .verticalScroll(categoryListState),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 orderedCategories.forEachIndexed { index, category ->
@@ -235,7 +243,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                         change.consume()
                                         categoryDragY += amount.y
                                         val fingerWindowY=(categoryWindowY[category.id]?:0f)+change.position.y
-                                        val edge=when{fingerWindowY<categoryEdgePx->-1;fingerWindowY>categoryWindowHeightPx-categoryEdgePx->1;else->0}
+                                        val edge=when{fingerWindowY<categoryViewportTop+categoryEdgePx->-1;fingerWindowY>categoryViewportBottom-categoryEdgePx->1;else->0}
                                         if(edge!=categoryAutoScrollEdge){
                                             categoryAutoScrollEdge=edge
                                             categoryAutoScrollJob?.cancel();categoryAutoScrollJob=null

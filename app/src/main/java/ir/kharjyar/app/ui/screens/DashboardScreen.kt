@@ -353,8 +353,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 // بنابراین در RTL و LTR و با عبور از چند کارت یکسان رفتار می‌کند.
                 val accountCardX = remember { mutableMapOf<Long, Float>() }
                 val accountCardWidth = remember { mutableMapOf<Long, Float>() }
-                val accountAutoScrollEdgePx = with(LocalDensity.current) { 54.dp.toPx() }
-                val accountAutoScrollStepPx = with(LocalDensity.current) { 22.dp.toPx() }
+                // ناحیه فعال‌سازی تقریباً از مرکز آخرین کارت قابل‌دیدن شروع می‌شود؛
+                // گام کوچک ۷dp پیمایش را آهسته و قابل‌کنترل نگه می‌دارد.
+                val accountAutoScrollEdgePx = with(LocalDensity.current) { 96.dp.toPx() }
+                val accountAutoScrollStepPx = with(LocalDensity.current) { 7.dp.toPx() }
                 val dashboardWindowWidthPx = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
 
                 EnterCard(0) {
