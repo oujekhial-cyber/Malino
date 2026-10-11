@@ -1,7 +1,7 @@
 # گزارش Build و تست (CI)
 
-- commit: 302ea32987cd01d7ff8935bf261b80c438831aae
-- تاریخ: 2026-10-09 10:25 UTC
+- commit: c87be64bb96ec75524bf2b732428f9a4f904a92c
+- تاریخ: 2026-10-11 05:30 UTC
 - unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
