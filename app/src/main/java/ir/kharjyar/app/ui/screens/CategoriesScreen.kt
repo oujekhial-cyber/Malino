@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -249,7 +248,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                                             categoryAutoScrollJob?.cancel();categoryAutoScrollJob=null
                                             if(edge!=0)categoryAutoScrollJob=scope.launch{
                                                 while(draggingCategoryId==category.id&&categoryAutoScrollEdge==edge){
-                                                    val consumed=categoryListState.scrollBy(edge*categoryScrollStepPx)
+                                                    val consumed=categoryListState.dispatchRawDelta(edge*categoryScrollStepPx)
                                                     if(kotlin.math.abs(consumed)<.5f)break
                                                     categoryDragY+=consumed
                                                     val autoStep=(categoryHeights.values.average().takeIf{!it.isNaN()&&it>0}?.toFloat()?:size.height.toFloat())+categoryGapPx

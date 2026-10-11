@@ -73,7 +73,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
@@ -600,10 +599,10 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                                     if(physicalEdge!=0) accountAutoScrollJob=scope.launch{
                                                         while(draggingId==account.id&&accountAutoScrollEdge==physicalEdge){
                                                             val requested=physicalEdge*accountAutoScrollStepPx*indexDirection
-                                                            val consumed=rowState.scrollBy(requested)
+                                                            // dispatchRawDelta عمداً از MutatorMutex متعلق به gesture والد
+                                                            // عبور می‌کند؛ گرفتن PreventUserInput خود gesture کارت را لغو می‌کرد.
+                                                            val consumed=rowState.dispatchRawDelta(requested)
                                                             if(kotlin.math.abs(consumed)<.5f) break
-                                                            // پیمایش باید بخشی از مسافت drag باشد تا مقصد حتی بدون
-                                                            // حرکت دوباره انگشت، از روی کارت‌های تازه نمایان‌شده عبور کند.
                                                             floatingX+=consumed*indexDirection
                                                             dragTargetIndex=(dragOriginIndex+kotlin.math.round(floatingX/(physicalStep*indexDirection)).toInt()).coerceIn(active.indices)
                                                             delay(16)
