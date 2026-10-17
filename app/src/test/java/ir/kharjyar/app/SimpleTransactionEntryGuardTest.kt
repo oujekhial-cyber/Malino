@@ -9,6 +9,7 @@ class SimpleTransactionEntryGuardTest{
   assertTrue(s.contains("جزئیات بیشتر")&&s.contains("AnimatedVisibility(detailsOpen)"))
   assertTrue(s.indexOf("AmountTextField")<s.indexOf("CategoryPicker"))
   assertTrue(s.contains("defaultAccount?.id")&&s.contains("ثبت سریع")&&s.contains("از پیامک"))
-  assertFalse("The confusing dual direction/nature picker must not return",s.contains("NaturePicker("))
+  val picker=File("src/main/java/ir/kharjyar/app/ui/screens/TxForm.kt").readText()
+  assertTrue("One unified flow picker must replace the confusing dual fields",picker.contains("label=\"نوع جریان مالی\"")&&!picker.contains("label = \"جهت بانکی\""))
  }
 }
