@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 6525320282a7d834d4ba27c4f117618221b49375
-- تاریخ: 2026-10-17 21:19 UTC
-- unit tests: failure
+- commit: 737bd84b637d4756364516b2b64e5bb0a4827542
+- تاریخ: 2026-10-17 21:30 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,8 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=545 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.SimpleTransactionEntryGuardTest.dailyFormIsShortAndAdvancedFieldsAreProgressive: java.lang.AssertionError: The confusing dual direction/nature picker must not return
+tests=545 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
