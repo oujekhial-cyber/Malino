@@ -178,10 +178,11 @@ class SwipeAndBankLogoGuardTest {
     @Test
     fun `entry form presents plain language and optional description`() {
         val manual = source("src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt")
-        assertTrue(manual.contains("پول به حساب آمد"))
-        assertTrue(manual.contains("پول از حساب کم شد"))
+        val picker = source("src/main/java/ir/kharjyar/app/ui/screens/TxForm.kt")
+        assertTrue(picker.contains("درآمد — پول وارد حساب شد"))
+        assertTrue(picker.contains("هزینه — پول از حساب خارج شد"))
         assertTrue(manual.contains("بابت چه بود؟ (اختیاری)"))
-        assertFalse("Technical nature picker must stay out of daily form", manual.contains("NaturePicker("))
+        assertTrue("Unified flow picker must replace separate technical fields", manual.contains("NaturePicker(nature,direction"))
     }
 
     @Test

@@ -76,61 +76,24 @@ fun AccountPicker(
     )
 }
 
-/**
- * گزینه‌های «جهت بانکی» و «ماهیت».
- *
- * @param showDirection وقتی کاربر پیش از ورود به فرم، واریز/برداشت را انتخاب کرده،
- * این بخش پنهان می‌شود و فقط ماهیتِ متناسب با همان جهت نمایش داده می‌شود.
- */
+private data class FinancialFlowChoice(val id:Int,val direction:Int,val nature:Int,val title:String)
+private val financialFlowChoices=listOf(
+    FinancialFlowChoice(1,TxDirection.DEPOSIT,TxNature.INCOME,"درآمد — پول وارد حساب شد"),
+    FinancialFlowChoice(2,TxDirection.WITHDRAW,TxNature.EXPENSE,"هزینه — پول از حساب خارج شد"),
+    FinancialFlowChoice(3,TxDirection.DEPOSIT,TxNature.TRANSFER,"انتقال ورودی — از حساب دیگر خودم"),
+    FinancialFlowChoice(4,TxDirection.WITHDRAW,TxNature.TRANSFER,"انتقال خروجی — به حساب دیگر خودم"),
+    FinancialFlowChoice(5,TxDirection.DEPOSIT,TxNature.NEUTRAL,"واریز غیر‌درآمدی — وام، وصول طلب یا برگشت وجه"),
+    FinancialFlowChoice(6,TxDirection.WITHDRAW,TxNature.NEUTRAL,"برداشت غیرهزینه‌ای — اصل بدهی، امانت یا تسویه")
+)
+
+/** یک انتخاب قابل‌فهم برای کاربر؛ جهت و ماهیت همچنان جدا و دقیق ذخیره می‌شوند. */
 @Composable
-fun NaturePicker(
-    nature: Int,
-    direction: Int,
-    onNature: (Int) -> Unit,
-    onDirection: (Int) -> Unit,
-    showDirection: Boolean = true
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (showDirection) {
-            ComboBox(
-                label = "جهت بانکی",
-                options = listOf(TxDirection.DEPOSIT, TxDirection.WITHDRAW),
-                selected = direction,
-                labelOf = { if (it == TxDirection.DEPOSIT) "واریز (پول وارد حساب شد)" else "برداشت (پول از حساب خارج شد)" },
-                onSelect = onDirection
-            )
-        }
-        val deposit = direction == TxDirection.DEPOSIT
-        val natureOptions = if (showDirection) {
-            listOf(TxNature.INCOME, TxNature.EXPENSE, TxNature.TRANSFER)
-        } else if (deposit) {
-            listOf(TxNature.INCOME, TxNature.TRANSFER)
-        } else {
-            listOf(TxNature.EXPENSE, TxNature.TRANSFER)
-        }
-        ComboBox(
-            label = if (showDirection) "ماهیت" else "این پول چه بود؟",
-            options = natureOptions,
-            selected = if (nature in natureOptions) nature else natureOptions.first(),
-            labelOf = {
-                when (it) {
-                    TxNature.INCOME -> "واریز (درآمد)"
-                    TxNature.TRANSFER -> "انتقال بین حساب‌ها"
-                    else -> "برداشت (خرج)"
-                }
-            },
-            onSelect = onNature
-        )
-        Text(
-            if (showDirection)
-                "هر واریزی درآمد نیست و هر برداشتی خرج نیست؛ مثلاً جابه‌جایی پول بین حساب‌های خودتان انتقال است."
-            else if (deposit)
-                "اگر این پول از حساب دیگر خودتان آمده، «انتقال بین حساب‌ها» را انتخاب کنید تا جزو درآمد حساب نشود."
-            else
-                "اگر این پول به حساب دیگر خودتان رفته، «انتقال بین حساب‌ها» را انتخاب کنید تا جزو خرج حساب نشود.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+fun NaturePicker(nature:Int,direction:Int,onNature:(Int)->Unit,onDirection:(Int)->Unit,showDirection:Boolean=true){
+    val compatible=if(showDirection)financialFlowChoices else financialFlowChoices.filter{it.direction==direction}
+    val selected=compatible.firstOrNull{it.direction==direction&&it.nature==nature}?:compatible.first()
+    Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
+        ComboBox(label="نوع جریان مالی",options=compatible.map{it.id},selected=selected.id,labelOf={id->compatible.first{it.id==id}.title},onSelect={id->val choice=compatible.first{it.id==id};onDirection(choice.direction);onNature(choice.nature)})
+        Text(when(selected.id){1->"موجودی و درآمد هر دو افزایش می‌یابند.";2->"موجودی و هزینه هر دو افزایش می‌یابند.";3,4->"موجودی حساب تغییر می‌کند، اما در جمع درآمد و هزینه محاسبه نمی‌شود.";5->"موجودی حساب بیشتر می‌شود، ولی این مبلغ درآمد نیست.";else->"موجودی حساب کمتر می‌شود، ولی این مبلغ هزینه مصرفی نیست."},style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

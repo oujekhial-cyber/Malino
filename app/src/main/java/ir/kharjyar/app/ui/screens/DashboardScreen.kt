@@ -36,7 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.CallMade
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -929,7 +929,7 @@ private fun SummaryChip(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            if (deposit) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+            if (deposit) Icons.Filled.CallReceived else Icons.Filled.CallMade,
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(16.dp)

@@ -18,8 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.CallMade
+import androidx.compose.material.icons.filled.CallReceived
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -322,8 +322,8 @@ private fun ValueRow(line: WidgetPreviewLine, showNumbers: Boolean, opts: Previe
         ) {
             Icon(
                 when (income) {
-                    true -> Icons.AutoMirrored.Filled.TrendingUp
-                    false -> Icons.AutoMirrored.Filled.TrendingDown
+                    true -> Icons.Filled.CallReceived
+                    false -> Icons.Filled.CallMade
                     null -> Icons.Filled.AccountBalanceWallet
                 },
                 contentDescription = null,

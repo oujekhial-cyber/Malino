@@ -31,8 +31,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.CallMade
+import androidx.compose.material.icons.filled.CallReceived
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
@@ -635,14 +635,14 @@ private fun DirectionChooserDialog(
                 ) {
                     DirectionChoiceCard(
                         title = "واریز",
-                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        icon = Icons.Filled.CallReceived,
                         tint = skin.incomeColor,
                         modifier = Modifier.weight(1f),
                         onClick = { onPick("deposit") }
                     )
                     DirectionChoiceCard(
                         title = "برداشت",
-                        icon = Icons.AutoMirrored.Filled.TrendingDown,
+                        icon = Icons.Filled.CallMade,
                         tint = skin.expenseColor,
                         modifier = Modifier.weight(1f),
                         onClick = { onPick("withdraw") }

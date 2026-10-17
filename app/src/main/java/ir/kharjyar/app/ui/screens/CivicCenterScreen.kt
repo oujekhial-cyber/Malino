@@ -1,5 +1,7 @@
 package ir.kharjyar.app.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -31,7 +33,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.date.PersianDate
-import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.*
 import ir.kharjyar.app.ui.AppViewModel
@@ -49,8 +50,9 @@ private val utilityBillTypes=listOf("آب","برق","گاز","تلفن","سای�
 @Composable
 fun CivicCenterScreen(vm:AppViewModel){
  val dao=vm.repo.db.civicDao();val messages by dao.observeMessages().collectAsState(initial=emptyList());val utilityBills by dao.observeUtilityBills().collectAsState(initial=emptyList());val people by dao.observePeople().collectAsState(initial=emptyList());val vehicles by dao.observeVehicles().collectAsState(initial=emptyList());val scope=rememberCoroutineScope()
- var selectedKind by remember{mutableStateOf<Int?>(null)};var entry by remember{mutableStateOf<Int?>(null)};var chooser by remember{mutableStateOf(false)};var utilityFilter by remember{mutableStateOf(BILL_ALL)}
- BackHandler(enabled=entry!=null||selectedKind!=null){if(entry!=null)entry=null else selectedKind=null}
+ var selectedKind by remember{mutableStateOf<Int?>(null)};var entry by remember{mutableStateOf<Int?>(null)};var chooser by remember{mutableStateOf(false)};var utilityFilter by remember{mutableStateOf(BILL_ALL)};var showRationCard by remember{mutableStateOf(false)}
+ BackHandler(enabled=entry!=null||selectedKind!=null||showRationCard){if(showRationCard)showRationCard=false else if(entry!=null)entry=null else selectedKind=null}
+ if(showRationCard){RationCardHub{showRationCard=false};return}
  if(entry==ENTRY_UTILITY_BILL){CivicBillEntry(vm,{entry=null},{entry=null});return}
  if(entry!=null){CivicProfileEntry(vm,entry!!,{entry=null},{entry=null});return}
  val sections=listOf(CivicMessageKind.TRAFFIC_FINE,CivicMessageKind.UTILITY_BILL,CivicMessageKind.INSURANCE,CivicMessageKind.ADLIRAN)
@@ -61,6 +63,8 @@ fun CivicCenterScreen(vm:AppViewModel){
     Text("بخش‌ها",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
     sections.forEach{kind->val rows=messages.filter{it.kind==kind};val accent=civicAccent(kind);Card(colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.10f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().clickable{selectedKind=kind}.border(1.2.dp,accent.copy(.65f),RoundedCornerShape(18.dp))){Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(civicSectionTitle(kind),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text("${Digits.toPersian(rows.size.toString())} مورد • ${Digits.toPersian(rows.count{!it.read}.toString())} جدید",style=MaterialTheme.typography.bodySmall)};Text("←",color=accent,style=MaterialTheme.typography.titleLarge)}}
     }
+    val rationAccent=Color(0xFFDA7A18)
+    Card(colors=CardDefaults.cardColors(containerColor=rationAccent.copy(alpha=.11f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().clickable{showRationCard=true}.border(1.2.dp,rationAccent.copy(.70f),RoundedCornerShape(18.dp))){Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Filled.ShoppingBasket,null,tint=rationAccent);Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text("کالابرگ خانواده",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text("استعلام رسمی، راهنمای شرایط و ثبت مانده",style=MaterialTheme.typography.bodySmall)};Text("←",color=rationAccent,style=MaterialTheme.typography.titleLarge)}}
 
    }else{
     val kind=selectedKind!!;val sectionMessages=messages.filter{it.kind==kind};val shown=if(kind==CivicMessageKind.UTILITY_BILL&&utilityFilter!=BILL_ALL)sectionMessages.filter{m->utilityBills.firstOrNull{it.id==m.utilityBillId}?.type==utilityFilter}else sectionMessages;val accent=civicAccent(kind)
@@ -75,6 +79,35 @@ fun CivicCenterScreen(vm:AppViewModel){
   if(selectedKind==null)ThemedFloatingActionButton({chooser=true},Modifier.align(Alignment.BottomEnd).padding(20.dp)){Icon(Icons.Filled.Add,"افزودن پروفایل")}
   if(selectedKind==CivicMessageKind.UTILITY_BILL)ThemedExtendedFloatingActionButton(text={Text("ثبت اشتراک قبض")},onClick={entry=ENTRY_UTILITY_BILL},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),icon={Icon(Icons.Filled.Add,null)})
   if(chooser)ModernChoiceDialog("افزودن پرونده","اطلاعاتی که می‌خواهید مدیریت کنید را انتخاب کنید",listOf(ModernChoiceOption("فرد تحت پوشش","ثبت مشخصات اعضای خانواده یا افراد مرتبط",Color(0xFF1B8F52),Icons.Filled.PersonAdd){chooser=false;entry=ENTRY_PERSON},ModernChoiceOption("وسیله نقلیه و پلاک","ثبت وسیله، مالک و شماره پلاک",Color(0xFF397BD5),Icons.Filled.DirectionsCar){chooser=false;entry=ENTRY_VEHICLE}),{chooser=false})
+ }
+}
+
+@Composable private fun RationCardHub(onBack:()->Unit){
+ val context=LocalContext.current
+ val prefs=remember{context.getSharedPreferences("ration_card_local",android.content.Context.MODE_PRIVATE)}
+ var members by remember{mutableStateOf(prefs.getInt("members",1).toString())}
+ var balance by remember{mutableStateOf(prefs.getLong("balance",0L).takeIf{it>0}?.toString().orEmpty())}
+ var lastChecked by remember{mutableStateOf(prefs.getString("checked","").orEmpty())}
+ val memberCount=Digits.normalize(members).filter(Char::isDigit).toIntOrNull()?.coerceIn(1,20)?:1
+ val announcedPerPerson=1_000_000L
+ val estimated=memberCount*announcedPerPerson
+ fun dial(value:String){runCatching{context.startActivity(Intent(Intent.ACTION_DIAL,Uri.parse(value)))} }
+ Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+  TextButton(onBack){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به قبوض شهروندی")}
+  ModernSummaryHero("کالابرگ خانواده","استعلام امن و مدیریت دستی اعتبار",Color(0xFFDA7A18),listOf(SummaryMetric("اعضای خانوار",Digits.toPersian(memberCount.toString()),Color(0xFFDA7A18),Icons.Filled.Groups),SummaryMetric("برآورد این مرحله","${Digits.group(estimated)} تومان",Color(0xFF1B8F52),Icons.Filled.ShoppingBasket)),Icons.Filled.ShoppingBasket)
+  Card(colors=CardDefaults.cardColors(containerColor=Color(0xFFFFF4E7)),shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("ملاک قطعی مشمول‌بودن",fontWeight=FontWeight.Bold,color=Color(0xFF9A5108));Text("فعال‌شدن اعتبار برای سرپرست خانوار در شبکه ملی اعتبار است. پیامک یا جدول دهک‌های قدیمی به‌تنهایی ملاک قطعی نیست.",style=MaterialTheme.typography.bodyMedium);Text("اعتبار نقدشدنی نیست، خرید می‌تواند در چند نوبت انجام شود و مانده استفاده‌نشده طبق اعلام طرح به دوره بعد منتقل می‌شود.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}
+  Text("استعلام رسمی",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+  Button({dial("tel:*500*1463%23")},Modifier.fillMaxWidth()){Icon(Icons.Filled.Dialpad,null);Spacer(Modifier.width(8.dp));Text("شماره‌گیری کد ‎*۵۰۰*۱۴۶۳#")}
+  OutlinedButton({dial("tel:0216369")},Modifier.fillMaxWidth()){Icon(Icons.Filled.SupportAgent,null);Spacer(Modifier.width(8.dp));Text("تماس با پشتیبانی ۰۲۱-۶۳۶۹")}
+  Text("روش‌های دیگر اعلام‌شده: برنامه شمیم، بخش کالابرگ پیام‌رسان بله و صندوق فروشگاه طرف قرارداد.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  Card(colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.errorContainer.copy(.55f))){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text("هشدار کلاهبرداری",fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.error);Text("سرشماره رسمی V.Refah است و پیامک رسمی کالابرگ لینک ندارد. کد ملی، رمز کارت یا رمز پویا را در لینک پیامکی وارد نکنید.",style=MaterialTheme.typography.bodySmall)}}
+  Text("دفترچه محلی کالابرگ",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+  Text("این اطلاعات فقط روی همین گوشی ذخیره می‌شود و استعلام دولتی محسوب نمی‌شود.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  OutlinedTextField(members,{members=Digits.normalize(it).filter(Char::isDigit).take(2)},label={Text("تعداد اعضای خانوار")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  OutlinedTextField(balance,{balance=Digits.normalize(it).filter(Char::isDigit).take(12)},label={Text("مانده‌ای که از مسیر رسمی دیده‌اید (تومان)")},supportingText={Text(balance.toLongOrNull()?.let{"${Digits.group(it)} تومان"}?:"—")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  OutlinedTextField(lastChecked,{lastChecked=it.take(40)},label={Text("تاریخ آخرین استعلام (مثلاً ۲۵ مهر ۱۴۰۵)")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  Button({prefs.edit().putInt("members",memberCount).putLong("balance",balance.toLongOrNull()?:0L).putString("checked",lastChecked.trim()).apply();showSavedMessage(context,"اطلاعات کالابرگ")},Modifier.fillMaxWidth()){Text("ذخیره اطلاعات روی دستگاه")}
+  Text("اقلام طرح معمولاً سبد کالاهای اساسی مانند لبنیات، گوشت، مرغ، تخم‌مرغ، حبوبات، برنج، روغن، ماکارونی، قند و شکر را پوشش می‌دهد؛ فهرست قطعی و مهلت هر مرحله را هنگام استعلام رسمی بررسی کنید.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
  }
 }
 

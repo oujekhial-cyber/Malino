@@ -191,6 +191,8 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
                 Text(
                     when {
                         nature == TxNature.TRANSFER -> "انتقال بابت چه بود؟"
+                        nature == TxNature.NEUTRAL && direction == TxDirection.DEPOSIT -> "این واریز غیر‌درآمدی بابت چه بود؟"
+                        nature == TxNature.NEUTRAL -> "این برداشت غیرهزینه‌ای بابت چه بود؟"
                         direction == TxDirection.DEPOSIT -> "واریز بابت چه بود؟"
                         else -> "خرید بابت چه بود؟"
                     }

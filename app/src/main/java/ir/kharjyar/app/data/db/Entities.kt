@@ -154,6 +154,8 @@ object TxNature {
     const val INCOME = 1
     const val EXPENSE = 2
     const val TRANSFER = 3
+    /** موجودی را تغییر می‌دهد، اما در جمع درآمد/هزینه وارد نمی‌شود؛ مثل دریافت اصل وام یا وصول اصل طلب. */
+    const val NEUTRAL = 4
 }
 
 object TxStatus {

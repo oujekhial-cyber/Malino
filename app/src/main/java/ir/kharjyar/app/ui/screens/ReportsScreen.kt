@@ -24,7 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.CallMade
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -138,6 +138,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
                                         TxNature.INCOME -> "واریز"
                                         TxNature.EXPENSE -> "برداشت"
                                         TxNature.TRANSFER -> "انتقال"
+                                        TxNature.NEUTRAL -> if(tx.direction==TxDirection.DEPOSIT) "واریز غیر‌درآمدی" else "برداشت غیرهزینه‌ای"
                                         else -> if (tx.direction == TxDirection.DEPOSIT) "واریز (تأییدنشده)" else "برداشت (تأییدنشده)"
                                     } + if (tx.status == TxStatus.PENDING) " *" else "",
                                     amountText = Money.format(tx.amountRial, settings.moneyUnit)
@@ -197,7 +198,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
                                 ExcelExporter.Row(
                                     date = PersianDate.formatDateTime(tx.occurredAt),
                                     account = account?.title ?: "؟",
-                                    type = when (tx.nature) { TxNature.INCOME -> "واریز"; TxNature.EXPENSE -> "برداشت"; TxNature.TRANSFER -> "انتقال"; else -> "تأییدنشده" },
+                                    type = when (tx.nature) { TxNature.INCOME -> "واریز"; TxNature.EXPENSE -> "برداشت"; TxNature.TRANSFER -> "انتقال"; TxNature.NEUTRAL -> if(tx.direction==TxDirection.DEPOSIT)"واریز غیر‌درآمدی" else "برداشت غیرهزینه‌ای"; else -> "تأییدنشده" },
                                     category = categories.firstOrNull { it.id == tx.categoryId }?.name ?: "",
                                     description = tx.description,
                                     amount = Money.format(tx.amountRial, settings.moneyUnit),
@@ -453,7 +454,7 @@ private fun StatTile(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                if (up) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+                if (up) Icons.Filled.CallReceived else Icons.Filled.CallMade,
                 contentDescription = null,
                 tint = tint,
                 modifier = Modifier.size(16.dp)
@@ -567,4 +568,5 @@ private fun reportAccountNumber(account: AccountEntity): String = when {
 private fun pdfAccountLabel(account: AccountEntity): String {
     val identifier = reportAccountNumber(account)
     return if (identifier.isBlank()) account.title else "${account.title}\n$identifier"
+}
 }

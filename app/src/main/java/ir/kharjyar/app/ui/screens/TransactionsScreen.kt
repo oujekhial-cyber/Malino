@@ -265,7 +265,7 @@ fun TransactionsScreen(
                         ProfessionalFilterChip(accounts.firstOrNull { it.id == id }?.title ?: "حساب", true) { filterAccount = null }
                     }
                     filterNature?.let { nature ->
-                        ProfessionalFilterChip(when (nature) { TxNature.INCOME -> "درآمد"; TxNature.EXPENSE -> "هزینه"; else -> "انتقال" }, true) { filterNature = null }
+                        ProfessionalFilterChip(when (nature) { TxNature.INCOME -> "درآمد"; TxNature.EXPENSE -> "هزینه"; TxNature.TRANSFER -> "انتقال"; else -> "غیر درآمد/هزینه" }, true) { filterNature = null }
                     }
                     if(filterPeriod.year!=null) ProfessionalFilterChip(filterPeriod.label,true){filterPeriod=monthPeriods.first()}
                 }
