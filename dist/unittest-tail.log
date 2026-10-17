@@ -14,8 +14,8 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
-> Task :app:checkDebugAarMetadata
 > Task :app:generateDebugResValues
+> Task :app:checkDebugAarMetadata
 > Task :app:mapDebugSourceSetPaths
 > Task :app:generateDebugResources
 > Task :app:packageDebugResources
@@ -25,9 +25,9 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:parseDebugLocalResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
-> Task :app:preDebugUnitTestBuild UP-TO-DATE
-> Task :app:javaPreCompileDebug
 > Task :app:processDebugManifestForPackage
+> Task :app:javaPreCompileDebug
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
 > Task :app:javaPreCompileDebugUnitTest
 > Task :app:processDebugResources
 > Task :app:kspDebugKotlin
@@ -93,6 +93,8 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:555:383 'val Icons.Filled.CallMade: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallMade.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:149:42 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:212:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:71:354 'val Icons.Filled.CallMade: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallMade.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:71:520 'val Icons.Filled.CallReceived: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallReceived.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:73:375 'val Icons.Filled.CallReceived: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallReceived.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:73:406 'val Icons.Filled.CallMade: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallMade.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/NotificationCenterScreen.kt:37:110 'val Icons.Filled.ShowChart: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ShowChart.
@@ -105,8 +107,8 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 
 > Task :app:compileDebugJavaWithJavac
 > Task :app:processDebugJavaRes
-> Task :app:bundleDebugClassesToRuntimeJar
 > Task :app:bundleDebugClassesToCompileJar
+> Task :app:bundleDebugClassesToRuntimeJar
 > Task :app:kspDebugUnitTestKotlin
 > Task :app:compileDebugUnitTestKotlin
 > Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
@@ -117,10 +119,7 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 SimpleTransactionEntryGuardTest > dailyFormIsShortAndAdvancedFieldsAreProgressive FAILED
     java.lang.AssertionError at SimpleTransactionEntryGuardTest.kt:12
 
-TransactionArrowDirectionGuardTest > deposit points inward green and withdrawal points outward red everywhere FAILED
-    java.lang.AssertionError at TransactionArrowDirectionGuardTest.kt:17
-
-545 tests completed, 2 failed
+545 tests completed, 1 failed
 
 > Task :app:testDebugUnitTest FAILED
 
@@ -299,5 +298,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
 
 
-BUILD FAILED in 3m 19s
+BUILD FAILED in 3m 1s
 25 actionable tasks: 25 executed

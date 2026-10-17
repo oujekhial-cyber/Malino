@@ -2,24 +2,23 @@
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:mergeReleaseJniLibFolders
 > Task :app:buildKotlinToolingMetadata
-> Task :app:mergeReleaseNativeLibs
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :app:generateReleaseResValues
-> Task :app:checkReleaseDuplicateClasses
-> Task :app:checkReleaseAarMetadata
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:generateReleaseResources
-
-> Task :app:stripReleaseDebugSymbols
-Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libimage_processing_util_jni.so, libmlkit_google_ocr_pipeline.so, libsqlcipher.so.
-
+> Task :app:checkReleaseAarMetadata
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:mergeReleaseNativeLibs
 > Task :app:packageReleaseResources
 > Task :app:parseReleaseLocalResources FROM-CACHE
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
-> Task :app:processReleaseManifestForPackage
+
+> Task :app:stripReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libimage_processing_util_jni.so, libmlkit_google_ocr_pipeline.so, libsqlcipher.so.
+
 > Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractReleaseNativeSymbolTables
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
@@ -38,6 +37,7 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:writeReleaseAppMetadata
 > Task :app:writeReleaseSigningConfigVersions
 > Task :app:compressReleaseAssets
+> Task :app:processReleaseManifestForPackage
 > Task :app:mergeReleaseResources
 > Task :app:processReleaseResources
 > Task :app:bundleReleaseResources
@@ -105,6 +105,8 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:555:383 'val Icons.Filled.CallMade: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallMade.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:149:42 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:212:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:71:354 'val Icons.Filled.CallMade: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallMade.
+w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:71:520 'val Icons.Filled.CallReceived: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallReceived.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:73:375 'val Icons.Filled.CallReceived: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallReceived.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ManualEntryScreen.kt:73:406 'val Icons.Filled.CallMade: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallMade.
 w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/NotificationCenterScreen.kt:37:110 'val Icons.Filled.ShowChart: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ShowChart.
@@ -129,5 +131,5 @@ w: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/s
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 2m 49s
+BUILD SUCCESSFUL in 2m 23s
 48 actionable tasks: 45 executed, 3 from cache
