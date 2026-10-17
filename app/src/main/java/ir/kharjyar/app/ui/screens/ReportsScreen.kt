@@ -569,4 +569,3 @@ private fun pdfAccountLabel(account: AccountEntity): String {
     val identifier = reportAccountNumber(account)
     return if (identifier.isBlank()) account.title else "${account.title}\n$identifier"
 }
-}
