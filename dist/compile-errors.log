@@ -1,4 +1,1 @@
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:201:1204 Unresolved reference 'FontWeight'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SmsPasteScreen.kt:20:38 Unresolved reference 'CategoryPicker'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt:201:1204 Unresolved reference 'FontWeight'.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/SmsPasteScreen.kt:20:38 Unresolved reference 'CategoryPicker'.
+e: The daemon has terminated unexpectedly on startup attempt #1 with error code: 0. The daemon process output:
