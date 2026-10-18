@@ -17,7 +17,6 @@ import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.ComboBox
-import ir.kharjyar.app.ui.components.CategoryPicker
 import kotlinx.coroutines.launch
 
 /** جایگذاری دستی پیامک بانکی، تحلیل محلی و ساخت تراکنش قابل تأیید. */
