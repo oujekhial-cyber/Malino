@@ -69,7 +69,6 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
     var minute by remember { mutableStateOf(0) }
     var error by remember { mutableStateOf<String?>(null) }
     var showDelete by remember { mutableStateOf(false) }
-    var suggestRule by remember { mutableStateOf(false) }
 
     LaunchedEffect(txId) {
         // پیش از نمایش فرم، بررسی کن آیا کاربر همین برداشت/واریز را از مسیر دستی
@@ -225,12 +224,9 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
                                 occurredAt = PersianDate.toMillis(date, hour, minute)
                             )
                             ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                            // پیشنهاد قانون: اگر دسته انتخاب شد و طرف مقابل معلوم است
-                            if (categoryId != null && t.counterparty.isNotBlank() && categoryId != t.categoryId) {
-                                suggestRule = true
-                            } else {
-                                nav.popBackStack()
-                            }
+                            // ثبت تراکنش باید بی‌وقفه تمام شود؛ ساخت و مدیریت قانون‌های
+                            // خودکار فقط از بخش اختصاصی دسته‌بندی‌ها انجام می‌شود.
+                            nav.popBackStack()
                         }
                     }
                 }
@@ -249,37 +245,6 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
                 Text("حذف تراکنش", color = MaterialTheme.colorScheme.error)
             }
         }
-    }
-
-    if (suggestRule) {
-        val catName = categories.firstOrNull { it.id == categoryId }?.name ?: ""
-        AlertDialog(
-            onDismissRequest = { suggestRule = false; nav.popBackStack() },
-            title = { Text("ساخت قانون خودکار؟") },
-            text = { Text("از این پس تراکنش‌های «${t.counterparty}» به‌صورت خودکار در دسته «$catName» پیشنهاد شوند؟") },
-            confirmButton = {
-                TextButton(onClick = {
-                    scope.launch {
-                        categoryId?.let { cid ->
-                            viewModel.repo.categoryDao.insertRule(
-                                ir.kharjyar.app.data.db.CategoryRuleEntity(
-                                    keyword = t.counterparty,
-                                    categoryId = cid,
-                                    priority = 10,
-                                    createdByUser = true,
-                                    createdAt = System.currentTimeMillis()
-                                )
-                            )
-                        }
-                        suggestRule = false
-                        nav.popBackStack()
-                    }
-                }) { Text("بله، بساز") }
-            },
-            dismissButton = {
-                TextButton(onClick = { suggestRule = false; nav.popBackStack() }) { Text("خیر") }
-            }
-        )
     }
 
     if (showDelete) {

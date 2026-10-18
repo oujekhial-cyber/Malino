@@ -36,6 +36,8 @@ data class BackupPayload(
     val assets: List<AssetEntity> = emptyList(), val assetTrades: List<AssetTradeEntity> = emptyList(), val stockSmsDrafts: List<StockSmsDraftEntity> = emptyList(), val attachments: List<TransactionAttachmentEntity> = emptyList(),
     val reminders: List<ReminderEntity> = emptyList(), val profiles: List<UserProfileEntity> = emptyList(), val coveredPeople: List<CoveredPersonEntity> = emptyList(),
     val vehicles: List<VehicleEntity> = emptyList(), val oilServices: List<VehicleOilServiceEntity> = emptyList(), val utilityBillProfiles: List<UtilityBillProfileEntity> = emptyList(), val civicMessages: List<CivicMessageEntity> = emptyList(), val privateFiles: List<BPrivateFile> = emptyList(),
+    /** وضعیت مالی محلی خارج از Room؛ فعلاً دفترچه مانده و آخرین استعلام کالابرگ. */
+    val localFinancialState: Map<String, String> = emptyMap(),
     val settings: Map<String, String> = emptyMap()
 ) {
     fun toJson(): String = json.encodeToString(serializer(), this)

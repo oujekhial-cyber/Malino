@@ -49,7 +49,8 @@ private data class PendingExcessPayment(
     val appliedRial: Long,
     val surplusRial: Long,
     val paidAt: Long,
-    val note: String
+    val note: String,
+    val accountId: Long
 )
 
 @Composable
@@ -386,6 +387,8 @@ private fun DebtAmountTile(
 @Composable
 private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: List<DebtEntity>, payments: List<DebtPaymentEntity>, onBack: () -> Unit) {
     val settings by vm.settings.collectAsState()
+    val accounts by vm.accounts.collectAsState()
+    val activeAccounts=accounts.filter{!it.archived}
     val scope = rememberCoroutineScope()
     var pendingExcess by remember { mutableStateOf<PendingExcessPayment?>(null) }
     var editingDebt by remember { mutableStateOf<DebtEntity?>(null) }
@@ -396,7 +399,9 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
     val completedCount = debts.count { remaining(it) == 0L }
     fun applyPayment(p: PendingExcessPayment, createOpposite: Boolean) {
         scope.launch {
-            vm.repo.db.debtDao().insertPayment(DebtPaymentEntity(debtId = p.debt.id, amountRial = if (createOpposite) p.paidRial else p.appliedRial, paidAt = p.paidAt, note = p.note))
+            val recordedAmount=if(createOpposite)p.paidRial else p.appliedRial
+            vm.repo.db.debtDao().insertPayment(DebtPaymentEntity(debtId = p.debt.id, amountRial = recordedAmount, paidAt = p.paidAt, note = p.note))
+            vm.repo.addManualTransaction(accountId=p.accountId,amountRial=recordedAmount,direction=if(p.debt.kind==DebtKind.RECEIVABLE)TxDirection.DEPOSIT else TxDirection.WITHDRAW,nature=TxNature.NEUTRAL,categoryId=null,description=(if(p.debt.kind==DebtKind.RECEIVABLE)"دریافت مرحله‌ای طلب از " else "پرداخت مرحله‌ای بدهی به ")+person.name+(p.note.takeIf{it.isNotBlank()}?.let{" — $it"}?:""),occurredAt=p.paidAt,counterparty=person.name)
             vm.repo.db.debtDao().updateDebt(p.debt.copy(settled = true))
             if (createOpposite && p.surplusRial > 0) {
                 val oppositeKind = if (p.debt.kind == DebtKind.RECEIVABLE) DebtKind.PAYABLE else DebtKind.RECEIVABLE
@@ -452,6 +457,7 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
             val progress=(paidTotal.toFloat()/debt.amountRial.coerceAtLeast(1L)).coerceIn(0f,1f)
             var amount by remember(debt.id) { mutableStateOf("") }
             var note by remember(debt.id) { mutableStateOf("") }
+            var paymentAccountId by remember(debt.id) { mutableStateOf<Long?>(activeAccounts.firstOrNull()?.id) }
             var paidDate by remember(debt.id) { mutableStateOf(PersianDate.today()) }
             SwipeActionRow(
                 onDelete = { pendingDeleteDebt = debt },
@@ -467,20 +473,24 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
                     if (remain > 0) {
                         Card(colors=CardDefaults.cardColors(containerColor=accent.copy(.075f)),shape=RoundedCornerShape(16.dp),border=BorderStroke(1.dp,accent.copy(.22f))){Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(if(receivable)"ثبت دریافت مرحله‌ای طلب" else "ثبت پرداخت مرحله‌ای بدهی",style=MaterialTheme.typography.titleSmall,color=accent);Text(if(receivable)"هر مبلغی که از ${person.name} دریافت کرده‌اید وارد کنید؛ مانده طلب کم می‌شود." else "هر مبلغی که به ${person.name} پرداخت کرده‌اید وارد کنید؛ مانده بدهی کم می‌شود.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         AmountTextField(amount, { amount = it }, if(receivable)"مبلغ دریافتی این مرحله" else "مبلغ پرداختی این مرحله", unit = settings.moneyUnit)
+                        ComboBox(label=if(receivable)"واریز به حساب" else "برداشت از حساب",options=activeAccounts.map{it.id},selected=paymentAccountId,labelOf={id->activeAccounts.firstOrNull{it.id==id}?.let{"${it.title} — ${it.bankName}"}?:"انتخاب حساب"},placeholder="انتخاب حساب برای ثبت تراکنش",onSelect={paymentAccountId=it})
+                        Text("هم‌زمان یک تراکنش ${if(receivable)"واریز غیر‌درآمدی" else "برداشت غیرهزینه‌ای"} در حساب انتخاب‌شده ثبت می‌شود.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("تاریخ این مرحله", style = MaterialTheme.typography.labelMedium)
                         PersianDateField(paidDate, { paidDate = it })
                         OutlinedTextField(note, { note = it }, label = { Text("توضیحات این مرحله (اختیاری)") }, modifier = Modifier.fillMaxWidth())
                         Button(onClick = {
                             val value = Money.inputToRial(amount, settings.moneyUnit) ?: return@Button
+                            val accountId=paymentAccountId?:return@Button
                             val paidAt = paidDate.startOfDayMillis()
                             if (value > remain) {
-                                pendingExcess = PendingExcessPayment(debt, value, remain, value - remain, paidAt, note.trim())
+                                pendingExcess = PendingExcessPayment(debt, value, remain, value - remain, paidAt, note.trim(),accountId)
                             } else scope.launch {
                                 vm.repo.db.debtDao().insertPayment(DebtPaymentEntity(debtId = debt.id, amountRial = value, paidAt = paidAt, note = note.trim()))
+                                vm.repo.addManualTransaction(accountId=accountId,amountRial=value,direction=if(receivable)TxDirection.DEPOSIT else TxDirection.WITHDRAW,nature=TxNature.NEUTRAL,categoryId=null,description=(if(receivable)"دریافت مرحله‌ای طلب از " else "پرداخت مرحله‌ای بدهی به ")+person.name+(note.trim().takeIf{it.isNotBlank()}?.let{" — $it"}?:""),occurredAt=paidAt,counterparty=person.name)
                                 if (value == remain) vm.repo.db.debtDao().updateDebt(debt.copy(settled = true))
                                 amount = ""; note = ""
                             }
-                        }, enabled = (Money.inputToRial(amount, settings.moneyUnit) ?: 0) > 0, modifier = Modifier.fillMaxWidth()) { Text(if(receivable)"ثبت دریافت این مرحله" else "ثبت پرداخت این مرحله") }
+                        }, enabled = (Money.inputToRial(amount, settings.moneyUnit) ?: 0) > 0&&paymentAccountId!=null, modifier = Modifier.fillMaxWidth()) { Text(if(receivable)"ثبت دریافت این مرحله" else "ثبت پرداخت این مرحله") }
                         }}
                     } else Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF15966A).copy(.10f)),shape=RoundedCornerShape(16.dp)){Row(Modifier.fillMaxWidth().padding(13.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){Icon(Icons.Filled.CheckCircle,null,tint=Color(0xFF15966A));Text("این مورد به‌طور کامل تسویه شده است",color=Color(0xFF15966A),style=MaterialTheme.typography.titleSmall)}}
                 }

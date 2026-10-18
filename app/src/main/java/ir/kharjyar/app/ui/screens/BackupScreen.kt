@@ -67,7 +67,7 @@ import kotlinx.coroutines.withContext
 fun BackupScreen(viewModel: AppViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val manager = remember { BackupManager(viewModel.repo, viewModel.settingsRepo) }
+    val manager = remember(context) { BackupManager(viewModel.repo, viewModel.settingsRepo, context) }
     val skin = LocalAppSkin.current
 
     // ---------- ساخت بکاپ ----------

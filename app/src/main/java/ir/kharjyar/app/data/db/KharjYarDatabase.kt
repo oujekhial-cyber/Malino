@@ -24,7 +24,7 @@ import net.sqlcipher.database.SupportFactory
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
         BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, StockSmsDraftEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, VehicleOilServiceEntity::class, UtilityBillProfileEntity::class, CivicMessageEntity::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
@@ -60,7 +60,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -229,6 +229,13 @@ abstract class KharjYarDatabase : RoomDatabase() {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_spam_sms_receivedAt ON spam_sms(receivedAt)")
             db.execSQL("CREATE INDEX IF NOT EXISTS index_spam_sms_sender ON spam_sms(sender)")
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_spam_sms_fingerprint ON spam_sms(fingerprint)")
+        } }
+
+        val MIGRATION_19_20 = object : Migration(19, 20) { override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE loan_installments ADD COLUMN paidAmountRial INTEGER")
+            db.execSQL("ALTER TABLE loan_installments ADD COLUMN penaltyRial INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE loan_installments ADD COLUMN paymentNote TEXT NOT NULL DEFAULT ''")
+            db.execSQL("UPDATE loan_installments SET paidAmountRial=amountRial WHERE paid=1 AND paidAmountRial IS NULL")
         } }
 
         /** نمونه قوانین متداول ایران؛ کاربر می‌تواند آن‌ها را خاموش، ویرایش یا حذف کند. */

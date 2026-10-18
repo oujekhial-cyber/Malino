@@ -85,8 +85,8 @@ fun LoansScreen(vm:AppViewModel) {
    shown.forEach { loan ->
     val rows=installments.filter { it.loanId==loan.id }
     val paid=rows.count { it.paid }
-    val paidAmount=rows.filter { it.paid }.sumOf { it.amountRial }
-    val remaining=rows.filterNot { it.paid }.sumOf { it.amountRial }
+    val paidAmount=rows.filter { it.paid }.sumOf { (it.paidAmountRial?:it.amountRial)+it.penaltyRial }
+    val remaining=(loan.principalRial-rows.filter{it.paid}.sumOf{it.paidAmountRial?:it.amountRial}).coerceAtLeast(0)
     val nextDue=rows.filterNot { it.paid }.minByOrNull { it.number }?.dueAt
     ModernLoanCard(
      loan=loan,
@@ -138,8 +138,11 @@ private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<Lo
  val scope=rememberCoroutineScope()
  val paidRows=installments.filter { it.paid }.sortedByDescending { it.paidAt?:it.dueAt }
  val next=installments.filterNot { it.paid }.minByOrNull { it.number }
- val paidAmount=paidRows.sumOf { it.amountRial }
- val remaining=(loan.principalRial-paidAmount).coerceAtLeast(0)
+ val principalPaid=paidRows.sumOf { it.paidAmountRial?:it.amountRial }
+ val penaltiesPaid=paidRows.sumOf { it.penaltyRial }
+ val paidAmount=principalPaid+penaltiesPaid
+ val remaining=(loan.principalRial-principalPaid).coerceAtLeast(0)
+ var payingInstallment by remember { mutableStateOf<LoanInstallmentEntity?>(null) }
  val lent=loan.kind==LoanKind.LENT
  val accent=if(lent) Color(0xFF20A565) else Color(0xFFE14B55)
  Column(
@@ -168,13 +171,9 @@ private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<Lo
   }
   next?.let { installment ->
    Button(
-    {scope.launch {
-     vm.repo.db.loanDao().updateInstallment(installment.copy(paid=true,paidAt=System.currentTimeMillis()))
-     val following=installments.filterNot { it.paid||it.id==installment.id }.minByOrNull { it.number }
-     vm.repo.db.loanDao().updateLoan(loan.copy(nextDueAt=following?.dueAt?:loan.nextDueAt,closed=following==null))
-    }},
+    {payingInstallment=installment},
     modifier=Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,accent)
-   ) { Text("ثبت پرداخت قسط ${Digits.toPersian(installment.number.toString())}") }
+   ) { Text("ثبت مبلغ پرداختی قسط ${Digits.toPersian(installment.number.toString())}") }
   } ?: Text("تمام اقساط پرداخت شده است",color=accent)
 
   HorizontalDivider()
@@ -188,10 +187,18 @@ private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<Lo
       Text("قسط ${Digits.toPersian(installment.number.toString())}",style=MaterialTheme.typography.titleSmall)
       Text(if(installment.paid)"پرداخت‌شده در ${PersianDate.fromMillis(installment.paidAt?:installment.dueAt).format()}" else "سررسید ${PersianDate.fromMillis(installment.dueAt).format()}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
      }
-     Column(horizontalAlignment=Alignment.End,verticalArrangement=Arrangement.spacedBy(4.dp)){Text(Money.format(installment.amountRial,settings.moneyUnit),color=rowAccent);Surface(color=rowAccent.copy(.13f),shape=RoundedCornerShape(50)){Text(if(installment.paid)"پرداخت‌شده" else "در انتظار",Modifier.padding(horizontal=8.dp,vertical=3.dp),style=MaterialTheme.typography.labelSmall,color=rowAccent)}}
+     Column(horizontalAlignment=Alignment.End,verticalArrangement=Arrangement.spacedBy(4.dp)){Text(Money.format(if(installment.paid)(installment.paidAmountRial?:installment.amountRial)+installment.penaltyRial else installment.amountRial,settings.moneyUnit),color=rowAccent);if(installment.paid&&installment.penaltyRial>0)Text("شامل ${Money.format(installment.penaltyRial,settings.moneyUnit)} جریمه",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.error);Surface(color=rowAccent.copy(.13f),shape=RoundedCornerShape(50)){Text(if(installment.paid)"پرداخت‌شده" else "در انتظار",Modifier.padding(horizontal=8.dp,vertical=3.dp),style=MaterialTheme.typography.labelSmall,color=rowAccent)}}
     }
    }
   }
+ }
+ payingInstallment?.let{installment->
+  var paidAmountText by remember(installment.id){mutableStateOf(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)(installment.amountRial/10L).toString()else installment.amountRial.toString())}
+  var penaltyText by remember(installment.id){mutableStateOf("")}
+  var paymentNote by remember(installment.id){mutableStateOf("")}
+  val enteredAmount=Money.inputToRial(paidAmountText,settings.moneyUnit)
+  val enteredPenalty=Money.inputToRial(penaltyText,settings.moneyUnit)?:0L
+  AlertDialog(onDismissRequest={payingInstallment=null},title={Text("ثبت پرداخت قسط ${Digits.toPersian(installment.number.toString())}")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Text("مبلغ برنامه‌ریزی‌شده: ${Money.format(installment.amountRial,settings.moneyUnit)}",color=MaterialTheme.colorScheme.onSurfaceVariant);AmountTextField(paidAmountText,{paidAmountText=it},"مبلغ اصلی پرداخت‌شده",Modifier.fillMaxWidth(),unit=settings.moneyUnit);AmountTextField(penaltyText,{penaltyText=it},"جریمه دیرکرد (اختیاری)",Modifier.fillMaxWidth(),unit=settings.moneyUnit);OutlinedTextField(paymentNote,{paymentNote=it},label={Text("توضیحات پرداخت (اختیاری)")},modifier=Modifier.fillMaxWidth());if(enteredAmount!=null&&enteredAmount!=installment.amountRial)Text(if(enteredAmount<installment.amountRial)"این پرداخت از مبلغ برنامه‌ریزی‌شده کمتر است و اختلاف در مانده وام باقی می‌ماند." else "این پرداخت از مبلغ برنامه‌ریزی‌شده بیشتر است.",style=MaterialTheme.typography.bodySmall,color=if(enteredAmount<installment.amountRial)MaterialTheme.colorScheme.error else accent);if(enteredPenalty>0)Text("مبلغ نهایی پرداخت: ${Money.format((enteredAmount?:0)+enteredPenalty,settings.moneyUnit)}",fontWeight=FontWeight.Bold)}},confirmButton={TextButton(enabled=(enteredAmount?:0)>0,onClick={scope.launch{vm.repo.db.loanDao().updateInstallment(installment.copy(paid=true,paidAt=System.currentTimeMillis(),paidAmountRial=enteredAmount,penaltyRial=enteredPenalty,paymentNote=paymentNote.trim()));val following=installments.filterNot{it.paid||it.id==installment.id}.minByOrNull{it.number};val principalAfter=installments.filter{it.paid&&it.id!=installment.id}.sumOf{it.paidAmountRial?:it.amountRial}+(enteredAmount?:0L);val residual=(loan.principalRial-principalAfter).coerceAtLeast(0);if(following==null&&residual>0){val residualNumber=(installments.maxOfOrNull{it.number}?:0)+1;val residualDue=PersianDate.fromMillis(installment.dueAt).plusMonths(1).startOfDayMillis();vm.repo.db.loanDao().insertInstallments(listOf(LoanInstallmentEntity(loanId=loan.id,number=residualNumber,amountRial=residual,dueAt=residualDue)));vm.repo.db.loanDao().updateLoan(loan.copy(installmentCount=loan.installmentCount+1,nextDueAt=residualDue,closed=false))}else vm.repo.db.loanDao().updateLoan(loan.copy(nextDueAt=following?.dueAt?:loan.nextDueAt,closed=following==null&&residual==0L));payingInstallment=null}}){Text("ثبت مبلغ پرداخت‌شده")}},dismissButton={TextButton({payingInstallment=null}){Text("انصراف")}})
  }
 }
 

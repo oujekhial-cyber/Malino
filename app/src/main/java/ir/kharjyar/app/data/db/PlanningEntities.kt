@@ -15,4 +15,4 @@ object LoanKind { const val BORROWED=0; const val LENT=1 }
 data class LoanEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val title:String,val party:String,val kind:Int,val principalRial:Long,val installmentAmountRial:Long,val installmentCount:Int,val startAt:Long,val nextDueAt:Long,val reminderDaysBefore:Int=1,val note:String="",val closed:Boolean=false)
 @Entity(tableName="loan_installments",indices=[Index("loanId"),Index("dueAt"),Index("paid")])
 @Serializable
-data class LoanInstallmentEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val loanId:Long,val number:Int,val amountRial:Long,val dueAt:Long,val paid:Boolean=false,val paidAt:Long?=null)
+data class LoanInstallmentEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val loanId:Long,val number:Int,val amountRial:Long,val dueAt:Long,val paid:Boolean=false,val paidAt:Long?=null,val paidAmountRial:Long?=null,val penaltyRial:Long=0,val paymentNote:String="")

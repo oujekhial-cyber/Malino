@@ -11,8 +11,10 @@ import ir.kharjyar.app.data.prefs.SettingsRepository
  */
 class BackupManager(
     private val repo: Repository,
-    private val settings: SettingsRepository
+    private val settings: SettingsRepository,
+    context: android.content.Context
 ) {
+    private val appContext=context.applicationContext
 
     /** @param password اگر null باشد، بکاپ بدون رمزنگاری ساخته می‌شود (به انتخاب کاربر). */
     suspend fun createBackup(password: CharArray?): ByteArray {
@@ -41,8 +43,27 @@ class BackupManager(
             profiles = repo.db.civicDao().allProfilesOnce(), coveredPeople = repo.db.civicDao().allPeopleOnce(), vehicles = repo.db.civicDao().allVehiclesOnce(),
             oilServices = repo.db.civicDao().allOilServicesOnce(), utilityBillProfiles = repo.db.civicDao().allUtilityBillsOnce(), civicMessages = repo.db.civicDao().allMessagesOnce(),
             privateFiles = collectPrivateFiles(repo.db.checkDao().allOnce().map { it.imagePath } + repo.db.transactionAttachmentDao().allOnce().map { it.imagePath } + repo.db.civicDao().allProfilesOnce().map { it.imagePath }),
+            localFinancialState = exportLocalFinancialState(),
             settings = settings.exportForBackup()
         )
+
+    private fun exportLocalFinancialState():Map<String,String>{
+        val p=appContext.getSharedPreferences("ration_card_local",android.content.Context.MODE_PRIVATE)
+        return mapOf(
+            "ration.members" to p.getInt("members",1).toString(),
+            "ration.balance" to p.getLong("balance",0L).toString(),
+            "ration.checked" to p.getString("checked","").orEmpty()
+        )
+    }
+
+    private fun restoreLocalFinancialState(values:Map<String,String>){
+        if(values.isEmpty())return
+        val edit=appContext.getSharedPreferences("ration_card_local",android.content.Context.MODE_PRIVATE).edit()
+        values["ration.members"]?.toIntOrNull()?.coerceIn(1,20)?.let{edit.putInt("members",it)}
+        values["ration.balance"]?.toLongOrNull()?.coerceAtLeast(0)?.let{edit.putLong("balance",it)}
+        values["ration.checked"]?.let{edit.putString("checked",it.take(40))}
+        edit.apply()
+    }
 
     private fun collectPrivateFiles(paths: List<String>): List<BPrivateFile> = paths.filter { it.isNotBlank() }.distinct().mapNotNull { path ->
         runCatching { val file=java.io.File(path); if(!file.isFile) return@runCatching null; BPrivateFile(path,android.util.Base64.encodeToString(file.readBytes(),android.util.Base64.NO_WRAP)) }.getOrNull()
@@ -92,7 +113,7 @@ class BackupManager(
             assetTrades = merged(payload.assetTrades,current.assetTrades){it.id}, attachments = merged(payload.attachments,current.attachments){it.id}, reminders = merged(payload.reminders,current.reminders){it.id},
             profiles = merged(payload.profiles,current.profiles){it.id}, coveredPeople = merged(payload.coveredPeople,current.coveredPeople){it.id}, vehicles = merged(payload.vehicles,current.vehicles){it.id},
             oilServices = merged(payload.oilServices,current.oilServices){it.id}, utilityBillProfiles = merged(payload.utilityBillProfiles,current.utilityBillProfiles){it.identifier}, civicMessages = merged(payload.civicMessages,current.civicMessages){it.fingerprint},
-            privateFiles = merged(payload.privateFiles,current.privateFiles){it.path}, settings = current.settings
+            privateFiles = merged(payload.privateFiles,current.privateFiles){it.path}, localFinancialState = payload.localFinancialState + current.localFinancialState, settings = current.settings
         )
         return restore(combined)
     }
@@ -141,6 +162,7 @@ class BackupManager(
 
             report = RestoreReport(merge.carriedOver.size, merge.duplicates)
         }
+        restoreLocalFinancialState(payload.localFinancialState)
         settings.importFromBackup(payload.settings)
         return report
     }
