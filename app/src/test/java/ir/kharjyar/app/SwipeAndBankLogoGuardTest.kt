@@ -144,7 +144,7 @@ class SwipeAndBankLogoGuardTest {
         assertFalse("نمودار هنوز در صفحه خانه است", dash.contains("LineChart("))
         assertFalse("متن قدیمی میان‌بر مانده است", dash.contains("بگو تا بنویسم"))
         assertFalse("مثال «۲۵۰ هزار تومن نان» مانده است", dash.contains("۲۵۰ هزار تومن نان"))
-        assertTrue("میان‌بر «ثبت سریع» نیست", dash.contains("\"ثبت سریع\""))
+        assertTrue("میان‌بر «فرمان هوشمند» نیست", dash.contains("\"فرمان هوشمند\""))
         // بنا بر درخواست جدید، نمودار روند از صفحه گزارش نیز حذف شده است
         val reports = source("src/main/java/ir/kharjyar/app/ui/screens/ReportsScreen.kt")
         assertFalse("نمودار روند هنوز در گزارش‌ها است", reports.contains("LineChart("))
