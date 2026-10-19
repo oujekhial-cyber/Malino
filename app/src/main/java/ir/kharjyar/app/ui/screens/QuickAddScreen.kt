@@ -378,13 +378,13 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             onClick = { analyzeWithAi() },
             enabled = settings.experimentalAiEnabled && ExperimentalPersianAi.hasToken(context) && input.isNotBlank() && !aiLoading,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if(aiLoading) "در حال بررسی فرمان…" else "اجرای فرمان با دستیار ${ExperimentalPersianAi.activeProvider(context).title}") }
+        ) { Text(if(aiLoading) "در حال بررسی فرمان…" else "تشخیص هوش مصنوعی") }
 
         OutlinedButton(
             onClick = { analyze() },
             enabled = input.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
-        ) { Text("اجرای فرمان روی گوشی (آفلاین)") }
+        ) { Text("تشخیص محلی ( آفلاین )") }
         aiError?.let { Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall) }
 
         SkinCard(Modifier.fillMaxWidth()) {
