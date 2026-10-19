@@ -19,7 +19,7 @@ class ModernLoanDesignGuardTest {
    "ModernSummaryHero(loan.title",
    "Text(\"برنامه اقساط\"",
    "Icons.Filled.CheckCircle else Icons.Filled.Schedule",
-   "if(installment.paid)\"پرداخت‌شده\" else \"در انتظار\""
+   "if(installment.paid)\"پرداخت‌شده\" else if(installment.noInstallment)\"بدون قسط\" else \"در انتظار\""
   ).forEach{assertTrue(it,source.contains(it))}
  }
 }
