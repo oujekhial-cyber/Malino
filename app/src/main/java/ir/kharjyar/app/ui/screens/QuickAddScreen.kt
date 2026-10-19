@@ -64,6 +64,7 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.ComboBox
+import ir.kharjyar.app.ui.components.PersianDateField
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
@@ -93,6 +94,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     var aiLoading by remember { mutableStateOf(false) }
     var aiError by remember { mutableStateOf<String?>(null) }
     var analyzeSpokenCommand by remember { mutableStateOf(false) }
+    var missingAmountInput by remember { mutableStateOf("") }
 
     val activeAccounts = accounts.filter { !it.archived }
     val context = LocalContext.current
@@ -392,6 +394,24 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
 
         // ---------- نتیجه ----------
         parsed?.let { p ->
+            val hasMissing = p.amountRial==null || p.accountId==null || !p.dateExplicit ||
+                (p.nature!=ir.kharjyar.app.data.db.TxNature.TRANSFER && p.categoryId==null) ||
+                p.warnings.any{it.contains("نوع تراکنش")}
+            if(hasMissing) Text("برای تکمیل ثبت به چند پاسخ نیاز دارم",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold,color=skin.accent)
+            if (p.amountRial == null) {
+                Text("مبلغ تراکنش چقدر بود؟",style=MaterialTheme.typography.titleSmall)
+                OutlinedTextField(missingAmountInput,{missingAmountInput=it},Modifier.fillMaxWidth(),label={Text("مبلغ با واحد ${if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)"تومان" else "ریال"}")},singleLine=true)
+                OutlinedButton({
+                    Money.inputToRial(missingAmountInput,settings.moneyUnit)?.takeIf{it>0}?.let{amount->parsed=p.copy(amountRial=amount,warnings=p.warnings.filterNot{it.contains("مبلغ")});missingAmountInput=""}
+                },enabled=(Money.inputToRial(missingAmountInput,settings.moneyUnit)?:0)>0,modifier=Modifier.fillMaxWidth()){Text("ثبت مبلغ در پیش‌نویس")}
+            }
+            if (p.warnings.any { it.contains("نوع تراکنش مشخص نبود") }) {
+                Text("این مبلغ واریز بوده یا برداشت؟",style=MaterialTheme.typography.titleSmall)
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton({parsed=p.copy(direction=TxDirection.DEPOSIT,nature=ir.kharjyar.app.data.db.TxNature.INCOME,warnings=p.warnings.filterNot{it.contains("نوع تراکنش")})},Modifier.weight(1f)){Text("واریز")}
+                    OutlinedButton({parsed=p.copy(direction=TxDirection.WITHDRAW,nature=ir.kharjyar.app.data.db.TxNature.EXPENSE,warnings=p.warnings.filterNot{it.contains("نوع تراکنش")})},Modifier.weight(1f)){Text("برداشت")}
+                }
+            }
             if (p.accountId == null) {
                 Text(
                     if (p.direction == TxDirection.DEPOSIT) "مبلغ به کدام حساب واریز شده؟" else "از کدام حساب پرداخت کردید؟",
@@ -412,9 +432,21 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     labelOf = { it.title }
                 )
             }
+            if (p.nature != ir.kharjyar.app.data.db.TxNature.TRANSFER && p.categoryId == null) {
+                Text("این تراکنش مربوط به کدام دسته‌بندی است؟",style=MaterialTheme.typography.titleSmall,color=skin.accent)
+                ComboBox("دسته‌بندی",categories.filterNot{it.archived},null,{category->parsed=p.copy(categoryId=category.id,categoryName=category.name,warnings=p.warnings.filterNot{it.contains("دسته")})},labelOf={it.name})
+            }
+            if (!p.dateExplicit) {
+                Text("تراکنش در چه تاریخی انجام شد؟",style=MaterialTheme.typography.titleSmall,color=skin.accent)
+                PersianDateField(p.date,{date->parsed=p.copy(date=date,dateExplicit=true)})
+                TextButton({parsed=p.copy(date=PersianDate.today(),dateExplicit=true)}){Text("امروز بود")}
+            }
             ResultCard(
                 parsed = p,
                 unit = settings.moneyUnit,
+                readyToConfirm = p.isComplete && p.dateExplicit &&
+                    (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER || p.categoryId != null) &&
+                    p.warnings.none { it.contains("نوع تراکنش") },
                 onEdit = {
                     // انتقال به فرم کامل برای اصلاح دستی
                     nav.navigate("manual")
@@ -474,6 +506,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
 private fun ResultCard(
     parsed: ParsedTransaction,
     unit: ir.kharjyar.app.core.money.MoneyUnit,
+    readyToConfirm: Boolean,
     onEdit: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -558,7 +591,7 @@ private fun ResultCard(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = onConfirm,
-                    enabled = parsed.isComplete,
+                    enabled = readyToConfirm,
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
