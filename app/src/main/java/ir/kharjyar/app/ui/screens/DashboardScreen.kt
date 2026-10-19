@@ -70,6 +70,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -357,6 +358,17 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 val accountAutoScrollEdgePx = with(LocalDensity.current) { 96.dp.toPx() }
                 val accountAutoScrollStepPx = with(LocalDensity.current) { 7.dp.toPx() }
                 val dashboardWindowWidthPx = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+                val accountSnapStepPx = with(LocalDensity.current) { (pageWidth + 10.dp).toPx() }
+                // بعد از پایان هر fling/drag معمولی، ردیف دقیقاً روی نزدیک‌ترین کارت می‌ایستد؛
+                // بنابراین در حالت سکون هیچ‌گاه دو کارت نصفه قاب اصلی را اشغال نمی‌کنند.
+                LaunchedEffect(rowState,accountSnapStepPx){
+                    snapshotFlow{rowState.isScrollInProgress}.distinctUntilChanged().drop(1).collect{scrolling->
+                        if(!scrolling&&draggingId==null&&accountSnapStepPx>0f){
+                            val nearest=(kotlin.math.round(rowState.value/accountSnapStepPx)*accountSnapStepPx).toInt().coerceIn(0,rowState.maxValue)
+                            if(kotlin.math.abs(rowState.value-nearest)>1)rowState.animateScrollTo(nearest,animationSpec=tween(420))
+                        }
+                    }
+                }
 
                 EnterCard(0) {
                     Row(

@@ -12,7 +12,7 @@ data class NoteEntity(@PrimaryKey(autoGenerate = true) val id:Long=0,val title:S
 object LoanKind { const val BORROWED=0; const val LENT=1 }
 @Entity(tableName="loans",indices=[Index("nextDueAt")])
 @Serializable
-data class LoanEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val title:String,val party:String,val kind:Int,val principalRial:Long,val installmentAmountRial:Long,val installmentCount:Int,val startAt:Long,val nextDueAt:Long,val reminderDaysBefore:Int=1,val note:String="",val closed:Boolean=false)
+data class LoanEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val title:String,val party:String,val kind:Int,val principalRial:Long,val installmentAmountRial:Long,val installmentCount:Int,val startAt:Long,val nextDueAt:Long,val reminderDaysBefore:Int=1,val note:String="",val closed:Boolean=false,val annualInterestRatePercent:Double=0.0,val termMonths:Int=installmentCount,val totalRepayableRial:Long=principalRial)
 @Entity(tableName="loan_installments",indices=[Index("loanId"),Index("dueAt"),Index("paid")])
 @Serializable
-data class LoanInstallmentEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val loanId:Long,val number:Int,val amountRial:Long,val dueAt:Long,val paid:Boolean=false,val paidAt:Long?=null,val paidAmountRial:Long?=null,val penaltyRial:Long=0,val paymentNote:String="")
+data class LoanInstallmentEntity(@PrimaryKey(autoGenerate=true) val id:Long=0,val loanId:Long,val number:Int,val amountRial:Long,val dueAt:Long,val paid:Boolean=false,val paidAt:Long?=null,val paidAmountRial:Long?=null,val penaltyRial:Long=0,val paymentNote:String="",val noInstallment:Boolean=false,val noInstallmentReason:String="")
