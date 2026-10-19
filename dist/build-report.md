@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 0753b15cf345a15f00b1c50ef75c4d88f4100b04
-- تاریخ: 2026-10-19 03:16 UTC
-- unit tests: failure
+- commit: 0343bafeabd89364bc6eea40f288d62e7a8e0969
+- تاریخ: 2026-10-19 03:25 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,8 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=557 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.ModernLoanDesignGuardTest.loan list and details mirror modern debt visual language: java.lang.AssertionError: if(installment.paid)"پرداخت‌شده" else "در انتظار"
+tests=557 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
