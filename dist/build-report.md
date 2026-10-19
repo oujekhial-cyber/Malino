@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 924994a40e5d292158530316d5652abed9807c86
-- تاریخ: 2026-10-19 17:35 UTC
-- unit tests: failure
+- commit: 469f2910d93a86d021f155f3ba290c2bcf5183c2
+- تاریخ: 2026-10-19 17:47 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,8 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=571 failures=1 errors=0 skipped=0
-FAIL ir.kharjyar.app.AiObligationCommandGuardTest.loan and debt commands are not flattened to income or expense: java.lang.AssertionError
+tests=571 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
