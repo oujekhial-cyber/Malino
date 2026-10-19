@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -95,6 +97,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     var aiError by remember { mutableStateOf<String?>(null) }
     var analyzeSpokenCommand by remember { mutableStateOf(false) }
     var missingAmountInput by remember { mutableStateOf("") }
+    var showAccountPicker by remember { mutableStateOf(false) }
 
     val activeAccounts = accounts.filter { !it.archived }
     val context = LocalContext.current
@@ -172,12 +175,14 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             return
         }
         AppCommandRouter.route(input)?.let { route -> nav.navigate(route); return }
-        parsed = TransactionParser.parse(
+        val result = TransactionParser.parse(
             text = input,
             accounts = activeAccounts.map { ParserAccount(it.id, it.title, it.bankName) },
             categories = categories.map { ParserCategory(it.id, it.name) },
             defaultUnit = settings.moneyUnit
         )
+        parsed = result
+        showAccountPicker = result.accountId == null && activeAccounts.isNotEmpty()
         saved = false
     }
 
@@ -217,7 +222,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     )
                     val target = Digits.normalizeForMatch(draft.category)
                     val category = categories.firstOrNull { Digits.normalizeForMatch(it.name) == target }
-                    parsed = local.copy(
+                    val completed = local.copy(
                         amountRial=draft.amountRial,
                         direction=if(draft.direction=="deposit") TxDirection.DEPOSIT else TxDirection.WITHDRAW,
                         nature=if(draft.direction=="deposit") ir.kharjyar.app.data.db.TxNature.INCOME else ir.kharjyar.app.data.db.TxNature.EXPENSE,
@@ -226,6 +231,8 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                         description=draft.description.ifBlank { local.description },
                         warnings=local.warnings.filterNot { it.contains("مبلغ") || it.contains("نوع تراکنش") }
                     )
+                    parsed=completed
+                    showAccountPicker=completed.accountId==null&&activeAccounts.isNotEmpty()
                 }.onFailure { aiError=it.message ?: "فرمان توسط سرویس هوش مصنوعی تشخیص داده نشد." }
             aiLoading=false
         }
@@ -368,16 +375,16 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
 
         Button(
-            onClick = { analyze() },
-            enabled = input.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("تشخیص محلی فرمان") }
-
-        OutlinedButton(
             onClick = { analyzeWithAi() },
             enabled = settings.experimentalAiEnabled && ExperimentalPersianAi.hasToken(context) && input.isNotBlank() && !aiLoading,
             modifier = Modifier.fillMaxWidth()
         ) { Text(if(aiLoading) "در حال تشخیص…" else "تشخیص با هوش مصنوعی ${ExperimentalPersianAi.activeProvider(context).title}") }
+
+        OutlinedButton(
+            onClick = { analyze() },
+            enabled = input.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("تشخیص محلی و آفلاین") }
         aiError?.let { Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall) }
 
         SkinCard(Modifier.fillMaxWidth()) {
@@ -418,19 +425,11 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     style = MaterialTheme.typography.titleSmall,
                     color = skin.accent
                 )
-                ComboBox(
-                    label = if (p.direction == TxDirection.DEPOSIT) "حساب مقصد واریز" else "حساب پرداخت‌کننده",
-                    options = activeAccounts,
-                    selected = null,
-                    onSelect = { account ->
-                        parsed = p.copy(
-                            accountId = account.id,
-                            accountTitle = account.title,
-                            warnings = p.warnings.filterNot { it.contains("حساب") }
-                        )
-                    },
-                    labelOf = { it.title }
-                )
+                OutlinedButton(
+                    onClick={showAccountPicker=true},
+                    enabled=activeAccounts.isNotEmpty(),
+                    modifier=Modifier.fillMaxWidth()
+                ){Text(if(activeAccounts.isEmpty())"ابتدا یک حساب بسازید" else "انتخاب حساب از فهرست") }
             }
             if (p.nature != ir.kharjyar.app.data.db.TxNature.TRANSFER && p.categoryId == null) {
                 Text("این تراکنش مربوط به کدام دسته‌بندی است؟",style=MaterialTheme.typography.titleSmall,color=skin.accent)
@@ -498,6 +497,30 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
 
         Spacer(Modifier.height(90.dp))
+    }
+
+    if(showAccountPicker && parsed?.accountId==null) {
+        val current=parsed
+        AlertDialog(
+            onDismissRequest={showAccountPicker=false},
+            title={Text(if(current?.direction==TxDirection.DEPOSIT)"واریز به کدام حساب؟" else "برداشت از کدام حساب؟")},
+            text={
+                Column(Modifier.fillMaxWidth().heightIn(max=420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                    Text("حساب را انتخاب کنید تا خودکار در پیش‌نویس تراکنش قرار بگیرد.",style=MaterialTheme.typography.bodySmall)
+                    activeAccounts.forEach { account ->
+                        OutlinedButton(
+                            onClick={
+                                current?.let { p -> parsed=p.copy(accountId=account.id,accountTitle=account.title,warnings=p.warnings.filterNot{it.contains("حساب")}) }
+                                showAccountPicker=false
+                            },
+                            modifier=Modifier.fillMaxWidth()
+                        ) { Column(Modifier.fillMaxWidth()) { Text(account.title);if(account.bankName.isNotBlank())Text(account.bankName,style=MaterialTheme.typography.labelSmall) } }
+                    }
+                }
+            },
+            confirmButton={},
+            dismissButton={TextButton({showAccountPicker=false}){Text("بعداً انتخاب می‌کنم")}}
+        )
     }
 }
 
