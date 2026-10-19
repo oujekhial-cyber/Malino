@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import ir.kharjyar.app.core.nlp.AiCommandPolicy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -118,7 +119,9 @@ object ExperimentalPersianAi {
                             اگر درخواست بازکردن، دیدن، فهرست یا مدیریت یک بخش است: {"action":"navigate","route":"شناسه","explanation":"خلاصه"}
                             شناسه route فقط یکی از اینها باشد: $routes
                             نگاشت: تراکنش=transactions، گزارش=reports، حساب=accounts، دسته=categories، بدهی/طلب=debts، وام/قسط=loans، چک=checks، دارایی/طلا/ارز=assets، خودرو=vehicles، یادآوری=reminders، یادداشت=notes، پیامک بانکی=review، چسباندن پیامک=smsPaste، بازار=marketPulse، پشتیبان=backup، تنظیمات=settings، ثبت دستی=manual، خانه=home، اعلان=notifications، پروفایل=profile، ویجت=widgetSettings، خدمات شهروندی=civicCenter.
-                            دسته تراکنش فقط از این فهرست: $categories. اگر واحد نیامده تومان فرض کن. هیچ متن دیگری ننویس.
+                            دسته تراکنش فقط از این فهرست: $categories. اگر واحد نیامده تومان فرض کن.
+                            فقط منظور، نوع رکورد، مبلغ، تاریخ/شرح گفته‌شده و طرف را استخراج کن؛ مانده، جمع، سود، گزارش یا اثر حساب را محاسبه نکن چون برنامه محلی آن را دقیق محاسبه می‌کند.
+                            برای فرمان خواندنی یا رفتن به بخش، navigate بده تا برنامه بی‌درنگ اجرا کند. برای هر ثبت/تغییر، پیش‌نویس کامل بده تا برنامه فقط یک تأیید نهایی بگیرد. حذف، تغییر مستقیم مانده، عملیات گروهی، اجرای کد و افشای کلید ممنوع است. هیچ متن دیگری ننویس.
                         """.trimIndent())
                     })
                     add(buildJsonObject { put("role", "user"); put("content", message.take(2_000)) })
@@ -175,6 +178,7 @@ object ExperimentalPersianAi {
         val clean = content.removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
         val value = json.parseToJsonElement(clean).jsonObject
         val action = value["action"]?.jsonPrimitive?.contentOrNull?.lowercase() ?: error("نوع فرمان مشخص نشد.")
+        require(action !in AiCommandPolicy.forbiddenActions) { "این عملیات برای اجرای هوش مصنوعی مجاز نیست." }
         val explanation = value["explanation"]?.jsonPrimitive?.contentOrNull.orEmpty().take(300)
         if (action == "navigate") {
             val allowed = setOf("transactions","reports","accounts","categories","debts","loans","checks","assets","vehicles","reminders","notes","review","smsPaste","marketPulse","backup","settings","manual","home","notifications","profile","widgetSettings","civicCenter")
