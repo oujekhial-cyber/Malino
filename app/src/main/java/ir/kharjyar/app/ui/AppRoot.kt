@@ -587,6 +587,13 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
             }
         }
 
+        // این BackHandler عمداً بعد از NavHost ساخته می‌شود تا حتی اگر صفحه داخلی
+        // handler اختصاصی داشته باشد، برگشت نخست همیشه منوی کناری را ببندد و
+        // وضعیت/صفحه جاری دست‌نخورده بماند.
+        BackHandler(enabled = drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        }
+
         if (showDirectionChooser) {
             DirectionChooserDialog(
                 skin = skin,
