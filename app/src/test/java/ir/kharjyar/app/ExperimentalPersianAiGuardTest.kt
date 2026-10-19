@@ -10,30 +10,34 @@ class ExperimentalPersianAiGuardTest {
     private val ui = File("src/main/java/ir/kharjyar/app/ui/screens/ExperimentalAiSettingsSection.kt").readText()
     private val prefs = File("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt").readText()
 
-    @Test fun `experimental assistant is opt in isolated and removable`() {
+    @Test fun `Groq Qwen assistant is opt in isolated and removable`() {
         assertTrue(prefs.contains("experimentalAiEnabled: Boolean = false"))
-        assertTrue(ui.contains("checked = enabled"))
+        assertTrue(ui.contains("checked=enabled"))
         assertTrue(ui.contains("setExperimentalAiEnabled(false)"))
-        assertTrue(client.contains("object ExperimentalPersianAi"))
+        assertTrue(client.contains("qwen/qwen3.8-27b"))
+        assertTrue(client.contains("https://api.groq.com/openai/v1/chat/completions"))
         assertFalse(client.contains("Repository"))
         assertFalse(client.contains("TransactionEntity"))
-        assertFalse(client.contains("Sms"))
     }
 
-    @Test fun `api key is encrypted and never backed up with app settings`() {
+    @Test fun `Groq key is encrypted and never backed up with app settings`() {
         assertTrue(client.contains("AndroidKeyStore"))
         assertTrue(client.contains("AES/GCM/NoPadding"))
-        assertTrue(client.contains("https://api.avalai.ir/"))
         val backupBlock = prefs.substringAfter("suspend fun exportForBackup")
-        assertFalse(backupBlock.contains("experimental_ai_secure"))
-        assertFalse(backupBlock.contains("AVALAI_API_KEY"))
+        assertFalse(backupBlock.contains("experimental_groq_secure"))
+        assertFalse(backupBlock.contains("GROQ_API_KEY"))
     }
 
-    @Test fun `assistant sends only explicit test prompt and cannot write financial data`() {
-        assertTrue(client.contains("message.take(4_000)"))
-        assertTrue(client.contains("هیچ دسترسی‌ای به Room، پیامک‌ها، حساب‌ها یا تراکنش‌ها ندارد"))
+    @Test fun `model emits validated draft and user explicitly confirms database write`() {
+        assertTrue(client.contains("data class AiTransactionDraft"))
+        assertTrue(client.contains("message.take(2_000)"))
+        assertTrue(client.contains("direction == \"deposit\" || direction == \"withdraw\""))
+        assertTrue(client.contains("amount > 0"))
         assertFalse(client.contains("txDao"))
         assertFalse(client.contains("accountDao"))
-        assertFalse(client.contains("insert("))
+        assertTrue(ui.contains("پیش‌نمایش؛ هنوز چیزی ثبت نشده است"))
+        assertTrue(ui.contains("تأیید و ثبت تراکنش"))
+        assertTrue(ui.contains("viewModel.repo.addManualTransaction"))
+        assertTrue(ui.indexOf("پیش‌نمایش؛ هنوز چیزی ثبت نشده است") < ui.indexOf("viewModel.repo.addManualTransaction"))
     }
 }
