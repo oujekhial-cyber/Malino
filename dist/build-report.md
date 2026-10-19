@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: 469f2910d93a86d021f155f3ba290c2bcf5183c2
-- تاریخ: 2026-10-19 17:47 UTC
-- unit tests: success
+- commit: 885184273012cb84b5639d96e026d41efc498e0c
+- تاریخ: 2026-10-19 18:33 UTC
+- unit tests: failure
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,7 +10,8 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=571 failures=0 errors=0 skipped=0
+tests=577 failures=1 errors=0 skipped=0
+FAIL ir.kharjyar.app.SidebarBackPriorityGuardTest.back closes open sidebar before screen navigation: java.lang.AssertionError
 ```
 
 ## نسخه انتشار
