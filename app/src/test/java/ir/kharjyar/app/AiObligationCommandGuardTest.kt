@@ -12,7 +12,7 @@ class AiObligationCommandGuardTest {
 
     @Test fun `loan and debt commands are not flattened to income or expense`() {
         listOf("loan_borrowed","loan_lent","debt_receivable","debt_payable").forEach { assertTrue(ai.contains(it)) }
-        assertTrue(ai.contains("اصل وام یا قرض هرگز income یا expense نیست"))
+        assertTrue(ai.contains("اصل وام، قرض، خرید دارایی، پرداخت قسط و انتقال‌ها هرگز income یا expense عادی نیستند"))
         assertTrue(quick.contains("prepareObligationDraft"))
     }
 
