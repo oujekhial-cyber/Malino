@@ -98,6 +98,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     var analyzeSpokenCommand by remember { mutableStateOf(false) }
     var missingAmountInput by remember { mutableStateOf("") }
     var showAccountPicker by remember { mutableStateOf(false) }
+    var autoRegisterPending by remember { mutableStateOf(false) }
 
     val activeAccounts = accounts.filter { !it.archived }
     val context = LocalContext.current
@@ -188,7 +189,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     fun analyzeWithAi() {
         keyboard?.hide(); focusManager.clearFocus(force = true)
-        aiLoading = true; aiError = null; saved = false
+        aiLoading = true; aiError = null; saved = false; parsed=null
         scope.launch {
             ExperimentalPersianAi.interpretCommand(context, input, categories.filterNot { it.archived }.map { it.name })
                 .onSuccess { command ->
@@ -233,9 +234,31 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     )
                     parsed=completed
                     showAccountPicker=completed.accountId==null&&activeAccounts.isNotEmpty()
-                }.onFailure { aiError=it.message ?: "فرمان توسط سرویس هوش مصنوعی تشخیص داده نشد." }
+                }.onFailure { aiError=it.message ?: "فرمان توسط سرویس هوش مصنوعی تشخیص داده نشد.";autoRegisterPending=false }
             aiLoading=false
         }
+    }
+
+    fun persistCompletedTransaction(p:ParsedTransaction) {
+        val accId=p.accountId?:return
+        val amount=p.amountRial?:return
+        scope.launch {
+            val occurredAt=PersianDate.toMillis(p.date,p.hour,p.minute)
+            if(p.nature==ir.kharjyar.app.data.db.TxNature.TRANSFER&&p.transferToOwn&&p.targetAccountId!=null) {
+                viewModel.repo.addInternalTransfer(accId,p.targetAccountId,amount,p.description,occurredAt)
+            } else {
+                viewModel.repo.addManualTransaction(accId,amount,p.direction,p.nature,if(p.nature==ir.kharjyar.app.data.db.TxNature.TRANSFER)null else p.categoryId,p.description,occurredAt,if(p.nature==ir.kharjyar.app.data.db.TxNature.TRANSFER)"حساب شخص دیگر" else "")
+            }
+            saved=true;input="";parsed=null;autoRegisterPending=false
+        }
+    }
+
+    LaunchedEffect(parsed,autoRegisterPending) {
+        val p=parsed
+        val ready=p!=null&&p.isComplete&&p.dateExplicit&&
+            (p.nature==ir.kharjyar.app.data.db.TxNature.TRANSFER||p.categoryId!=null)&&
+            p.warnings.none{it.contains("نوع تراکنش")}
+        if(autoRegisterPending&&ready) persistCompletedTransaction(p!!)
     }
 
     LaunchedEffect(analyzeSpokenCommand) {
@@ -380,6 +403,12 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             modifier = Modifier.fillMaxWidth()
         ) { Text(if(aiLoading) "در حال بررسی فرمان…" else "تشخیص هوش مصنوعی") }
 
+        if(settings.aiAutoRegisterEnabled) Button(
+            onClick={autoRegisterPending=true;analyzeWithAi()},
+            enabled=settings.experimentalAiEnabled&&ExperimentalPersianAi.hasToken(context)&&input.isNotBlank()&&!aiLoading,
+            modifier=Modifier.fillMaxWidth()
+        ){Text("ثبت خودکار")}
+
         OutlinedButton(
             onClick = { analyze() },
             enabled = input.isNotBlank(),
@@ -450,40 +479,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     // انتقال به فرم کامل برای اصلاح دستی
                     nav.navigate("manual")
                 },
-                onConfirm = {
-                    val accId = p.accountId
-                    val amount = p.amountRial
-                    if (accId != null && amount != null) {
-                        scope.launch {
-                            val occurredAt = PersianDate.toMillis(p.date, p.hour, p.minute)
-                            if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER &&
-                                p.transferToOwn && p.targetAccountId != null
-                            ) {
-                                viewModel.repo.addInternalTransfer(
-                                    fromAccountId = accId,
-                                    toAccountId = p.targetAccountId,
-                                    amountRial = amount,
-                                    description = p.description,
-                                    occurredAt = occurredAt
-                                )
-                            } else {
-                                viewModel.repo.addManualTransaction(
-                                    accountId = accId,
-                                    amountRial = amount,
-                                    direction = p.direction,
-                                    nature = p.nature,
-                                    categoryId = if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER) null else p.categoryId,
-                                    description = p.description,
-                                    occurredAt = occurredAt,
-                                    counterparty = if (p.nature == ir.kharjyar.app.data.db.TxNature.TRANSFER) "حساب شخص دیگر" else ""
-                                )
-                            }
-                            saved = true
-                            input = ""
-                            parsed = null
-                        }
-                    }
-                }
+                onConfirm = { persistCompletedTransaction(p) }
             )
         }
 

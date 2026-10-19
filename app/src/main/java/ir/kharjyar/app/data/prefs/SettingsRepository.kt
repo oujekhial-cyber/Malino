@@ -124,7 +124,9 @@ data class AppSettings(
     /** فاصله عمودی متن‌های خرج‌یار بر حسب dp. */
     val widgetTitleOffsetY: Int = 0,
     /** قابلیت آنلاین آزمایشی؛ پیش‌فرض خاموش است و کلید آن جداگانه در Keystore می‌ماند. */
-    val experimentalAiEnabled: Boolean = false
+    val experimentalAiEnabled: Boolean = false,
+    /** ثبت خودکار فقط پس از تکمیل همه فیلدهای اجباری؛ پیش‌فرض خاموش. */
+    val aiAutoRegisterEnabled: Boolean = false
 )
 
 class SettingsRepository(private val context: Context) {
@@ -177,6 +179,7 @@ class SettingsRepository(private val context: Context) {
         val W_CLOCK_OFFSET_Y = intPreferencesKey("w_clock_offset_y")
         val W_TITLE_OFFSET_Y = intPreferencesKey("w_title_offset_y")
         val EXPERIMENTAL_AI_ENABLED = booleanPreferencesKey("experimental_ai_enabled")
+        val AI_AUTO_REGISTER_ENABLED = booleanPreferencesKey("ai_auto_register_enabled")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -231,7 +234,8 @@ class SettingsRepository(private val context: Context) {
             widgetDatesBelowClock = p[Keys.W_DATES_BELOW] ?: true,
             widgetClockOffsetY = (p[Keys.W_CLOCK_OFFSET_Y] ?: 0).coerceIn(-40, 40),
             widgetTitleOffsetY = (p[Keys.W_TITLE_OFFSET_Y] ?: 0).coerceIn(-40, 40),
-            experimentalAiEnabled = p[Keys.EXPERIMENTAL_AI_ENABLED] ?: false
+            experimentalAiEnabled = p[Keys.EXPERIMENTAL_AI_ENABLED] ?: false,
+            aiAutoRegisterEnabled = p[Keys.AI_AUTO_REGISTER_ENABLED] ?: false
         )
     }
 
@@ -292,6 +296,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetClockOffsetY(v: Int) = edit { it[Keys.W_CLOCK_OFFSET_Y] = v.coerceIn(-40, 40) }
     suspend fun setWidgetTitleOffsetY(v: Int) = edit { it[Keys.W_TITLE_OFFSET_Y] = v.coerceIn(-40, 40) }
     suspend fun setExperimentalAiEnabled(v: Boolean) = edit { it[Keys.EXPERIMENTAL_AI_ENABLED] = v }
+    suspend fun setAiAutoRegisterEnabled(v: Boolean) = edit { it[Keys.AI_AUTO_REGISTER_ENABLED] = v }
 
     /** تمام انتخاب‌های کاربر برای بازیابی کامل پس از نصب مجدد. */
     suspend fun exportForBackup(): Map<String, String> {
