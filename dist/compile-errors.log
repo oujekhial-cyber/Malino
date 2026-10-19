@@ -1,3 +1,0 @@
-e: The daemon has terminated unexpectedly on startup attempt #1 with error code: 0. The daemon process output:
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ExperimentalAiSettingsSection.kt:8:43 Cannot access 'val RowColumnParentData?.weight: Float': it is internal in file.
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/ExperimentalAiSettingsSection.kt:8:43 Cannot access 'val RowColumnParentData?.weight: Float': it is internal in file.
