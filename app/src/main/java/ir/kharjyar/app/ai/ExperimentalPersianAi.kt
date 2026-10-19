@@ -32,37 +32,93 @@ data class AiTransactionDraft(
     val explanation: String
 )
 
+data class AiAppCommand(
+    val action: String,
+    val route: String? = null,
+    val transaction: AiTransactionDraft? = null,
+    val explanation: String = ""
+)
+
 /**
  * آزمایش جداشدنی Groq/Qwen. تنها ورودی صریح کاربر و نام دسته‌ها ارسال می‌شود؛
  * شماره حساب، موجودی، پیامک و تراکنش‌های قبلی هرگز وارد درخواست نمی‌شوند.
  */
+enum class AiProvider(val title: String, val model: String, val endpoint: String) {
+    GROQ("Groq", "qwen/qwen3.8-27b", "https://api.groq.com/openai/v1/chat/completions"),
+    AVALAI("AvalAI", "qwen3.8-flash", "https://api.avalai.ir/v1/chat/completions")
+}
+
 object ExperimentalPersianAi {
-    const val MODEL = "qwen/qwen3.8-27b"
-    private const val ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
-    private const val KEY_ALIAS = "kharjyar_experimental_groq_key"
-    private const val PREFS = "experimental_groq_secure"
+    private const val PROVIDER_PREFS = "experimental_ai_provider"
+    private const val ACTIVE_PROVIDER = "active_provider"
     private const val TOKEN = "token"
-    private const val LEGACY_PREFS = "experimental_ai_secure"
-    private const val LEGACY_ALIAS = "kharjyar_experimental_ai_key"
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun hasToken(context: Context): Boolean {
-        clearLegacyAvalAi(context)
-        return readToken(context).isNotBlank()
+    fun activeProvider(context: Context): AiProvider = runCatching {
+        AiProvider.valueOf(context.getSharedPreferences(PROVIDER_PREFS, Context.MODE_PRIVATE)
+            .getString(ACTIVE_PROVIDER, AiProvider.GROQ.name).orEmpty())
+    }.getOrDefault(AiProvider.GROQ)
+
+    fun setActiveProvider(context: Context, provider: AiProvider) {
+        context.getSharedPreferences(PROVIDER_PREFS, Context.MODE_PRIVATE).edit()
+            .putString(ACTIVE_PROVIDER, provider.name).apply()
     }
 
-    fun saveToken(context: Context, token: String) {
-        clearLegacyAvalAi(context)
+    private fun securePrefs(provider: AiProvider) = "experimental_${provider.name.lowercase()}_secure"
+    private fun keyAlias(provider: AiProvider) = "kharjyar_experimental_${provider.name.lowercase()}_key"
+
+    fun hasToken(context: Context, provider: AiProvider = activeProvider(context)): Boolean =
+        readToken(context, provider).isNotBlank()
+
+    fun saveToken(context: Context, token: String, provider: AiProvider = activeProvider(context)) {
         val clean = token.trim()
-        if (clean.isBlank()) return clearToken(context)
+        if (clean.isBlank()) return clearToken(context, provider)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey())
+        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey(provider))
         val packed = Base64.encodeToString(cipher.iv + cipher.doFinal(clean.toByteArray()), Base64.NO_WRAP)
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(TOKEN, packed).apply()
+        context.getSharedPreferences(securePrefs(provider), Context.MODE_PRIVATE).edit().putString(TOKEN, packed).apply()
     }
 
-    fun clearToken(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(TOKEN).apply()
+    fun clearToken(context: Context, provider: AiProvider = activeProvider(context)) {
+        context.getSharedPreferences(securePrefs(provider), Context.MODE_PRIVATE).edit().remove(TOKEN).apply()
+    }
+
+    suspend fun interpretCommand(
+        context: Context,
+        message: String,
+        categoryNames: List<String>
+    ): Result<AiAppCommand> = withContext(Dispatchers.IO) {
+        runCatching {
+            val provider = activeProvider(context)
+            val token = readToken(context, provider).takeIf(String::isNotBlank)
+                ?: error("ابتدا کلید API سرویس ${provider.title} را در تنظیمات ذخیره کنید.")
+            require(message.isNotBlank()) { "متن فرمان خالی است." }
+            val routes = "transactions,reports,accounts,categories,debts,loans,checks,assets,vehicles,reminders,notes,review,smsPaste,marketPulse,backup,settings,manual,home,notifications,profile,widgetSettings,civicCenter"
+            val categories = categoryNames.take(80).joinToString("، ")
+            val body = buildJsonObject {
+                put("model", provider.model); put("temperature", 0.0); put("max_tokens", 420)
+                put("response_format", buildJsonObject { put("type", "json_object") })
+                put("messages", buildJsonArray {
+                    add(buildJsonObject {
+                        put("role", "system")
+                        put("content", """
+                            فرمان فارسی کاربر برای برنامه مدیریت مالی را فقط به JSON تبدیل کن.
+                            اگر ثبت برداشت/واریز است: {"action":"transaction","amount":عدد,"unit":"rial|toman","direction":"deposit|withdraw","category":"نام دسته","description":"شرح","explanation":"خلاصه"}
+                            اگر درخواست بازکردن، دیدن، فهرست یا مدیریت یک بخش است: {"action":"navigate","route":"شناسه","explanation":"خلاصه"}
+                            شناسه route فقط یکی از اینها باشد: $routes
+                            نگاشت: تراکنش=transactions، گزارش=reports، حساب=accounts، دسته=categories، بدهی/طلب=debts، وام/قسط=loans، چک=checks، دارایی/طلا/ارز=assets، خودرو=vehicles، یادآوری=reminders، یادداشت=notes، پیامک بانکی=review، چسباندن پیامک=smsPaste، بازار=marketPulse، پشتیبان=backup، تنظیمات=settings، ثبت دستی=manual، خانه=home، اعلان=notifications، پروفایل=profile، ویجت=widgetSettings، خدمات شهروندی=civicCenter.
+                            دسته تراکنش فقط از این فهرست: $categories. اگر واحد نیامده تومان فرض کن. هیچ متن دیگری ننویس.
+                        """.trimIndent())
+                    })
+                    add(buildJsonObject { put("role", "user"); put("content", message.take(2_000)) })
+                })
+            }.toString()
+            val raw = post(provider, token, body)
+            val content = json.parseToJsonElement(raw).jsonObject["choices"]?.jsonArray?.firstOrNull()
+                ?.jsonObject?.get("message")?.jsonObject?.get("content")?.jsonPrimitive?.contentOrNull
+                ?: error("پاسخ قابل‌خواندن دریافت نشد.")
+            parseCommand(content)
+        }
     }
 
     suspend fun interpretTransaction(
@@ -71,12 +127,13 @@ object ExperimentalPersianAi {
         categoryNames: List<String>
     ): Result<AiTransactionDraft> = withContext(Dispatchers.IO) {
         runCatching {
-            val token = readToken(context).takeIf(String::isNotBlank)
-                ?: error("ابتدا کلید API رایگان Groq را ذخیره کنید.")
+            val provider = activeProvider(context)
+            val token = readToken(context, provider).takeIf(String::isNotBlank)
+                ?: error("ابتدا کلید API سرویس ${provider.title} را در تنظیمات ذخیره کنید.")
             require(message.isNotBlank()) { "متن درخواست خالی است." }
             val categories = categoryNames.take(80).joinToString("، ")
             val body = buildJsonObject {
-                put("model", MODEL)
+                put("model", provider.model)
                 put("temperature", 0.1)
                 put("max_tokens", 350)
                 put("response_format", buildJsonObject { put("type", "json_object") })
@@ -94,13 +151,28 @@ object ExperimentalPersianAi {
                     add(buildJsonObject { put("role", "user"); put("content", message.take(2_000)) })
                 })
             }.toString()
-            val raw = post(token, body)
+            val raw = post(provider, token, body)
             val content = json.parseToJsonElement(raw).jsonObject["choices"]?.jsonArray
                 ?.firstOrNull()?.jsonObject?.get("message")?.jsonObject?.get("content")
                 ?.jsonPrimitive?.contentOrNull?.trim().takeUnless { it.isNullOrBlank() }
                 ?: error("پاسخ قابل‌خواندن از Groq دریافت نشد.")
             parseDraft(content)
         }
+    }
+
+    private fun parseCommand(content: String): AiAppCommand {
+        val clean = content.removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val value = json.parseToJsonElement(clean).jsonObject
+        val action = value["action"]?.jsonPrimitive?.contentOrNull?.lowercase() ?: error("نوع فرمان مشخص نشد.")
+        val explanation = value["explanation"]?.jsonPrimitive?.contentOrNull.orEmpty().take(300)
+        if (action == "navigate") {
+            val allowed = setOf("transactions","reports","accounts","categories","debts","loans","checks","assets","vehicles","reminders","notes","review","smsPaste","marketPulse","backup","settings","manual","home","notifications","profile","widgetSettings","civicCenter")
+            val route = value["route"]?.jsonPrimitive?.contentOrNull
+            require(route in allowed) { "مقصد فرمان معتبر نیست." }
+            return AiAppCommand(action="navigate", route=route, explanation=explanation)
+        }
+        require(action == "transaction") { "این فرمان هنوز عملیات امن و قابل‌تأییدی ندارد." }
+        return AiAppCommand(action="transaction", transaction=parseDraft(clean), explanation=explanation)
     }
 
     private fun parseDraft(content: String): AiTransactionDraft {
@@ -121,8 +193,8 @@ object ExperimentalPersianAi {
         )
     }
 
-    private fun post(token: String, body: String): String {
-        val connection = (URL(ENDPOINT).openConnection() as HttpURLConnection).apply {
+    private fun post(provider: AiProvider, token: String, body: String): String {
+        val connection = (URL(provider.endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"; connectTimeout = 15_000; readTimeout = 45_000; doOutput = true
             setRequestProperty("Authorization", "Bearer $token")
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
@@ -132,45 +204,39 @@ object ExperimentalPersianAi {
             val code = connection.responseCode
             val raw = (if (code in 200..299) connection.inputStream else connection.errorStream)
                 ?.bufferedReader()?.use { it.readText() }.orEmpty()
-            if (code !in 200..299) error(apiError(code, raw, connection.getHeaderField("Retry-After")))
+            if (code !in 200..299) error(apiError(provider, code, raw, connection.getHeaderField("Retry-After")))
             raw
         } finally { connection.disconnect() }
     }
 
-    private fun apiError(code: Int, raw: String, retryAfter: String?): String {
+    private fun apiError(provider: AiProvider, code: Int, raw: String, retryAfter: String?): String {
         val error = runCatching { json.parseToJsonElement(raw).jsonObject["error"]?.jsonObject }.getOrNull()
         val detail = error?.get("message")?.jsonPrimitive?.contentOrNull?.take(180)
         return when (code) {
-            401 -> "کلید Groq معتبر نیست؛ یک کلید تازه در console.groq.com بسازید."
-            403 -> "Groq این اتصال یا حساب را مجاز ندانست؛ احتمال محدودیت منطقه‌ای وجود دارد."
-            429 -> "سهمیه رایگان یا محدودیت سرعت Groq پر شده است${retryAfter?.let { "؛ حدود $it ثانیه بعد امتحان کنید" }.orEmpty()}."
-            else -> "Groq پاسخ نداد (کد $code)${detail?.let { ": $it" }.orEmpty()}"
+            401 -> "کلید ${provider.title} معتبر نیست یا دسترسی مدل فعال نشده است."
+            403 -> "${provider.title} این اتصال یا حساب را مجاز ندانست؛ احتمال محدودیت حساب یا منطقه‌ای وجود دارد."
+            429 -> "سهمیه یا محدودیت سرعت ${provider.title} پر شده است${retryAfter?.let { "؛ حدود $it ثانیه بعد امتحان کنید" }.orEmpty()}."
+            else -> "${provider.title} پاسخ نداد (کد $code)${detail?.let { ": $it" }.orEmpty()}"
         }
     }
 
-    private fun clearLegacyAvalAi(context: Context) {
-        context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE).edit().clear().apply()
-        runCatching {
-            KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(LEGACY_ALIAS)
-        }
-    }
-
-    private fun encryptionKey(): SecretKey {
+    private fun encryptionKey(provider: AiProvider): SecretKey {
+        val alias = keyAlias(provider)
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (store.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+        (store.getKey(alias, null) as? SecretKey)?.let { return it }
         return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").run {
-            init(KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+            init(KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
             generateKey()
         }
     }
 
-    private fun readToken(context: Context): String {
-        val packed = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(TOKEN, null) ?: return ""
+    private fun readToken(context: Context, provider: AiProvider): String {
+        val packed = context.getSharedPreferences(securePrefs(provider), Context.MODE_PRIVATE).getString(TOKEN, null) ?: return ""
         return runCatching {
             val bytes = Base64.decode(packed, Base64.NO_WRAP); require(bytes.size > 12)
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            cipher.init(Cipher.DECRYPT_MODE, encryptionKey(), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
+            cipher.init(Cipher.DECRYPT_MODE, encryptionKey(provider), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
             String(cipher.doFinal(bytes.copyOfRange(12, bytes.size)))
         }.getOrDefault("")
     }

@@ -289,7 +289,7 @@ private fun titleOf(route: String?): String = when {
     route.startsWith("tx/") -> "ویرایش تراکنش"
     route == "manual" -> "ثبت تراکنش"
     route == "manual/{dir}" -> "ثبت تراکنش"
-    route == "quickAdd" -> "ثبت سریع"
+    route == "quickAdd" -> "مرکز فرمان هوشمند"
     route == "widgetSettings" -> "تنظیمات ویجت"
     route == "backup" -> "پشتیبان‌گیری و بازیابی"
     route == "marketPulse" -> "نبض بازار"

@@ -51,8 +51,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import ir.kharjyar.app.ai.ExperimentalPersianAi
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
+import ir.kharjyar.app.core.nlp.AppCommandRouter
 import ir.kharjyar.app.core.nlp.ParseConfidence
 import ir.kharjyar.app.core.nlp.ParsedTransaction
 import ir.kharjyar.app.core.nlp.ParserAccount
@@ -87,6 +89,9 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     var parsed by remember { mutableStateOf<ParsedTransaction?>(null) }
     var saved by remember { mutableStateOf(false) }
     var voiceError by remember { mutableStateOf<String?>(null) }
+    var aiLoading by remember { mutableStateOf(false) }
+    var aiError by remember { mutableStateOf<String?>(null) }
+    var analyzeSpokenCommand by remember { mutableStateOf(false) }
 
     val activeAccounts = accounts.filter { !it.archived }
     val context = LocalContext.current
@@ -115,6 +120,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             // سانسور می‌کنند (س***مارکت). فقط همین الگوی شناخته‌شده را محلی اصلاح می‌کنیم.
             input = sanitizeSpeechText(spoken)
             voiceError = null
+            analyzeSpokenCommand = true
         }
     }
 
@@ -143,6 +149,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         // نتیجه بلافاصله دیده شود، نه اینکه پشت صفحه‌کلید بماند
         keyboard?.hide()
         focusManager.clearFocus(force = true)
+        AppCommandRouter.route(input)?.let { route -> nav.navigate(route); return }
         parsed = TransactionParser.parse(
             text = input,
             accounts = activeAccounts.map { ParserAccount(it.id, it.title, it.bankName) },
@@ -150,6 +157,54 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             defaultUnit = settings.moneyUnit
         )
         saved = false
+    }
+
+    fun analyzeWithAi() {
+        keyboard?.hide(); focusManager.clearFocus(force = true)
+        aiLoading = true; aiError = null; saved = false
+        scope.launch {
+            ExperimentalPersianAi.interpretCommand(context, input, categories.filterNot { it.archived }.map { it.name })
+                .onSuccess { command ->
+                    if (command.action == "navigate" && command.route != null) {
+                        nav.navigate(command.route)
+                        aiLoading=false
+                        return@onSuccess
+                    }
+                    val draft = command.transaction ?: return@onSuccess
+                    val local = TransactionParser.parse(
+                        text=input,
+                        accounts=activeAccounts.map { ParserAccount(it.id,it.title,it.bankName) },
+                        categories=categories.map { ParserCategory(it.id,it.name) },
+                        defaultUnit=settings.moneyUnit
+                    )
+                    val target = Digits.normalizeForMatch(draft.category)
+                    val category = categories.firstOrNull { Digits.normalizeForMatch(it.name) == target }
+                    parsed = local.copy(
+                        amountRial=draft.amountRial,
+                        direction=if(draft.direction=="deposit") TxDirection.DEPOSIT else TxDirection.WITHDRAW,
+                        nature=if(draft.direction=="deposit") ir.kharjyar.app.data.db.TxNature.INCOME else ir.kharjyar.app.data.db.TxNature.EXPENSE,
+                        categoryId=category?.id ?: local.categoryId,
+                        categoryName=category?.name ?: local.categoryName,
+                        description=draft.description.ifBlank { local.description },
+                        warnings=local.warnings.filterNot { it.contains("مبلغ") || it.contains("نوع تراکنش") }
+                    )
+                }.onFailure { aiError=it.message ?: "فرمان توسط سرویس هوش مصنوعی تشخیص داده نشد." }
+            aiLoading=false
+        }
+    }
+
+    LaunchedEffect(analyzeSpokenCommand) {
+        if (analyzeSpokenCommand) {
+            analyzeSpokenCommand = false
+            // وقتی دستیار آنلاین عمداً فعال شده و کلید سرویس منتخب وجود دارد،
+            // متن حاصل از گفتار مستقیماً برای تبدیل به فرمان ساختاریافته فرستاده می‌شود.
+            // در حالت خاموش، همان موتور محلی و آفلاین اجرا می‌شود.
+            if (settings.experimentalAiEnabled && ExperimentalPersianAi.hasToken(context)) {
+                analyzeWithAi()
+            } else {
+                analyze()
+            }
+        }
     }
 
     Column(
@@ -176,7 +231,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "ثبت با یک جمله",
+                        "مرکز فرمان هوشمند",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = skin.onBackdrop
@@ -184,8 +239,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "خریدتان را عادی بنویسید؛ مبلغ، حساب، دسته و تاریخ خودکار تشخیص داده می‌شود. " +
-                        "پیش از ثبت، نتیجه را می‌بینید و می‌توانید اصلاح کنید.",
+                    "فرمان را بنویسید یا بگویید. ابتدا موتور محلی و کلیدواژه‌ها استفاده می‌شوند و برای تشخیص پیچیده‌تر می‌توانید سرویس انتخاب‌شده در تنظیمات را به‌کار ببرید. هیچ ثبت مالی بدون پیش‌نمایش و تأیید شما انجام نمی‌شود.",
                     style = MaterialTheme.typography.bodySmall,
                     color = skin.onBackdrop.copy(alpha = 0.75f)
                 )
@@ -239,7 +293,10 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                if (voiceAvailable) "تبدیل گفتار به متن روی این گوشی فعال است"
+                if (voiceAvailable && settings.experimentalAiEnabled)
+                    "ورودی صوتی فعال است؛ متن گفتار برای سرویس هوش مصنوعی انتخاب‌شده فرستاده می‌شود"
+                else if (voiceAvailable)
+                    "ورودی صوتی فعال است؛ فرمان فقط با موتور محلی برنامه تحلیل می‌شود"
                 else "تبدیل گفتار به متن در دسترس نیست — می‌توانید تایپ کنید",
                 style = MaterialTheme.typography.bodySmall,
                 color = skin.onBackdrop.copy(alpha = 0.7f)
@@ -276,7 +333,26 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             onClick = { analyze() },
             enabled = input.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
-        ) { Text("تحلیل جمله") }
+        ) { Text("تشخیص محلی فرمان") }
+
+        OutlinedButton(
+            onClick = { analyzeWithAi() },
+            enabled = settings.experimentalAiEnabled && ExperimentalPersianAi.hasToken(context) && input.isNotBlank() && !aiLoading,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if(aiLoading) "در حال تشخیص…" else "تشخیص با هوش مصنوعی ${ExperimentalPersianAi.activeProvider(context).title}") }
+        aiError?.let { Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall) }
+
+        SkinCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+                Text("فرمان‌های قابل انجام",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.Bold)
+                Text("• ثبت برداشت، واریز و انتقال بین حساب‌های خودم")
+                Text("• تشخیص مبلغ، حساب، دسته، تاریخ و توضیح")
+                Text("• ورود به تراکنش‌ها، گزارش‌ها، حساب‌ها و دسته‌بندی‌ها")
+                Text("• ورود به بدهی‌ها، وام و اقساط، چک‌ها، دارایی‌ها و خودروها")
+                Text("• ورود به یادآوری‌ها، یادداشت‌ها، پیامک بانکی، بازار و پشتیبان‌گیری")
+                Text("ثبت، ویرایش، حذف و عملیات گروهی همیشه به تأیید نهایی کاربر نیاز دارند.",style=MaterialTheme.typography.bodySmall,color=skin.onBackdrop.copy(alpha=.7f))
+            }
+        }
 
         // ---------- نتیجه ----------
         parsed?.let { p ->

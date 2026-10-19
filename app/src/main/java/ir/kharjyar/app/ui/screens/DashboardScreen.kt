@@ -741,7 +741,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "ثبت سریع",
+                        "فرمان هوشمند",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = skin.onBackdrop,
