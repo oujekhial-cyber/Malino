@@ -22,6 +22,23 @@ object AppCommandRouter {
         listOf("تنظیمات") to "settings"
     )
 
+    fun featureAction(text: String): Pair<String,String>? {
+        val value=Digits.normalizeForMatch(text).replace('‌',' ')
+        val registration=listOf("ثبت کن","ثبت کردم","خریدم","فروختم","یادآوری کن","یادم بنداز","صادر کردم","دریافت کردم","پرداخت کردم").any(value::contains)
+        if(!registration)return null
+        return when {
+            listOf("طلا","سکه","ارز","دلار","سهام","بورس","ملک","دارایی").any(value::contains)->"asset_record" to "assets"
+            value.contains("یادآور")||value.contains("یادم بنداز")->"reminder_create" to "reminders"
+            value.contains("چک")&&listOf("صادر","دادم").any(value::contains)->"check_issued" to "checks"
+            value.contains("چک")->"check_received" to "checks"
+            value.contains("یادداشت")->"note_create" to "notes"
+            value.contains("قسط")&&value.contains("پرداخت")->"installment_payment" to "loans"
+            value.contains("خودرو")||value.contains("ماشین")->"vehicle_record" to "vehicles"
+            listOf("قبض","جریمه").any(value::contains)->"civic_record" to "civicCenter"
+            else->null
+        }
+    }
+
     fun obligationAction(text: String): String? {
         val value = Digits.normalizeForMatch(text).replace('‌',' ')
         return when {

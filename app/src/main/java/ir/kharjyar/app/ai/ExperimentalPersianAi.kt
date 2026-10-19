@@ -112,7 +112,9 @@ object ExperimentalPersianAi {
                             اگر وام‌دادن است: {"action":"loan_lent","amount":عدد,"unit":"rial|toman","party":"وام‌گیرنده","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
                             اگر قرض‌دادن/طلب است: {"action":"debt_receivable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
                             اگر قرض‌گرفتن/بدهی است: {"action":"debt_payable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب دریافت","title":"عنوان","explanation":"خلاصه"}
-                            اصل وام یا قرض هرگز income یا expense نیست و باید action تخصصی بالا را بگیرد.
+                            برای ثبت تخصصی سایر بخش‌ها از این actionها استفاده کن و در صورت وجود amount/unit/title/party/account را هم بده:
+                            asset_record برای خرید/فروش/ثبت طلا، ارز، سهام، ملک یا دارایی؛ reminder_create برای یادآور؛ check_issued یا check_received برای چک؛ note_create برای یادداشت؛ vehicle_record برای خودرو، هزینه یا سرویس آن؛ installment_payment برای پرداخت قسط؛ civic_record برای قبض، جریمه یا خدمات شهروندی.
+                            اصل وام، قرض، خرید دارایی، پرداخت قسط و انتقال‌ها هرگز income یا expense عادی نیستند و باید action تخصصی بگیرند.
                             اگر درخواست بازکردن، دیدن، فهرست یا مدیریت یک بخش است: {"action":"navigate","route":"شناسه","explanation":"خلاصه"}
                             شناسه route فقط یکی از اینها باشد: $routes
                             نگاشت: تراکنش=transactions، گزارش=reports، حساب=accounts، دسته=categories، بدهی/طلب=debts، وام/قسط=loans، چک=checks، دارایی/طلا/ارز=assets، خودرو=vehicles، یادآوری=reminders، یادداشت=notes، پیامک بانکی=review، چسباندن پیامک=smsPaste، بازار=marketPulse، پشتیبان=backup، تنظیمات=settings، ثبت دستی=manual، خانه=home، اعلان=notifications، پروفایل=profile، ویجت=widgetSettings، خدمات شهروندی=civicCenter.
@@ -189,6 +191,24 @@ object ExperimentalPersianAi {
                 action=action,
                 route=if(action.startsWith("loan_")) "loans" else "debts",
                 amountRial=if(unit=="rial") amount else Math.multiplyExact(amount,10L),
+                party=value["party"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
+                accountHint=value["account"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
+                title=value["title"]?.jsonPrimitive?.contentOrNull.orEmpty().take(150),
+                explanation=explanation
+            )
+        }
+        val featureRoutes = mapOf(
+            "asset_record" to "assets", "reminder_create" to "reminders",
+            "check_issued" to "checks", "check_received" to "checks",
+            "note_create" to "notes", "vehicle_record" to "vehicles",
+            "installment_payment" to "loans", "civic_record" to "civicCenter"
+        )
+        featureRoutes[action]?.let { route ->
+            val rawAmount=value["amount"]?.jsonPrimitive?.longOrNull
+            val unit=value["unit"]?.jsonPrimitive?.contentOrNull?.lowercase()
+            return AiAppCommand(
+                action=action,route=route,
+                amountRial=rawAmount?.takeIf{it>0}?.let{if(unit=="rial")it else Math.multiplyExact(it,10L)},
                 party=value["party"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
                 accountHint=value["account"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
                 title=value["title"]?.jsonPrimitive?.contentOrNull.orEmpty().take(150),

@@ -163,6 +163,12 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                 return
             }
         }
+        AppCommandRouter.featureAction(input)?.let { (action,route) ->
+            val featureParsed=TransactionParser.parse(input,activeAccounts.map{ParserAccount(it.id,it.title,it.bankName)},categories.map{ParserCategory(it.id,it.name)},settings.moneyUnit)
+            viewModel.prepareFeatureCommand(AppViewModel.PendingFeatureCommand(action,featureParsed.amountRial,input,input,accountHint=input))
+            nav.navigate(route)
+            return
+        }
         AppCommandRouter.route(input)?.let { route -> nav.navigate(route); return }
         parsed = TransactionParser.parse(
             text = input,
@@ -182,6 +188,14 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     if (command.action in setOf("loan_borrowed","loan_lent","debt_receivable","debt_payable") && command.amountRial != null && command.route != null) {
                         viewModel.prepareObligationDraft(
                             AppViewModel.PendingObligationDraft(command.action,command.amountRial,command.party,command.accountHint,command.title)
+                        )
+                        nav.navigate(command.route)
+                        aiLoading=false
+                        return@onSuccess
+                    }
+                    if (command.action in setOf("asset_record","reminder_create","check_issued","check_received","note_create","vehicle_record","installment_payment","civic_record") && command.route != null) {
+                        viewModel.prepareFeatureCommand(
+                            AppViewModel.PendingFeatureCommand(command.action,command.amountRial,command.title,input,command.party,command.accountHint)
                         )
                         nav.navigate(command.route)
                         aiLoading=false

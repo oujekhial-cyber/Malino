@@ -38,6 +38,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val title: String
     )
 
+    data class PendingFeatureCommand(
+        val action: String,
+        val amountRial: Long?,
+        val title: String,
+        val details: String,
+        val party: String = "",
+        val accountHint: String = ""
+    )
+    private val _pendingFeatureCommand = MutableStateFlow<PendingFeatureCommand?>(null)
+    val pendingFeatureCommand: StateFlow<PendingFeatureCommand?> = _pendingFeatureCommand
+    fun prepareFeatureCommand(command: PendingFeatureCommand) { _pendingFeatureCommand.value = command }
+    fun clearFeatureCommand() { _pendingFeatureCommand.value = null }
+
     private val _pendingObligationDraft = MutableStateFlow<PendingObligationDraft?>(null)
     val pendingObligationDraft: StateFlow<PendingObligationDraft?> = _pendingObligationDraft
     fun prepareObligationDraft(draft: PendingObligationDraft) { _pendingObligationDraft.value = draft }
