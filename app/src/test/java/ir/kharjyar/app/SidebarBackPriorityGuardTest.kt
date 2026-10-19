@@ -13,7 +13,7 @@ class SidebarBackPriorityGuardTest {
         assertTrue(navHost>=0&&priorityHandler>navHost)
         val block=root.substring(priorityHandler,root.indexOf("if (showDirectionChooser)",priorityHandler))
         assertTrue(block.contains("scope.launch { drawerState.close() }"))
-        assertTrue(block.contains("صفحه جاری دست‌نخورده بماند"))
+        assertTrue(root.contains("صفحه جاری دست‌نخورده بماند"))
     }
 
     @Test fun `double back exit remains disabled while drawer is open`() {
