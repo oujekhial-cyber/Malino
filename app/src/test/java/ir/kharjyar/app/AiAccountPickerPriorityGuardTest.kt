@@ -17,8 +17,8 @@ class AiAccountPickerPriorityGuardTest {
     }
 
     @Test fun `online AI analysis is visually before local fallback`() {
-        val ai=quick.indexOf("تشخیص با هوش مصنوعی")
-        val local=quick.indexOf("تشخیص محلی و آفلاین")
+        val ai=quick.indexOf("اجرای فرمان با دستیار")
+        val local=quick.indexOf("اجرای فرمان روی گوشی (آفلاین)")
         assertTrue(ai>=0&&local>ai)
         assertTrue(quick.substring(0,local).contains("Button("))
     }
