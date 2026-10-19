@@ -297,6 +297,7 @@ private fun titleOf(route: String?): String = when {
     route == "settings/appearance" -> "قالب‌ها"
     route == "settings/permissions" -> "مجوزها و اعلان‌ها"
     route == "settings/security" -> "امنیت"
+    route == "settings/experimentalAi" -> "دستیار هوشمند آزمایشی"
     route == "settings/account" -> "مدیریت حساب"
     route == "profile" -> "پروفایل کاربری"
     else -> drawerEntries.firstOrNull { it.route == route }?.label ?: "خرج‌یار"

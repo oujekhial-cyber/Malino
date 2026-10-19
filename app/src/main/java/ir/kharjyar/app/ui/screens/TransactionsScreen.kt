@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
@@ -67,6 +70,7 @@ import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
 import ir.kharjyar.app.ui.components.GlassSnackbarHost
+import ir.kharjyar.app.ui.components.PersianDateField
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.theme.LocalAppSkin
@@ -100,6 +104,11 @@ fun TransactionsScreen(
         listOf(TransactionMonthPeriod(null,null,"همه ماه‌ها"))+keys.map{(year,month)->TransactionMonthPeriod(year,month,"${PersianDate(year,month,1).monthName()} ${Digits.toPersian(year.toString())}")}
     }
     var filterPeriod by remember { mutableStateOf(TransactionMonthPeriod(null,null,"همه ماه‌ها")) }
+    var dateRangeEnabled by remember { mutableStateOf(false) }
+    var filterFromDate by remember { mutableStateOf(PersianDate.today().plusDays(-30)) }
+    var filterToDate by remember { mutableStateOf(PersianDate.today()) }
+    val rangeStart = minOf(filterFromDate.startOfDayMillis(), filterToDate.startOfDayMillis())
+    val rangeEndExclusive = maxOf(filterFromDate.endOfDayMillisExclusive(), filterToDate.endOfDayMillisExclusive())
     // میان‌بر چیپ کارت خانه، واریز/برداشت را بر اساس جهت بانکی فیلتر می‌کند؛
     // انتقال‌ها هم بسته به جهت خود در نتیجه باقی می‌مانند.
     var filterDirection by remember(presetDirection) { mutableStateOf(presetDirection) }
@@ -132,6 +141,7 @@ fun TransactionsScreen(
             (filterNature == null || tx.nature == filterNature) &&
             (filterDirection == null || tx.direction == filterDirection) &&
             filterPeriod.contains(tx.occurredAt) &&
+            (!dateRangeEnabled || tx.occurredAt in rangeStart until rangeEndExclusive) &&
             (!onlyPending || tx.status == TxStatus.PENDING)
     }
 
@@ -217,13 +227,12 @@ fun TransactionsScreen(
                 )
             }
 
-            // انتخاب ماه، کمبوباکس کلاسیک روی خود صفحه است و فهرست آن مستقیم زیر
-            // کنترل باز می‌شود؛ برای انتخاب بازه پنجره یا دیالوگ جدا نمایش نمی‌دهیم.
-            ComboBox("ماه",monthPeriods,filterPeriod,{filterPeriod=it},labelOf={it.label})
+            // انتخاب ماه، کمبوباکس کلاسیک روی خود صفحه است و فهرست آن مستقیم زیر کنترل باز می‌شود.
+            ComboBox("ماه",monthPeriods,filterPeriod,{filterPeriod=it;dateRangeEnabled=false},labelOf={it.label})
 
             // فیلترهای پرکاربرد همیشه جلوی چشم و با یک لمس قابل انتخاب‌اند.
             val activeFilterCount = listOf(
-                filterDirection != null, filterNature != null, filterAccount != null, filterPeriod.year != null, onlyPending
+                filterDirection != null, filterNature != null, filterAccount != null, filterPeriod.year != null, dateRangeEnabled, onlyPending
             ).count { it }
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -231,7 +240,7 @@ fun TransactionsScreen(
             ) {
                 item {
                     ProfessionalFilterChip("همه", activeFilterCount == 0) {
-                        filterDirection = null; filterNature = null; filterAccount = null; filterPeriod=monthPeriods.first(); onlyPending = false
+                        filterDirection = null; filterNature = null; filterAccount = null; filterPeriod=monthPeriods.first(); dateRangeEnabled=false; onlyPending = false
                     }
                 }
                 item {
@@ -250,13 +259,13 @@ fun TransactionsScreen(
                 item {
                     ProfessionalFilterChip(
                         if (activeFilterCount == 0) "فیلترهای بیشتر" else "بیشتر ($activeFilterCount)",
-                        filterNature != null || filterAccount != null || filterPeriod.year != null
+                        filterNature != null || filterAccount != null || filterPeriod.year != null || dateRangeEnabled
                     ) { showFilters = true }
                 }
             }
-            if (filterAccount != null || filterNature != null || filterPeriod.year != null) {
+            if (filterAccount != null || filterNature != null || filterPeriod.year != null || dateRangeEnabled) {
                 Row(
-                    Modifier.fillMaxWidth().padding(top = 5.dp),
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 5.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -268,6 +277,27 @@ fun TransactionsScreen(
                         ProfessionalFilterChip(when (nature) { TxNature.INCOME -> "درآمد"; TxNature.EXPENSE -> "هزینه"; TxNature.TRANSFER -> "انتقال"; else -> "غیر درآمد/هزینه" }, true) { filterNature = null }
                     }
                     if(filterPeriod.year!=null) ProfessionalFilterChip(filterPeriod.label,true){filterPeriod=monthPeriods.first()}
+                    if(dateRangeEnabled) ProfessionalFilterChip(
+                        "${filterFromDate.format()} تا ${filterToDate.format()}", true
+                    ){dateRangeEnabled=false}
+                }
+            }
+
+            val filteredDeposits = filtered.filter { it.direction == TxDirection.DEPOSIT }.sumOf { it.amountRial }
+            val filteredWithdrawals = filtered.filter { it.direction == TxDirection.WITHDRAW }.sumOf { it.amountRial }
+            SkinCard(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("مجموع واریز", style = MaterialTheme.typography.labelMedium, color = skin.incomeColor)
+                        Text(Money.format(filteredDeposits, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("مجموع برداشت", style = MaterialTheme.typography.labelMedium, color = skin.expenseColor)
+                        Text(Money.format(filteredWithdrawals, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
+                    }
                 }
             }
 
@@ -308,7 +338,7 @@ fun TransactionsScreen(
     if (showFilters) {
         androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showFilters = false }) {
             Column(
-                Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
+                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text("فیلتر تراکنش‌ها", style = MaterialTheme.typography.titleLarge)
@@ -326,6 +356,30 @@ fun TransactionsScreen(
                         ProfessionalFilterChip(labels[index], filterNature == values[index]) { filterNature = values[index] }
                     }
                 }
+                Text("بازه تاریخی", style = MaterialTheme.typography.titleSmall)
+                SkinCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("فیلتر بازه دلخواه")
+                                Text("ابتدا و انتهای بازه در محاسبه لحاظ می‌شوند", style = MaterialTheme.typography.labelSmall, color = skin.onBackdrop.copy(alpha = .65f))
+                            }
+                            androidx.compose.material3.Switch(
+                                checked = dateRangeEnabled,
+                                onCheckedChange = { enabled ->
+                                    dateRangeEnabled = enabled
+                                    if (enabled) filterPeriod = monthPeriods.first()
+                                }
+                            )
+                        }
+                        if (dateRangeEnabled) {
+                            Text("از تاریخ", style = MaterialTheme.typography.labelMedium)
+                            PersianDateField(filterFromDate, { filterFromDate = it })
+                            Text("تا تاریخ", style = MaterialTheme.typography.labelMedium)
+                            PersianDateField(filterToDate, { filterToDate = it })
+                        }
+                    }
+                }
                 Text("حساب", style = MaterialTheme.typography.titleSmall)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     item { ProfessionalFilterChip("همه حساب‌ها", filterAccount == null) { filterAccount = null } }
@@ -338,7 +392,7 @@ fun TransactionsScreen(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;filterAccount=null;filterPeriod=monthPeriods.first();onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
+                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;filterAccount=null;filterPeriod=monthPeriods.first();dateRangeEnabled=false;onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
                     androidx.compose.material3.Button(onClick = { showFilters=false }, modifier = Modifier.weight(1f)) { Text("نمایش ${Digits.toPersian(filtered.size.toString())} نتیجه") }
                 }
             }

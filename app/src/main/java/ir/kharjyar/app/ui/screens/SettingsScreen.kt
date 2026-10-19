@@ -118,7 +118,12 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
             SettingsMenuRow("پشتیبان‌گیری و بازیابی") { nav.navigate("backup") }
             SettingsMenuRow("پیامک‌های تبلیغاتی") { nav.navigate("blockedSenders") }
             SettingsMenuRow("حریم خصوصی") { nav.navigate("settings/privacy") }
+            SettingsMenuRow("دستیار هوشمند آزمایشی") { nav.navigate("settings/experimentalAi") }
             SettingsMenuRow("درباره ما") { showAbout = true }
+        }
+
+        if (section == "experimentalAi") {
+            ExperimentalAiSettingsSection(viewModel, settings.experimentalAiEnabled)
         }
 
         // ---------- تم ----------
@@ -504,7 +509,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
 
 
 @Composable
-private fun SectionCard(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+internal fun SectionCard(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     SkinCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)

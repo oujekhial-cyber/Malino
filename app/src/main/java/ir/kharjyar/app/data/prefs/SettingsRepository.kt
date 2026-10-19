@@ -122,7 +122,9 @@ data class AppSettings(
     /** فاصله عمودی پنل ساعت از بالای ویجت (۰=وسط، منفی=بالاتر، مثبت=پایین‌تر) بر حسب dp. */
     val widgetClockOffsetY: Int = 0,
     /** فاصله عمودی متن‌های خرج‌یار بر حسب dp. */
-    val widgetTitleOffsetY: Int = 0
+    val widgetTitleOffsetY: Int = 0,
+    /** قابلیت آنلاین آزمایشی؛ پیش‌فرض خاموش است و کلید آن جداگانه در Keystore می‌ماند. */
+    val experimentalAiEnabled: Boolean = false
 )
 
 class SettingsRepository(private val context: Context) {
@@ -174,6 +176,7 @@ class SettingsRepository(private val context: Context) {
         val W_DATES_BELOW = booleanPreferencesKey("w_dates_below")
         val W_CLOCK_OFFSET_Y = intPreferencesKey("w_clock_offset_y")
         val W_TITLE_OFFSET_Y = intPreferencesKey("w_title_offset_y")
+        val EXPERIMENTAL_AI_ENABLED = booleanPreferencesKey("experimental_ai_enabled")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -227,7 +230,8 @@ class SettingsRepository(private val context: Context) {
             widgetClockVAlign = enumOf(p[Keys.W_CLOCK_VALIGN], WidgetVAlign.CENTER),
             widgetDatesBelowClock = p[Keys.W_DATES_BELOW] ?: true,
             widgetClockOffsetY = (p[Keys.W_CLOCK_OFFSET_Y] ?: 0).coerceIn(-40, 40),
-            widgetTitleOffsetY = (p[Keys.W_TITLE_OFFSET_Y] ?: 0).coerceIn(-40, 40)
+            widgetTitleOffsetY = (p[Keys.W_TITLE_OFFSET_Y] ?: 0).coerceIn(-40, 40),
+            experimentalAiEnabled = p[Keys.EXPERIMENTAL_AI_ENABLED] ?: false
         )
     }
 
@@ -287,6 +291,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setWidgetDatesBelowClock(v: Boolean) = edit { it[Keys.W_DATES_BELOW] = v }
     suspend fun setWidgetClockOffsetY(v: Int) = edit { it[Keys.W_CLOCK_OFFSET_Y] = v.coerceIn(-40, 40) }
     suspend fun setWidgetTitleOffsetY(v: Int) = edit { it[Keys.W_TITLE_OFFSET_Y] = v.coerceIn(-40, 40) }
+    suspend fun setExperimentalAiEnabled(v: Boolean) = edit { it[Keys.EXPERIMENTAL_AI_ENABLED] = v }
 
     /** تمام انتخاب‌های کاربر برای بازیابی کامل پس از نصب مجدد. */
     suspend fun exportForBackup(): Map<String, String> {
