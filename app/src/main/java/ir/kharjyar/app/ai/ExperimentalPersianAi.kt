@@ -36,6 +36,10 @@ data class AiAppCommand(
     val action: String,
     val route: String? = null,
     val transaction: AiTransactionDraft? = null,
+    val amountRial: Long? = null,
+    val party: String = "",
+    val accountHint: String = "",
+    val title: String = "",
     val explanation: String = ""
 )
 
@@ -104,6 +108,11 @@ object ExperimentalPersianAi {
                         put("content", """
                             فرمان فارسی کاربر برای برنامه مدیریت مالی را فقط به JSON تبدیل کن.
                             اگر ثبت برداشت/واریز است: {"action":"transaction","amount":عدد,"unit":"rial|toman","direction":"deposit|withdraw","category":"نام دسته","description":"شرح","explanation":"خلاصه"}
+                            اگر دریافت وام است: {"action":"loan_borrowed","amount":عدد,"unit":"rial|toman","party":"بانک یا وام‌دهنده","account":"نام حساب مقصد","title":"عنوان","explanation":"خلاصه"}
+                            اگر وام‌دادن است: {"action":"loan_lent","amount":عدد,"unit":"rial|toman","party":"وام‌گیرنده","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
+                            اگر قرض‌دادن/طلب است: {"action":"debt_receivable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
+                            اگر قرض‌گرفتن/بدهی است: {"action":"debt_payable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب دریافت","title":"عنوان","explanation":"خلاصه"}
+                            اصل وام یا قرض هرگز income یا expense نیست و باید action تخصصی بالا را بگیرد.
                             اگر درخواست بازکردن، دیدن، فهرست یا مدیریت یک بخش است: {"action":"navigate","route":"شناسه","explanation":"خلاصه"}
                             شناسه route فقط یکی از اینها باشد: $routes
                             نگاشت: تراکنش=transactions، گزارش=reports، حساب=accounts، دسته=categories، بدهی/طلب=debts، وام/قسط=loans، چک=checks، دارایی/طلا/ارز=assets، خودرو=vehicles، یادآوری=reminders، یادداشت=notes، پیامک بانکی=review، چسباندن پیامک=smsPaste، بازار=marketPulse، پشتیبان=backup، تنظیمات=settings، ثبت دستی=manual، خانه=home، اعلان=notifications، پروفایل=profile، ویجت=widgetSettings، خدمات شهروندی=civicCenter.
@@ -170,6 +179,21 @@ object ExperimentalPersianAi {
             val route = value["route"]?.jsonPrimitive?.contentOrNull
             require(route in allowed) { "مقصد فرمان معتبر نیست." }
             return AiAppCommand(action="navigate", route=route, explanation=explanation)
+        }
+        val obligationActions = setOf("loan_borrowed", "loan_lent", "debt_receivable", "debt_payable")
+        if (action in obligationActions) {
+            val amount = value["amount"]?.jsonPrimitive?.longOrNull ?: error("مبلغ وام یا قرض مشخص نشد.")
+            require(amount > 0) { "مبلغ باید بیشتر از صفر باشد." }
+            val unit = value["unit"]?.jsonPrimitive?.contentOrNull?.lowercase()
+            return AiAppCommand(
+                action=action,
+                route=if(action.startsWith("loan_")) "loans" else "debts",
+                amountRial=if(unit=="rial") amount else Math.multiplyExact(amount,10L),
+                party=value["party"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
+                accountHint=value["account"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
+                title=value["title"]?.jsonPrimitive?.contentOrNull.orEmpty().take(150),
+                explanation=explanation
+            )
         }
         require(action == "transaction") { "این فرمان هنوز عملیات امن و قابل‌تأییدی ندارد." }
         return AiAppCommand(action="transaction", transaction=parseDraft(clean), explanation=explanation)

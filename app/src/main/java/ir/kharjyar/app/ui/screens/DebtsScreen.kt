@@ -59,7 +59,8 @@ fun DebtsScreen(vm: AppViewModel) {
     val debts by vm.debts.collectAsState()
     val payments by vm.debtPayments.collectAsState()
     val settings by vm.settings.collectAsState()
-    var entryKind by remember { mutableStateOf<Int?>(null) }
+    val pendingDraft by vm.pendingObligationDraft.collectAsState()
+    var entryKind by remember(pendingDraft) { mutableStateOf(when(pendingDraft?.action){"debt_receivable"->DebtKind.RECEIVABLE;"debt_payable"->DebtKind.PAYABLE;else->null}) }
     var showChooser by remember { mutableStateOf(false) }
     var selectedPersonId by remember { mutableStateOf<Long?>(null) }
     var filterKind by remember { mutableStateOf<Int?>(null) }
@@ -71,7 +72,7 @@ fun DebtsScreen(vm: AppViewModel) {
         if (entryKind != null) entryKind = null else selectedPersonId = null
     }
     if (entryKind != null) {
-        DebtEntryPage(vm, entryKind!!, people, onDone = { entryKind = null }, onCancel = { entryKind = null })
+        DebtEntryPage(vm, entryKind!!, people, pendingDraft?.takeIf{it.action.startsWith("debt_")}, onDone = { entryKind = null;vm.clearObligationDraft() }, onCancel = { entryKind = null;vm.clearObligationDraft() })
         return
     }
     selectedPersonId?.let { id ->
@@ -552,13 +553,13 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
 }
 
 @Composable
-private fun DebtEntryPage(vm: AppViewModel, kind: Int, people: List<DebtPersonEntity>, onDone: () -> Unit, onCancel: () -> Unit) {
+private fun DebtEntryPage(vm: AppViewModel, kind: Int, people: List<DebtPersonEntity>, draft:AppViewModel.PendingObligationDraft?, onDone: () -> Unit, onCancel: () -> Unit) {
     val scope = rememberCoroutineScope(); val context = LocalContext.current; val settings by vm.settings.collectAsState()
     val accounts by vm.accounts.collectAsState()
     val activeAccounts = accounts.filter { !it.archived }
-    var person by remember { mutableStateOf("") }; var title by remember { mutableStateOf("") }; var amount by remember { mutableStateOf("") }; var originDate by remember { mutableStateOf(PersianDate.today()) }; var due by remember { mutableStateOf(PersianDate.today()) }
-    var registerAccountTransaction by remember { mutableStateOf(false) }
-    var accountId by remember { mutableStateOf<Long?>(null) }
+    var person by remember(draft) { mutableStateOf(draft?.party.orEmpty()) }; var title by remember(draft) { mutableStateOf(draft?.title.orEmpty()) }; var amount by remember(draft,settings.moneyUnit) { mutableStateOf(draft?.amountRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)(it/10).toString()else it.toString()}.orEmpty()) }; var originDate by remember { mutableStateOf(PersianDate.today()) }; var due by remember { mutableStateOf(PersianDate.today()) }
+    var registerAccountTransaction by remember(draft) { mutableStateOf(draft!=null) }
+    var accountId by remember(draft) { mutableStateOf(activeAccounts.firstOrNull{a->draft?.accountHint?.let{h->h.contains(a.title)||h.contains(a.bankName)}==true}?.id) }
     val receivable = kind == DebtKind.RECEIVABLE
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onCancel) { Icon(Icons.Filled.ArrowBack, null); Text("بازگشت به فهرست") }

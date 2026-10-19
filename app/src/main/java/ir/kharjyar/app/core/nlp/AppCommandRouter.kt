@@ -22,6 +22,17 @@ object AppCommandRouter {
         listOf("تنظیمات") to "settings"
     )
 
+    fun obligationAction(text: String): String? {
+        val value = Digits.normalizeForMatch(text).replace('‌',' ')
+        return when {
+            (value.contains("وام") && listOf("گرفتم","دریافتی","دریافت کردم").any(value::contains)) -> "loan_borrowed"
+            (value.contains("وام") && listOf("دادم","پرداختی","وام دادم").any(value::contains)) -> "loan_lent"
+            (value.contains("قرض") && listOf("دادم","قرض دادم").any(value::contains)) -> "debt_receivable"
+            (value.contains("قرض") && listOf("گرفتم","قرض گرفتم").any(value::contains)) -> "debt_payable"
+            else -> null
+        }
+    }
+
     fun route(text: String): String? {
         val normalized = Digits.normalizeForMatch(text).replace('‌',' ')
         val navigationIntent = listOf("باز کن", "برو", "نشان بده", "نمایش بده", "لیست کن", "فهرست").any(normalized::contains)

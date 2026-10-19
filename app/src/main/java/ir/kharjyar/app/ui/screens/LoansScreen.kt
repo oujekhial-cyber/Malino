@@ -35,6 +35,7 @@ import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.*
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
+import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.PersianDateField
 import ir.kharjyar.app.ui.components.showSavedMessage
 import kotlinx.coroutines.launch
@@ -57,7 +58,8 @@ fun LoansScreen(vm:AppViewModel) {
  val loans by vm.loans.collectAsState()
  val installments by vm.loanInstallments.collectAsState()
  val settings by vm.settings.collectAsState()
- var entryKind by remember { mutableStateOf<Int?>(null) }
+ val pendingDraft by vm.pendingObligationDraft.collectAsState()
+ var entryKind by remember(pendingDraft) { mutableStateOf(when(pendingDraft?.action){"loan_borrowed"->LoanKind.BORROWED;"loan_lent"->LoanKind.LENT;else->null}) }
  var selectedLoanId by remember { mutableStateOf<Long?>(null) }
  var showChooser by remember { mutableStateOf(false) }
  var filter by remember { mutableStateOf<Int?>(null) }
@@ -67,7 +69,7 @@ fun LoansScreen(vm:AppViewModel) {
   if(entryKind!=null) entryKind=null else selectedLoanId=null
  }
  if(entryKind!=null) {
-  LoanEntryPage(vm,entryKind!!,{entryKind=null},{entryKind=null})
+  LoanEntryPage(vm,entryKind!!,pendingDraft?.takeIf{it.action.startsWith("loan_")},{entryKind=null;vm.clearObligationDraft()},{entryKind=null;vm.clearObligationDraft()})
   return
  }
  if(selectedLoan!=null) {
@@ -229,16 +231,20 @@ private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<Lo
 }
 
 @Composable
-private fun LoanEntryPage(vm:AppViewModel,kind:Int,onDone:()->Unit,onCancel:()->Unit) {
+private fun LoanEntryPage(vm:AppViewModel,kind:Int,draft:AppViewModel.PendingObligationDraft?,onDone:()->Unit,onCancel:()->Unit) {
  val context=LocalContext.current
  val settings by vm.settings.collectAsState()
+ val accounts by vm.accounts.collectAsState()
+ val activeAccounts=accounts.filterNot{it.archived}
  val scope=rememberCoroutineScope()
- var title by remember { mutableStateOf("") }
- var party by remember { mutableStateOf("") }
- var principal by remember { mutableStateOf("") }
+ var title by remember(draft) { mutableStateOf(draft?.let{d->d.title.ifBlank{"وام ${d.party}"}}.orEmpty()) }
+ var party by remember(draft) { mutableStateOf(draft?.party.orEmpty()) }
+ var principal by remember(draft,settings.moneyUnit) { mutableStateOf(draft?.amountRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)(it/10).toString()else it.toString()}.orEmpty()) }
  var annualRate by remember { mutableStateOf("") }
  var count by remember { mutableStateOf("12") }
  var firstDue by remember { mutableStateOf(PersianDate.today().plusDays(30)) }
+ var registerAccountTransaction by remember(draft) { mutableStateOf(draft!=null) }
+ var accountId by remember(draft) { mutableStateOf(activeAccounts.firstOrNull{a->draft?.accountHint?.let{h->h.contains(a.title)||h.contains(a.bankName)}==true}?.id) }
  val lent=kind==LoanKind.LENT
  val accent=if(lent) Color(0xFF1B8F52) else Color(0xFFD33B45)
  val principalRial=Money.inputToRial(principal,settings.moneyUnit)
@@ -256,15 +262,20 @@ private fun LoanEntryPage(vm:AppViewModel,kind:Int,onDone:()->Unit,onCancel:()->
   plan?.let{Card(colors=CardDefaults.cardColors(containerColor=accent.copy(.09f)),border=BorderStroke(1.dp,accent.copy(.28f))){Column(Modifier.fillMaxWidth().padding(13.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text("محاسبه خودکار اقساط",fontWeight=FontWeight.Bold,color=accent);Text("مبلغ تقریبی هر قسط: ${Money.format(it.monthlyRial,settings.moneyUnit)}");Text("سود کل: ${Money.format(it.interestRial,settings.moneyUnit)}");Text("جمع بازپرداخت: ${Money.format(it.totalRial,settings.moneyUnit)}");Text("قسط آخر ممکن است برای اصلاح گرد کردن چند ریال متفاوت باشد.",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
   Text("موعد اولین قسط")
   PersianDateField(firstDue,{firstDue=it})
+  Card(colors=CardDefaults.cardColors(containerColor=accent.copy(.08f))){Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("ثبت اصل وام در حساب");Text(if(lent)"مبلغ از حساب کم می‌شود و هزینه نیست" else "مبلغ به حساب اضافه می‌شود و درآمد نیست",style=MaterialTheme.typography.bodySmall)};Switch(registerAccountTransaction,{registerAccountTransaction=it;if(it&&accountId==null)accountId=activeAccounts.firstOrNull()?.id},enabled=activeAccounts.isNotEmpty())}
+   if(registerAccountTransaction) ComboBox(if(lent)"حساب پرداخت وام" else "حساب دریافت وام",activeAccounts.map{it.id},accountId,{accountId=it},labelOf={id->activeAccounts.firstOrNull{it.id==id}?.title?:"انتخاب حساب"})
+  }}
   Button({scope.launch {
    val calculated=plan?:return@launch
    val number=months?:return@launch
    val original=principalRial?:return@launch
    val loanId=vm.repo.db.loanDao().insertLoan(LoanEntity(title=title.trim(),party=party.trim(),kind=kind,principalRial=original,installmentAmountRial=calculated.monthlyRial,installmentCount=number,startAt=System.currentTimeMillis(),nextDueAt=firstDue.startOfDayMillis(),annualInterestRatePercent=rate,termMonths=number,totalRepayableRial=calculated.totalRial))
    vm.repo.db.loanDao().insertInstallments(calculated.installments.mapIndexed { index,amountRial -> LoanInstallmentEntity(loanId=loanId,number=index+1,amountRial=amountRial,dueAt=firstDue.plusMonths(index).startOfDayMillis()) })
+   if(registerAccountTransaction){val selectedAccount=accountId?:return@launch;vm.repo.addManualTransaction(accountId=selectedAccount,amountRial=original,direction=if(lent)TxDirection.WITHDRAW else TxDirection.DEPOSIT,nature=TxNature.NEUTRAL,categoryId=null,description=(if(lent)"پرداخت اصل وام به " else "دریافت اصل وام از ")+party.trim(),occurredAt=System.currentTimeMillis(),counterparty=party.trim())}
    showSavedMessage(context,"وام و برنامه اقساط")
    onDone()
-  }},enabled=title.isNotBlank()&&party.isNotBlank()&&plan!=null&&rate>=0,modifier=Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,accent)) {
+  }},enabled=title.isNotBlank()&&party.isNotBlank()&&plan!=null&&rate>=0&&(!registerAccountTransaction||accountId!=null),modifier=Modifier.fillMaxWidth(),border=BorderStroke(1.5.dp,accent)) {
    Text("ثبت وام و برنامه اقساط")
   }
  }

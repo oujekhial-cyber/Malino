@@ -63,6 +63,7 @@ import ir.kharjyar.app.core.nlp.TransactionParser
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.ui.AppViewModel
+import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.SkinCard
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
@@ -149,6 +150,19 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         // نتیجه بلافاصله دیده شود، نه اینکه پشت صفحه‌کلید بماند
         keyboard?.hide()
         focusManager.clearFocus(force = true)
+        AppCommandRouter.obligationAction(input)?.let { action ->
+            val obligation = TransactionParser.parse(
+                text=input,
+                accounts=activeAccounts.map { ParserAccount(it.id,it.title,it.bankName) },
+                categories=categories.map { ParserCategory(it.id,it.name) },
+                defaultUnit=settings.moneyUnit
+            )
+            obligation.amountRial?.let { amount ->
+                viewModel.prepareObligationDraft(AppViewModel.PendingObligationDraft(action,amount,"",input,input))
+                nav.navigate(if(action.startsWith("loan_"))"loans" else "debts")
+                return
+            }
+        }
         AppCommandRouter.route(input)?.let { route -> nav.navigate(route); return }
         parsed = TransactionParser.parse(
             text = input,
@@ -165,6 +179,14 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         scope.launch {
             ExperimentalPersianAi.interpretCommand(context, input, categories.filterNot { it.archived }.map { it.name })
                 .onSuccess { command ->
+                    if (command.action in setOf("loan_borrowed","loan_lent","debt_receivable","debt_payable") && command.amountRial != null && command.route != null) {
+                        viewModel.prepareObligationDraft(
+                            AppViewModel.PendingObligationDraft(command.action,command.amountRial,command.party,command.accountHint,command.title)
+                        )
+                        nav.navigate(command.route)
+                        aiLoading=false
+                        return@onSuccess
+                    }
                     if (command.action == "navigate" && command.route != null) {
                         nav.navigate(command.route)
                         aiLoading=false
@@ -356,6 +378,26 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
 
         // ---------- نتیجه ----------
         parsed?.let { p ->
+            if (p.accountId == null) {
+                Text(
+                    if (p.direction == TxDirection.DEPOSIT) "مبلغ به کدام حساب واریز شده؟" else "از کدام حساب پرداخت کردید؟",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = skin.accent
+                )
+                ComboBox(
+                    label = if (p.direction == TxDirection.DEPOSIT) "حساب مقصد واریز" else "حساب پرداخت‌کننده",
+                    options = activeAccounts,
+                    selected = null,
+                    onSelect = { account ->
+                        parsed = p.copy(
+                            accountId = account.id,
+                            accountTitle = account.title,
+                            warnings = p.warnings.filterNot { it.contains("حساب") }
+                        )
+                    },
+                    labelOf = { it.title }
+                )
+            }
             ResultCard(
                 parsed = p,
                 unit = settings.moneyUnit,

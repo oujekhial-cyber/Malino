@@ -30,6 +30,19 @@ import java.time.temporal.ChronoUnit
  */
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
+    data class PendingObligationDraft(
+        val action: String,
+        val amountRial: Long,
+        val party: String,
+        val accountHint: String,
+        val title: String
+    )
+
+    private val _pendingObligationDraft = MutableStateFlow<PendingObligationDraft?>(null)
+    val pendingObligationDraft: StateFlow<PendingObligationDraft?> = _pendingObligationDraft
+    fun prepareObligationDraft(draft: PendingObligationDraft) { _pendingObligationDraft.value = draft }
+    fun clearObligationDraft() { _pendingObligationDraft.value = null }
+
     private val application = app as KharjYarApp
     val repo: Repository = application.repository
     val settingsRepo: SettingsRepository = application.settings
