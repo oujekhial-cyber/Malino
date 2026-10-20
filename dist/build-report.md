@@ -1,14 +1,14 @@
 # گزارش Build و تست (CI)
 
-- commit: 7de43c218f2988e383db99bff3c69a05c96a62d8
-- تاریخ: 2026-10-20 21:48 UTC
-- unit tests: success
-- assembleDebug: success
+- commit: 44ed147506d319021e3973b71effafd6833de663
+- تاریخ: 2026-10-20 22:06 UTC
+- unit tests: cancelled
+- assembleDebug: skipped
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): skipped
 - lintDebug: skipped
-- assembleRelease: cancelled
+- assembleRelease: skipped
 
 ## خلاصه تست‌های واحد
 ```
-tests=611 failures=0 errors=0 skipped=0
+(no test results)
 ```
