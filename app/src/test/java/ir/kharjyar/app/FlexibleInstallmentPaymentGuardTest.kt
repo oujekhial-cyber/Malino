@@ -11,6 +11,6 @@ class FlexibleInstallmentPaymentGuardTest {
   val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
   listOf("مبلغ اصلی پرداخت‌شده","جریمه دیرکرد (اختیاری)","توضیحات پرداخت (اختیاری)","paidAmountRial=enteredAmount","penaltyRial=enteredPenalty","paymentNote=paymentNote.trim()","residual>0","LoanInstallmentEntity(loanId=loan.id,number=residualNumber").forEach{assertTrue(it,screen.contains(it))}
   listOf("val paidAmountRial:Long?=null","val penaltyRial:Long=0","val paymentNote:String=\"\"").forEach{assertTrue(it,entity.contains(it))}
-  listOf("version = 22","MIGRATION_19_20","ADD COLUMN paidAmountRial","ADD COLUMN penaltyRial","ADD COLUMN paymentNote").forEach{assertTrue(it,db.contains(it))}
+  listOf("version = 23","MIGRATION_19_20","ADD COLUMN paidAmountRial","ADD COLUMN penaltyRial","ADD COLUMN paymentNote").forEach{assertTrue(it,db.contains(it))}
  }
 }

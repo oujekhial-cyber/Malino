@@ -25,6 +25,6 @@ class AutomaticLoanCalculationTest {
   val screen=File("src/main/java/ir/kharjyar/app/ui/screens/LoansScreen.kt").readText()
   val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
   listOf("درصد سود سالانه","مدت بازپرداخت (ماه)","محاسبه خودکار اقساط","سود کل","جمع بازپرداخت","annualInterestRatePercent=rate","totalRepayableRial=calculated.totalRial").forEach{assertTrue(it,screen.contains(it))}
-  listOf("version = 22","MIGRATION_21_22","ADD COLUMN annualInterestRatePercent","ADD COLUMN termMonths","ADD COLUMN totalRepayableRial").forEach{assertTrue(it,db.contains(it))}
+  listOf("version = 23","MIGRATION_21_22","ADD COLUMN annualInterestRatePercent","ADD COLUMN termMonths","ADD COLUMN totalRepayableRial").forEach{assertTrue(it,db.contains(it))}
  }
 }

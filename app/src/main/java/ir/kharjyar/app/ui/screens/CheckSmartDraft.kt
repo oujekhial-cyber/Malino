@@ -6,7 +6,7 @@ import ir.kharjyar.app.core.text.Digits
 /** تبدیل امن اطلاعات گفتاری/تایپی چک به فیلدهای فرم، بدون حدس‌زدن داده مالی. */
 internal fun parseCheckDraftDate(aiDate: String?, raw: String?): PersianDate? {
     val normalized = Digits.normalize(aiDate.orEmpty()).ifBlank { Digits.normalize(raw.orEmpty()) }
-    val match = Regex("(1[34]\\d{2})[\\/\\-.](0?[1-9]|1[0-2])[\\/\\-.](0?[1-9]|[12]\\d|3[01])").find(normalized) ?: return null
+    val match = Regex("(1[34]\\d{2})[\\/\\-.](1[0-2]|0?[1-9])[\\/\\-.](3[01]|[12]\\d|0?[1-9])").find(normalized) ?: return null
     val (year, month, day) = match.destructured
     return runCatching { PersianDate(year.toInt(), month.toInt(), day.toInt()) }
         .getOrNull()?.takeIf { it.day <= it.monthLength() }

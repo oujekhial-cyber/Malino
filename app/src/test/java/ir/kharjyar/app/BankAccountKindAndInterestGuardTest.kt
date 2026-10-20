@@ -34,7 +34,7 @@ class BankAccountKindAndInterestGuardTest {
   val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
   val ui=File("src/main/java/ir/kharjyar/app/ui/screens/AccountEditScreen.kt").readText()
   assertTrue(entity.contains("bankAccountKind")&&entity.contains("interestDestinationAccountId"))
-  assertTrue(db.contains("MIGRATION_15_16")&&db.contains("version = 22"))
+  assertTrue(db.contains("MIGRATION_15_16")&&db.contains("version = 23"))
   assertTrue(ui.contains("قرض‌الحسنه")&&ui.contains("کوتاه‌مدت عادی")&&ui.contains("واریز سود به"))
  }
 }

@@ -11,7 +11,7 @@ class ConfirmedSmartMutationTest {
   val accounts=listOf(AccountEntity(id=1,title="روزمره",bankName="ملت",createdAt=1),AccountEntity(id=2,title="پس انداز",bankName="ملی",createdAt=1))
   val txs=listOf(TransactionEntity(id=10,accountId=1,amountRial=5_000_000,direction=TxDirection.DEPOSIT,description="واریز وام",occurredAt=1,recordedAt=1),TransactionEntity(id=11,accountId=2,amountRial=2_000_000,direction=TxDirection.WITHDRAW,description="خرید",occurredAt=2,recordedAt=2))
   val found=SmartRecordMutationResolver.resolve("transaction","واریز وام حساب ملت",5_000_000,null,"ملت","","",txs,accounts,emptyList(),emptyList(),emptyList(),emptyList())
-  assertEquals(10,found?.id)
+  assertEquals(10L,found?.id)
  }
  @Test fun `ambiguous destructive target is rejected`() {
   val assets=listOf(AssetEntity(id=1,kind=AssetKind.GOLD,title="طلا",quantity=18.0,purchasePriceRial=100,currentValueRial=100,purchasedAt=1),AssetEntity(id=2,kind=AssetKind.GOLD,title="طلا",quantity=18.0,purchasePriceRial=100,currentValueRial=100,purchasedAt=1))

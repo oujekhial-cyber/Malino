@@ -11,6 +11,6 @@ class PaidInstallmentEditDeleteGuardTest {
   val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
   listOf("ویرایش پرداخت","حذف پرداخت","هشدار اقساط پرداخت‌نشده","این ماه قسط نداشتم","تأیید ماه بدون قسط","paid=false,paidAt=null,paidAmountRial=null","!it.paid&&!it.noInstallment","noInstallment=true,noInstallmentReason=reason.trim()").forEach{assertTrue(it,screen.contains(it))}
   assertTrue(entity.contains("val noInstallment:Boolean=false")&&entity.contains("val noInstallmentReason:String=\"\""))
-  listOf("version = 22","MIGRATION_20_21","ADD COLUMN noInstallment","ADD COLUMN noInstallmentReason").forEach{assertTrue(it,db.contains(it))}
+  listOf("version = 23","MIGRATION_20_21","ADD COLUMN noInstallment","ADD COLUMN noInstallmentReason").forEach{assertTrue(it,db.contains(it))}
  }
 }

@@ -8,7 +8,7 @@ class ReminderModernHeroGuardTest {
  @Test fun listAndEntryUseModernSummaryHeroes(){
   val source=File("src/main/java/ir/kharjyar/app/ui/screens/RemindersScreen.kt").readText()
   assertTrue(source.split("ModernSummaryHero(").size-1>=2)
-  assertTrue(source.contains("برنامه‌ریزی کارها و موعدهای مهم"))
+  assertTrue(source.contains("برای بازکردن مورد مرتبط روی کارت بزنید؛ برای ویرایش یا حذف بکشید"))
   assertTrue(source.contains("SummaryMetric(\"فعال\""))
   assertTrue(source.contains("SummaryMetric(\"انجام‌شده\""))
   assertTrue(source.contains("SummaryMetric(\"موعد بعدی\""))
