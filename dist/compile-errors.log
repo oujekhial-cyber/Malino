@@ -1,0 +1,26 @@
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/nlp/SmartRecordMutation.kt:28:69 Overload resolution ambiguity between candidates:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppRoot.kt:423:29 Restricted suspending functions can invoke member or extension suspending functions only on their restricted coroutine scope.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppViewModel.kt:204:24 Unresolved reference 'launch'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppViewModel.kt:205:24 Suspend function 'suspend fun purgeTrashOlderThan(cutoff: Long): Unit' should be called only from a coroutine or another suspend function.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppViewModel.kt:206:24 Suspend function 'suspend fun purgeOrphanAttachments(): Unit' should be called only from a coroutine or another suspend function.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:152:131 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:155:104 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:156:124 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:164:137 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:167:181 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:179:144 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:193:169 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/RemindersScreen.kt:77:38 Unsupported escape sequence.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/core/nlp/SmartRecordMutation.kt:28:69 Overload resolution ambiguity between candidates:
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppRoot.kt:423:29 Restricted suspending functions can invoke member or extension suspending functions only on their restricted coroutine scope.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppViewModel.kt:204:24 Unresolved reference 'launch'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppViewModel.kt:205:24 Suspend function 'suspend fun purgeTrashOlderThan(cutoff: Long): Unit' should be called only from a coroutine or another suspend function.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/AppViewModel.kt:206:24 Suspend function 'suspend fun purgeOrphanAttachments(): Unit' should be called only from a coroutine or another suspend function.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:152:131 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:155:104 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:156:124 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:164:137 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:167:181 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:179:144 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/DebtsScreen.kt:193:169 Unresolved reference 'FontWeight'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/RemindersScreen.kt:77:38 Unsupported escape sequence.
