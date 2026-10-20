@@ -59,6 +59,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun prepareFeatureCommand(command: PendingFeatureCommand) { _pendingFeatureCommand.value = command }
     fun clearFeatureCommand() { _pendingFeatureCommand.value = null }
 
+    data class PendingRecordEdit(val type:String,val id:Long)
+    private val _pendingRecordEdit=MutableStateFlow<PendingRecordEdit?>(null)
+    val pendingRecordEdit:StateFlow<PendingRecordEdit?> = _pendingRecordEdit
+    fun prepareRecordEdit(type:String,id:Long){_pendingRecordEdit.value=PendingRecordEdit(type,id)}
+    fun clearRecordEdit(){_pendingRecordEdit.value=null}
+
     private val _pendingObligationDraft = MutableStateFlow<PendingObligationDraft?>(null)
     val pendingObligationDraft: StateFlow<PendingObligationDraft?> = _pendingObligationDraft
     fun prepareObligationDraft(draft: PendingObligationDraft) { _pendingObligationDraft.value = draft }

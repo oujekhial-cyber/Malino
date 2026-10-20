@@ -60,9 +60,11 @@ fun DebtsScreen(vm: AppViewModel) {
     val payments by vm.debtPayments.collectAsState()
     val settings by vm.settings.collectAsState()
     val pendingDraft by vm.pendingObligationDraft.collectAsState()
+    val pendingEdit by vm.pendingRecordEdit.collectAsState()
     var entryKind by remember(pendingDraft) { mutableStateOf(when(pendingDraft?.action){"debt_receivable"->DebtKind.RECEIVABLE;"debt_payable"->DebtKind.PAYABLE;else->null}) }
     var showChooser by remember { mutableStateOf(false) }
-    var selectedPersonId by remember { mutableStateOf<Long?>(null) }
+    var selectedPersonId by remember(pendingEdit,debts) { mutableStateOf(pendingEdit?.takeIf{it.type=="debt"}?.let{edit->debts.firstOrNull{it.id==edit.id}?.personId}) }
+    LaunchedEffect(selectedPersonId){if(selectedPersonId!=null&&pendingEdit?.type=="debt")vm.clearRecordEdit()}
     var filterKind by remember { mutableStateOf<Int?>(null) }
     var personQuery by remember { mutableStateOf("") }
     var filterFrom by remember { mutableStateOf(PersianDate.today().plusDays(-365)) }

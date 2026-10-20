@@ -51,6 +51,7 @@ data class AiAppCommand(
     val nationalId: String = "",
     val chequeAccountNumber: String = "",
     val chequeIban: String = "",
+    val entityType: String = "",
     val explanation: String = ""
 )
 
@@ -123,6 +124,7 @@ object ExperimentalPersianAi {
                             اگر وام‌دادن است: {"action":"loan_lent","amount":عدد,"unit":"rial|toman","party":"وام‌گیرنده","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
                             اگر قرض‌دادن/طلب است: {"action":"debt_receivable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
                             اگر قرض‌گرفتن/بدهی است: {"action":"debt_payable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب دریافت","title":"عنوان","explanation":"خلاصه"}
+                            اگر کاربر درخواست ویرایش یا حذف رکورد موجود دارد، هرگز آن را مستقیم اجرا نکن؛ action را record_edit یا record_delete و entityType را یکی از transaction|loan|debt|asset قرار بده و همه نشانه‌های هدف شامل amount، unit، title، party، account، quantity و تاریخ را استخراج کن.
                             برای ثبت تخصصی سایر بخش‌ها از این actionها استفاده کن و در صورت وجود amount/unit/title/party/account را هم بده. برای چک همه اطلاعات گفته‌شده را جدا استخراج کن: dueDate با قالب شمسی YYYY/MM/DD، sayadId، serialNumber، bankName، nationalId، chequeAccountNumber و chequeIban:
                             asset_record فقط برای خرید/فروش/ثبت طلا، ارز، سهام، ملک (خانه، آپارتمان، زمین، ویلا و مشابه) یا سایر دارایی‌ها است؛ برای دارایی quantity را وزن/تعداد و amount را قیمت کل خرید قرار بده (نه نرخ واحد) و title را دقیق مثل «طلای آب‌شده» یا «آپارتمان» بساز. برای هر نوع وسیله نقلیه (ماشین، خودرو، اتومبیل، موتور، وانت، کامیون و مشابه) همیشه vehicle_record بده و هرگز asset_record نده؛ reminder_create برای یادآور؛ check_issued یا check_received برای چک؛ note_create برای یادداشت؛ installment_payment برای پرداخت قسط؛ civic_record برای قبض، جریمه یا خدمات شهروندی.
                             اصل وام، قرض، خرید دارایی، پرداخت قسط و انتقال‌ها هرگز income یا expense عادی نیستند و باید action تخصصی بگیرند.
@@ -210,6 +212,20 @@ object ExperimentalPersianAi {
                 title=value["title"]?.jsonPrimitive?.contentOrNull.orEmpty().take(150),
                 explanation=explanation
             )
+        }
+        if (action == "record_delete" || action == "record_edit") {
+            val entityType=value["entityType"]?.jsonPrimitive?.contentOrNull.orEmpty().lowercase()
+            require(entityType in setOf("transaction","loan","debt","asset")) { "نوع رکورد قابل ویرایش مشخص نشد." }
+            val rawAmount=value["amount"]?.jsonPrimitive?.longOrNull
+            val unit=value["unit"]?.jsonPrimitive?.contentOrNull?.lowercase()
+            return AiAppCommand(action=action,entityType=entityType,
+                amountRial=rawAmount?.takeIf{it>0}?.let{if(unit=="rial")it else Math.multiplyExact(it,10L)},
+                party=value["party"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
+                accountHint=value["account"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
+                title=value["title"]?.jsonPrimitive?.contentOrNull.orEmpty().take(150),
+                quantity=value["quantity"]?.jsonPrimitive?.doubleOrNull?.takeIf{it>0},
+                dueDate=value["date"]?.jsonPrimitive?.contentOrNull.orEmpty().take(20),
+                explanation=explanation)
         }
         val featureRoutes = mapOf(
             "asset_record" to "assets", "reminder_create" to "reminders",

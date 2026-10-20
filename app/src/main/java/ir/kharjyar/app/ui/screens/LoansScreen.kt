@@ -59,8 +59,10 @@ fun LoansScreen(vm:AppViewModel) {
  val installments by vm.loanInstallments.collectAsState()
  val settings by vm.settings.collectAsState()
  val pendingDraft by vm.pendingObligationDraft.collectAsState()
+ val pendingEdit by vm.pendingRecordEdit.collectAsState()
  var entryKind by remember(pendingDraft) { mutableStateOf(when(pendingDraft?.action){"loan_borrowed"->LoanKind.BORROWED;"loan_lent"->LoanKind.LENT;else->null}) }
- var selectedLoanId by remember { mutableStateOf<Long?>(null) }
+ var selectedLoanId by remember(pendingEdit) { mutableStateOf(pendingEdit?.takeIf{it.type=="loan"}?.id) }
+ LaunchedEffect(selectedLoanId){if(selectedLoanId!=null&&pendingEdit?.type=="loan")vm.clearRecordEdit()}
  var showChooser by remember { mutableStateOf(false) }
  var filter by remember { mutableStateOf<Int?>(null) }
  val selectedLoan=loans.firstOrNull { it.id==selectedLoanId }

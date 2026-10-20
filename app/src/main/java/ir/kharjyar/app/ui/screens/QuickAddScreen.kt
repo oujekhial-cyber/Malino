@@ -62,6 +62,8 @@ import ir.kharjyar.app.core.nlp.ParsedTransaction
 import ir.kharjyar.app.core.nlp.ParserAccount
 import ir.kharjyar.app.core.nlp.ParserCategory
 import ir.kharjyar.app.core.nlp.TransactionParser
+import ir.kharjyar.app.core.nlp.SmartMutationTarget
+import ir.kharjyar.app.core.nlp.SmartRecordMutationResolver
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.ui.AppViewModel
@@ -88,6 +90,11 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     val settings by viewModel.settings.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val transactions by viewModel.allTransactions.collectAsState()
+    val loans by viewModel.loans.collectAsState()
+    val debts by viewModel.debts.collectAsState()
+    val debtPeople by viewModel.debtPeople.collectAsState()
+    val assets by viewModel.assets.collectAsState()
 
     var input by remember { mutableStateOf("") }
     var parsed by remember { mutableStateOf<ParsedTransaction?>(null) }
@@ -99,6 +106,9 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     var missingAmountInput by remember { mutableStateOf("") }
     var showAccountPicker by remember { mutableStateOf(false) }
     var autoRegisterPending by remember { mutableStateOf(false) }
+    var mutationTarget by remember { mutableStateOf<SmartMutationTarget?>(null) }
+    var mutationAction by remember { mutableStateOf<String?>(null) }
+    var mutationError by remember { mutableStateOf<String?>(null) }
 
     val activeAccounts = accounts.filter { !it.archived }
     val context = LocalContext.current
@@ -194,7 +204,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     fun analyzeWithAi() {
         keyboard?.hide(); focusManager.clearFocus(force = true)
-        aiLoading = true; aiError = null; saved = false; parsed=null
+        aiLoading = true; aiError = null; mutationError=null; saved = false; parsed=null
         scope.launch {
             ExperimentalPersianAi.interpretCommand(context, input, categories.filterNot { it.archived }.map { it.name })
                 .onSuccess { command ->
@@ -203,6 +213,13 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     val deterministicFeature=AppCommandRouter.featureAction(input)
                     val resolvedAction=deterministicFeature?.first?:command.action
                     val resolvedRoute=deterministicFeature?.second?:command.route
+                    if(command.action=="record_delete"||command.action=="record_edit") {
+                        val target=SmartRecordMutationResolver.resolve(command.entityType,input,command.amountRial,command.quantity,command.accountHint,command.title,command.party,transactions,activeAccounts,loans,debts,debtPeople,assets)
+                        if(target==null) mutationError="مورد یکتایی با این مشخصات پیدا نشد؛ نام، مبلغ، حساب یا تاریخ را دقیق‌تر بگویید."
+                        else { mutationTarget=target;mutationAction=command.action;mutationError=null }
+                        aiLoading=false
+                        return@onSuccess
+                    }
                     if (command.action in setOf("loan_borrowed","loan_lent","debt_receivable","debt_payable") && command.amountRial != null && command.route != null) {
                         viewModel.prepareObligationDraft(
                             AppViewModel.PendingObligationDraft(command.action,command.amountRial,command.party,command.accountHint,command.title)
@@ -366,6 +383,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             OutlinedButton({nav.navigate("smsPaste")},modifier=Modifier.weight(1f),shape=RoundedCornerShape(14.dp)) { Text("تحلیل پیامک بانکی") }
         }
         aiError?.let{Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall)}
+        mutationError?.let{Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall)}
 
         if(input.isBlank()&&parsed==null) {
             Text("برای شروع، یکی از نمونه‌ها را انتخاب کنید",style=MaterialTheme.typography.labelMedium,color=skin.onBackdrop.copy(alpha=.68f))
@@ -446,6 +464,35 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
 
         Spacer(Modifier.height(90.dp))
+    }
+
+    mutationTarget?.let { target ->
+        val deleting=mutationAction=="record_delete"
+        AlertDialog(
+            onDismissRequest={mutationTarget=null;mutationAction=null},
+            title={Text(if(deleting)"تأیید حذف" else "تأیید ویرایش")},
+            text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){Text(if(deleting)"آیا مورد زیر حذف شود؟" else "آیا فرم ویرایش مورد زیر باز شود؟");Text(target.label,fontWeight=FontWeight.Bold);Text(target.detail,style=MaterialTheme.typography.bodySmall);if(deleting)Text("این عملیات فقط پس از تأیید شما اجرا می‌شود.",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)}},
+            confirmButton={TextButton({
+                mutationTarget=null;mutationAction=null
+                if(deleting) scope.launch {
+                    when(target.type){
+                        "transaction"->viewModel.repo.txDao.delete(target.id)
+                        "asset"->{viewModel.repo.db.assetDao().deleteTrades(target.id);viewModel.repo.db.assetDao().delete(target.id)}
+                        "debt"->{viewModel.repo.db.debtDao().deletePaymentsOf(target.id);viewModel.debts.value.firstOrNull{it.id==target.id}?.let{viewModel.repo.db.debtDao().deleteDebt(it)}}
+                        "loan"->{viewModel.repo.db.loanDao().deleteInstallments(target.id);viewModel.repo.db.loanDao().deleteLoan(target.id)}
+                    }
+                    saved=true;input=""
+                } else {
+                    when(target.type){
+                        "transaction"->nav.navigate("tx/${target.id}")
+                        "asset"->{viewModel.prepareRecordEdit("asset",target.id);nav.navigate("assets")}
+                        "debt"->{viewModel.prepareRecordEdit("debt",target.id);nav.navigate("debts")}
+                        "loan"->{viewModel.prepareRecordEdit("loan",target.id);nav.navigate("loans")}
+                    }
+                }
+            }){Text(if(deleting)"بله، حذف شود" else "بازکردن فرم ویرایش",color=if(deleting)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)}},
+            dismissButton={TextButton({mutationTarget=null;mutationAction=null}){Text("انصراف")}}
+        )
     }
 
     if(showAccountPicker && parsed?.accountId==null) {
