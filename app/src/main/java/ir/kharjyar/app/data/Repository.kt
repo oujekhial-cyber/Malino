@@ -1,11 +1,13 @@
 package ir.kharjyar.app.data
 
+import android.content.Context
 import androidx.room.withTransaction
 import ir.kharjyar.app.core.category.CategorySuggester
 import ir.kharjyar.app.core.category.Rule
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.sms.AccountMatch
 import ir.kharjyar.app.core.sms.AccountMatcher
+import ir.kharjyar.app.core.sms.BankBalanceRefreshService
 import ir.kharjyar.app.core.sms.Confidence
 import ir.kharjyar.app.core.sms.ExtractedDirection
 import ir.kharjyar.app.core.sms.ExtractionResult
@@ -20,6 +22,7 @@ import ir.kharjyar.app.core.transfer.TransferMatch
 import ir.kharjyar.app.core.transfer.TransferMatcher
 import ir.kharjyar.app.core.balance.TxSummarizer
 import ir.kharjyar.app.data.db.BlockedSenderEntity
+import ir.kharjyar.app.data.db.BankBalanceSnapshotEntity
 import ir.kharjyar.app.data.db.KharjYarDatabase
 import ir.kharjyar.app.data.db.SmsCandidateEntity
 import ir.kharjyar.app.data.db.SmsStatus
@@ -34,7 +37,7 @@ import ir.kharjyar.app.data.db.TxStatus
 /**
  * لایه Repository: منطق پردازش پیامک، ساخت پیش‌نویس، انتقال و دسته‌بندی.
  */
-class Repository(val db: KharjYarDatabase) {
+class Repository(val db: KharjYarDatabase, private val context: Context? = null) {
 
     val accountDao = db.accountDao()
     val smsDao = db.smsDao()
@@ -421,6 +424,25 @@ class Repository(val db: KharjYarDatabase) {
         }
     }
 
+    /**
+     * پس از هر ثبت قطعی، آخرین مانده‌ای را که خود بانک در پیامک همان حساب اعلام
+     * کرده دوباره می‌خواند. نبود مجوز/پیامک یا خطای خواندن نباید ثبت تراکنش را خراب کند.
+     */
+    private suspend fun refreshReportedSmsBalance(accountId: Long) {
+        val appContext = context ?: return
+        runCatching {
+            val account = accountDao.byId(accountId) ?: return@runCatching
+            val accounts = accountDao.allOnce()
+            val mappings = accountDao.allSenders()
+            val sms = BankBalanceRefreshService.latest(appContext, account, accounts, mappings) ?: return@runCatching
+            val dao = db.bankBalanceSnapshotDao()
+            val previous = dao.byAccount(account.id)
+            if (previous == null || sms.occurredAt >= previous.messageAt) {
+                dao.upsert(BankBalanceSnapshotEntity(account.id, sms.balanceRial, sms.occurredAt, sms.smsId))
+            }
+        }
+    }
+
     /** ثبت دستی تراکنش. */
     suspend fun addManualTransaction(
         accountId: Long,
@@ -456,6 +478,7 @@ class Repository(val db: KharjYarDatabase) {
                 }
             }
         }
+        refreshReportedSmsBalance(accountId)
         return id
     }
 
@@ -508,6 +531,8 @@ class Repository(val db: KharjYarDatabase) {
                 )
             )
         }
+        refreshReportedSmsBalance(fromAccountId)
+        refreshReportedSmsBalance(toAccountId)
         return outgoingId to incomingId
     }
 

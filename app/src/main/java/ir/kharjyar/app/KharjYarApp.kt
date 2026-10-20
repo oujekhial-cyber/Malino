@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 class KharjYarApp : Application() {
 
     val database: KharjYarDatabase by lazy { KharjYarDatabase.get(this) }
-    val repository: Repository by lazy { Repository(database) }
+    val repository: Repository by lazy { Repository(database, applicationContext) }
     val settings: SettingsRepository by lazy { SettingsRepository(this) }
 
     override fun onCreate() {

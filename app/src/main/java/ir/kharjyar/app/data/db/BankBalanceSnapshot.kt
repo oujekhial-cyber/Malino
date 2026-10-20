@@ -11,5 +11,6 @@ data class BankBalanceSnapshotEntity(@PrimaryKey val accountId: Long, val balanc
 @Dao interface BankBalanceSnapshotDao {
     @Query("SELECT * FROM bank_balance_snapshots") suspend fun allOnce():List<BankBalanceSnapshotEntity>
     @Query("SELECT * FROM bank_balance_snapshots") fun observeAll(): Flow<List<BankBalanceSnapshotEntity>>
+    @Query("SELECT * FROM bank_balance_snapshots WHERE accountId = :accountId LIMIT 1") suspend fun byAccount(accountId:Long):BankBalanceSnapshotEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(value: BankBalanceSnapshotEntity)
 }
