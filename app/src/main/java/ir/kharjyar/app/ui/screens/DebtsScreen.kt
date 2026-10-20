@@ -124,10 +124,6 @@ fun DebtsScreen(vm: AppViewModel) {
                 // نزدیک‌ترین موعد باز برای دریافت طلب یا پرداخت بدهی روی کارت شخص دیده می‌شود.
                 val receivableDate: Long? = receivableDebts.filter { remaining(it) > 0 }.mapNotNull { it.dueAt }.minOrNull()
                 val payableDate: Long? = payableDebts.filter { remaining(it) > 0 }.mapNotNull { it.dueAt }.minOrNull()
-                // کارت هر شخص علاوه بر موعد تسویه، تاریخ ایجاد اصل رابطه مالی را نیز
-                // نشان می‌دهد: پرداخت پول در طلب و دریافت پول در بدهی.
-                val receivableOriginDate: Long? = receivableDebts.maxOfOrNull { it.createdAt }
-                val payableOriginDate: Long? = payableDebts.maxOfOrNull { it.createdAt }
                 val isCreditor = receivable > payable
                 val isDebtor = payable > receivable
                 val relationAccent = when {
@@ -140,146 +136,47 @@ fun DebtsScreen(vm: AppViewModel) {
                     isDebtor -> "شما به ${person.name} بدهکار هستید"
                     else -> "طلب و بدهی شما با ${person.name} برابر است"
                 }
+                val netAmount = kotlin.math.abs(receivable - payable)
+                val nearestDue = listOfNotNull(receivableDate, payableDate).minOrNull()
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, relationAccent.copy(alpha = .34f), RoundedCornerShape(24.dp))
+                    modifier = Modifier.fillMaxWidth()
+                        .border(1.dp, relationAccent.copy(alpha = .28f), RoundedCornerShape(20.dp))
                         .clickable { selectedPersonId = person.id },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        relationAccent.copy(alpha = .16f),
-                                        MaterialTheme.colorScheme.surface,
-                                        MaterialTheme.colorScheme.surface
-                                    )
-                                )
-                            )
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(13.dp)
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(50.dp)
-                                    .background(relationAccent.copy(alpha = .17f), CircleShape)
-                                    .border(1.dp, relationAccent.copy(alpha = .38f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    person.name.trim().take(1).ifBlank { "؟" },
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = relationAccent
-                                )
+                    Column(Modifier.fillMaxWidth().padding(15.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(11.dp)) {
+                            Box(Modifier.size(46.dp).background(relationAccent.copy(alpha=.13f),CircleShape),contentAlignment=Alignment.Center) {
+                                Text(person.name.trim().take(1).ifBlank{"؟"},style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold,color=relationAccent)
                             }
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(person.name, style = MaterialTheme.typography.titleMedium)
-                                Surface(
-                                    color = relationAccent.copy(alpha = .13f),
-                                    shape = RoundedCornerShape(50)
-                                ) {
-                                    Row(
-                                        Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        Icon(
-                                            if (isCreditor) Icons.Filled.CallReceived else if (isDebtor) Icons.Filled.CallMade else Icons.Filled.Balance,
-                                            contentDescription = null,
-                                            tint = relationAccent,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(relationText, style = MaterialTheme.typography.labelMedium, color = relationAccent)
-                                    }
-                                }
+                            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+                                Text(person.name,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+                                Text(relationText,style=MaterialTheme.typography.bodySmall,color=relationAccent,fontWeight=FontWeight.Medium)
                             }
-                            Icon(Icons.Filled.ChevronLeft, "مشاهده جزئیات", tint = relationAccent)
+                            Icon(Icons.Filled.ChevronLeft,"بازکردن حساب شخص",tint=MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(9.dp)
-                        ) {
-                            DebtAmountTile(
-                                title = "طلب شما",
-                                amount = Money.format(receivable, settings.moneyUnit),
-                                accent = Color(0xFF15966A),
-                                icon = Icons.Filled.TrendingUp,
-                                modifier = Modifier.weight(1f)
-                            )
-                            DebtAmountTile(
-                                title = "بدهی شما",
-                                amount = Money.format(payable, settings.moneyUnit),
-                                accent = Color(0xFFE0525E),
-                                icon = Icons.Filled.TrendingDown,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        if (receivableOriginDate != null || payableOriginDate != null) {
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = .055f), RoundedCornerShape(14.dp))
-                                    .padding(horizontal = 11.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                receivableOriginDate?.let {
-                                    DebtDateRow(
-                                        label = "تاریخ پرداخت پول و قرض‌دادن",
-                                        date = PersianDate.fromMillis(it).format(),
-                                        accent = Color(0xFF15966A)
-                                    )
-                                }
-                                payableOriginDate?.let {
-                                    DebtDateRow(
-                                        label = "تاریخ دریافت پول و قرض‌گرفتن",
-                                        date = PersianDate.fromMillis(it).format(),
-                                        accent = Color(0xFFE0525E)
-                                    )
-                                }
+                        HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant.copy(alpha=.65f))
+                        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
+                            Column(verticalArrangement=Arrangement.spacedBy(2.dp)) {
+                                Text(if(isCreditor)"مانده‌ای که باید بگیرید" else if(isDebtor)"مانده‌ای که باید بپردازید" else "مانده نهایی",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(Money.format(netAmount,settings.moneyUnit),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold,color=relationAccent)
+                            }
+                            Surface(color=relationAccent.copy(alpha=.12f),shape=RoundedCornerShape(50)) {
+                                Text(if(isCreditor)"طلبکار" else if(isDebtor)"بدهکار" else "تسویه",Modifier.padding(horizontal=11.dp,vertical=6.dp),color=relationAccent,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.labelMedium)
                             }
                         }
-                        if (receivableDate != null || payableDate != null) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(9.dp)
-                            ) {
-                                receivableDate?.let {
-                                    DebtDueSpotlight(
-                                        label = "موعد دریافت طلب",
-                                        dueAt = it,
-                                        accent = Color(0xFF15966A),
-                                        icon = Icons.Filled.CallReceived,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                payableDate?.let {
-                                    DebtDueSpotlight(
-                                        label = "موعد پرداخت بدهی",
-                                        dueAt = it,
-                                        accent = Color(0xFFE0525E),
-                                        icon = Icons.Filled.CallMade,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
+                        Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha=.42f),RoundedCornerShape(14.dp)).padding(horizontal=12.dp,vertical=9.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
+                            if(receivable>0) DebtClearLine("طلب ثبت‌شده از این شخص",Money.format(receivable,settings.moneyUnit),Color(0xFF15966A),Icons.Filled.CallReceived)
+                            if(payable>0) DebtClearLine("بدهی ثبت‌شده به این شخص",Money.format(payable,settings.moneyUnit),Color(0xFFE0525E),Icons.Filled.CallMade)
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(
-                                "${Digits.toPersian(personDebts.size.toString())} مورد ثبت‌شده",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text("مشاهده گردش حساب", style = MaterialTheme.typography.labelSmall, color = relationAccent)
+                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
+                            Column {
+                                Text("${Digits.toPersian(personDebts.size.toString())} مورد ثبت‌شده",style=MaterialTheme.typography.labelMedium)
+                                nearestDue?.let{Text("نزدیک‌ترین موعد: ${PersianDate.fromMillis(it).format()}",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+                            }
+                            Text("مشاهده جزئیات",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary,fontWeight=FontWeight.Bold)
                         }
                     }
                 }
@@ -288,6 +185,13 @@ fun DebtsScreen(vm: AppViewModel) {
         ThemedFloatingActionButton(onClick = { showChooser = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) { Icon(Icons.Filled.Add, "افزودن طلب یا بدهی") }
     }
     if(showChooser)ModernChoiceDialog("طلب یا بدهی","نوع تعهد مالی را انتخاب کنید",listOf(ModernChoiceOption("ثبت طلب","مبلغی که باید از شخص دیگری دریافت کنید",Color(0xFF1B8F52),Icons.Filled.CallReceived){showChooser=false;entryKind=DebtKind.RECEIVABLE},ModernChoiceOption("ثبت بدهی","مبلغی که باید به شخص دیگری پرداخت کنید",Color(0xFFD33B45),Icons.Filled.CallMade){showChooser=false;entryKind=DebtKind.PAYABLE}),{showChooser=false})
+}
+
+@Composable
+private fun DebtClearLine(label:String,value:String,accent:Color,icon:ImageVector){
+ Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
+  Icon(icon,null,tint=accent,modifier=Modifier.size(18.dp));Text(label,Modifier.weight(1f),style=MaterialTheme.typography.bodySmall);Text(value,color=accent,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.bodyMedium)
+ }
 }
 
 @Composable
