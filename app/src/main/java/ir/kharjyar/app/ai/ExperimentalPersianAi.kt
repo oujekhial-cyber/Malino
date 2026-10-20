@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import ir.kharjyar.app.core.nlp.AiCommandPolicy
+import ir.kharjyar.app.core.text.Digits
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -43,6 +44,13 @@ data class AiAppCommand(
     val accountHint: String = "",
     val title: String = "",
     val quantity: Double? = null,
+    val dueDate: String = "",
+    val sayadId: String = "",
+    val serialNumber: String = "",
+    val bankName: String = "",
+    val nationalId: String = "",
+    val chequeAccountNumber: String = "",
+    val chequeIban: String = "",
     val explanation: String = ""
 )
 
@@ -115,7 +123,7 @@ object ExperimentalPersianAi {
                             اگر وام‌دادن است: {"action":"loan_lent","amount":عدد,"unit":"rial|toman","party":"وام‌گیرنده","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
                             اگر قرض‌دادن/طلب است: {"action":"debt_receivable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
                             اگر قرض‌گرفتن/بدهی است: {"action":"debt_payable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب دریافت","title":"عنوان","explanation":"خلاصه"}
-                            برای ثبت تخصصی سایر بخش‌ها از این actionها استفاده کن و در صورت وجود amount/unit/title/party/account را هم بده:
+                            برای ثبت تخصصی سایر بخش‌ها از این actionها استفاده کن و در صورت وجود amount/unit/title/party/account را هم بده. برای چک همه اطلاعات گفته‌شده را جدا استخراج کن: dueDate با قالب شمسی YYYY/MM/DD، sayadId، serialNumber، bankName، nationalId، chequeAccountNumber و chequeIban:
                             asset_record فقط برای خرید/فروش/ثبت طلا، ارز، سهام، ملک (خانه، آپارتمان، زمین، ویلا و مشابه) یا سایر دارایی‌ها است؛ برای دارایی quantity را وزن/تعداد و amount را قیمت کل خرید قرار بده (نه نرخ واحد) و title را دقیق مثل «طلای آب‌شده» یا «آپارتمان» بساز. برای هر نوع وسیله نقلیه (ماشین، خودرو، اتومبیل، موتور، وانت، کامیون و مشابه) همیشه vehicle_record بده و هرگز asset_record نده؛ reminder_create برای یادآور؛ check_issued یا check_received برای چک؛ note_create برای یادداشت؛ installment_payment برای پرداخت قسط؛ civic_record برای قبض، جریمه یا خدمات شهروندی.
                             اصل وام، قرض، خرید دارایی، پرداخت قسط و انتقال‌ها هرگز income یا expense عادی نیستند و باید action تخصصی بگیرند.
                             اگر درخواست بازکردن، دیدن، فهرست یا مدیریت یک بخش است: {"action":"navigate","route":"شناسه","explanation":"خلاصه"}
@@ -219,6 +227,13 @@ object ExperimentalPersianAi {
                 accountHint=value["account"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
                 title=value["title"]?.jsonPrimitive?.contentOrNull.orEmpty().take(150),
                 quantity=value["quantity"]?.jsonPrimitive?.doubleOrNull?.takeIf{it>0},
+                dueDate=value["dueDate"]?.jsonPrimitive?.contentOrNull.orEmpty().take(20),
+                sayadId=Digits.normalize(value["sayadId"]?.jsonPrimitive?.contentOrNull.orEmpty()).filter(Char::isDigit).take(16),
+                serialNumber=value["serialNumber"]?.jsonPrimitive?.contentOrNull.orEmpty().take(30),
+                bankName=value["bankName"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
+                nationalId=Digits.normalize(value["nationalId"]?.jsonPrimitive?.contentOrNull.orEmpty()).filter(Char::isDigit).take(20),
+                chequeAccountNumber=value["chequeAccountNumber"]?.jsonPrimitive?.contentOrNull.orEmpty().take(40),
+                chequeIban=value["chequeIban"]?.jsonPrimitive?.contentOrNull.orEmpty().uppercase().take(34),
                 explanation=explanation
             )
         }

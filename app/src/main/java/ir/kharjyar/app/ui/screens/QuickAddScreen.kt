@@ -138,7 +138,12 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR")
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "بگویید چه خرید یا واریزی داشتید")
+            // به کاربر اجازه مکث طبیعی میان بخش‌های یک فرمان طولانی داده می‌شود.
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 5_000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3_500L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 15_000L)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "فرمان کامل را بگویید؛ هنگام مکث منتظر می‌مانم")
         }
         val ok = runCatching { speechLauncher.launch(intent); true }.getOrDefault(false)
         if (!ok) {
@@ -208,7 +213,10 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                     if (resolvedAction in setOf("asset_record","reminder_create","check_issued","check_received","note_create","vehicle_record","installment_payment","civic_record") && resolvedRoute != null) {
                         viewModel.prepareFeatureCommand(
-                            AppViewModel.PendingFeatureCommand(resolvedAction,command.amountRial,command.title,input,command.party,command.accountHint,command.quantity)
+                            AppViewModel.PendingFeatureCommand(
+                                resolvedAction,command.amountRial,command.title,input,command.party,command.accountHint,command.quantity,
+                                command.dueDate,command.sayadId,command.serialNumber,command.bankName,command.nationalId,command.chequeAccountNumber,command.chequeIban
+                            )
                         )
                         nav.navigate(resolvedRoute)
                         aiLoading=false

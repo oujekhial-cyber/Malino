@@ -45,7 +45,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val details: String,
         val party: String = "",
         val accountHint: String = "",
-        val quantity: Double? = null
+        val quantity: Double? = null,
+        val dueDate: String = "",
+        val sayadId: String = "",
+        val serialNumber: String = "",
+        val bankName: String = "",
+        val nationalId: String = "",
+        val chequeAccountNumber: String = "",
+        val chequeIban: String = ""
     )
     private val _pendingFeatureCommand = MutableStateFlow<PendingFeatureCommand?>(null)
     val pendingFeatureCommand: StateFlow<PendingFeatureCommand?> = _pendingFeatureCommand
