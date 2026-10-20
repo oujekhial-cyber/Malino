@@ -280,151 +280,91 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             .fillMaxSize()
             .imePadding()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        OutlinedButton(onClick = { nav.navigate("smsPaste") }, modifier = Modifier.fillMaxWidth()) {
-            Text("جایگذاری و تحلیل پیامک بانکی")
-        }
-
-        // ---------- معرفی ----------
-        SkinCard(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.AutoAwesome,
-                        contentDescription = null,
-                        tint = skin.accent,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "مرکز فرمان هوشمند",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = skin.onBackdrop
-                    )
+        // هدر کوتاه و تصویری؛ جزئیات فنی از مسیر اصلی کاربر حذف شده‌اند.
+        Box(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+                .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(skin.accent, skin.accent.copy(alpha=.62f))))
+                .padding(20.dp)
+        ) {
+            Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment=Alignment.CenterVertically) {
+                    Box(Modifier.size(42.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color.White.copy(alpha=.18f)),contentAlignment=Alignment.Center) {
+                        Icon(Icons.Filled.AutoAwesome,null,tint=androidx.compose.ui.graphics.Color.White)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("مرکز فرمان هوشمند",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold,color=androidx.compose.ui.graphics.Color.White)
+                        Text("بگویید چه کاری برایتان انجام دهم",style=MaterialTheme.typography.bodyMedium,color=androidx.compose.ui.graphics.Color.White.copy(alpha=.86f))
+                    }
                 }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "فرمان را بنویسید یا بگویید. ابتدا موتور محلی و کلیدواژه‌ها استفاده می‌شوند و برای تشخیص پیچیده‌تر می‌توانید سرویس انتخاب‌شده در تنظیمات را به‌کار ببرید. هیچ ثبت مالی بدون پیش‌نمایش و تأیید شما انجام نمی‌شود.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = skin.onBackdrop.copy(alpha = 0.75f)
-                )
             }
         }
 
-        // ---------- ورودی ----------
-        OutlinedTextField(
-            value = input,
-            onValueChange = { input = it; saved = false },
-            label = { Text("چه اتفاقی افتاد؟") },
-            placeholder = { Text("امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب بانک ملی خریدم") },
-            trailingIcon = {
-                // گفتن به‌جای تایپ کردن
-                Box(
-                    modifier = Modifier
-                        .padding(end = 4.dp)
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (voiceAvailable) skin.accent.copy(alpha = 0.16f)
-                            else skin.onBackdrop.copy(alpha = 0.10f)
-                        )
-                        .clickable {
-                            if (voiceAvailable) startVoice()
-                            else voiceError = "موتور تبدیل گفتار به متن روی این گوشی پیدا نشد. " +
-                                "برنامه Google (یا Speech Services) را نصب/فعال کنید و " +
-                                "زبان فارسی را در تنظیمات آن اضافه کنید."
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Filled.Mic,
-                        contentDescription = "گفتن با صدا",
-                        tint = if (voiceAvailable) skin.accent else skin.onBackdrop.copy(alpha = 0.45f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
-        )
-
-        // وضعیت موتور گفتار تا کاربر بداند چرا میکروفون کار می‌کند یا نه
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(if (voiceAvailable) skin.incomeColor else skin.expenseColor)
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                if (voiceAvailable && settings.experimentalAiEnabled)
-                    "ورودی صوتی فعال است؛ متن گفتار برای سرویس هوش مصنوعی انتخاب‌شده فرستاده می‌شود"
-                else if (voiceAvailable)
-                    "ورودی صوتی فعال است؛ فرمان فقط با موتور محلی برنامه تحلیل می‌شود"
-                else "تبدیل گفتار به متن در دسترس نیست — می‌توانید تایپ کنید",
-                style = MaterialTheme.typography.bodySmall,
-                color = skin.onBackdrop.copy(alpha = 0.7f)
-            )
-        }
-
-        voiceError?.let { msg ->
-            Text(
-                msg,
-                style = MaterialTheme.typography.bodySmall,
-                color = skin.expenseColor
-            )
-        }
-
-        // نمونه‌های آماده
-        Text("نمونه‌ها:", style = MaterialTheme.typography.labelMedium, color = skin.onBackdrop.copy(alpha = 0.7f))
-        listOf(
-            "امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب بانک ملی خریدم"
-        ).forEach { sample ->
-            Text(
-                sample,
-                style = MaterialTheme.typography.bodySmall,
-                color = skin.accent,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(skin.accent.copy(alpha = 0.10f))
-                    .clickable { input = sample; analyze() }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            )
-        }
-
-        Button(
-            onClick = { analyzeWithAi() },
-            enabled = settings.experimentalAiEnabled && ExperimentalPersianAi.hasToken(context) && input.isNotBlank() && !aiLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(if(aiLoading) "در حال بررسی فرمان…" else "تشخیص هوش مصنوعی") }
-
-        if(settings.aiAutoRegisterEnabled) Button(
-            onClick={autoRegisterPending=true;analyzeWithAi()},
-            enabled=settings.experimentalAiEnabled&&ExperimentalPersianAi.hasToken(context)&&input.isNotBlank()&&!aiLoading,
-            modifier=Modifier.fillMaxWidth()
-        ){Text("ثبت خودکار")}
-
-        OutlinedButton(
-            onClick = { analyze() },
-            enabled = input.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("تشخیص محلی ( آفلاین )") }
-        aiError?.let { Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall) }
-
         SkinCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                Text("فرمان‌های قابل انجام",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.Bold)
-                Text("• ثبت برداشت، واریز و انتقال بین حساب‌های خودم")
-                Text("• تشخیص مبلغ، حساب، دسته، تاریخ و توضیح")
-                Text("• ورود به تراکنش‌ها، گزارش‌ها، حساب‌ها و دسته‌بندی‌ها")
-                Text("• ورود به بدهی‌ها، وام و اقساط، چک‌ها، دارایی‌ها و خودروها")
-                Text("• ورود به یادآوری‌ها، یادداشت‌ها، پیامک بانکی، بازار و پشتیبان‌گیری")
-                Text("ثبت، ویرایش، حذف و عملیات گروهی همیشه به تأیید نهایی کاربر نیاز دارند.",style=MaterialTheme.typography.bodySmall,color=skin.onBackdrop.copy(alpha=.7f))
+            Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                Text("فرمان شما",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.Bold,color=skin.onBackdrop)
+                OutlinedTextField(
+                    value=input,
+                    onValueChange={input=it;saved=false},
+                    placeholder={Text("مثلاً: ۱۰ گرم طلا به قیمت ۵۰ میلیون خریدم")},
+                    trailingIcon={
+                        Box(Modifier.padding(end=4.dp).size(44.dp).clip(CircleShape)
+                            .background(if(voiceAvailable)skin.accent.copy(alpha=.15f)else skin.onBackdrop.copy(alpha=.08f))
+                            .clickable{if(voiceAvailable)startVoice()else voiceError="موتور تبدیل گفتار به متن روی این گوشی در دسترس نیست؛ لطفاً تایپ کنید."},contentAlignment=Alignment.Center){
+                            Icon(Icons.Filled.Mic,"گفتن با صدا",tint=if(voiceAvailable)skin.accent else skin.onBackdrop.copy(alpha=.4f))
+                        }
+                    },
+                    modifier=Modifier.fillMaxWidth(),minLines=3
+                )
+                Row(verticalAlignment=Alignment.CenterVertically) {
+                    Box(Modifier.size(7.dp).clip(CircleShape).background(if(voiceAvailable)skin.incomeColor else skin.expenseColor))
+                    Spacer(Modifier.width(6.dp))
+                    Text(if(voiceAvailable)"برای گفتن فرمان، میکروفون را لمس کنید" else "ورودی صوتی در دسترس نیست؛ فرمان را تایپ کنید",style=MaterialTheme.typography.labelSmall,color=skin.onBackdrop.copy(alpha=.62f))
+                }
+                voiceError?.let{Text(it,style=MaterialTheme.typography.bodySmall,color=skin.expenseColor)}
+            }
+        }
+
+        // فقط یک تصمیم اصلی در هر ردیف: تحلیل هوشمند، سپس گزینه‌های جایگزین.
+        Button(
+            onClick={analyzeWithAi()},
+            enabled=settings.experimentalAiEnabled&&ExperimentalPersianAi.hasToken(context)&&input.isNotBlank()&&!aiLoading,
+            modifier=Modifier.fillMaxWidth().height(52.dp),
+            shape=RoundedCornerShape(16.dp)
+        ) {
+            Icon(Icons.Filled.AutoAwesome,null,Modifier.size(19.dp));Spacer(Modifier.width(8.dp))
+            Text(if(aiLoading)"در حال بررسی فرمان…" else "تشخیص هوش مصنوعی",fontWeight=FontWeight.Bold)
+        }
+        if(!settings.experimentalAiEnabled||!ExperimentalPersianAi.hasToken(context)) {
+            Text("برای تشخیص هوش مصنوعی، سرویس را از تنظیمات هوش مصنوعی فعال کنید.",style=MaterialTheme.typography.labelSmall,color=skin.onBackdrop.copy(alpha=.62f))
+        }
+        if(settings.aiAutoRegisterEnabled) {
+            OutlinedButton(
+                onClick={autoRegisterPending=true;analyzeWithAi()},
+                enabled=settings.experimentalAiEnabled&&ExperimentalPersianAi.hasToken(context)&&input.isNotBlank()&&!aiLoading,
+                modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(14.dp)
+            ){Icon(Icons.Filled.Check,null,Modifier.size(18.dp));Spacer(Modifier.width(7.dp));Text("ثبت خودکار")}
+        }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            OutlinedButton({analyze()},enabled=input.isNotBlank(),modifier=Modifier.weight(1f),shape=RoundedCornerShape(14.dp)) { Text("تشخیص محلی ( آفلاین )") }
+            OutlinedButton({nav.navigate("smsPaste")},modifier=Modifier.weight(1f),shape=RoundedCornerShape(14.dp)) { Text("تحلیل پیامک بانکی") }
+        }
+        aiError?.let{Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall)}
+
+        if(input.isBlank()&&parsed==null) {
+            Text("برای شروع، یکی از نمونه‌ها را انتخاب کنید",style=MaterialTheme.typography.labelMedium,color=skin.onBackdrop.copy(alpha=.68f))
+            listOf(
+                "امروز ۲۵۰ هزار تومن کیک از سوپرمارکت با حساب بانک ملی خریدم",
+                "۱۰ گرم طلا به قیمت ۵۰ میلیون خریدم"
+            ).forEach { sample ->
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(skin.accent.copy(alpha=.08f))
+                    .clickable{input=sample}.padding(12.dp),verticalAlignment=Alignment.CenterVertically) {
+                    Icon(Icons.Filled.AutoAwesome,null,tint=skin.accent,modifier=Modifier.size(17.dp));Spacer(Modifier.width(8.dp))
+                    Text(sample,style=MaterialTheme.typography.bodySmall,color=skin.onBackdrop)
+                }
             }
         }
 
