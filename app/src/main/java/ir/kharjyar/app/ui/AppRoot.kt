@@ -566,7 +566,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("loans") { LoansScreen(viewModel) }
                 composable("assets") { AssetsScreen(viewModel) }
                 composable("notes") { NotesScreen(viewModel) }
-                composable("reminders") { RemindersScreen(viewModel) }
+                composable("reminders") { RemindersScreen(viewModel, navController) }
                 composable("civicCenter") { CivicCenterScreen(viewModel) }
                 composable("vehicles") { VehiclesScreen(viewModel) }
                 composable("profile") { ProfileScreen(viewModel, navController) }

@@ -9,7 +9,7 @@ class CheckDueReminderGuardTest {
  }
  @Test fun `reminder time can be changed and rescheduled by user`() {
   val source=File("src/main/java/ir/kharjyar/app/ui/screens/RemindersScreen.kt").readText()
-  listOf("Text(\"تغییر زمان\")","ReminderTimeEditDialog","DateTimeField(date,hour,minute","copy(nextAt=newAt,enabled=true,lastNotifiedAt=null)","LifeReminderWorker.schedule(context,reminder.id,newAt)").forEach{assertTrue(it,source.contains(it))}
+  listOf("onEdit={editingReminder=r","DateTimeField(date,hour,minute","lastNotifiedAt=null","LifeReminderWorker.cancel(context,existing.id)","LifeReminderWorker.schedule(context,id,at)","ذخیره تغییرات یادآور").forEach{assertTrue(it,source.contains(it))}
  }
  @Test fun `cleared check disables its pending reminders`() {
   val source=File("src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt").readText()
