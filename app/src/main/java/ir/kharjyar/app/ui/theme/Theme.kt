@@ -1,5 +1,6 @@
 package ir.kharjyar.app.ui.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -10,8 +11,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -540,6 +544,16 @@ fun KharjYarTheme(
         Palette.GOLD -> if(wantsDark) GoldScheme else GoldLightScheme
         Palette.MINIMAL_DAY -> MinimalDayScheme
         Palette.MINIMAL_NIGHT -> MinimalNightScheme
+    }
+    // آیکون‌های رسمی status bar باید خلاف روشنایی پس‌زمینه باشند:
+    // تم روشن = آیکون مشکی، تم تیره = آیکون سفید. این مقدار با تغییر زنده تم نیز به‌روز می‌شود.
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = !wantsDark
+            isAppearanceLightNavigationBars = !wantsDark
+        }
     }
     val systemDensity = LocalDensity.current
     val scaledDensity = Density(

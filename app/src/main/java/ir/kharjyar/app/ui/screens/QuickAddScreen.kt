@@ -193,6 +193,11 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         scope.launch {
             ExperimentalPersianAi.interpretCommand(context, input, categories.filterNot { it.archived }.map { it.name })
                 .onSuccess { command ->
+                    // واژه‌های قطعی نوع دارایی بر تصمیم مدل اولویت دارند تا خانه/زمین به ملک
+                    // و هر نوع وسیله نقلیه به بخش مستقل خودروها هدایت شود.
+                    val deterministicFeature=AppCommandRouter.featureAction(input)
+                    val resolvedAction=deterministicFeature?.first?:command.action
+                    val resolvedRoute=deterministicFeature?.second?:command.route
                     if (command.action in setOf("loan_borrowed","loan_lent","debt_receivable","debt_payable") && command.amountRial != null && command.route != null) {
                         viewModel.prepareObligationDraft(
                             AppViewModel.PendingObligationDraft(command.action,command.amountRial,command.party,command.accountHint,command.title)
@@ -201,11 +206,11 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                         aiLoading=false
                         return@onSuccess
                     }
-                    if (command.action in setOf("asset_record","reminder_create","check_issued","check_received","note_create","vehicle_record","installment_payment","civic_record") && command.route != null) {
+                    if (resolvedAction in setOf("asset_record","reminder_create","check_issued","check_received","note_create","vehicle_record","installment_payment","civic_record") && resolvedRoute != null) {
                         viewModel.prepareFeatureCommand(
-                            AppViewModel.PendingFeatureCommand(command.action,command.amountRial,command.title,input,command.party,command.accountHint,command.quantity)
+                            AppViewModel.PendingFeatureCommand(resolvedAction,command.amountRial,command.title,input,command.party,command.accountHint,command.quantity)
                         )
-                        nav.navigate(command.route)
+                        nav.navigate(resolvedRoute)
                         aiLoading=false
                         return@onSuccess
                     }
