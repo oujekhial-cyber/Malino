@@ -7,6 +7,8 @@ import ir.kharjyar.app.KharjYarApp
 import ir.kharjyar.app.core.balance.TxSummarizer
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.core.sms.ReconcileFinding
+import ir.kharjyar.app.core.sms.ReconcilePhoneSms
 import ir.kharjyar.app.data.Repository
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.BlockedSenderEntity
@@ -65,6 +67,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val pendingRecordEdit:StateFlow<PendingRecordEdit?> = _pendingRecordEdit
     fun prepareRecordEdit(type:String,id:Long){_pendingRecordEdit.value=PendingRecordEdit(type,id)}
     fun clearRecordEdit(){_pendingRecordEdit.value=null}
+
+    data class SmsDiscrepancySession(
+        val accountId:Long,
+        val bank:String,
+        val fromYear:Int,val fromMonth:Int,val fromDay:Int,val fromHour:Int,val fromMinute:Int,
+        val toYear:Int,val toMonth:Int,val toDay:Int,val toHour:Int,val toMinute:Int,
+        val items:List<ReconcilePhoneSms>,val findings:Map<Long,ReconcileFinding>,val skipped:Set<Long>
+    )
+    private val _smsDiscrepancySession=MutableStateFlow<SmsDiscrepancySession?>(null)
+    val smsDiscrepancySession:StateFlow<SmsDiscrepancySession?> = _smsDiscrepancySession
+    fun saveSmsDiscrepancySession(value:SmsDiscrepancySession){_smsDiscrepancySession.value=value}
+    fun clearSmsDiscrepancySession(){_smsDiscrepancySession.value=null}
 
     private val _pendingObligationDraft = MutableStateFlow<PendingObligationDraft?>(null)
     val pendingObligationDraft: StateFlow<PendingObligationDraft?> = _pendingObligationDraft
