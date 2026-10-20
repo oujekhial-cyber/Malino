@@ -420,7 +420,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 velocity.x >= fastDrawerVelocity && distanceX >= fastDrawerDistance
             }
             if (drawerState.isClosed && opensTowardDrawer && kotlin.math.abs(velocity.x) > kotlin.math.abs(velocity.y) * 1.35f) {
-                drawerState.open()
+                scope.launch { drawerState.open() }
             }
         }
     }

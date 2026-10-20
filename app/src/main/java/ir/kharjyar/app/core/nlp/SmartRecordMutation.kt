@@ -25,5 +25,5 @@ object SmartRecordMutationResolver {
   // حداقل یک نشانه قوی و اختلاف روشن با گزینه دوم لازم است؛ حذف مبهم هرگز پیشنهاد نمی‌شود.
   return best.target.takeIf{best.score>=6&&(candidates.getOrNull(1)?.score?:-1)<=best.score-2}
  }
- private fun wordScore(query:String,values:List<String>):Int=values.sumOf{v->val n=Digits.normalizeForMatch(v).replace('‌',' ');when{n.isBlank()->0;query.contains(n)->5;n.split(' ').filter{it.length>2}.any(query::contains)->2;else->0}}
+ private fun wordScore(query:String,values:List<String>):Int=values.fold(0){total,v->val n=Digits.normalizeForMatch(v).replace('‌',' ');total+when{n.isBlank()->0;query.contains(n)->5;n.split(' ').filter{it.length>2}.any(query::contains)->2;else->0}}
 }

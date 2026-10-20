@@ -74,7 +74,7 @@ import kotlinx.coroutines.launch
 
 internal fun reminderDestination(r:ReminderEntity):String {
  val text=Digits.normalizeForMatch("${r.category} ${r.title} ${r.note}")
- Regex("(?:تراکنش|transaction)[ #:]*(\d+)").find(text)?.groupValues?.getOrNull(1)?.toLongOrNull()?.let{return "tx/$it"}
+ Regex("(?:تراکنش|transaction)[ #:]*([0-9]+)").find(text)?.groupValues?.getOrNull(1)?.toLongOrNull()?.let{return "tx/$it"}
  return when{
   text.contains("چک")->"checks"
   listOf("خودرو","روغن","سرویس","پلاک").any(text::contains)->"vehicles"
