@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import androidx.work.*
 import ir.kharjyar.app.KharjYarApp
 import ir.kharjyar.app.data.db.*
+import ir.kharjyar.app.notify.Notifier
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -21,7 +22,7 @@ class LifeReminderWorker(context: Context, params: WorkerParameters) : Coroutine
         val rows = if (id > 0) listOfNotNull(app.database.reminderDao().get(id)) else app.database.reminderDao().due(System.currentTimeMillis())
         rows.filter { it.enabled && it.nextAt <= System.currentTimeMillis() + 60_000 }.forEach { reminder ->
             if (android.os.Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                NotificationManagerCompat.from(applicationContext).notify((12000 + reminder.id).toInt(), NotificationCompat.Builder(applicationContext, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar).setColor(androidx.core.content.ContextCompat.getColor(applicationContext, ir.kharjyar.app.R.color.notification_accent)).setContentTitle(reminder.title).setContentText(reminder.note.ifBlank { reminder.category }).setStyle(NotificationCompat.BigTextStyle().bigText(reminder.note.ifBlank { reminder.category })).setAutoCancel(true).build())
+                NotificationManagerCompat.from(applicationContext).notify((12000 + reminder.id).toInt(), NotificationCompat.Builder(applicationContext, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar).setColor(androidx.core.content.ContextCompat.getColor(applicationContext, ir.kharjyar.app.R.color.notification_accent)).setContentTitle(reminder.title).setContentText(reminder.note.ifBlank { reminder.category }).setStyle(NotificationCompat.BigTextStyle().bigText(reminder.note.ifBlank { reminder.category })).setContentIntent(Notifier.routePendingIntent(applicationContext,(12000+reminder.id).toInt(),"reminders/${reminder.id}")).setAutoCancel(true).build())
             }
             val next = nextOccurrence(reminder)
             app.database.reminderDao().update(reminder.copy(nextAt = next ?: reminder.nextAt, enabled = next != null, lastNotifiedAt = System.currentTimeMillis()))

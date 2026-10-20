@@ -78,6 +78,7 @@ class MainActivity : FragmentActivity() {
 
     private fun parseDest(intent: Intent?): String? {
         intent ?: return null
+        intent.getStringExtra(Notifier.EXTRA_ROUTE)?.takeIf { it.isNotBlank() }?.let { return it }
         val dest = intent.getStringExtra(Notifier.EXTRA_DEST) ?: return null
         val smsId = intent.getLongExtra(Notifier.EXTRA_SMS_ID, -1)
         val txId = intent.getLongExtra(Notifier.EXTRA_TX_ID, -1)

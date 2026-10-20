@@ -96,7 +96,6 @@ fun SwipeActionRow(
     val maxTravel = with(density) { SwipeMaxTravel.toPx() }
     val trigger = with(density) { SwipeTrigger.toPx() }
     // حرکت سریع به ژست سراسری بازکردن سایدبار تعلق دارد؛ عملیات کارت فقط با کشیدن کنترل‌شده انجام می‌شود.
-    val fastDrawerVelocity = with(density) { 1100.dp.toPx() }
 
     val offsetX = remember { Animatable(0f) }
     var armed by remember { mutableStateOf(false) }
@@ -185,16 +184,14 @@ fun SwipeActionRow(
                     state = dragState,
                     orientation = Orientation.Horizontal,
                     enabled = enabled,
-                    onDragStopped = { velocity ->
+                    onDragStopped = { _ ->
                         val settled = offsetX.value
                         armed = false
                         offsetX.animateTo(0f, tween(180))
-                        // Flick سریع هیچ ویرایش/حذفی اجرا نمی‌کند؛ AppRoot همان ژست را برای کشو می‌گیرد.
-                        if (abs(velocity) < fastDrawerVelocity) {
-                            when {
-                                settled <= -trigger -> onDelete()
-                                settled >= trigger -> onEdit()
-                            }
+                        // کارت‌ها دوباره فقط از آستانه مسافت معمول خودشان پیروی می‌کنند.
+                        when {
+                            settled <= -trigger -> onDelete()
+                            settled >= trigger -> onEdit()
                         }
                     }
                 )

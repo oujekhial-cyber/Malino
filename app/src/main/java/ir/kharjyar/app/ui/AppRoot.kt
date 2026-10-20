@@ -91,12 +91,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -396,38 +390,12 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
         }
     }
 
-    // Flick افقی سریع در تمام صفحات، حتی روی کارت‌های swipeable، به کشوی اصلی تعلق دارد.
-    // رویدادها در Initial خوانده و مصرف نمی‌شوند تا اسکرول و کشیدن آهسته کارت‌ها طبیعی بماند.
-    val rootLayoutDirection = LocalLayoutDirection.current
-    val rootDensity = LocalDensity.current
-    val fastDrawerVelocity = with(rootDensity) { 1100.dp.toPx() }
-    val fastDrawerDistance = with(rootDensity) { 36.dp.toPx() }
-    val fastDrawerGesture = Modifier.pointerInput(drawerState.isClosed, rootLayoutDirection) {
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            val tracker = VelocityTracker().apply { addPosition(down.uptimeMillis, down.position) }
-            var current = down
-            while (current.pressed) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
-                current = event.changes.firstOrNull { it.id == down.id } ?: break
-                tracker.addPosition(current.uptimeMillis, current.position)
-            }
-            val velocity = tracker.calculateVelocity()
-            val distanceX = current.position.x - down.position.x
-            val opensTowardDrawer = if (rootLayoutDirection == LayoutDirection.Rtl) {
-                velocity.x <= -fastDrawerVelocity && distanceX <= -fastDrawerDistance
-            } else {
-                velocity.x >= fastDrawerVelocity && distanceX >= fastDrawerDistance
-            }
-            if (drawerState.isClosed && opensTowardDrawer && kotlin.math.abs(velocity.x) > kotlin.math.abs(velocity.y) * 1.35f) {
-                scope.launch { drawerState.open() }
-            }
-        }
-    }
+    // بازشدن کشو فقط با ژست استاندارد خود Material یا دکمه منو انجام می‌شود؛
+    // تشخیص سراسری Flick حذف شده تا کشیدن کارت‌ها و پیمایش افقی ناخواسته منو را باز نکند.
 
     // کشو در سمت راست: در RTL پیش‌فرض ModalNavigationDrawer از راست باز می‌شود.
     ModalNavigationDrawer(
-        modifier = fastDrawerGesture,
+        modifier = Modifier,
         drawerState = drawerState,
         scrimColor = Color.Black.copy(alpha = 0.55f),
         drawerContent = {
@@ -603,6 +571,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("assets") { AssetsScreen(viewModel) }
                 composable("notes") { NotesScreen(viewModel) }
                 composable("reminders") { RemindersScreen(viewModel, navController) }
+                composable("reminders/{focusId}") { entry -> RemindersScreen(viewModel, navController, entry.arguments?.getString("focusId")?.toLongOrNull()) }
                 composable("civicCenter") { CivicCenterScreen(viewModel) }
                 composable("vehicles") { VehiclesScreen(viewModel) }
                 composable("profile") { ProfileScreen(viewModel, navController) }

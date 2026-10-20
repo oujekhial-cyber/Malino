@@ -39,7 +39,7 @@ import ir.kharjyar.app.ui.components.SummaryMetric
 import ir.kharjyar.app.work.LifeReminderWorker
 import kotlinx.coroutines.launch
 
-@Composable fun RemindersScreen(vm:AppViewModel,nav:androidx.navigation.NavHostController){
+@Composable fun RemindersScreen(vm:AppViewModel,nav:androidx.navigation.NavHostController,focusId:Long?=null){
  val reminders by vm.repo.db.reminderDao().observeAll().collectAsState(initial=emptyList())
  val pending by vm.pendingFeatureCommand.collectAsState();val context=LocalContext.current;val scope=rememberCoroutineScope()
  var entryRepeat by remember(pending){mutableStateOf<Int?>(if(pending?.action=="reminder_create")ReminderRepeat.ONCE else null)}
@@ -47,17 +47,18 @@ import kotlinx.coroutines.launch
  var chooser by remember{mutableStateOf(false)};var filter by remember{mutableStateOf<Int?>(null)}
  BackHandler(enabled=entryRepeat!=null){entryRepeat=null;editingReminder=null}
  if(entryRepeat!=null){ReminderEntryPage(vm,entryRepeat!!,pending?.takeIf{it.action=="reminder_create"},editingReminder,{entryRepeat=null;editingReminder=null;vm.clearFeatureCommand()},{entryRepeat=null;editingReminder=null;vm.clearFeatureCommand()});return}
- val shown=reminders.filter{filter==null||(filter==1&&it.enabled)||(filter==0&&!it.enabled)};val active=reminders.count{it.enabled}
+ val shown=reminders.filter{filter==null||(filter==1&&it.enabled)||(filter==0&&!it.enabled)}.sortedByDescending{it.id==focusId};val active=reminders.count{it.enabled}
  Box(Modifier.fillMaxSize()){
   Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start=16.dp,end=16.dp,top=12.dp,bottom=92.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
    ModernSummaryHero("یادآورها","برای بازکردن مورد مرتبط روی کارت بزنید؛ برای ویرایش یا حذف بکشید",Color(0xFF6A5AE0),listOf(SummaryMetric("فعال",Digits.toPersian(active.toString()),Color(0xFF1B9A61),Icons.Filled.NotificationsActive),SummaryMetric("انجام‌شده",Digits.toPersian((reminders.size-active).toString()),Color(0xFF6A5AE0),Icons.Filled.TaskAlt),SummaryMetric("موعد بعدی",reminders.filter{it.enabled}.minByOrNull{it.nextAt}?.let{PersianDate.fromMillis(it.nextAt).format()}?:"—",Color(0xFFE59A24),Icons.Filled.EventAvailable)),Icons.Filled.NotificationsActive)
    Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){FilterChip(filter==null,{filter=null},{Text("همه")});FilterChip(filter==1,{filter=1},{Text("فعال")});FilterChip(filter==0,{filter=0},{Text("انجام‌شده")})}
    if(shown.isEmpty())Card(Modifier.fillMaxWidth()){Text("در این بخش هنوز یادآوری وجود ندارد.",Modifier.padding(24.dp))}
    shown.forEach{r->
-    val accent=if(r.enabled)Color(0xFF20A565) else Color(0xFFE14B55)
+    val focused=r.id==focusId;val accent=if(focused)Color(0xFF6A5AE0) else if(r.enabled)Color(0xFF20A565) else Color(0xFFE14B55)
     ir.kharjyar.app.ui.components.SwipeActionRow(onDelete={pendingDelete=r},onEdit={editingReminder=r;entryRepeat=r.repeatType},removeOnDelete=false){
      Card(colors=CardDefaults.cardColors(containerColor=accent.copy(alpha=.10f)),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().border(1.3.dp,accent,RoundedCornerShape(16.dp)).clickable{val destination=reminderDestination(r);if(destination=="reminders"){editingReminder=r;entryRepeat=r.repeatType}else nav.navigate(destination)}){
       Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+       if(focused)Text("یادآور بازشده از اعلان",color=accent,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.labelLarge)
        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(r.title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);Text(if(r.enabled)"فعال" else "انجام‌شده",color=accent,fontWeight=FontWeight.Bold)}
        Text(r.category,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(PersianDate.formatDateTime(r.nextAt),style=MaterialTheme.typography.titleSmall);Text(repeatLabel(r.repeatType,r.repeatInterval),color=accent);if(r.note.isNotBlank())Text(r.note)
        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Text("لمس برای مشاهده مورد مرتبط",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary);TextButton({scope.launch{val changed=r.copy(enabled=!r.enabled);vm.repo.db.reminderDao().update(changed);if(changed.enabled)LifeReminderWorker.schedule(context,r.id,r.nextAt)else LifeReminderWorker.cancel(context,r.id)}}){Text(if(r.enabled)"انجام شد" else "فعال‌سازی")}}

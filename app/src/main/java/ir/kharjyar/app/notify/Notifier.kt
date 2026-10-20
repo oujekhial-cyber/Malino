@@ -20,6 +20,7 @@ object Notifier {
     const val EXTRA_DEST = "kharjyar_dest"
     const val EXTRA_SMS_ID = "kharjyar_sms_id"
     const val EXTRA_TX_ID = "kharjyar_tx_id"
+    const val EXTRA_ROUTE = "kharjyar_route"
 
     const val DEST_CONFIRM_TX = "confirm_tx"
     const val DEST_NEEDS_ACCOUNT = "needs_account"
@@ -134,6 +135,15 @@ object Notifier {
             .setAutoCancel(true)
             .build()
         manager(context).notify("export", uri.hashCode(), notification)
+    }
+
+    /** PendingIntent یکتا برای اعلان‌هایی که باید یک مسیر مشخص برنامه را باز کنند. */
+    fun routePendingIntent(context:Context,requestCode:Int,route:String):PendingIntent {
+        val intent=Intent(context,MainActivity::class.java).apply {
+            flags=Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(EXTRA_ROUTE,route)
+        }
+        return PendingIntent.getActivity(context,requestCode,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
     private fun pendingIntent(context: Context, requestCode: Int, dest: String, smsId: Long?, txId: Long?): PendingIntent {
