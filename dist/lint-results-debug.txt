@@ -451,8 +451,8 @@ espresso = "3.6.1"
     var lastBackAt by remember { mutableStateOf(0L) }
                                  ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/AssetsScreen.kt:105: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
- var kind by remember{mutableStateOf(existing?.kind?:initialKind)}
-                      ~~~~~~~~~~~~~~
+ var kind by remember(draft){mutableStateOf(existing?.kind?:initialKind)}
+                             ~~~~~~~~~~~~~~
 /home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/BlockedSendersScreen.kt:16: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
  val rows by vm.blockedSenders.collectAsState();val spam by vm.repo.db.spamSmsDao().observeAll().collectAsState(initial=emptyList());val scope=rememberCoroutineScope();var tab by remember{mutableStateOf(0)}
                                                                                                                                                                                             ~~~~~~~~~~~~~~
