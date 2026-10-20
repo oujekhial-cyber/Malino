@@ -138,6 +138,7 @@ import ir.kharjyar.app.ui.screens.ChecksScreen
 import ir.kharjyar.app.ui.screens.TemplateTrainScreen
 import ir.kharjyar.app.ui.screens.TransactionEditScreen
 import ir.kharjyar.app.ui.screens.TransactionsScreen
+import ir.kharjyar.app.ui.screens.TransactionTrashScreen
 import ir.kharjyar.app.ui.screens.WidgetSettingsScreen
 import ir.kharjyar.app.ui.screens.CivicCenterScreen
 import ir.kharjyar.app.ui.screens.ProfileScreen
@@ -539,6 +540,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("reports") { ReportsScreen(viewModel) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
                 composable("settings/{section}") { back -> SettingsScreen(viewModel, navController, back.arguments?.getString("section")) }
+                composable("transactionTrash") { TransactionTrashScreen(viewModel) { navController.popBackStack() } }
                 composable("widgetSettings") { WidgetSettingsScreen(viewModel) }
                 composable("manual") { ManualEntryScreen(viewModel, navController) }
                 composable("manual/{dir}") { entry ->

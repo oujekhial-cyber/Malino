@@ -272,7 +272,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
         scope.launch {
             viewModel.repo.txDao.delete(tx.id)
             val res = snackbar.showSnackbar(
-                message = "تراکنش حذف شد",
+                message = "تراکنش به سطل زباله منتقل شد",
                 actionLabel = "بازگرداندن",
                 duration = SnackbarDuration.Short
             )

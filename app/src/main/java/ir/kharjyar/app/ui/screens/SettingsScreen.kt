@@ -113,6 +113,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
             SettingsMenuRow("مدیریت حساب") { nav.navigate("settings/account") }
             SettingsMenuRow("نمایش اعداد و واحد پول") { nav.navigate("settings/numbers") }
             SettingsMenuRow("دسته‌بندی‌ها") { nav.navigate("categories") }
+            SettingsMenuRow("سطل زباله تراکنش‌ها") { nav.navigate("transactionTrash") }
             SettingsMenuRow("مجوزها و اعلان‌ها") { nav.navigate("settings/permissions") }
             SettingsMenuRow("امنیت") { nav.navigate("settings/security") }
             SettingsMenuRow("پشتیبان‌گیری و بازیابی") { nav.navigate("backup") }

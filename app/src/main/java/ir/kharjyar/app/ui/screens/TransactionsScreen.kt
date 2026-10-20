@@ -150,8 +150,8 @@ fun TransactionsScreen(
         if (items.isEmpty()) return
         scope.launch {
             viewModel.repo.txDao.deleteAll(items.map { it.id })
-            val label = if (items.size == 1) "تراکنش حذف شد"
-            else "${Digits.toPersian(items.size.toString())} تراکنش حذف شد"
+            val label = if (items.size == 1) "تراکنش به سطل زباله منتقل شد"
+            else "${Digits.toPersian(items.size.toString())} تراکنش به سطل زباله منتقل شد"
             val result = snackbar.showSnackbar(
                 message = label,
                 actionLabel = "بازگرداندن",

@@ -170,7 +170,7 @@ object TxSource {
 
 @Entity(
     tableName = "transactions",
-    indices = [Index("accountId"), Index("occurredAt"), Index("status"), Index("categoryId"), Index("transferGroupId"), Index("smsId")]
+    indices = [Index("accountId"), Index("occurredAt"), Index("status"), Index("categoryId"), Index("transferGroupId"), Index("smsId"), Index("deletedAt")]
 )
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -195,7 +195,9 @@ data class TransactionEntity(
     val counterparty: String = "",
     val refNumber: String = "",
     /** آیا کاربر این تراکنش را دستی ویرایش کرده؟ پردازش خودکار مجدد نباید بازنویسی کند. */
-    val userEdited: Boolean = false
+    val userEdited: Boolean = false,
+    /** زمان انتقال به سطل زباله؛ null یعنی تراکنش فعال است. */
+    val deletedAt: Long? = null
 )
 
 /** گروه انتقال بین حساب‌های خود کاربر. */
