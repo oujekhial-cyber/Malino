@@ -9,7 +9,8 @@ class MetalAssetPurchaseRateGuardTest {
  }
  @Test fun `default one gram is selected completely on first focus`() {
   val source=File("src/main/java/ir/kharjyar/app/ui/screens/AssetsScreen.kt").readText()
-  assertTrue(source.contains("TextFieldValue(existing?.quantity?.toString() ?: \"1\")"))
+  // پیش‌نویس هوشمند می‌تواند وزن را جایگزین مقدار پیش‌فرض کند؛ در نبود آن همچنان یک گرم است.
+  assertTrue(source.contains("draft?.quantity?.let") && source.contains("?: \"1\""))
   assertTrue(source.contains("selection=TextRange(0,quantity.text.length)"))
   assertTrue(source.contains("onFocusChanged"))
  }

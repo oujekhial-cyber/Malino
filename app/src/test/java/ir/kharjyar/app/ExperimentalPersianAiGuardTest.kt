@@ -42,7 +42,9 @@ class ExperimentalPersianAiGuardTest {
         assertTrue(commandUi.contains("ExperimentalPersianAi.interpretCommand"))
         assertTrue(commandUi.contains("analyzeSpokenCommand"))
         assertTrue(commandUi.contains("settings.experimentalAiEnabled && ExperimentalPersianAi.hasToken(context)"))
-        assertTrue(commandUi.contains("متن گفتار برای سرویس هوش مصنوعی انتخاب‌شده فرستاده می‌شود"))
+        // طراحی خلوت صفحه نباید به متن توضیحی ثابت وابسته باشد؛ مسیر واقعی گفتار آنلاین را نگهبانی می‌کنیم.
+        assertTrue(commandUi.contains("if (settings.experimentalAiEnabled && ExperimentalPersianAi.hasToken(context))"))
+        assertTrue(commandUi.contains("analyzeWithAi()"))
         assertTrue(commandUi.contains("ثبت کن"))
         assertTrue(commandUi.contains("viewModel.repo.addManualTransaction"))
     }
