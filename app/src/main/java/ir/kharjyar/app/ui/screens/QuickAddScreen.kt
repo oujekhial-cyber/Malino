@@ -64,6 +64,9 @@ import ir.kharjyar.app.core.nlp.ParserCategory
 import ir.kharjyar.app.core.nlp.TransactionParser
 import ir.kharjyar.app.core.nlp.SmartMutationTarget
 import ir.kharjyar.app.core.nlp.SmartRecordMutationResolver
+import ir.kharjyar.app.core.nlp.SettingsCommand
+import ir.kharjyar.app.core.nlp.SettingsCommandParser
+import ir.kharjyar.app.data.prefs.Palette
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TxDirection
 import ir.kharjyar.app.ui.AppViewModel
@@ -109,6 +112,8 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
     var mutationTarget by remember { mutableStateOf<SmartMutationTarget?>(null) }
     var mutationAction by remember { mutableStateOf<String?>(null) }
     var mutationError by remember { mutableStateOf<String?>(null) }
+    var settingsCommand by remember { mutableStateOf<SettingsCommand?>(null) }
+    var settingsResult by remember { mutableStateOf<String?>(null) }
 
     val activeAccounts = accounts.filter { !it.archived }
     val context = LocalContext.current
@@ -167,10 +172,22 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         if (voiceAvailable) startVoice()
     }
 
+    fun handleSettingsCommand(command:SettingsCommand):Boolean {
+        settingsResult=null
+        when(command) {
+            SettingsCommand.Backup->{nav.navigate("backup");return true}
+            SettingsCommand.ManageCategories->{nav.navigate("categories");return true}
+            is SettingsCommand.AddCategory->{viewModel.prepareFeatureCommand(AppViewModel.PendingFeatureCommand("category_create",null,command.name,input));nav.navigate("categories");return true}
+            else->settingsCommand=command
+        }
+        return true
+    }
+
     fun analyze() {
         // نتیجه بلافاصله دیده شود، نه اینکه پشت صفحه‌کلید بماند
         keyboard?.hide()
         focusManager.clearFocus(force = true)
+        SettingsCommandParser.parse(input)?.let { handleSettingsCommand(it);return }
         AppCommandRouter.obligationAction(input)?.let { action ->
             val obligation = TransactionParser.parse(
                 text=input,
@@ -204,6 +221,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
 
     fun analyzeWithAi() {
         keyboard?.hide(); focusManager.clearFocus(force = true)
+        SettingsCommandParser.parse(input)?.let { handleSettingsCommand(it);return }
         aiLoading = true; aiError = null; mutationError=null; saved = false; parsed=null
         scope.launch {
             ExperimentalPersianAi.interpretCommand(context, input, categories.filterNot { it.archived }.map { it.name })
@@ -384,6 +402,17 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
         aiError?.let{Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall)}
         mutationError?.let{Text(it,color=skin.expenseColor,style=MaterialTheme.typography.bodySmall)}
+        settingsResult?.let{Text(it,color=skin.incomeColor,style=MaterialTheme.typography.bodyMedium,fontWeight=FontWeight.Bold)}
+
+        SkinCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+                Text("فرمان‌های تنظیمات",fontWeight=FontWeight.Bold,color=skin.onBackdrop)
+                Text("• تم روشن، تیره یا خودکار؛ انتخاب تم ساکورا، بنفش، نیلوفر، اقیانوس، طلایی و مینیمال",style=MaterialTheme.typography.bodySmall,color=skin.onBackdrop.copy(.72f))
+                Text("• «تم را عوض کن» برای انتخاب تصادفی یک تم متفاوت",style=MaterialTheme.typography.bodySmall,color=skin.onBackdrop.copy(.72f))
+                Text("• تغییر واحد پول به ریال یا تومان و بزرگ/کوچک/استاندارد کردن فونت",style=MaterialTheme.typography.bodySmall,color=skin.onBackdrop.copy(.72f))
+                Text("• گرفتن بکاپ، مدیریت دسته‌بندی‌ها یا ساخت دسته جدید با نام",style=MaterialTheme.typography.bodySmall,color=skin.onBackdrop.copy(.72f))
+            }
+        }
 
         if(input.isBlank()&&parsed==null) {
             Text("برای شروع، یکی از نمونه‌ها را انتخاب کنید",style=MaterialTheme.typography.labelMedium,color=skin.onBackdrop.copy(alpha=.68f))
@@ -493,6 +522,38 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             }){Text(if(deleting)"بله، حذف شود" else "بازکردن فرم ویرایش",color=if(deleting)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)}},
             dismissButton={TextButton({mutationTarget=null;mutationAction=null}){Text("انصراف")}}
         )
+    }
+
+    settingsCommand?.let { command ->
+        val description=when(command){
+            is SettingsCommand.Brightness->"حالت نمایش برنامه به ${when(command.mode){ir.kharjyar.app.data.prefs.ThemeMode.DARK->"تیره";ir.kharjyar.app.data.prefs.ThemeMode.LIGHT->"روشن";else->"خودکار مطابق سیستم"}} تغییر کند؟"
+            is SettingsCommand.Theme->if(command.random)"یک تم متفاوت به‌صورت تصادفی انتخاب و اعمال شود؟" else "تم انتخاب‌شده روی کل برنامه اعمال شود؟"
+            is SettingsCommand.Currency->"واحد نمایش مبلغ‌ها به ${if(command.unit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)"تومان" else "ریال"} تغییر کند؟"
+            is SettingsCommand.Font->"اندازه فونت برنامه ${if(command.exact==100)"به حالت استاندارد برگردد" else if(command.delta>0)"بزرگ‌تر شود" else "کوچک‌تر شود"}؟"
+            is SettingsCommand.RenameCategory->"نام دسته‌بندی «${command.oldName}» به «${command.newName}» تغییر کند؟"
+            is SettingsCommand.ToggleCategory->"دسته‌بندی «${command.name}» ${if(command.enabled)"فعال" else "غیرفعال"} شود؟"
+            is SettingsCommand.DeleteCategory->"دسته‌بندی «${command.name}» حذف شود؟ تراکنش‌ها حذف نمی‌شوند و فقط اتصال دسته از آن‌ها برداشته می‌شود."
+            else->"این تغییر اعمال شود؟"
+        }
+        AlertDialog(onDismissRequest={settingsCommand=null},title={Text("تأیید تغییر تنظیمات")},text={Text(description)},confirmButton={TextButton({
+            settingsCommand=null
+            scope.launch {
+                when(command){
+                    is SettingsCommand.Brightness->viewModel.settingsRepo.setThemeMode(command.mode)
+                    is SettingsCommand.Theme->{val selected=command.palette?:Palette.entries.filter{it!=settings.palette}.random();viewModel.settingsRepo.setPalette(selected)}
+                    is SettingsCommand.Currency->viewModel.settingsRepo.setMoneyUnit(command.unit)
+                    is SettingsCommand.Font->viewModel.settingsRepo.setAppFontScale(command.exact?:settings.appFontScale.plus(command.delta))
+                    is SettingsCommand.RenameCategory->{
+                        val target=categories.firstOrNull{Digits.normalizeForMatch(it.name)==Digits.normalizeForMatch(command.oldName)}
+                        if(target==null)settingsResult="دسته‌بندی «${command.oldName}» پیدا نشد" else if(categories.any{it.id!=target.id&&Digits.normalizeForMatch(it.name)==Digits.normalizeForMatch(command.newName)})settingsResult="دسته‌بندی «${command.newName}» از قبل وجود دارد" else {viewModel.repo.categoryDao.update(target.copy(name=command.newName));settingsResult="نام دسته‌بندی تغییر کرد"}
+                    }
+                    is SettingsCommand.ToggleCategory->{val target=categories.firstOrNull{Digits.normalizeForMatch(it.name)==Digits.normalizeForMatch(command.name)};if(target==null)settingsResult="دسته‌بندی «${command.name}» پیدا نشد" else {viewModel.repo.categoryDao.update(target.copy(archived=!command.enabled));settingsResult="وضعیت دسته‌بندی تغییر کرد"}}
+                    is SettingsCommand.DeleteCategory->{val target=categories.firstOrNull{Digits.normalizeForMatch(it.name)==Digits.normalizeForMatch(command.name)};if(target==null)settingsResult="دسته‌بندی «${command.name}» پیدا نشد" else {viewModel.repo.categoryDao.detachTransactions(target.id);viewModel.repo.categoryDao.deleteRulesOfCategory(target.id);viewModel.repo.categoryDao.delete(target.id);settingsResult="دسته‌بندی حذف شد"}}
+                    else->Unit
+                }
+                if(settingsResult==null)settingsResult="تنظیم درخواستی با موفقیت اعمال شد";input=""
+            }
+        }){Text("اعمال تغییر")}},dismissButton={TextButton({settingsCommand=null}){Text("انصراف")}})
     }
 
     if(showAccountPicker && parsed?.accountId==null) {

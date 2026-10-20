@@ -80,6 +80,7 @@ private fun normalizedCategoryName(value:String):String = Digits.normalizeForMat
 fun CategoriesScreen(viewModel: AppViewModel) {
     val scope = rememberCoroutineScope()
     val categories by viewModel.categories.collectAsState()
+    val pendingCommand by viewModel.pendingFeatureCommand.collectAsState()
     val rules by remember { viewModel.repo.categoryDao.observeRules() }.collectAsStateWithLifecycle(initialValue = emptyList())
     var tab by remember { mutableStateOf(0) }
     var editCategory by remember { mutableStateOf<CategoryEntity?>(null) }
@@ -87,6 +88,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     var showNewRule by remember { mutableStateOf(false) }
     var editRule by remember { mutableStateOf<CategoryRuleEntity?>(null) }
     var pendingRuleDelete by remember { mutableStateOf<CategoryRuleEntity?>(null) }
+    LaunchedEffect(pendingCommand) { if(pendingCommand?.action=="category_create") showNewCategory=true }
     val snackbar = remember { SnackbarHostState() }
     var categoryOrder by remember { mutableStateOf<List<Long>>(emptyList()) }
     var draggingCategoryId by remember { mutableStateOf<Long?>(null) }
@@ -422,7 +424,8 @@ fun CategoriesScreen(viewModel: AppViewModel) {
     if (showNewCategory || editCategory != null) {
         CategoryDialog(
             existing = editCategory,
-            onDismiss = { showNewCategory = false; editCategory = null },
+            initialName = pendingCommand?.takeIf{it.action=="category_create"}?.title.orEmpty(),
+            onDismiss = { showNewCategory = false; editCategory = null;viewModel.clearFeatureCommand() },
             onSave = { name, color, archived ->
                 val e = editCategory
                 val duplicate = categories.any { it.id != e?.id && normalizedCategoryName(it.name) == normalizedCategoryName(name) }
@@ -435,7 +438,7 @@ fun CategoriesScreen(viewModel: AppViewModel) {
                     } else {
                         viewModel.repo.categoryDao.update(e.copy(name = name, colorArgb = color, archived = archived))
                     }
-                    showNewCategory = false; editCategory = null
+                    showNewCategory = false; editCategory = null;viewModel.clearFeatureCommand()
                 }
             }
         )
@@ -471,10 +474,11 @@ private val categoryColors = listOf(
 @Composable
 private fun CategoryDialog(
     existing: CategoryEntity?,
+    initialName:String="",
     onDismiss: () -> Unit,
     onSave: (String, Long, Boolean) -> Unit
 ) {
-    var name by remember { mutableStateOf(existing?.name ?: "") }
+    var name by remember(existing?.id,initialName) { mutableStateOf(existing?.name ?: initialName) }
     var color by remember { mutableStateOf(existing?.colorArgb ?: categoryColors[0]) }
     var archived by remember { mutableStateOf(existing?.archived ?: false) }
 
