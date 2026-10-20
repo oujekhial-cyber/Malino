@@ -19,7 +19,7 @@ class ObligationReminderWorker(context: Context, params: WorkerParameters) : Cor
         if (debts.isEmpty() && checks.isEmpty() && installments.isEmpty()) return Result.success()
         if (android.os.Build.VERSION.SDK_INT < 33 || androidx.core.content.ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             val text = listOfNotNull(debts.takeIf { it.isNotEmpty() }?.let { "${it.size} طلب/بدهی" }, checks.takeIf { it.isNotEmpty() }?.let { "${it.size} چک" }, installments.takeIf { it.isNotEmpty() }?.let { "${it.size} قسط" }).joinToString(" و ")
-            NotificationManagerCompat.from(applicationContext).notify(8801, NotificationCompat.Builder(applicationContext, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(android.R.drawable.ic_popup_reminder).setContentTitle("یادآور سررسید خرج‌یار").setContentText("$text نزدیک سررسید است").setAutoCancel(true).build())
+            NotificationManagerCompat.from(applicationContext).notify(8801, NotificationCompat.Builder(applicationContext, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar).setColor(androidx.core.content.ContextCompat.getColor(applicationContext, ir.kharjyar.app.R.color.notification_accent)).setContentTitle("یادآور سررسید خرج‌یار").setContentText("$text نزدیک سررسید است").setAutoCancel(true).build())
         }
         return Result.success()
     }

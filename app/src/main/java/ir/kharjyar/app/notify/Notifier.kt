@@ -29,7 +29,8 @@ object Notifier {
         if (!canNotify(context)) return
         val pi = pendingIntent(context, smsId.toInt(), DEST_CONFIRM_TX, smsId, txId)
         val n = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_TRANSACTIONS)
-            .setSmallIcon(android.R.drawable.stat_notify_more)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
             .setContentTitle("تراکنش جدید شناسایی شد")
             .setContentText("برای تکمیل و تأیید «برای چه بود؟» لمس کنید")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -37,14 +38,15 @@ object Notifier {
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 NotificationCompat.Builder(context, KharjYarApp.CHANNEL_TRANSACTIONS)
-                    .setSmallIcon(android.R.drawable.stat_notify_more)
+                    .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
                     .setContentTitle("خرج‌یار")
                     .setContentText("یک مورد جدید")
                     .build()
             )
             .setContentIntent(pi)
             // همان پیش‌نویس با اقدام صریح اعلان مستقیماً در فرم قابل‌ویرایش باز می‌شود.
-            .addAction(android.R.drawable.ic_menu_edit, "ویرایش و تکمیل", pi)
+            .addAction(ir.kharjyar.app.R.drawable.ic_notification_kharjyar, "ویرایش و تکمیل", pi)
             .setAutoCancel(true)
             .build()
         manager(context).notify(TAG_TX, smsId.toInt(), n)
@@ -53,7 +55,8 @@ object Notifier {
     fun notifyDuplicateTransaction(context:Context,smsId:Long,txId:Long,@Suppress("UNUSED_PARAMETER") description:String){
         if(!canNotify(context))return
         val pi=pendingIntent(context,smsId.toInt(),DEST_CONFIRM_TX,smsId,txId)
-        val n=NotificationCompat.Builder(context,KharjYarApp.CHANNEL_TRANSACTIONS).setSmallIcon(android.R.drawable.stat_notify_more).setContentTitle("این تراکنش قبلاً ثبت شده").setContentText("برای مشاهده اینکه بابت چه بوده لمس کنید").setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setContentIntent(pi).setAutoCancel(true).build()
+        val n=NotificationCompat.Builder(context,KharjYarApp.CHANNEL_TRANSACTIONS).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent)).setContentTitle("این تراکنش قبلاً ثبت شده").setContentText("برای مشاهده اینکه بابت چه بوده لمس کنید").setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setContentIntent(pi).setAutoCancel(true).build()
         manager(context).notify(TAG_TX,smsId.toInt(),n)
     }
 
@@ -61,7 +64,8 @@ object Notifier {
         if (!canNotify(context)) return
         val pi = pendingIntent(context, smsId.toInt(), DEST_NEEDS_ACCOUNT, smsId, null)
         val n = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
-            .setSmallIcon(android.R.drawable.stat_notify_more)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
             .setContentTitle("پیامک بانکی از حساب ناشناخته")
             .setContentText("برای معرفی حساب جدید لمس کنید")
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -75,7 +79,8 @@ object Notifier {
         if (!canNotify(context)) return
         val pi = pendingIntent(context, smsId.toInt(), DEST_NEEDS_TEMPLATE, smsId, null)
         val n = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
-            .setSmallIcon(android.R.drawable.stat_notify_more)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
             .setContentTitle("پیامک نیازمند بررسی")
             .setContentText("قالب این پیامک شناخته نشد؛ برای آموزش لمس کنید")
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -97,13 +102,15 @@ object Notifier {
             amountRial?.let { append("؛ مبلغ ${ir.kharjyar.app.core.money.Money.format(it, ir.kharjyar.app.core.money.MoneyUnit.RIAL)}") }
         }
         val notification = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
-            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
             .setContentTitle("جریمه راهنمایی و رانندگی")
             .setContentText(detail)
             .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-            .setPublicVersion(NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(android.R.drawable.stat_notify_error).setContentTitle("خرج‌یار").setContentText("یک اعلان جدید خودرو").build())
+            .setPublicVersion(NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent)).setContentTitle("خرج‌یار").setContentText("یک اعلان جدید خودرو").build())
             .setContentIntent(pi).setAutoCancel(true).build()
         manager(context).notify("traffic-fine", messageId.toInt(), notification)
     }
@@ -119,7 +126,8 @@ object Notifier {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
             .setContentTitle("گزارش خرج‌یار آماده شد")
             .setContentText("برای باز کردن فایل لمس کنید")
             .setContentIntent(pi)
