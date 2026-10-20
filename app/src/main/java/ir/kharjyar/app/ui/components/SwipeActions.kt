@@ -65,9 +65,9 @@ private val SwipeTrigger = 82.dp
  *    به جای خودش برمی‌گردد (چه کار انجام شده باشد، چه نشده باشد). قبلاً با
  *    `SwipeToDismissBox` اگر ردیف واقعاً از فهرست برداشته نمی‌شد، همان‌جا باز
  *    می‌ماند.
- * 2. تصمیم فقط بر اساس «مسافت» گرفته می‌شود، نه سرعت. بنابراین وقتی فهرست را
- *    عمودی بالا و پایین می‌کنید، یک تکان افقی تند دیگر ردیف را حذف نمی‌کند؛
- *    باید واقعاً انگشت را حدود نصف عرض یک کارت به پهلو بکشید.
+ * 2. عملیات ردیف به آستانه «مسافت» و سرعت کنترل‌شده نیاز دارد. Flick افقی سریع
+ *    برای بازکردن سراسری سایدبار رزرو است و هرگز حذف یا ویرایش را اجرا نمی‌کند؛
+ *    کاربر برای عمل کارت باید آن را آهسته تا آستانه به پهلو بکشد.
  * 3. آیکون و برچسب از همان میلی‌متر اول کشیدن دیده می‌شوند و در همان سمتی
  *    هستند که کارت از رویشان کنار رفته است (چیدمان با `LayoutDirection.Ltr`
  *    قفل شده تا راست و چپ در صفحه راست‌به‌چپ جابه‌جا نشود).
@@ -95,6 +95,8 @@ fun SwipeActionRow(
 
     val maxTravel = with(density) { SwipeMaxTravel.toPx() }
     val trigger = with(density) { SwipeTrigger.toPx() }
+    // حرکت سریع به ژست سراسری بازکردن سایدبار تعلق دارد؛ عملیات کارت فقط با کشیدن کنترل‌شده انجام می‌شود.
+    val fastDrawerVelocity = with(density) { 1100.dp.toPx() }
 
     val offsetX = remember { Animatable(0f) }
     var armed by remember { mutableStateOf(false) }
@@ -183,13 +185,16 @@ fun SwipeActionRow(
                     state = dragState,
                     orientation = Orientation.Horizontal,
                     enabled = enabled,
-                    onDragStopped = {
+                    onDragStopped = { velocity ->
                         val settled = offsetX.value
                         armed = false
                         offsetX.animateTo(0f, tween(180))
-                        when {
-                            settled <= -trigger -> onDelete()
-                            settled >= trigger -> onEdit()
+                        // Flick سریع هیچ ویرایش/حذفی اجرا نمی‌کند؛ AppRoot همان ژست را برای کشو می‌گیرد.
+                        if (abs(velocity) < fastDrawerVelocity) {
+                            when {
+                                settled <= -trigger -> onDelete()
+                                settled >= trigger -> onEdit()
+                            }
                         }
                     }
                 )
