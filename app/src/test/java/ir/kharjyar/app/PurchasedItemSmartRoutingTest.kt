@@ -12,8 +12,10 @@ class PurchasedItemSmartRoutingTest {
             assertEquals("asset_record" to "assets", AppCommandRouter.featureAction("یک $item خریدم"))
         }
         val assets=File("src/main/java/ir/kharjyar/app/ui/screens/AssetsScreen.kt").readText()
-        listOf("خانه","خونه","آپارتمان","زمین","ویلا","باغ","مغازه").forEach { assertTrue(assets.contains("\"$it\"")) }
-        assertTrue(assets.contains("->AssetKind.PROPERTY"))
+        val taxonomy=File("src/main/java/ir/kharjyar/app/core/nlp/AssetCommandTaxonomy.kt").readText()
+        listOf("خانه","خونه","آپارتمان","زمین","ویلا","باغ","مغازه").forEach { assertTrue(taxonomy.contains("\"$it\"")) }
+        assertTrue(assets.contains("AssetCommandTaxonomy.classify"))
+        assertTrue(taxonomy.contains("AssetKind.PROPERTY"))
     }
 
     @Test fun `vehicle family always routes to independent vehicle section`() {

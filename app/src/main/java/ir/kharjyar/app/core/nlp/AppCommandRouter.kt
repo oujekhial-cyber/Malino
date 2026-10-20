@@ -26,16 +26,11 @@ object AppCommandRouter {
         val value=Digits.normalizeForMatch(text).replace('‌',' ')
         val registration=listOf("ثبت کن","ثبت کردم","خریدم","فروختم","یادآوری کن","یادم بنداز","صادر کردم","دریافت کردم","پرداخت کردم").any(value::contains)
         if(!registration)return null
-        val vehicleWords=listOf("خودرو","ماشین","اتومبیل","موتورسیکلت","موتور سیکلت","وانت","کامیون","کامیونت","تریلی","اتوبوس","مینی بوس","وسیله نقلیه")
-        val propertyWords=listOf("ملک","املاک","خانه","خونه","منزل","آپارتمان","زمین","ویلا","باغ","مغازه","دفتر کار","واحد تجاری","مسکن")
-        val metalWords=listOf("طلا","زر","سکه","نقره","پلاتین","شمش")
-        val currencyWords=listOf("ارز","دلار","یورو","پوند","درهم","لیر","فرانک","یوان")
-        val stockWords=listOf("سهام","بورس","سهم")
-        val otherAssetWords=listOf("دارایی","موبایل","گوشی","لپ تاپ","لپتاپ","کامپیوتر","تبلت","ساعت","دوچرخه","لوازم خانگی","کلکسیون")
+        val assetMatch=AssetCommandTaxonomy.classify(text)
         return when {
-            // وسیله نقلیه بخش مستقل دارد و نباید به «سایر دارایی‌ها» فرستاده شود.
-            vehicleWords.any(value::contains)->"vehicle_record" to "vehicles"
-            (propertyWords+metalWords+currencyWords+stockWords+otherAssetWords).any(value::contains)->"asset_record" to "assets"
+            // واژه‌نامه قطعی پیش از مدل، مقصد و نوع دارایی را مشخص می‌کند.
+            assetMatch?.destination==AssetCommandTaxonomy.Destination.VEHICLE->"vehicle_record" to "vehicles"
+            assetMatch?.destination==AssetCommandTaxonomy.Destination.ASSET->"asset_record" to "assets"
             value.contains("یادآور")||value.contains("یادم بنداز")->"reminder_create" to "reminders"
             value.contains("چک")&&listOf("صادر","دادم").any(value::contains)->"check_issued" to "checks"
             value.contains("چک")->"check_received" to "checks"
