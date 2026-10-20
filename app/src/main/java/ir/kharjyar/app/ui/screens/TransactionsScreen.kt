@@ -67,6 +67,7 @@ import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.ComboBox
+import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.DirectionBadge
 import ir.kharjyar.app.ui.components.EmptyState
 import ir.kharjyar.app.ui.components.GlassSnackbarHost
@@ -113,6 +114,8 @@ fun TransactionsScreen(
     // انتقال‌ها هم بسته به جهت خود در نتیجه باقی می‌مانند.
     var filterDirection by remember(presetDirection) { mutableStateOf(presetDirection) }
     var onlyPending by remember { mutableStateOf(false) }
+    var exactAmountInput by remember { mutableStateOf("") }
+    val exactAmountRial=Money.inputToRial(exactAmountInput,settings.moneyUnit)?.takeIf{it>0}
     var showFilters by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<List<TransactionEntity>>(emptyList()) }
 
@@ -142,6 +145,7 @@ fun TransactionsScreen(
             (filterDirection == null || tx.direction == filterDirection) &&
             filterPeriod.contains(tx.occurredAt) &&
             (!dateRangeEnabled || tx.occurredAt in rangeStart until rangeEndExclusive) &&
+            (exactAmountRial==null || tx.amountRial==exactAmountRial) &&
             (!onlyPending || tx.status == TxStatus.PENDING)
     }
 
@@ -232,7 +236,7 @@ fun TransactionsScreen(
 
             // فیلترهای پرکاربرد همیشه جلوی چشم و با یک لمس قابل انتخاب‌اند.
             val activeFilterCount = listOf(
-                filterDirection != null, filterNature != null, filterAccount != null, filterPeriod.year != null, dateRangeEnabled, onlyPending
+                filterDirection != null, filterNature != null, filterAccount != null, filterPeriod.year != null, dateRangeEnabled, exactAmountRial!=null, onlyPending
             ).count { it }
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -240,7 +244,7 @@ fun TransactionsScreen(
             ) {
                 item {
                     ProfessionalFilterChip("همه", activeFilterCount == 0) {
-                        filterDirection = null; filterNature = null; filterAccount = null; filterPeriod=monthPeriods.first(); dateRangeEnabled=false; onlyPending = false
+                        filterDirection = null; filterNature = null; filterAccount = null; filterPeriod=monthPeriods.first(); dateRangeEnabled=false; exactAmountInput=""; onlyPending = false
                     }
                 }
                 item {
@@ -259,11 +263,11 @@ fun TransactionsScreen(
                 item {
                     ProfessionalFilterChip(
                         if (activeFilterCount == 0) "فیلترهای بیشتر" else "بیشتر ($activeFilterCount)",
-                        filterNature != null || filterAccount != null || filterPeriod.year != null || dateRangeEnabled
+                        filterNature != null || filterAccount != null || filterPeriod.year != null || dateRangeEnabled || exactAmountRial!=null
                     ) { showFilters = true }
                 }
             }
-            if (filterAccount != null || filterNature != null || filterPeriod.year != null || dateRangeEnabled) {
+            if (filterAccount != null || filterNature != null || filterPeriod.year != null || dateRangeEnabled || exactAmountRial!=null) {
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 5.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -280,6 +284,7 @@ fun TransactionsScreen(
                     if(dateRangeEnabled) ProfessionalFilterChip(
                         "${filterFromDate.format()} تا ${filterToDate.format()}", true
                     ){dateRangeEnabled=false}
+                    exactAmountRial?.let{amount->ProfessionalFilterChip("مبلغ دقیق: ${Money.format(amount,settings.moneyUnit)}",true){exactAmountInput=""}}
                 }
             }
 
@@ -356,6 +361,15 @@ fun TransactionsScreen(
                         ProfessionalFilterChip(labels[index], filterNature == values[index]) { filterNature = values[index] }
                     }
                 }
+                Text("مبلغ دقیق", style = MaterialTheme.typography.titleSmall)
+                AmountTextField(
+                    value=exactAmountInput,
+                    onValueChange={exactAmountInput=it},
+                    label="فقط تراکنش‌های با این مبلغ",
+                    unit=settings.moneyUnit,
+                    supportingText="مبلغ دقیق را با واحد فعلی وارد کنید؛ برای حذف فیلتر، فیلد را خالی کنید.",
+                    modifier=Modifier.fillMaxWidth()
+                )
                 Text("بازه تاریخی", style = MaterialTheme.typography.titleSmall)
                 SkinCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -392,7 +406,7 @@ fun TransactionsScreen(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;filterAccount=null;filterPeriod=monthPeriods.first();dateRangeEnabled=false;onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
+                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;filterAccount=null;filterPeriod=monthPeriods.first();dateRangeEnabled=false;exactAmountInput="";onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
                     androidx.compose.material3.Button(onClick = { showFilters=false }, modifier = Modifier.weight(1f)) { Text("نمایش ${Digits.toPersian(filtered.size.toString())} نتیجه") }
                 }
             }
