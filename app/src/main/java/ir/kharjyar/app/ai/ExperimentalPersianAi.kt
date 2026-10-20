@@ -15,6 +15,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.put
 import java.net.HttpURLConnection
 import java.net.URL
@@ -41,6 +42,7 @@ data class AiAppCommand(
     val party: String = "",
     val accountHint: String = "",
     val title: String = "",
+    val quantity: Double? = null,
     val explanation: String = ""
 )
 
@@ -114,7 +116,7 @@ object ExperimentalPersianAi {
                             اگر قرض‌دادن/طلب است: {"action":"debt_receivable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب پرداخت","title":"عنوان","explanation":"خلاصه"}
                             اگر قرض‌گرفتن/بدهی است: {"action":"debt_payable","amount":عدد,"unit":"rial|toman","party":"شخص","account":"حساب دریافت","title":"عنوان","explanation":"خلاصه"}
                             برای ثبت تخصصی سایر بخش‌ها از این actionها استفاده کن و در صورت وجود amount/unit/title/party/account را هم بده:
-                            asset_record برای خرید/فروش/ثبت طلا، ارز، سهام، ملک یا دارایی؛ reminder_create برای یادآور؛ check_issued یا check_received برای چک؛ note_create برای یادداشت؛ vehicle_record برای خودرو، هزینه یا سرویس آن؛ installment_payment برای پرداخت قسط؛ civic_record برای قبض، جریمه یا خدمات شهروندی.
+                            asset_record برای خرید/فروش/ثبت طلا، ارز، سهام، ملک یا دارایی؛ برای دارایی quantity را وزن/تعداد و amount را قیمت کل خرید قرار بده (نه نرخ واحد) و title را مثل «طلای آب‌شده»، «خودرو پژو» یا «خانه» بساز؛ reminder_create برای یادآور؛ check_issued یا check_received برای چک؛ note_create برای یادداشت؛ vehicle_record برای خودرو، هزینه یا سرویس آن؛ installment_payment برای پرداخت قسط؛ civic_record برای قبض، جریمه یا خدمات شهروندی.
                             اصل وام، قرض، خرید دارایی، پرداخت قسط و انتقال‌ها هرگز income یا expense عادی نیستند و باید action تخصصی بگیرند.
                             اگر درخواست بازکردن، دیدن، فهرست یا مدیریت یک بخش است: {"action":"navigate","route":"شناسه","explanation":"خلاصه"}
                             شناسه route فقط یکی از اینها باشد: $routes
@@ -216,6 +218,7 @@ object ExperimentalPersianAi {
                 party=value["party"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
                 accountHint=value["account"]?.jsonPrimitive?.contentOrNull.orEmpty().take(100),
                 title=value["title"]?.jsonPrimitive?.contentOrNull.orEmpty().take(150),
+                quantity=value["quantity"]?.jsonPrimitive?.doubleOrNull?.takeIf{it>0},
                 explanation=explanation
             )
         }

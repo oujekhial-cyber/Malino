@@ -203,7 +203,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     }
                     if (command.action in setOf("asset_record","reminder_create","check_issued","check_received","note_create","vehicle_record","installment_payment","civic_record") && command.route != null) {
                         viewModel.prepareFeatureCommand(
-                            AppViewModel.PendingFeatureCommand(command.action,command.amountRial,command.title,input,command.party,command.accountHint)
+                            AppViewModel.PendingFeatureCommand(command.action,command.amountRial,command.title,input,command.party,command.accountHint,command.quantity)
                         )
                         nav.navigate(command.route)
                         aiLoading=false

@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
  fun confirmStockDraft(draft:StockSmsDraftEntity){scope.launch{val dao=vm.repo.db.assetDao();val key="STOCK|${draft.broker}|${draft.symbol}|";val old=dao.allAssetsOnce().firstOrNull{it.kind==AssetKind.STOCK&&it.note.startsWith(key)&&it.active};if(draft.side==StockSide.BUY){val oldQty=old?.quantity?:0.0;val newQty=oldQty+draft.quantity;val newCost=(old?.purchasePriceRial?:0L)+draft.totalRial;val value=AssetEntity(id=old?.id?:0,kind=AssetKind.STOCK,title=draft.symbol,quantity=newQty,purchasePriceRial=newCost,currentValueRial=(newQty*draft.unitPriceRial).toLong(),purchasedAt=old?.purchasedAt?:draft.occurredAt,note="$key${(newCost/newQty).toLong()}");val id=if(old==null)dao.insert(value)else{dao.update(value);old.id};dao.insertTrade(AssetTradeEntity(assetId=id,isSale=false,quantity=draft.quantity.toDouble(),amountRial=draft.totalRial,tradedAt=draft.occurredAt))}else{if(old==null||old.quantity<draft.quantity)return@launch;val sold=draft.quantity.toDouble();val remain=old.quantity-sold;val avg=if(old.quantity>0)old.purchasePriceRial/old.quantity else 0.0;dao.insertTrade(AssetTradeEntity(assetId=old.id,isSale=true,quantity=sold,amountRial=draft.totalRial,tradedAt=draft.occurredAt));dao.update(old.copy(quantity=remain,purchasePriceRial=(avg*remain).toLong(),currentValueRial=(if(old.quantity>0)old.currentValueRial/old.quantity*remain else 0.0).toLong(),active=remain>0))};vm.repo.db.stockDao().updateDraft(draft.copy(status=StockDraftStatus.CONFIRMED))}}
  BackHandler(enabled=adding||editor!=null||purchaseAsset!=null||selectedKind!=null){when{adding||editor!=null->{adding=false;editor=null};purchaseAsset!=null->purchaseAsset=null;else->selectedKind=null}}
  if(purchaseAsset!=null){GoldPurchaseEntry(vm,purchaseAsset!!,{purchaseAsset=null},{purchaseAsset=null});return}
- if(adding||editor!=null){AssetEditor(vm,editor,selectedKind?:AssetKind.GOLD,{adding=false;editor=null;vm.clearFeatureCommand()},{adding=false;editor=null;vm.clearFeatureCommand()});return}
+ if(adding||editor!=null){AssetEditor(vm,editor,selectedKind?:AssetKind.GOLD,pending?.takeIf{it.action=="asset_record"},{adding=false;editor=null;vm.clearFeatureCommand()},{adding=false;editor=null;vm.clearFeatureCommand()});return}
  val allActive=assets.filter{it.active}
  if(selectedKind==null){AssetCategoryLanding(allActive,settings.moneyUnit,onSelect={selectedKind=it},onAdd={adding=true});return}
  val active=allActive.filter{it.kind==selectedKind};val totalBuy=active.sumOf{it.purchasePriceRial};val totalNow=active.sumOf{it.currentValueRial};val profit=totalNow-totalBuy
@@ -97,21 +97,22 @@ private fun assetKindTitle(kind:Int)=when(kind){AssetKind.GOLD->"دارایی‌
 }
 
 @Composable
-private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,onDone:()->Unit,onCancel:()->Unit){
+private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,draft:AppViewModel.PendingFeatureCommand?,onDone:()->Unit,onCancel:()->Unit){
 
  val context=LocalContext.current
  val scope=rememberCoroutineScope()
  val settings by vm.settings.collectAsState()
- var kind by remember{mutableStateOf(existing?.kind?:initialKind)}
- var title by remember{mutableStateOf(existing?.title.orEmpty())}
- var quantity by remember{mutableStateOf(TextFieldValue(existing?.quantity?.toString() ?: "1"))}
+ var kind by remember(draft){mutableStateOf(existing?.kind?:initialKind)}
+ var title by remember(draft){mutableStateOf(existing?.title?:draft?.let{it.title.ifBlank{it.details}}.orEmpty())}
+ var quantity by remember(draft){mutableStateOf(TextFieldValue(existing?.quantity?.toString() ?: draft?.quantity?.let{if(it%1.0==0.0)it.toLong().toString()else it.toString()} ?: "1"))}
  var quantityHadFocus by remember{mutableStateOf(false)}
  var purchaseDate by remember(existing?.id){mutableStateOf(existing?.let{PersianDate.fromMillis(it.purchasedAt)}?:PersianDate.today())}
- var purchase by remember(existing?.id,settings.moneyUnit){mutableStateOf(existing?.purchasePriceRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(it).toString()else it.toString()}.orEmpty())}
- var current by remember(existing?.id,settings.moneyUnit){mutableStateOf(existing?.currentValueRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(it).toString()else it.toString()}.orEmpty())}
+ val draftAmountInput=draft?.amountRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(it).toString()else it.toString()}.orEmpty()
+ var purchase by remember(existing?.id,draft,settings.moneyUnit){mutableStateOf(existing?.purchasePriceRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(it).toString()else it.toString()}?:draftAmountInput)}
+ var current by remember(existing?.id,draft,settings.moneyUnit){mutableStateOf(existing?.currentValueRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(it).toString()else it.toString()}?:draftAmountInput)}
  val kinds=listOf(AssetKind.GOLD,AssetKind.CURRENCY,AssetKind.STOCK,AssetKind.VEHICLE,AssetKind.PROPERTY,AssetKind.OTHER)
  val goldTypes=listOf("طلای آب‌شده","طلای شکسته/دست‌دوم","طلای نو","سکه امامی (طرح جدید)","سکه تمام بهار آزادی (طرح قدیم)","نیم سکه بهار آزادی","ربع سکه بهار آزادی","سکه گرمی بانک مرکزی","سکه پارسیان ۱۸ عیار (وزن آزاد)","نقره","پلاتین","سایر فلزات گران‌بها")
- var goldType by remember{mutableStateOf(existing?.note?.takeIf{it in goldTypes}?:goldTypes.first())}
+ var goldType by remember(draft){mutableStateOf(existing?.note?.takeIf{it in goldTypes}?:goldTypes.firstOrNull{draft?.details?.contains(it.substringBefore(' '))==true}?:goldTypes.first())}
  val currencies=listOf("USD" to "دلار آمریکا","EUR" to "یورو","GBP" to "پوند انگلیس","AED" to "درهم امارات","TRY" to "لیر ترکیه","CAD" to "دلار کانادا","AUD" to "دلار استرالیا","CHF" to "فرانک سوئیس","CNY" to "یوان چین")
  var currencyCode by remember{mutableStateOf(existing?.note?.removePrefix("CURRENCY:")?.takeIf{code->currencies.any{it.first==code}}?:"USD")}
  var unitRate by remember{mutableStateOf("")}
