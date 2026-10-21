@@ -151,6 +151,10 @@ class TransactionParserTest {
     fun `understands relative dates`() {
         assertEquals(today.plusDays(-1), parse("دیروز ۵۰ هزار از روزمره").date)
         assertEquals(today.plusDays(-2), parse("پریروز ۵۰ هزار از روزمره").date)
+        assertEquals(today.plusDays(-3), parse("سه روز قبل ۵۰ هزار از روزمره").date)
+        assertEquals(today.plusDays(-10), parse("۱۰ روز پیش ۵۰ هزار از روزمره").date)
+        assertEquals(PersianDate(1405,7,29), parse("در تاریخ ۱۴۰۵/۰۷/۲۹ مبلغ ۵۰ هزار از روزمره").date)
+        assertEquals(PersianDate(today.year,7,29), parse("۲۹ مهر مبلغ ۵۰ هزار از روزمره").date)
         assertEquals(today, parse("امروز ۵۰ هزار از روزمره").date)
     }
 

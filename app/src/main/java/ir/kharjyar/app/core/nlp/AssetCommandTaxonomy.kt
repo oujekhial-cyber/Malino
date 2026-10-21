@@ -28,6 +28,16 @@ object AssetCommandTaxonomy {
         "دارایی شخصی","موبایل","گوشی","تلفن همراه","لپ تاپ","لپتاپ","کامپیوتر","رایانه","تبلت","تلویزیون","کنسول بازی","دوربین","ساعت","دوچرخه","لوازم خانگی","فرش","تابلو","کلکسیون","ساز","جهیزیه"
     )
 
+    /** تعداد/وزن گفته‌شده پیش از نام واحد دارایی، برای مسیر آفلاین. */
+    fun quantity(text:String):Double? {
+        val value=normalize(text).lowercase()
+        val units="گرم|کیلو|دلار|یورو|پوند|درهم|لیر|فرانک|یوان|سکه|سهم|واحد"
+        Regex("([0-9]+(?:[.]?[0-9]+)?)\\s*(?:$units)").find(value)?.groupValues?.getOrNull(1)?.toDoubleOrNull()?.let{return it}
+        val words=mapOf("یک" to 1.0,"دو" to 2.0,"سه" to 3.0,"چهار" to 4.0,"پنج" to 5.0,"شش" to 6.0,"هفت" to 7.0,"هشت" to 8.0,"نه" to 9.0,"ده" to 10.0)
+        Regex("(یک|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده)\\s*(?:$units)").find(value)?.groupValues?.getOrNull(1)?.let{return words[it]}
+        return null
+    }
+
     fun classify(text:String):Match? {
         val value=normalize(text)
         fun first(words:List<String>)=words.sortedByDescending{it.length}.firstOrNull{value.contains(normalize(it))}

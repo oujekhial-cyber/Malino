@@ -346,6 +346,24 @@ object TransactionParser {
             text.contains("فردا") -> return today.plusDays(1) to true
             text.contains("امروز") -> return today to true
         }
+        // «سه روز قبل»، «۱۰ روز پیش» و عبارت‌های مشابه.
+        val dayWords=mapOf("یک" to 1,"دو" to 2,"سه" to 3,"چهار" to 4,"پنج" to 5,"شش" to 6,"هفت" to 7,"هشت" to 8,"نه" to 9,"ده" to 10,"یازده" to 11,"دوازده" to 12)
+        Regex("(?:^|\\s)([0-9]{1,3}|یک|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده) روز (?:قبل|پیش|گذشته)").find(text)?.groupValues?.getOrNull(1)?.let { raw ->
+            val days=raw.toIntOrNull()?:dayWords[raw]
+            if(days!=null)return today.plusDays(-days) to true
+        }
+        // تاریخ شمسی صریح مانند ۱۴۰۵/۰۷/۲۹ یا ۱۴۰۵-۷-۲۹.
+        Regex("(?:^|\\D)(1[34][0-9]{2})[/-]([0-9]{1,2})[/-]([0-9]{1,2})(?:$|\\D)").find(text)?.let { m ->
+            val y=m.groupValues[1].toInt();val month=m.groupValues[2].toInt();val day=m.groupValues[3].toInt()
+            if(month in 1..12&&day in 1..PersianDate.monthLength(y,month))return PersianDate(y,month,day) to true
+        }
+        // تاریخ گفتاری مانند «۲۹ مهر ۱۴۰۵»؛ در نبود سال، سال جاری منظور است.
+        PersianDate.MONTH_NAMES.forEachIndexed { index,name ->
+            Regex("([0-9]{1,2})\\s*$name(?:\\s+(1[34][0-9]{2}))?").find(text)?.let { m ->
+                val day=m.groupValues[1].toInt();val year=m.groupValues.getOrNull(2)?.toIntOrNull()?:today.year;val month=index+1
+                if(day in 1..PersianDate.monthLength(year,month))return PersianDate(year,month,day) to true
+            }
+        }
         // «سه‌شنبه» یا «سه‌شنبه گذشته» → نزدیک‌ترین روز گذشته با آن نام
         weekDays.forEachIndexed { _, name ->
             if (text.contains(name)) {

@@ -55,7 +55,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val bankName: String = "",
         val nationalId: String = "",
         val chequeAccountNumber: String = "",
-        val chequeIban: String = ""
+        val chequeIban: String = "",
+        /** تاریخ صریح استخراج‌شده از فرمان برای فرم‌های تخصصی مثل خرید دارایی. */
+        val occurredAt: Long? = null
     )
     private val _pendingFeatureCommand = MutableStateFlow<PendingFeatureCommand?>(null)
     val pendingFeatureCommand: StateFlow<PendingFeatureCommand?> = _pendingFeatureCommand

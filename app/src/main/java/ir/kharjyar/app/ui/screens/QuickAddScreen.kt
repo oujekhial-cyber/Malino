@@ -57,6 +57,7 @@ import ir.kharjyar.app.ai.ExperimentalPersianAi
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.nlp.AppCommandRouter
+import ir.kharjyar.app.core.nlp.AssetCommandTaxonomy
 import ir.kharjyar.app.core.nlp.ParseConfidence
 import ir.kharjyar.app.core.nlp.ParsedTransaction
 import ir.kharjyar.app.core.nlp.ParserAccount
@@ -203,7 +204,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         }
         AppCommandRouter.featureAction(input)?.let { (action,route) ->
             val featureParsed=TransactionParser.parse(input,activeAccounts.map{ParserAccount(it.id,it.title,it.bankName)},categories.map{ParserCategory(it.id,it.name)},settings.moneyUnit)
-            viewModel.prepareFeatureCommand(AppViewModel.PendingFeatureCommand(action,featureParsed.amountRial,input,input,accountHint=input))
+            viewModel.prepareFeatureCommand(AppViewModel.PendingFeatureCommand(action,featureParsed.amountRial,input,input,accountHint=input,quantity=AssetCommandTaxonomy.quantity(input),occurredAt=featureParsed.takeIf{it.dateExplicit}?.let{p->PersianDate.toMillis(p.date,p.hour,p.minute)}))
             nav.navigate(route)
             return
         }
@@ -247,10 +248,12 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                         return@onSuccess
                     }
                     if (resolvedAction in setOf("asset_record","reminder_create","check_issued","check_received","note_create","vehicle_record","installment_payment","civic_record") && resolvedRoute != null) {
+                        val specializedDate=TransactionParser.parse(input,activeAccounts.map{ParserAccount(it.id,it.title,it.bankName)},categories.map{ParserCategory(it.id,it.name)},settings.moneyUnit)
                         viewModel.prepareFeatureCommand(
                             AppViewModel.PendingFeatureCommand(
-                                resolvedAction,command.amountRial,command.title,input,command.party,command.accountHint,command.quantity,
-                                command.dueDate,command.sayadId,command.serialNumber,command.bankName,command.nationalId,command.chequeAccountNumber,command.chequeIban
+                                resolvedAction,command.amountRial,command.title,input,command.party,command.accountHint,command.quantity?:AssetCommandTaxonomy.quantity(input),
+                                command.dueDate,command.sayadId,command.serialNumber,command.bankName,command.nationalId,command.chequeAccountNumber,command.chequeIban,
+                                specializedDate.takeIf{it.dateExplicit}?.let{p->PersianDate.toMillis(p.date,p.hour,p.minute)}
                             )
                         )
                         nav.navigate(resolvedRoute)

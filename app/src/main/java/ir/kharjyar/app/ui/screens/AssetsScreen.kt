@@ -107,7 +107,7 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
  var title by remember(draft){mutableStateOf(existing?.title?:draft?.let{it.title.ifBlank{it.details}}.orEmpty())}
  var quantity by remember(draft){mutableStateOf(TextFieldValue(existing?.quantity?.toString() ?: draft?.quantity?.let{if(it%1.0==0.0)it.toLong().toString()else it.toString()} ?: "1"))}
  var quantityHadFocus by remember{mutableStateOf(false)}
- var purchaseDate by remember(existing?.id){mutableStateOf(existing?.let{PersianDate.fromMillis(it.purchasedAt)}?:PersianDate.today())}
+ var purchaseDate by remember(existing?.id,draft){mutableStateOf(existing?.let{PersianDate.fromMillis(it.purchasedAt)}?:draft?.occurredAt?.let(PersianDate::fromMillis)?:PersianDate.today())}
  val draftAmountInput=draft?.amountRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(it).toString()else it.toString()}.orEmpty()
  var purchase by remember(existing?.id,draft,settings.moneyUnit){mutableStateOf(existing?.purchasePriceRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(it).toString()else it.toString()}?:draftAmountInput)}
  var current by remember(existing?.id,draft,settings.moneyUnit){mutableStateOf(existing?.currentValueRial?.let{if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(it).toString()else it.toString()}?:draftAmountInput)}
@@ -115,8 +115,10 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
  val goldTypes=listOf("طلای آب‌شده","طلای شکسته/دست‌دوم","طلای نو","سکه امامی (طرح جدید)","سکه تمام بهار آزادی (طرح قدیم)","نیم سکه بهار آزادی","ربع سکه بهار آزادی","سکه گرمی بانک مرکزی","سکه پارسیان ۱۸ عیار (وزن آزاد)","نقره","پلاتین","سایر فلزات گران‌بها")
  var goldType by remember(draft){mutableStateOf(existing?.note?.takeIf{it in goldTypes}?:goldTypes.firstOrNull{draft?.details?.contains(it.substringBefore(' '))==true}?:goldTypes.first())}
  val currencies=listOf("USD" to "دلار آمریکا","EUR" to "یورو","GBP" to "پوند انگلیس","AED" to "درهم امارات","TRY" to "لیر ترکیه","CAD" to "دلار کانادا","AUD" to "دلار استرالیا","CHF" to "فرانک سوئیس","CNY" to "یوان چین")
- var currencyCode by remember{mutableStateOf(existing?.note?.removePrefix("CURRENCY:")?.takeIf{code->currencies.any{it.first==code}}?:"USD")}
+ val draftCurrency=remember(draft){val t=Digits.normalizeForMatch(draft?.details.orEmpty()+" "+draft?.title.orEmpty());when{listOf("یورو","eur").any(t::contains)->"EUR";listOf("پوند","gbp").any(t::contains)->"GBP";listOf("درهم","aed").any(t::contains)->"AED";listOf("لیر","try").any(t::contains)->"TRY";listOf("دلار کانادا","cad").any(t::contains)->"CAD";listOf("دلار استرالیا","aud").any(t::contains)->"AUD";listOf("فرانک","chf").any(t::contains)->"CHF";listOf("یوان","cny").any(t::contains)->"CNY";else->"USD"}}
+ var currencyCode by remember(draft){mutableStateOf(existing?.note?.removePrefix("CURRENCY:")?.takeIf{code->currencies.any{it.first==code}}?:draftCurrency)}
  var unitRate by remember{mutableStateOf("")}
+ var currencyCurrentRate by remember{mutableStateOf("")}
  val stockParts=existing?.note?.split('|').orEmpty()
  var stockBroker by remember{mutableStateOf(stockParts.getOrNull(1).orEmpty())}
  var stockSymbol by remember{mutableStateOf(stockParts.getOrNull(2).orEmpty())}
@@ -125,6 +127,25 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
  var gramPrice by remember{mutableStateOf("")}
  var purchaseGramRate by remember{mutableStateOf("")}
  var lookup by remember{mutableStateOf<String?>(null)}
+ var autoLookupLoading by remember(draft){mutableStateOf(false)}
+ LaunchedEffect(draft?.action,kind,currencyCode,goldType){
+  if(existing!=null||draft?.action!="asset_record"||kind !in listOf(AssetKind.GOLD,AssetKind.CURRENCY))return@LaunchedEffect
+  autoLookupLoading=true
+  val value=when {
+   kind==AssetKind.CURRENCY->GoldPriceService.currencyRial(currencyCode)
+   goldType.contains("سکه")->GoldPriceService.coinRial(when{goldType.contains("امامی")->"COIN_EMAMI";goldType.contains("قدیم")->"COIN_BAHAR";goldType.contains("نیم")->"COIN_HALF";goldType.contains("ربع")->"COIN_QUARTER";else->"COIN_GRAM"})
+   else->GoldPriceService.gram18Rial()
+  }
+  if(value!=null){
+   val shown=(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(value)else value).toString()
+   val count=quantity.text.toDoubleOrNull()?:0.0;val total=(count*value).toLong()
+   val shownTotal=(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(total)else total).toString()
+   if(kind==AssetKind.CURRENCY){currencyCurrentRate=shown;if(unitRate.isBlank())unitRate=shown}else if(!goldType.contains("سکه")){gramPrice=shown;if(purchaseGramRate.isBlank())purchaseGramRate=shown}
+   current=shownTotal;if(purchase.isBlank())purchase=shownTotal
+   lookup="نرخ آنلاین روز دریافت و فرم تکمیل شد؛ برای خرید تاریخی، نرخ واقعی روز خرید را در صورت تفاوت اصلاح کنید."
+  }else lookup="استعلام آنلاین انجام نشد؛ نرخ خرید و نرخ روز را دستی وارد کنید."
+  autoLookupLoading=false
+ }
 
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(11.dp)){
   TextButton(onCancel){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به سبد دارایی")}
@@ -148,6 +169,8 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
   Text("اطلاعات خرید",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
   Text("تاریخ و مبلغ واقعی خرید را مطابق همان زمان، به‌صورت دستی وارد کنید. این مبلغ با استعلام روز تغییر نمی‌کند.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
   PersianDateField(purchaseDate,{purchaseDate=it})
+  if(autoLookupLoading)Text("در حال استعلام آنلاین نرخ روز…",color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.bodySmall)
+  else if(draft?.action=="asset_record"&&kind in listOf(AssetKind.GOLD,AssetKind.CURRENCY))lookup?.let{Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
   if(kind==AssetKind.GOLD&&!goldType.contains("سکه")){
    AmountTextField(purchaseGramRate,{purchaseGramRate=it},"نرخ خرید هر گرم",Modifier.fillMaxWidth(),unit=settings.moneyUnit)
    val historicalRateInput=Digits.parseAmount(purchaseGramRate)?:0L
@@ -182,9 +205,9 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
   }else if(kind==AssetKind.GOLD){
    Text("قیمت روز کل این نوع سکه را از بازار وارد کنید؛ قیمت خرید تاریخی و تاریخ آن بدون تغییر حفظ می‌شود.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
   }else if(kind==AssetKind.CURRENCY){
-   OutlinedButton({scope.launch{val value=GoldPriceService.currencyRial(currencyCode);if(value!=null){unitRate=(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(value)else value).toString();lookup="نرخ آزاد ${currencies.first{it.first==currencyCode}.second} دریافت شد"}else lookup="استعلام در دسترس نبود؛ نرخ را دستی وارد کنید"}},Modifier.fillMaxWidth()){Text("استعلام آنلاین نرخ روز ارز")}
-   AmountTextField(unitRate,{unitRate=it},"نرخ امروز هر واحد ارز",Modifier.fillMaxWidth(),unit=settings.moneyUnit)
-   Button({val rate=Money.inputToRial(unitRate,settings.moneyUnit)?:0;val total=((quantity.text.toDoubleOrNull()?:0.0)*rate).toLong();current=(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(total)else total).toString()},enabled=(quantity.text.toDoubleOrNull()?:0.0)>0&&(Money.inputToRial(unitRate,settings.moneyUnit)?:0)>0,modifier=Modifier.fillMaxWidth()){Text("محاسبه ارزش امروز ارز")}
+   OutlinedButton({scope.launch{val value=GoldPriceService.currencyRial(currencyCode);if(value!=null){currencyCurrentRate=(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(value)else value).toString();lookup="نرخ آزاد ${currencies.first{it.first==currencyCode}.second} دریافت شد"}else lookup="استعلام در دسترس نبود؛ نرخ را دستی وارد کنید"}},Modifier.fillMaxWidth()){Text("استعلام آنلاین نرخ روز ارز")}
+   AmountTextField(currencyCurrentRate,{currencyCurrentRate=it},"نرخ امروز هر واحد ارز",Modifier.fillMaxWidth(),unit=settings.moneyUnit)
+   Button({val rate=Money.inputToRial(currencyCurrentRate,settings.moneyUnit)?:0;val total=((quantity.text.toDoubleOrNull()?:0.0)*rate).toLong();current=(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(total)else total).toString()},enabled=(quantity.text.toDoubleOrNull()?:0.0)>0&&(Money.inputToRial(currencyCurrentRate,settings.moneyUnit)?:0)>0,modifier=Modifier.fillMaxWidth()){Text("محاسبه ارزش امروز ارز")}
    lookup?.let{Text(it,style=MaterialTheme.typography.bodySmall)}
    Text("نرخ آنلاین قابل ویرایش است و در صورت قطع اینترنت می‌توانید نرخ بازار را دستی وارد کنید.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
   }else if(kind==AssetKind.STOCK){
