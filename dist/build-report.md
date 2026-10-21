@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: ca9acf4ee0b9e9e7c7411425f026c09a269dd927
-- تاریخ: 2026-10-21 08:07 UTC
-- unit tests: failure
+- commit: 36a4afe38f0ac3b139459f99bf60c1d3d3c8f7de
+- تاریخ: 2026-10-21 08:15 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,7 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-(no test results)
+tests=621 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
