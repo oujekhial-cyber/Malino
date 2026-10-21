@@ -17,9 +17,9 @@ class ReminderNotificationNavigationGuardTest {
  }
  @Test fun `all due obligation notifications have actionable destinations`() {
   val worker=File("src/main/java/ir/kharjyar/app/work/ObligationReminderWorker.kt").readText()
-  assertTrue(worker.contains("debts.isNotEmpty()->\"debts\""))
-  assertTrue(worker.contains("checks.isNotEmpty()->\"checks\""))
-  assertTrue(worker.contains("installments.isNotEmpty()->\"loans\""))
+  assertTrue(worker.contains("\"debts/${debt.id}\""))
+  assertTrue(worker.contains("\"checks/${c.id}\""))
+  assertTrue(worker.contains("\"loans/${i.loanId}/${i.id}\""))
   assertTrue(worker.contains("setContentIntent(Notifier.routePendingIntent"))
  }
  @Test fun `global fast drawer interception is removed`() {

@@ -1,28 +1,26 @@
 package ir.kharjyar.app.work
-
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import ir.kharjyar.app.KharjYarApp
+import ir.kharjyar.app.core.money.Money
+import ir.kharjyar.app.core.money.MoneyUnit
+import ir.kharjyar.app.data.db.*
 import ir.kharjyar.app.notify.Notifier
-
-class ObligationReminderWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result {
-        val app = applicationContext as KharjYarApp
-        val until = System.currentTimeMillis() + 24 * 60 * 60 * 1000L
-        val debts = app.database.debtDao().dueReminders(until)
-        val checks = app.database.checkDao().dueReminders(until)
-        val installments = app.database.loanDao().due(until)
-        val lifeReminders = app.database.reminderDao().due(System.currentTimeMillis())
-        lifeReminders.forEach { ir.kharjyar.app.work.LifeReminderWorker.schedule(applicationContext, it.id, System.currentTimeMillis()) }
-        if (debts.isEmpty() && checks.isEmpty() && installments.isEmpty()) return Result.success()
-        if (android.os.Build.VERSION.SDK_INT < 33 || androidx.core.content.ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            val text = listOfNotNull(debts.takeIf { it.isNotEmpty() }?.let { "${it.size} طلب/بدهی" }, checks.takeIf { it.isNotEmpty() }?.let { "${it.size} چک" }, installments.takeIf { it.isNotEmpty() }?.let { "${it.size} قسط" }).joinToString(" و ")
-            val destination=when { debts.isNotEmpty()->"debts";checks.isNotEmpty()->"checks";installments.isNotEmpty()->"loans";else->"reminders" }
-            NotificationManagerCompat.from(applicationContext).notify(8801, NotificationCompat.Builder(applicationContext, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar).setColor(androidx.core.content.ContextCompat.getColor(applicationContext, ir.kharjyar.app.R.color.notification_accent)).setContentTitle("یادآور سررسید خرج‌یار").setContentText("$text نزدیک سررسید است").setContentIntent(Notifier.routePendingIntent(applicationContext,8801,destination)).setAutoCancel(true).build())
-        }
-        return Result.success()
-    }
+class ObligationReminderWorker(context:Context,params:WorkerParameters):CoroutineWorker(context,params){
+ override suspend fun doWork():Result{
+  val app=applicationContext as KharjYarApp;val now=System.currentTimeMillis();val debts=app.database.debtDao().dueReminders(now);val checks=app.database.checkDao().dueReminders(now);val installments=app.database.loanDao().due(now).filterNot{it.noInstallment};val loans=app.database.loanDao().allLoansOnce().associateBy{it.id};val people=app.database.debtDao().allPeopleOnce().associateBy{it.id}
+  app.database.reminderDao().due(now).forEach{LifeReminderWorker.schedule(applicationContext,it.id,now)}
+  if(android.os.Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(applicationContext,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return Result.success();val manager=NotificationManagerCompat.from(applicationContext)
+  debts.forEach{d->val relation=if(d.kind==DebtKind.RECEIVABLE)"طلب" else "بدهی";manager.notify("debt-reminder",d.id.toInt(),notification("موعد $relation ${people[d.personId]?.name.orEmpty()}","${d.title} • ${Money.format(d.amountRial,MoneyUnit.RIAL)}","debts/${d.id}",(21000+d.id).toInt()))}
+  checks.forEach{c->manager.notify("check-reminder",c.id.toInt(),notification(if(c.direction==CheckDirection.ISSUED)"موعد پرداخت چک" else "موعد وصول چک","${c.counterparty} • ${Money.format(c.amountRial,MoneyUnit.RIAL)}","checks/${c.id}",(31000+c.id).toInt()))}
+  installments.forEach{i->manager.notify("installment-reminder",i.id.toInt(),notification("موعد پرداخت قسط ${i.number}","${loans[i.loanId]?.title.orEmpty()} • ${Money.format(i.amountRial,MoneyUnit.RIAL)}","loans/${i.loanId}/${i.id}",(41000+i.id).toInt()))}
+  return Result.success()
+ }
+ private fun notification(title:String,text:String,route:String,code:Int)=NotificationCompat.Builder(applicationContext,KharjYarApp.CHANNEL_REVIEW).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar).setColor(ContextCompat.getColor(applicationContext,ir.kharjyar.app.R.color.notification_accent)).setContentTitle(title).setContentText(text).setStyle(NotificationCompat.BigTextStyle().bigText(text)).setCategory(NotificationCompat.CATEGORY_REMINDER).setPriority(NotificationCompat.PRIORITY_HIGH).setContentIntent(Notifier.routePendingIntent(applicationContext,code,route)).setOnlyAlertOnce(true).setAutoCancel(true).build()
 }

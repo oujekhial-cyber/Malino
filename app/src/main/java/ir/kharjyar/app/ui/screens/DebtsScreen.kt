@@ -55,7 +55,7 @@ private data class PendingExcessPayment(
 )
 
 @Composable
-fun DebtsScreen(vm: AppViewModel) {
+fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
     val people by vm.debtPeople.collectAsState()
     val debts by vm.debts.collectAsState()
     val payments by vm.debtPayments.collectAsState()
@@ -64,7 +64,7 @@ fun DebtsScreen(vm: AppViewModel) {
     val pendingEdit by vm.pendingRecordEdit.collectAsState()
     var entryKind by remember(pendingDraft) { mutableStateOf(when(pendingDraft?.action){"debt_receivable"->DebtKind.RECEIVABLE;"debt_payable"->DebtKind.PAYABLE;else->null}) }
     var showChooser by remember { mutableStateOf(false) }
-    var selectedPersonId by remember(pendingEdit,debts) { mutableStateOf(pendingEdit?.takeIf{it.type=="debt"}?.let{edit->debts.firstOrNull{it.id==edit.id}?.personId}) }
+    var selectedPersonId by remember(pendingEdit,debts,initialDebtId) { mutableStateOf(initialDebtId?.let{id->debts.firstOrNull{it.id==id}?.personId}?:pendingEdit?.takeIf{it.type=="debt"}?.let{edit->debts.firstOrNull{it.id==edit.id}?.personId}) }
     LaunchedEffect(selectedPersonId){if(selectedPersonId!=null&&pendingEdit?.type=="debt")vm.clearRecordEdit()}
     var filterKind by remember { mutableStateOf<Int?>(null) }
     var personQuery by remember { mutableStateOf("") }

@@ -318,7 +318,7 @@ private fun ModernNotificationButton(notificationCount:Int,onClick:()->Unit){
     val pink=Color(0xFFFF4E9E);val cyan=Color(0xFF43E4DC)
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr){
         // محدوده لمس استاندارد می‌ماند، اما خود زنگ کوچک‌تر و بدون قاب است.
-        Box(Modifier.size(38.dp).clip(CircleShape).clickable(onClick=onClick),contentAlignment=Alignment.Center){
+        Box(Modifier.size(44.dp).clickable(onClick=onClick),contentAlignment=Alignment.Center){
             if(active)Box(Modifier.size(27.dp).background(Brush.radialGradient(listOf(pink.copy(.20f),Color.Transparent)),CircleShape))
             Icon(
                 if(active)Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
@@ -328,7 +328,7 @@ private fun ModernNotificationButton(notificationCount:Int,onClick:()->Unit){
             )
             if(active){
                 Box(Modifier.align(Alignment.BottomCenter).offset(y=(-5).dp).size(4.dp).background(cyan,CircleShape))
-                Box(Modifier.align(Alignment.TopEnd).offset(x=1.dp,y=(-1).dp).height(17.dp).defaultMinSize(minWidth=17.dp).shadow(4.dp,CircleShape,spotColor=pink.copy(.58f)).background(pink,CircleShape).padding(horizontal=3.dp),contentAlignment=Alignment.Center){Text(Digits.toPersian(if(notificationCount>99)"99+" else notificationCount.toString()),color=Color.White,fontWeight=FontWeight.Black,style=MaterialTheme.typography.labelSmall,maxLines=1)}
+                Box(Modifier.align(Alignment.TopEnd).height(21.dp).defaultMinSize(minWidth=21.dp).shadow(4.dp,RoundedCornerShape(50),spotColor=pink.copy(.58f)).background(pink,RoundedCornerShape(50)).padding(horizontal=5.dp),contentAlignment=Alignment.Center){Text(Digits.toPersian(if(notificationCount>99)"99+" else notificationCount.toString()),color=Color.White,fontWeight=FontWeight.Black,style=MaterialTheme.typography.labelSmall,maxLines=1,softWrap=false)}
             }
         }
     }
@@ -566,8 +566,11 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("review") { BankSmsHubScreen(viewModel, navController) }
                 composable("reviewImport?accountId={accountId}",arguments=listOf(navArgument("accountId"){type=NavType.LongType;defaultValue=-1L})){entry->BankSmsHubScreen(viewModel,navController,initialTab=1,initialAccountId=entry.arguments?.getLong("accountId")?.takeIf{it>0})}
                 composable("debts") { DebtsScreen(viewModel) }
+                composable("debts/{debtId}") { entry -> DebtsScreen(viewModel,entry.arguments?.getString("debtId")?.toLongOrNull()) }
                 composable("checks") { ChecksScreen(viewModel) }
+                composable("checks/{checkId}") { entry -> ChecksScreen(viewModel,entry.arguments?.getString("checkId")?.toLongOrNull()) }
                 composable("loans") { LoansScreen(viewModel) }
+                composable("loans/{loanId}/{installmentId}") { entry -> LoansScreen(viewModel,entry.arguments?.getString("loanId")?.toLongOrNull(),entry.arguments?.getString("installmentId")?.toLongOrNull()) }
                 composable("assets") { AssetsScreen(viewModel) }
                 composable("notes") { NotesScreen(viewModel) }
                 composable("reminders") { RemindersScreen(viewModel, navController) }

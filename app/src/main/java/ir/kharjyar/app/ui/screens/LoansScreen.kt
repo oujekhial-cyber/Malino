@@ -54,14 +54,14 @@ internal fun calculateLoanPlan(principalRial:Long,annualRatePercent:Double,month
 }
 
 @Composable
-fun LoansScreen(vm:AppViewModel) {
+fun LoansScreen(vm:AppViewModel,initialLoanId:Long?=null,initialInstallmentId:Long?=null) {
  val loans by vm.loans.collectAsState()
  val installments by vm.loanInstallments.collectAsState()
  val settings by vm.settings.collectAsState()
  val pendingDraft by vm.pendingObligationDraft.collectAsState()
  val pendingEdit by vm.pendingRecordEdit.collectAsState()
  var entryKind by remember(pendingDraft) { mutableStateOf(when(pendingDraft?.action){"loan_borrowed"->LoanKind.BORROWED;"loan_lent"->LoanKind.LENT;else->null}) }
- var selectedLoanId by remember(pendingEdit) { mutableStateOf(pendingEdit?.takeIf{it.type=="loan"}?.id) }
+ var selectedLoanId by remember(pendingEdit,initialLoanId) { mutableStateOf(initialLoanId?:pendingEdit?.takeIf{it.type=="loan"}?.id) }
  LaunchedEffect(selectedLoanId){if(selectedLoanId!=null&&pendingEdit?.type=="loan")vm.clearRecordEdit()}
  var showChooser by remember { mutableStateOf(false) }
  var filter by remember { mutableStateOf<Int?>(null) }
@@ -79,6 +79,7 @@ fun LoansScreen(vm:AppViewModel) {
    vm=vm,
    loan=selectedLoan,
    installments=installments.filter { it.loanId==selectedLoan.id },
+   focusInstallmentId=initialInstallmentId,
    onBack={selectedLoanId=null}
   )
   return
@@ -151,7 +152,7 @@ private fun ModernLoanCard(loan:LoanEntity,paidCount:Int,paidAmount:Long,remaini
 @Composable private fun LoanMetricTile(title:String,value:String,accent:Color,icon:androidx.compose.ui.graphics.vector.ImageVector,modifier:Modifier=Modifier){Surface(modifier=modifier,color=accent.copy(.08f),shape=RoundedCornerShape(15.dp),border=BorderStroke(1.dp,accent.copy(.18f))){Column(Modifier.padding(11.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){Icon(icon,null,tint=accent,modifier=Modifier.size(17.dp));Text(title,style=MaterialTheme.typography.labelSmall,color=accent)};Text(value,style=MaterialTheme.typography.titleSmall)}}}
 
 @Composable
-private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<LoanInstallmentEntity>,onBack:()->Unit) {
+private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<LoanInstallmentEntity>,focusInstallmentId:Long?=null,onBack:()->Unit) {
  val settings by vm.settings.collectAsState()
  val scope=rememberCoroutineScope()
  val paidRows=installments.filter { it.paid }.sortedByDescending { it.paidAt?:it.dueAt }
@@ -160,7 +161,7 @@ private fun LoanDetailsPage(vm:AppViewModel,loan:LoanEntity,installments:List<Lo
  val penaltiesPaid=paidRows.sumOf { it.penaltyRial }
  val paidAmount=principalPaid+penaltiesPaid
  val remaining=(loan.principalRial-principalPaid).coerceAtLeast(0)
- var payingInstallment by remember { mutableStateOf<LoanInstallmentEntity?>(null) }
+ var payingInstallment by remember(focusInstallmentId,installments) { mutableStateOf(installments.firstOrNull{it.id==focusInstallmentId&&!it.paid&&!it.noInstallment}) }
  var deletingPayment by remember { mutableStateOf<LoanInstallmentEntity?>(null) }
  var noInstallmentTarget by remember { mutableStateOf<LoanInstallmentEntity?>(null) }
  val lent=loan.kind==LoanKind.LENT
