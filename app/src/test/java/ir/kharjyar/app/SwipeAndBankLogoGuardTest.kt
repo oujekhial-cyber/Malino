@@ -41,7 +41,7 @@ class SwipeAndBankLogoGuardTest {
     @Test
     fun `row always returns to its place after the gesture`() {
         val s = source(swipe)
-        val stop = s.substringAfter("onDragStopped = { velocity ->")
+        val stop = s.substringAfter("onDragStopped = { _ ->")
         assertTrue("بعد از رها کردن انگشت، کارت به جای خودش برنمی‌گردد", stop.contains("animateTo(0f"))
         // برگشت باید پیش از اجرای عمل باشد تا اگر ردیف از فهرست برداشته شد،
         // وضعیت باز روی ردیف بعدی (که جای همان اندیس را می‌گیرد) نماند.
@@ -52,14 +52,15 @@ class SwipeAndBankLogoGuardTest {
     }
 
     @Test
-    fun `row action needs distance and rejects fast drawer flick`() {
+    fun `row action needs its normal distance threshold`() {
         val s = source(swipe)
-        // عملیات ردیف همچنان آستانه مسافت دارد، اما Flick سریع برای سایدبار رزرو است.
         assertTrue("آستانه مسافتی تعریف نشده", s.contains("SwipeTrigger"))
         val trigger = Regex("""SwipeTrigger = (\d+)\.dp""").find(s)?.groupValues?.get(1)?.toInt()
         assertNotNull("مقدار آستانه پیدا نشد", trigger)
         assertTrue("آستانه کشیدن خیلی کم است و تصادفی فعال می‌شود", trigger!! >= 64)
-        assertTrue("حرکت سریع باید از حذف/ویرایش کارت جلوگیری کند", s.contains("abs(velocity) < fastDrawerVelocity"))
+        assertFalse("نباید سرعتی برای ژست حذف‌شده سایدبار رزرو بماند", s.contains("fastDrawerVelocity"))
+        assertTrue("حذف باید به عبور از آستانه مسافت وابسته باشد",s.contains("settled <= -trigger -> onDelete()"))
+        assertTrue("ویرایش باید به عبور از آستانه مسافت وابسته باشد",s.contains("settled >= trigger -> onEdit()"))
     }
 
     @Test
