@@ -1,8 +1,8 @@
 # گزارش Build و تست (CI)
 
-- commit: acbd7acf01625745cf696c889740ea6451c3f43f
-- تاریخ: 2026-10-21 02:39 UTC
-- unit tests: failure
+- commit: eda4148623032b7bd21ae31786b87234cae3b4ed
+- تاریخ: 2026-10-21 02:51 UTC
+- unit tests: success
 - assembleDebug: success
 - بررسی حریم خصوصی (مانیفست ادغام‌شده): success
 - lintDebug: success
@@ -10,11 +10,7 @@
 
 ## خلاصه تست‌های واحد
 ```
-tests=617 failures=4 errors=0 skipped=0
-FAIL ir.kharjyar.app.SwipeAndBankLogoGuardTest.row action needs distance and rejects fast drawer flick: java.lang.AssertionError: حرکت سریع باید از حذف/ویرایش کارت جلوگیری کند
-FAIL ir.kharjyar.app.FastGlobalDrawerGestureGuardTest.fast drawer gesture wraps every screen and observes before children: java.lang.AssertionError
-FAIL ir.kharjyar.app.FastGlobalDrawerGestureGuardTest.drawer flick is directional and predominantly horizontal: java.lang.AssertionError
-FAIL ir.kharjyar.app.FastGlobalDrawerGestureGuardTest.fast swipe never triggers row edit or delete: java.lang.AssertionError
+tests=617 failures=0 errors=0 skipped=0
 ```
 
 ## نسخه انتشار
