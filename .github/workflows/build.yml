@@ -39,6 +39,26 @@ jobs:
           set -o pipefail
           ./gradlew :app:testDebugUnitTest --stacktrace --console=plain 2>&1 | tee unittest.log
 
+      - name: Report unit-test failures
+        if: steps.unittests.outcome != 'success'
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          found = False
+          for path in glob.glob('app/build/test-results/testDebugUnitTest/*.xml'):
+              root = ET.parse(path).getroot()
+              for case in root.findall('.//testcase'):
+                  failure = case.find('failure')
+                  error = case.find('error')
+                  problem = failure if failure is not None else error
+                  if problem is not None:
+                      found = True
+                      message = (problem.get('message') or problem.text or 'failed').splitlines()[0]
+                      print(f"::error title=Unit test failed::{case.get('classname')}.{case.get('name')}: {message}")
+          if not found:
+              print('::error title=Unit tests failed::No parsed test result; inspect unittest.log artifact')
+          PY
+
       - name: Assemble debug APK
         id: assemble
         continue-on-error: true
