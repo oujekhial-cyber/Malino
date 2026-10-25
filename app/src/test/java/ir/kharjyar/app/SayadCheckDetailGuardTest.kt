@@ -18,7 +18,7 @@ class SayadCheckDetailGuardTest {
    "چک صیادی — بانک مرکزی جمهوری اسلامی ایران",
    "CheckPaperLine(\"در وجه\"",
    "CheckPaperLine(\"طرف حساب اصلی\"",
-   "CheckPaperLine(\"مبلغ\"",
+   "CheckPaperLine(\"مبلغ به عدد\"",
    "CheckPaperLine(\"تاریخ سررسید\"",
    "CheckPaperLine(\"شماره حساب\"",
    "CheckPaperLine(\"شبا\"",
