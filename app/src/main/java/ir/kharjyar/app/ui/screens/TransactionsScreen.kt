@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -131,6 +133,13 @@ fun TransactionsScreen(
     // انتخاب چندتایی: با نگه‌داشتن روی یک ردیف فعال می‌شود
     val selected = remember { mutableStateListOf<Long>() }
     val selecting = selected.isNotEmpty()
+    val transactionListState = rememberLazyListState()
+    val showInlineFilters by remember {
+        derivedStateOf {
+            transactionListState.firstVisibleItemIndex == 0 &&
+                transactionListState.firstVisibleItemScrollOffset < 12
+        }
+    }
 
     // جست‌وجو با هر تغییر متن فوراً روی فهرست اعمال می‌شود. قبلاً برای عبارت‌های
     // غیرعددی، رشته خالیِ استخراج‌شده از رقم داخل همه مبلغ‌ها پیدا می‌شد و در
@@ -185,6 +194,10 @@ fun TransactionsScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
 
+            // کنترل‌های جست‌وجو و فیلتر فقط بالای فهرست دیده می‌شوند و با شروع
+            // اسکرول جمع می‌شوند؛ کارت تحلیل مالی پایین‌تر همیشه ثابت می‌ماند.
+            if (showInlineFilters) {
+             Column {
             // ---------- نوار انتخاب چندتایی ----------
             if (selecting) {
                 Row(
@@ -303,6 +316,8 @@ fun TransactionsScreen(
                     exactAmountRial?.let{amount->ProfessionalFilterChip("مبلغ دقیق: ${Money.format(amount,settings.moneyUnit)}",true){exactAmountInput=""}}
                 }
             }
+             }
+            }
 
             // درآمد/هزینه واقعی از گردش حساب جداست: انتقال داخلی، قرض و تسویه
             // موجودی را تغییر می‌دهند، ولی درآمد یا خرج تازه محسوب نمی‌شوند.
@@ -350,6 +365,7 @@ fun TransactionsScreen(
                 )
             } else {
                 LazyColumn(
+                    state = transactionListState,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(top = 8.dp, bottom = 12.dp)
                 ) {

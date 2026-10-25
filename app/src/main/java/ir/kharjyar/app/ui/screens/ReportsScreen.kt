@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CallReceived
 import androidx.compose.material.icons.filled.CallMade
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -82,6 +83,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
     var range by remember { mutableStateOf(RangeKind.MONTH) }
     var filterAccount by remember { mutableStateOf<Long?>(null) }
     var filterCategory by remember { mutableStateOf<Long?>(null) }
+    var selectedBreakdown by remember { mutableStateOf(TxNature.EXPENSE) }
     var exportMessage by remember { mutableStateOf<String?>(null) }
 
     val today = PersianDate.today()
@@ -214,16 +216,22 @@ fun ReportsScreen(viewModel: AppViewModel) {
         }
     }
 
-    // ---------- تفکیک هزینه بر اساس دسته ----------
-    val byCategory = confirmed
-        .filter { it.nature == TxNature.EXPENSE || (it.nature == TxNature.UNKNOWN && it.direction == TxDirection.WITHDRAW) }
+    // ---------- تفکیک پویا بر اساس دسته ----------
+    fun categoryBreakdown(nature:Int,direction:Int)=confirmed
+        .filter { it.nature == nature || (it.nature == TxNature.UNKNOWN && it.direction == direction) }
         .groupBy { it.categoryId }
         .map { (catId, list) ->
-            val name = categories.firstOrNull { it.id == catId }?.name ?: "بدون دسته"
-            val color = categories.firstOrNull { it.id == catId }?.colorArgb ?: 0xFF8A8F98
-            Triple(name, list.sumOf { it.amountRial }, color)
-        }
-        .sortedByDescending { it.second }
+            val category=categories.firstOrNull { it.id == catId }
+            Triple(category?.name ?: "بدون دسته",list.sumOf { it.amountRial },category?.colorArgb ?: 0xFF8A8F98)
+        }.sortedByDescending { it.second }
+    val expenseBreakdown=categoryBreakdown(TxNature.EXPENSE,TxDirection.WITHDRAW)
+    val incomeBreakdown=categoryBreakdown(TxNature.INCOME,TxDirection.DEPOSIT)
+    val selectedSlices=if(selectedBreakdown==TxNature.INCOME)incomeBreakdown else expenseBreakdown
+    val selectedTotal=if(selectedBreakdown==TxNature.INCOME)income else expense
+    val selectedTransactions=confirmed.filter {
+        if(selectedBreakdown==TxNature.INCOME) it.nature==TxNature.INCOME||(it.nature==TxNature.UNKNOWN&&it.direction==TxDirection.DEPOSIT)
+        else it.nature==TxNature.EXPENSE||(it.nature==TxNature.UNKNOWN&&it.direction==TxDirection.WITHDRAW)
+    }.sortedByDescending{it.occurredAt}
 
     Column(
         modifier = Modifier
@@ -274,10 +282,12 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     StatTile(
-                        label = "واریز",
+                        label = "درآمد",
                         value = Money.format(income, settings.moneyUnit),
                         tint = skin.incomeColor,
                         up = true,
+                        selected=selectedBreakdown==TxNature.INCOME,
+                        onClick={selectedBreakdown=TxNature.INCOME},
                         modifier = Modifier.weight(1f)
                     )
                     StatTile(
@@ -285,6 +295,8 @@ fun ReportsScreen(viewModel: AppViewModel) {
                         value = Money.format(expense, settings.moneyUnit),
                         tint = skin.expenseColor,
                         up = false,
+                        selected=selectedBreakdown==TxNature.EXPENSE,
+                        onClick={selectedBreakdown=TxNature.EXPENSE},
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -334,36 +346,53 @@ fun ReportsScreen(viewModel: AppViewModel) {
             }
         }
 
-        // ---------- هزینه بر اساس دسته ----------
-        if (byCategory.isNotEmpty()) {
-            SkinCard(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(
-                        "تفکیک هزینه‌ها بر اساس دسته",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = skin.onBackdrop
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    val slices = byCategory
-                    val total = slices.sumOf { it.second }.coerceAtLeast(1L)
-                    Canvas(Modifier.size(210.dp).align(Alignment.CenterHorizontally)) {
-                        var start = -90f
-                        slices.forEach { (_, amount, argb) ->
-                            val sweep = amount.toFloat() / total * 360f
-                            drawArc(Color(argb), start, sweep, useCenter = true)
-                            start += sweep
-                        }
-                        drawCircle(color = skin.cardColor, radius = size.minDimension * 0.24f)
+        // ---------- تحلیل انتخابی درآمد/برداشت ----------
+        SkinCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                Text(
+                    if(selectedBreakdown==TxNature.INCOME)"درآمدها از چه محل‌هایی بوده؟" else "مخارج صرف چه چیزهایی شده؟",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = skin.onBackdrop
+                )
+                Text("برای تغییر نمودار، روی درآمد یا برداشت در کارت خالص بازه بزنید.",style=MaterialTheme.typography.bodySmall,color=skin.onBackdrop.copy(alpha=.65f))
+                if(selectedSlices.isEmpty()) EmptyState("داده‌ای برای تحلیل نیست","در این بازه تراکنش تأییدشده‌ای از این نوع ثبت نشده است")
+                else {
+                    val total=selectedTotal.coerceAtLeast(1L)
+                    Canvas(Modifier.size(218.dp).align(Alignment.CenterHorizontally)) {
+                        var start=-90f
+                        selectedSlices.forEach{(_,amount,argb)->val sweep=amount.toFloat()/total*360f;drawArc(Color(argb),start,sweep,useCenter=true);start+=sweep}
+                        drawCircle(color=skin.cardColor,radius=size.minDimension*.26f)
                     }
-                    Spacer(Modifier.height(12.dp))
-                    slices.forEach { (name, amount, colorArgb) ->
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            ChartLegend(Color(colorArgb), name)
-                            Text(Money.format(amount, settings.moneyUnit), style = MaterialTheme.typography.bodySmall)
+                    selectedSlices.forEach{(name,amount,colorArgb)->
+                        val percent=(amount*100.0/total).coerceIn(0.0,100.0)
+                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                            ChartLegend(Color(colorArgb),name)
+                            Column(horizontalAlignment=Alignment.End){Text(Money.format(amount,settings.moneyUnit),style=MaterialTheme.typography.bodySmall,fontWeight=FontWeight.Bold);Text("${Digits.toPersian(String.format("%.1f",percent))}٪",style=MaterialTheme.typography.labelSmall,color=skin.onBackdrop.copy(alpha=.62f))}
                         }
-                        Spacer(Modifier.height(7.dp))
                     }
                 }
+            }
+        }
+
+        // ---------- خلاصه حرفه‌ای و ریز اقلام ----------
+        SkinCard(Modifier.fillMaxWidth()){
+            Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Text(if(selectedBreakdown==TxNature.INCOME)"ریز درآمدهای این بازه" else "ریز مخارج این بازه",style=MaterialTheme.typography.titleMedium)
+                val count=selectedTransactions.size
+                val average=if(count==0)0L else selectedTotal/count
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("تعداد تراکنش");Text(Digits.toPersian(count.toString()),fontWeight=FontWeight.Bold)}
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("میانگین هر تراکنش");Text(Money.format(average,settings.moneyUnit),fontWeight=FontWeight.Bold)}
+                selectedSlices.firstOrNull()?.let{top->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(selectedBreakdown==TxNature.INCOME)"بیشترین منبع" else "بیشترین محل هزینه");Text(top.first,fontWeight=FontWeight.Bold)}}
+                Divider(color=MaterialTheme.colorScheme.outlineVariant)
+                selectedTransactions.take(20).forEach{tx->
+                    val category=categories.firstOrNull{it.id==tx.categoryId}?.name?:"بدون دسته"
+                    val account=accounts.firstOrNull{it.id==tx.accountId}?.title?:"حساب نامشخص"
+                    Column(Modifier.fillMaxWidth().padding(vertical=4.dp)){
+                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(tx.description.ifBlank{category},modifier=Modifier.weight(1f),maxLines=1);Text(Money.format(tx.amountRial,settings.moneyUnit),fontWeight=FontWeight.Bold,color=if(selectedBreakdown==TxNature.INCOME)skin.incomeColor else skin.expenseColor)}
+                        Text("$category • $account • ${PersianDate.formatDateTime(tx.occurredAt)}",style=MaterialTheme.typography.labelSmall,color=skin.onBackdrop.copy(alpha=.62f))
+                    }
+                }
+                if(selectedTransactions.size>20)Text("۲۰ مورد آخر نمایش داده شده؛ خروجی PDF یا Excel شامل همه موارد است.",style=MaterialTheme.typography.labelSmall,color=skin.accent)
             }
         }
 
@@ -435,14 +464,17 @@ private fun StatTile(
     value: String,
     tint: Color,
     up: Boolean,
+    selected:Boolean,
+    onClick:()->Unit,
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = modifier
             .clip(shape)
-            .background(tint.copy(alpha = 0.12f))
-            .border(1.dp, tint.copy(alpha = 0.45f), shape)
+            .background(tint.copy(alpha = if(selected)0.22f else 0.10f))
+            .border(if(selected) 2.dp else 1.dp, tint.copy(alpha = if(selected) .85f else .38f), shape)
+            .clickable(onClick=onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

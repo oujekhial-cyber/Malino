@@ -48,8 +48,16 @@ object UnreadBankSmsRecovery {
                     messages += PhoneSms(sender, body, cursor.getLong(3))
                 }
             }
+            val senderMappings=app.database.accountDao().allSenders()
             // قدیمی‌ترها اول پردازش می‌شوند تا مرکز اعلان‌ها ترتیب طبیعی داشته باشد.
             messages.asReversed().forEach { sms ->
+                // اسکن هنگام بازشدن سخت‌گیرانه است: فقط تراکنش بانکی با اطمینان بالا
+                // وارد مسیر عادی می‌شود؛ تبلیغ، OTP و پیام مبهم اصلاً اعلان نمی‌سازند.
+                val normalizedSender=AccountMatcher.normalizeSender(sms.sender)
+                val knownSender=senderMappings.any{AccountMatcher.normalizeSender(it.sender)==normalizedSender}||
+                    BankSenderResolver.bankName(sms.sender)!=null
+                val evidence=BankSmsEvidenceClassifier.classify(sms.sender,sms.body,knownSender)
+                if(!evidence.isHighConfidenceTransaction)return@forEach
                 // خرابی یک پیامک نباید مانع بازیابی بقیه پیام‌ها شود.
                 runCatching {
                     val result = app.repository.ingestSms(sms.sender, sms.body, sms.receivedAt)

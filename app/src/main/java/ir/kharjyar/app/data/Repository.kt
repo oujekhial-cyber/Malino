@@ -59,15 +59,23 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
         // رمز پویا حتی برای فرستنده مسدودشده ذخیره نمی‌شود.
         if (SmsClassifier.isOtp(body)) return IngestResult(null,false,SmsKind.NON_FINANCIAL)
         val fp = SmsFingerprint.of(sender, body, receivedAt)
-        // ابتدا ماهیت پیام بررسی می‌شود؛ یک پیام تراکنش واقعی هرگز نباید فقط به‌خاطر
-        // واژه‌هایی مثل «جشنواره/هدیه» یا مسدودی قدیمی فرستنده وارد تبلیغات شود.
-        val kind = SmsClassifier.classify(body)
         val mappings=accountDao.allSenders()
         val normalizedSender=AccountMatcher.normalizeSender(sender)
         val knownFinancialSender=mappings.any{AccountMatcher.normalizeSender(it.sender)==normalizedSender}||
             ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sender)!=null
-        val protectedFinancial = kind == SmsKind.FINANCIAL_LIKELY ||
-            (knownFinancialSender && kind == SmsKind.SUSPICIOUS)
+        // تصمیم نهایی بر پایه چند شاهد مستقل است؛ نام بانک یا یک واژه مثل «خرید»
+        // به‌تنهایی اجازه ورود پیامک به صف تراکنش را نمی‌دهد.
+        val evidence=ir.kharjyar.app.core.sms.BankSmsEvidenceClassifier.classify(sender,body,knownFinancialSender)
+        val kind=when(evidence.verdict){
+            ir.kharjyar.app.core.sms.BankSmsVerdict.TRANSACTION->SmsKind.FINANCIAL_LIKELY
+            ir.kharjyar.app.core.sms.BankSmsVerdict.REVIEW->SmsKind.SUSPICIOUS
+            else->SmsKind.NON_FINANCIAL
+        }
+        val protectedFinancial = evidence.verdict==ir.kharjyar.app.core.sms.BankSmsVerdict.TRANSACTION
+        if(evidence.verdict==ir.kharjyar.app.core.sms.BankSmsVerdict.PROMOTION){
+            spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason="تشخیص چندنشانه‌ای تبلیغات: ${evidence.reasons.joinToString("، ")}",fingerprint=fp))
+            return IngestResult(null,false,SmsKind.NON_FINANCIAL)
+        }
         if (blockedSenderDao.isBlocked(sender) && !protectedFinancial) {
             spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason="فرستنده مسدودشده توسط کاربر",fingerprint=fp))
             return IngestResult(null, false, SmsKind.NON_FINANCIAL)

@@ -11,6 +11,8 @@ class UnreadBankSmsRecoveryGuardTest {
   assertTrue(activity.contains("UnreadBankSmsRecovery.scanOnAppOpen"))
   assertTrue(recovery.contains("Manifest.permission.READ_SMS"))
   assertTrue(recovery.contains("\"read = 0\""))
+  assertTrue(recovery.contains("BankSmsEvidenceClassifier.classify"))
+  assertTrue(recovery.contains("if(!evidence.isHighConfidenceTransaction)return@forEach"))
   assertTrue(recovery.contains("repository.ingestSms"))
   assertTrue(recovery.contains("SmsProcessWorker"))
   assertTrue(recovery.contains("enqueueUniqueWork"))

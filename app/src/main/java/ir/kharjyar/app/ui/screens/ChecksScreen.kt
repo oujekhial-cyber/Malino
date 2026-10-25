@@ -7,11 +7,20 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -32,14 +41,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -128,61 +145,81 @@ private fun formatSayadId(value:String):String {
 private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.kharjyar.app.core.money.MoneyUnit,onImageSaved:(CheckEntity)->Unit,onBack:()->Unit){
  val context=LocalContext.current
  val scope=rememberCoroutineScope()
+ val activity=context as? Activity
  var cameraUri by remember{mutableStateOf<android.net.Uri?>(null)}
  var showOriginal by remember{mutableStateOf(false)}
  var documentMessage by remember{mutableStateOf<String?>(null)}
+ var immersive by remember{mutableStateOf(false)}
+ var zoom by remember{mutableStateOf(1f)}
+ var pan by remember{mutableStateOf(Offset.Zero)}
  fun saveDocument(uri:android.net.Uri){runCatching{val dir=File(context.filesDir,"checks").apply{mkdirs()};val file=File(dir,"check-${check.id}-${System.currentTimeMillis()}.jpg");context.contentResolver.openInputStream(uri)?.use{input->file.outputStream().use{input.copyTo(it)}}?:error("تصویر خوانده نشد");val updated=check.copy(imagePath=file.absolutePath);scope.launch{vm.repo.db.checkDao().update(updated);onImageSaved(updated);documentMessage="عکس اصلی چک ذخیره شد"}}.onFailure{documentMessage="ذخیره عکس چک انجام نشد"}}
  val gallery=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()){it?.let(::saveDocument)}
  val camera=rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()){ok->if(ok)cameraUri?.let(::saveDocument)}
  fun openCamera(){val file=File(context.cacheDir,"check-document-${check.id}-${System.currentTimeMillis()}.jpg");val uri=androidx.core.content.FileProvider.getUriForFile(context,"${context.packageName}.files",file);cameraUri=uri;camera.launch(uri)}
  val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted->if(granted)openCamera()else documentMessage="اجازه دوربین داده نشد"}
- val activity=context as? Activity
- DisposableEffect(activity){val previous=activity?.requestedOrientation;activity?.requestedOrientation=ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;onDispose{activity?.requestedOrientation=previous?:ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED}}
- BackHandler{onBack()}
+
+ DisposableEffect(activity){
+  val previous=activity?.requestedOrientation
+  activity?.requestedOrientation=ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+  onDispose{
+   activity?.requestedOrientation=previous?:ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+   activity?.window?.let{window->WindowCompat.setDecorFitsSystemWindows(window,true);WindowCompat.getInsetsController(window,window.decorView).show(WindowInsetsCompat.Type.systemBars())}
+  }
+ }
+ LaunchedEffect(immersive,activity){activity?.window?.let{window->
+  val controller=WindowCompat.getInsetsController(window,window.decorView)
+  controller.systemBarsBehavior=WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+  if(immersive){WindowCompat.setDecorFitsSystemWindows(window,false);controller.hide(WindowInsetsCompat.Type.systemBars())}
+  else{controller.show(WindowInsetsCompat.Type.systemBars());WindowCompat.setDecorFitsSystemWindows(window,true)}
+ }}
+ BackHandler{if(immersive){immersive=false}else onBack()}
  val received=check.direction==CheckDirection.RECEIVED
- val ink=Color(0xFF173E58)
- val paper=Color(0xFFF4FBF6)
- val personOnCheck=if(received)check.issuerName else check.receiverName
- Box(Modifier.fillMaxSize().background(Color(0xFF10232E)).padding(16.dp)){
-  IconButton(onBack,Modifier.align(Alignment.TopStart).background(Color.White.copy(.14f),CircleShape)){Icon(Icons.Filled.ArrowBack,"بازگشت",tint=Color.White)}
-  Column(Modifier.align(Alignment.Center).fillMaxWidth(.92f),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)){
-   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center){Text(if(received)"نمای چک دریافت‌شده" else "نمای چک صادرشده",color=Color.White,style=MaterialTheme.typography.titleMedium);Spacer(Modifier.width(18.dp));OutlinedButton({if(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED)openCamera()else permission.launch(Manifest.permission.CAMERA)}){Icon(Icons.Filled.PhotoCamera,null);Spacer(Modifier.width(5.dp));Text("عکس با دوربین")};Spacer(Modifier.width(7.dp));OutlinedButton({gallery.launch("image/*")}){Icon(Icons.Filled.PhotoLibrary,null);Spacer(Modifier.width(5.dp));Text("انتخاب از گالری")};if(check.imagePath.isNotBlank()){Spacer(Modifier.width(7.dp));Button({showOriginal=true}){Icon(Icons.Filled.Image,null);Spacer(Modifier.width(5.dp));Text("عکس اصلی")}}}
-   documentMessage?.let{Text(it,color=Color.White,style=MaterialTheme.typography.labelMedium)}
-   Card(Modifier.fillMaxWidth().aspectRatio(2.25f).border(2.dp,Color(0xFF50A59B),RoundedCornerShape(20.dp)),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=paper),elevation=CardDefaults.cardElevation(10.dp)){
-    Box(Modifier.fillMaxSize().background(paper)){
-     Image(
-      painter=painterResource(ir.kharjyar.app.R.drawable.sayad_cheque_template),
-      contentDescription="تصویر خام چک صیادی",
-      modifier=Modifier.matchParentSize(),
-      contentScale=ContentScale.FillBounds
-     )
-     // داده‌های واقعی چک روی تصویر خام قرار می‌گیرند؛ تصویر خودش هیچ اطلاعات شخصی ندارد.
-     Column(Modifier.fillMaxSize().padding(horizontal=28.dp,vertical=20.dp),verticalArrangement=Arrangement.SpaceBetween){
-      Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-       Box(Modifier.size(58.dp).background(Color(0xFF087E73).copy(.12f),RoundedCornerShape(15.dp)),contentAlignment=Alignment.Center){Icon(Icons.Filled.AccountBalance,null,tint=Color(0xFF087E73),modifier=Modifier.size(34.dp))}
-       Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)){Text(check.bankName.ifBlank{"بانک صادرکننده"},color=ink,style=MaterialTheme.typography.titleLarge);Text("چک صیادی — بانک مرکزی جمهوری اسلامی ایران",color=ink.copy(.72f),style=MaterialTheme.typography.labelMedium)}
-       Column(horizontalAlignment=Alignment.End){Text("شناسه ۱۶ رقمی صیاد",color=ink.copy(.65f),style=MaterialTheme.typography.labelSmall);Text(formatSayadId(check.sayadId),color=ink,style=MaterialTheme.typography.titleMedium)}
-      }
-      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(16.dp),verticalAlignment=Alignment.CenterVertically){
-       Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp)){
-        CheckPaperLine("در وجه",personOnCheck.ifBlank{check.counterparty},ink)
-        if(personOnCheck.isNotBlank()&&personOnCheck!=check.counterparty)CheckPaperLine("طرف حساب اصلی",check.counterparty,ink)
-        CheckPaperLine("مبلغ به عدد",Money.format(check.amountRial,moneyUnit),ink)
-        if(check.amountInWords.isNotBlank())CheckPaperLine("مبلغ به حروف",check.amountInWords,ink)
-       }
-       Column(Modifier.weight(.82f),verticalArrangement=Arrangement.spacedBy(8.dp)){
-        CheckPaperLine("تاریخ سررسید",PersianDate.fromMillis(check.dueAt).format(),ink)
-        CheckPaperLine("شماره حساب",check.chequeAccountNumber.ifBlank{"—"},ink)
-        CheckPaperLine("شبا",check.chequeIban.ifBlank{"—"},ink)
-        if(check.nationalId.isNotBlank())CheckPaperLine("شناسه ملی",Digits.toPersian(check.nationalId),ink)
-       }
-       Box(Modifier.size(72.dp).border(2.dp,ink.copy(.65f),RoundedCornerShape(8.dp)),contentAlignment=Alignment.Center){Icon(Icons.Filled.QrCode2,"نماد صیاد",tint=ink,modifier=Modifier.size(58.dp))}
-      }
-      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.Bottom){Text("سری/سریال: ${Digits.toPersian(check.serialNumber.ifBlank{"—"})}",color=ink,style=MaterialTheme.typography.labelMedium);Column(horizontalAlignment=Alignment.CenterHorizontally){Spacer(Modifier.width(150.dp).border(1.dp,ink.copy(.45f)));Text("محل امضا",color=ink.copy(.65f),style=MaterialTheme.typography.labelSmall)}}
-     }
+ val ink=Color(0xFF2A1740)
+ val paper=Color(0xFFFFF7FC)
+ val personOnCheck=(if(received)check.issuerName else check.receiverName).ifBlank{check.counterparty}
+ val edgePadding by animateDpAsState(if(immersive)0.dp else 16.dp,tween(520),label="check-edge")
+
+ Box(Modifier.fillMaxSize().background(Color(0xFF101019)).padding(edgePadding).pointerInput(Unit){detectTapGestures{immersive=!immersive}}){
+  AnimatedVisibility(!immersive,Modifier.align(Alignment.TopStart),enter=fadeIn(tween(520))+slideInVertically(tween(520)){ -it/2 },exit=fadeOut(tween(420))+slideOutVertically(tween(420)){ -it/2 }){
+   IconButton(onBack,Modifier.background(Color.Black.copy(.42f),CircleShape)){Icon(Icons.Filled.ArrowBack,"بازگشت",tint=Color.White)}
+  }
+  Column(Modifier.align(Alignment.Center).fillMaxWidth(if(immersive)1f else .96f),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)){
+   AnimatedVisibility(!immersive,enter=fadeIn(tween(520)),exit=fadeOut(tween(380))){
+    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center){
+     Text(if(received)"نمای چک دریافت‌شده" else "نمای چک صادرشده",color=Color.White,style=MaterialTheme.typography.titleMedium)
+     Spacer(Modifier.width(18.dp));OutlinedButton({if(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED)openCamera()else permission.launch(Manifest.permission.CAMERA)}){Icon(Icons.Filled.PhotoCamera,null);Spacer(Modifier.width(5.dp));Text("عکس با دوربین")}
+     Spacer(Modifier.width(7.dp));OutlinedButton({gallery.launch("image/*")}){Icon(Icons.Filled.PhotoLibrary,null);Spacer(Modifier.width(5.dp));Text("انتخاب از گالری")}
+     if(check.imagePath.isNotBlank()){Spacer(Modifier.width(7.dp));Button({showOriginal=true}){Icon(Icons.Filled.Image,null);Spacer(Modifier.width(5.dp));Text("عکس اصلی")}}
+    }
+   }
+   documentMessage?.let{if(!immersive)Text(it,color=Color.White,style=MaterialTheme.typography.labelMedium)}
+   Card(
+    Modifier.fillMaxWidth().aspectRatio(2.066f)
+     .graphicsLayer{scaleX=zoom;scaleY=zoom;translationX=pan.x;translationY=pan.y}
+     .pointerInput(Unit){detectTransformGestures{_,panChange,zoomChange,_->val next=(zoom*zoomChange).coerceIn(1f,4f);zoom=next;pan=if(next==1f)Offset.Zero else pan+panChange}}
+     .border(if(immersive)0.dp else 2.dp,Color(0xFFB67AB6),RoundedCornerShape(if(immersive)0.dp else 14.dp)),
+    shape=RoundedCornerShape(if(immersive)0.dp else 14.dp),colors=CardDefaults.cardColors(containerColor=paper),elevation=CardDefaults.cardElevation(if(immersive)0.dp else 10.dp)
+   ){
+    BoxWithConstraints(Modifier.fillMaxSize().background(paper)){
+     Image(painterResource(ir.kharjyar.app.R.drawable.sayad_cheque_template),"تصویر خام چک صیادی",Modifier.matchParentSize(),contentScale=ContentScale.FillBounds)
+     fun x(f:Float)=maxWidth*f
+     fun y(f:Float)=maxHeight*f
+     // جای‌گذاری اطلاعات دقیقاً مطابق ساختار چک صیادی مرجع، بدون بخش ته‌چک.
+     Text(check.bankName.ifBlank{"بانک صادرکننده"},Modifier.offset(x(.43f),y(.105f)).width(maxWidth*.20f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleMedium)
+     Text(Digits.ltr(Digits.toPersian(check.serialNumber.ifBlank{"—"})),Modifier.offset(x(.16f),y(.055f)).width(maxWidth*.25f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     Text(formatSayadId(check.sayadId),Modifier.offset(x(.16f),y(.215f)).width(maxWidth*.26f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.titleSmall)
+     Text(PersianDate.fromMillis(check.dueAt).format(),Modifier.offset(x(.68f),y(.105f)).width(maxWidth*.18f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
+     Text(check.amountInWords.ifBlank{Money.format(check.amountRial,moneyUnit)},Modifier.offset(x(.18f),y(.34f)).width(maxWidth*.57f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
+     Text(personOnCheck,Modifier.offset(x(.19f),y(.48f)).width(maxWidth*.67f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
+     Text(Money.format(check.amountRial,moneyUnit),Modifier.offset(x(.055f),y(.665f)).width(maxWidth*.37f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleMedium)
+     Text(Digits.ltr(Digits.toPersian(check.chequeAccountNumber.ifBlank{"—"})),Modifier.offset(x(.17f),y(.815f)).width(maxWidth*.36f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     Text(Digits.ltr(Digits.toPersian(check.chequeIban.ifBlank{"—"})),Modifier.offset(x(.17f),y(.895f)).width(maxWidth*.36f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     if(check.nationalId.isNotBlank())Text("شناسه ملی: ${Digits.ltr(Digits.toPersian(check.nationalId))}",Modifier.offset(x(.57f),y(.84f)).width(maxWidth*.25f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelSmall)
+     if(check.issuerName.isNotBlank())Text(check.issuerName,Modifier.offset(x(.69f),y(.68f)).width(maxWidth*.23f),color=ink.copy(.84f),textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
     }
    }
   }
+  AnimatedVisibility(!immersive,Modifier.align(Alignment.BottomCenter),enter=fadeIn(tween(650)),exit=fadeOut(tween(300))){Text("یک‌بار لمس: نمایش تمام‌صفحه  •  دو انگشت: بزرگ‌نمایی و جابه‌جایی",color=Color.White.copy(.78f),style=MaterialTheme.typography.labelSmall,modifier=Modifier.background(Color.Black.copy(.42f),RoundedCornerShape(50)).padding(horizontal=14.dp,vertical=6.dp))}
  }
  if(showOriginal&&check.imagePath.isNotBlank()){
   val bitmap=remember(check.imagePath){android.graphics.BitmapFactory.decodeFile(check.imagePath)?.asImageBitmap()}

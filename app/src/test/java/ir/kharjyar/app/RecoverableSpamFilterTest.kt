@@ -15,10 +15,11 @@ class RecoverableSpamFilterTest {
  }
  @Test fun definiteFinancialSmsBypassesAndRepairsAccidentalBlocking(){
   val repo=File("src/main/java/ir/kharjyar/app/data/Repository.kt").readText()
-  assertTrue(repo.contains("val protectedFinancial = kind == SmsKind.FINANCIAL_LIKELY"))
+  assertTrue(repo.contains("BankSmsEvidenceClassifier.classify"))
+  assertTrue(repo.contains("BankSmsVerdict.TRANSACTION"))
   assertTrue(repo.contains("if (blockedSenderDao.isBlocked(sender) && !protectedFinancial)"))
   assertTrue(repo.contains("if (protectedFinancial) blockedSenderDao.unblock(sender)"))
-  assertTrue(repo.indexOf("val kind = SmsClassifier.classify(body)") < repo.indexOf("SpamSmsClassifier.decide(body)"))
+  assertTrue(repo.indexOf("val evidence=") < repo.indexOf("SpamSmsClassifier.decide(body)"))
  }
  @Test fun quarantineIsRestorableAndMigrated(){
   val repo=File("src/main/java/ir/kharjyar/app/data/Repository.kt").readText()
