@@ -327,7 +327,7 @@ fun TransactionsScreen(
                             Text(Money.format(actualExpense, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
                         }
                     }
-                    HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant.copy(alpha=.55f))
+                    Divider(color=MaterialTheme.colorScheme.outlineVariant.copy(alpha=.55f))
                     Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text("انتقال بین حساب‌ها",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.tertiary)
