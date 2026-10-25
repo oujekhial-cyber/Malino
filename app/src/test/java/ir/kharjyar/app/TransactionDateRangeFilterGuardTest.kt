@@ -13,10 +13,10 @@ class TransactionDateRangeFilterGuardTest {
             "PersianDateField(filterToDate",
             "tx.occurredAt in rangeStart until rangeEndExclusive",
             "filterPeriod=it;dateRangeEnabled=false",
-            "مجموع واریز",
-            "مجموع برداشت",
-            "filteredDeposits",
-            "filteredWithdrawals"
+            "درآمد واقعی",
+            "هزینه واقعی",
+            "actualIncome",
+            "actualExpense"
         ).forEach { token -> assertTrue(token, source.contains(token)) }
     }
 }
