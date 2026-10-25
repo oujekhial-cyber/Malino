@@ -85,8 +85,10 @@ class TxSummaryTest {
         assertTrue(s.isEmpty)
         val source = TxSummarizer.summarize(txs, accountId = 10)
         val destination = TxSummarizer.summarize(txs, accountId = 20)
-        assertEquals(500_000L, source.expenseRial)
-        assertEquals(500_000L, destination.incomeRial)
+        assertEquals(0L, source.expenseRial)
+        assertEquals(0L, destination.incomeRial)
+        assertTrue(source.isEmpty)
+        assertTrue(destination.isEmpty)
     }
 
     @Test

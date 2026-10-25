@@ -54,7 +54,14 @@ class MainActivity : FragmentActivity() {
         lifecycle.addObserver(LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> viewModel.onAppBackground()
-                Lifecycle.Event.ON_START -> viewModel.onAppForeground()
+                Lifecycle.Event.ON_START -> {
+                    viewModel.onAppForeground()
+                    lifecycleScope.launch {
+                        runCatching {
+                            ir.kharjyar.app.core.sms.UnreadBankSmsRecovery.scanOnAppOpen(applicationContext)
+                        }
+                    }
+                }
                 else -> {}
             }
         })

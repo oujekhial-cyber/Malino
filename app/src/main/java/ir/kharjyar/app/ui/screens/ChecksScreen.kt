@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
@@ -115,6 +116,12 @@ private fun ModernCheckListCard(
  }
 }
 
+private fun formatSayadId(value:String):String {
+ val normalized=Digits.normalize(value).filter{it.isDigit()}
+ if(normalized.isBlank())return "—"
+ return Digits.ltr(normalized.chunked(4).joinToString("  "){Digits.toPersian(it)})
+}
+
 @Composable private fun CheckInfoChip(icon:androidx.compose.ui.graphics.vector.ImageVector,label:String,value:String,accent:Color,modifier:Modifier=Modifier){Surface(modifier=modifier,color=accent.copy(.07f),shape=RoundedCornerShape(14.dp)){Row(Modifier.padding(10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){Icon(icon,null,tint=accent,modifier=Modifier.size(19.dp));Column{Text(label,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(value,style=MaterialTheme.typography.labelMedium,maxLines=1)}}}}
 
 @Composable
@@ -142,23 +149,32 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center){Text(if(received)"نمای چک دریافت‌شده" else "نمای چک صادرشده",color=Color.White,style=MaterialTheme.typography.titleMedium);Spacer(Modifier.width(18.dp));OutlinedButton({if(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED)openCamera()else permission.launch(Manifest.permission.CAMERA)}){Icon(Icons.Filled.PhotoCamera,null);Spacer(Modifier.width(5.dp));Text("عکس با دوربین")};Spacer(Modifier.width(7.dp));OutlinedButton({gallery.launch("image/*")}){Icon(Icons.Filled.PhotoLibrary,null);Spacer(Modifier.width(5.dp));Text("انتخاب از گالری")};if(check.imagePath.isNotBlank()){Spacer(Modifier.width(7.dp));Button({showOriginal=true}){Icon(Icons.Filled.Image,null);Spacer(Modifier.width(5.dp));Text("عکس اصلی")}}}
    documentMessage?.let{Text(it,color=Color.White,style=MaterialTheme.typography.labelMedium)}
    Card(Modifier.fillMaxWidth().aspectRatio(2.25f).border(2.dp,Color(0xFF50A59B),RoundedCornerShape(20.dp)),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=paper),elevation=CardDefaults.cardElevation(10.dp)){
-    Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFFE2F4EC),paper,Color(0xFFDCEFF2)))).padding(18.dp)){
-     Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.SpaceBetween){
+    Box(Modifier.fillMaxSize().background(paper)){
+     Image(
+      painter=painterResource(ir.kharjyar.app.R.drawable.sayad_cheque_template),
+      contentDescription="تصویر خام چک صیادی",
+      modifier=Modifier.matchParentSize(),
+      contentScale=ContentScale.FillBounds
+     )
+     // داده‌های واقعی چک روی تصویر خام قرار می‌گیرند؛ تصویر خودش هیچ اطلاعات شخصی ندارد.
+     Column(Modifier.fillMaxSize().padding(horizontal=28.dp,vertical=20.dp),verticalArrangement=Arrangement.SpaceBetween){
       Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
        Box(Modifier.size(58.dp).background(Color(0xFF087E73).copy(.12f),RoundedCornerShape(15.dp)),contentAlignment=Alignment.Center){Icon(Icons.Filled.AccountBalance,null,tint=Color(0xFF087E73),modifier=Modifier.size(34.dp))}
        Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)){Text(check.bankName.ifBlank{"بانک صادرکننده"},color=ink,style=MaterialTheme.typography.titleLarge);Text("چک صیادی — بانک مرکزی جمهوری اسلامی ایران",color=ink.copy(.72f),style=MaterialTheme.typography.labelMedium)}
-       Column(horizontalAlignment=Alignment.End){Text("شناسه صیادی",color=ink.copy(.65f),style=MaterialTheme.typography.labelSmall);Text(Digits.toPersian(check.sayadId.ifBlank{"—"}),color=ink,style=MaterialTheme.typography.titleMedium)}
+       Column(horizontalAlignment=Alignment.End){Text("شناسه ۱۶ رقمی صیاد",color=ink.copy(.65f),style=MaterialTheme.typography.labelSmall);Text(formatSayadId(check.sayadId),color=ink,style=MaterialTheme.typography.titleMedium)}
       }
       Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(16.dp),verticalAlignment=Alignment.CenterVertically){
        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp)){
         CheckPaperLine("در وجه",personOnCheck.ifBlank{check.counterparty},ink)
         if(personOnCheck.isNotBlank()&&personOnCheck!=check.counterparty)CheckPaperLine("طرف حساب اصلی",check.counterparty,ink)
-        CheckPaperLine("مبلغ",Money.format(check.amountRial,moneyUnit),ink)
+        CheckPaperLine("مبلغ به عدد",Money.format(check.amountRial,moneyUnit),ink)
+        if(check.amountInWords.isNotBlank())CheckPaperLine("مبلغ به حروف",check.amountInWords,ink)
        }
        Column(Modifier.weight(.82f),verticalArrangement=Arrangement.spacedBy(8.dp)){
         CheckPaperLine("تاریخ سررسید",PersianDate.fromMillis(check.dueAt).format(),ink)
         CheckPaperLine("شماره حساب",check.chequeAccountNumber.ifBlank{"—"},ink)
         CheckPaperLine("شبا",check.chequeIban.ifBlank{"—"},ink)
+        if(check.nationalId.isNotBlank())CheckPaperLine("شناسه ملی",Digits.toPersian(check.nationalId),ink)
        }
        Box(Modifier.size(72.dp).border(2.dp,ink.copy(.65f),RoundedCornerShape(8.dp)),contentAlignment=Alignment.Center){Icon(Icons.Filled.QrCode2,"نماد صیاد",tint=ink,modifier=Modifier.size(58.dp))}
       }

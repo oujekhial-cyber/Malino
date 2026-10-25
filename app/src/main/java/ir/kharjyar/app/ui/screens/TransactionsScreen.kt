@@ -81,6 +81,14 @@ private data class TransactionMonthPeriod(val year:Int?,val month:Int?,val label
  fun contains(time:Long):Boolean=year==null||PersianDate.fromMillis(time).let{it.year==year&&it.month==month}
 }
 
+internal fun TransactionEntity.isDebtSettlementTransaction(): Boolean {
+    val normalized = description.trim()
+    return nature == TxNature.NEUTRAL && (
+        normalized.startsWith("دریافت مرحله‌ای طلب از") ||
+        normalized.startsWith("پرداخت مرحله‌ای بدهی به")
+    )
+}
+
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsScreen(
@@ -233,6 +241,13 @@ fun TransactionsScreen(
 
             // انتخاب ماه، کمبوباکس کلاسیک روی خود صفحه است و فهرست آن مستقیم زیر کنترل باز می‌شود.
             ComboBox("ماه",monthPeriods,filterPeriod,{filterPeriod=it;dateRangeEnabled=false},labelOf={it.label})
+            ComboBox(
+                label="حساب",
+                options=listOf<Long?>(null)+accounts.filterNot{it.archived}.map{it.id},
+                selected=filterAccount,
+                onSelect={filterAccount=it},
+                labelOf={id->if(id==null)"همه حساب‌ها" else accounts.firstOrNull{it.id==id}?.let{account->if(account.bankName.isBlank())account.title else "${account.title} • ${account.bankName}"}?:"حساب"}
+            )
 
             // فیلترهای پرکاربرد همیشه جلوی چشم و با یک لمس قابل انتخاب‌اند.
             val activeFilterCount = listOf(
@@ -288,20 +303,40 @@ fun TransactionsScreen(
                 }
             }
 
-            val filteredDeposits = filtered.filter { it.direction == TxDirection.DEPOSIT }.sumOf { it.amountRial }
-            val filteredWithdrawals = filtered.filter { it.direction == TxDirection.WITHDRAW }.sumOf { it.amountRial }
+            // درآمد/هزینه واقعی از گردش حساب جداست: انتقال داخلی، قرض و تسویه
+            // موجودی را تغییر می‌دهند، ولی درآمد یا خرج تازه محسوب نمی‌شوند.
+            val actualIncome = filtered.filter { it.nature == TxNature.INCOME }.sumOf { it.amountRial }
+            val actualExpense = filtered.filter { it.nature == TxNature.EXPENSE }.sumOf { it.amountRial }
+            val internalTransfer = filtered.asSequence()
+                .filter { it.nature == TxNature.TRANSFER && it.transferGroupId != null }
+                .groupBy { requireNotNull(it.transferGroupId) }
+                .values.sumOf { pair -> pair.maxOfOrNull { it.amountRial } ?: 0L }
+            val otherMovements = filtered.filter {
+                it.nature == TxNature.NEUTRAL ||
+                    (it.nature == TxNature.TRANSFER && it.transferGroupId == null)
+            }.sumOf { it.amountRial }
             SkinCard(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("مجموع واریز", style = MaterialTheme.typography.labelMedium, color = skin.incomeColor)
-                        Text(Money.format(filteredDeposits, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
+                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text("درآمد واقعی", style = MaterialTheme.typography.labelMedium, color = skin.incomeColor)
+                            Text(Money.format(actualIncome, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text("هزینه واقعی", style = MaterialTheme.typography.labelMedium, color = skin.expenseColor)
+                            Text(Money.format(actualExpense, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
+                        }
                     }
-                    Column(Modifier.weight(1f)) {
-                        Text("مجموع برداشت", style = MaterialTheme.typography.labelMedium, color = skin.expenseColor)
-                        Text(Money.format(filteredWithdrawals, settings.moneyUnit), style = MaterialTheme.typography.titleSmall)
+                    HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant.copy(alpha=.55f))
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text("انتقال بین حساب‌ها",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.tertiary)
+                            Text(Money.format(internalTransfer,settings.moneyUnit),style=MaterialTheme.typography.bodyMedium)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text("سایر جابه‌جایی‌ها",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(Money.format(otherMovements,settings.moneyUnit),style=MaterialTheme.typography.bodyMedium)
+                        }
                     }
                 }
             }
