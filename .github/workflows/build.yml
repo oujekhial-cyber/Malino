@@ -160,37 +160,8 @@ jobs:
             mkdir -p dist/schemas && cp -r app/schemas/. dist/schemas/ || true
           fi
 
-      - name: Commit outputs back to branch
-        if: always()
-        run: |
-          # خروجی‌ها را قبل از همگام‌سازی شاخه نگه می‌داریم. rebase کردن یک commit
-          # شامل APK باینری در اجرای هم‌زمان می‌تواند conflict بدهد و مرحله انتشار را بشکند.
-          rm -rf /tmp/kharjyar-ci-output
-          mkdir -p /tmp/kharjyar-ci-output
-          cp -a dist /tmp/kharjyar-ci-output/dist
-          if [ -d app/schemas ]; then
-            mkdir -p /tmp/kharjyar-ci-output/app
-            cp -a app/schemas /tmp/kharjyar-ci-output/app/schemas
-          fi
-
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin "${GITHUB_REF_NAME}"
-          git reset --hard "origin/${GITHUB_REF_NAME}"
-          rm -rf dist app/schemas
-          cp -a /tmp/kharjyar-ci-output/dist ./dist
-          if [ -d /tmp/kharjyar-ci-output/app/schemas ]; then
-            mkdir -p app
-            cp -a /tmp/kharjyar-ci-output/app/schemas app/schemas
-          fi
-
-          git add -A dist app/schemas || true
-          if git diff --cached --quiet; then
-            echo "nothing to commit"
-          else
-            git commit -m "ci: build outputs (${GITHUB_RUN_NUMBER}) [skip ci]"
-            git push origin HEAD:"${GITHUB_REF_NAME}"
-          fi
+      # خروجی باینری فقط به‌صورت Artifact منتشر می‌شود. commit کردن APK از داخل همان
+      # Workflow باعث push race و قرمز شدن اجرای موفق می‌شد.
 
       - name: Upload artifacts
         if: always()
