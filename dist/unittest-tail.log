@@ -25,17 +25,15 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:parseDebugLocalResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
-> Task :app:preDebugUnitTestBuild UP-TO-DATE
 > Task :app:processDebugManifestForPackage
-> Task :app:javaPreCompileDebugUnitTest
 > Task :app:javaPreCompileDebug
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest
 > Task :app:processDebugResources
 > Task :app:kspDebugKotlin
 
-> Task :app:compileDebugKotlin
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:330:21 Unresolved reference 'HorizontalDivider'.
-
 > Task :app:compileDebugKotlin FAILED
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:330:21 Unresolved reference 'Divider'.
 
 FAILURE: Build failed with an exception.
 
@@ -244,5 +242,5 @@ Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilat
 	... 2 more
 
 
-BUILD FAILED in 2m 27s
+BUILD FAILED in 1m 54s
 17 actionable tasks: 17 executed

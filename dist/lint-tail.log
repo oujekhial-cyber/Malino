@@ -22,7 +22,7 @@
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
 
 > Task :app:compileDebugKotlin FAILED
-e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:330:21 Unresolved reference 'HorizontalDivider'.
+e: file:///home/runner/work/Malino/Malino/app/src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt:330:21 Unresolved reference 'Divider'.
 
 FAILURE: Build failed with an exception.
 
