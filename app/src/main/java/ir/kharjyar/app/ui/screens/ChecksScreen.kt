@@ -179,13 +179,13 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
  // خانه‌های مبلغ از چپ به راست چیده شده‌اند؛ padStart باعث می‌شود رقم یکان
  // همیشه داخل آخرین خانه فیزیکی سمت راست قرار بگیرد.
  val numericAmountDigits=check.amountRial.toString().takeLast(15).padStart(15,' ')
- val edgePadding by animateDpAsState(if(immersive)0.dp else 16.dp,tween(520),label="check-edge")
+ val edgePadding by animateDpAsState(if(immersive)10.dp else 16.dp,tween(520),label="check-edge")
 
  Box(Modifier.fillMaxSize().background(Color(0xFF101019)).padding(edgePadding)){
   AnimatedVisibility(!immersive,Modifier.align(Alignment.TopStart),enter=fadeIn(tween(520))+slideInVertically(tween(520)){ -it/2 },exit=fadeOut(tween(420))+slideOutVertically(tween(420)){ -it/2 }){
    IconButton(onBack,Modifier.background(Color.Black.copy(.42f),CircleShape)){Icon(Icons.Filled.ArrowBack,"بازگشت",tint=Color.White)}
   }
-  Column(Modifier.align(Alignment.Center).fillMaxWidth(if(immersive)1f else .96f),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)){
+  Column(Modifier.align(Alignment.Center).fillMaxWidth(if(immersive) .90f else .82f),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)){
    AnimatedVisibility(!immersive,enter=fadeIn(tween(520)),exit=fadeOut(tween(380))){
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center){
      Text(if(received)"نمای چک دریافت‌شده" else "نمای چک صادرشده",color=Color.White,style=MaterialTheme.typography.titleMedium)
@@ -222,6 +222,9 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
      // مختصات قالب از گوشه فیزیکی چپ محاسبه می‌شوند. جهت کلی برنامه RTL است،
      // بنابراین لایه داده را LTR می‌کنیم تا نقطه مبدأ دوباره سمت راست نشود.
      CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+     // این Box نیز باید در LTR ساخته شود؛ صرفاً LTR کردن خود Textها کافی نبود،
+     // چون Box والد RTL آن‌ها را از TopStart فیزیکی سمت راست می‌چید.
+     Box(Modifier.matchParentSize()) {
      // جای‌گذاری اطلاعات دقیقاً مطابق ساختار چک صیادی مرجع، بدون بخش ته‌چک.
      Text(check.bankName.ifBlank{"نام بانک"},Modifier.absoluteOffset(x(.40f),y(.135f)).width(maxWidth*.25f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleMedium)
      Text(check.bankBranch.ifBlank{"شعبه"},Modifier.absoluteOffset(x(.43f),y(.205f)).width(maxWidth*.19f),color=ink.copy(.82f),fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
@@ -253,6 +256,7 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
      Text(Digits.ltr(Digits.toPersian(check.chequeAccountNumber.ifBlank{"—"})),Modifier.absoluteOffset(x(.06f),y(.815f)).width(maxWidth*.44f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
      Text(Digits.ltr(Digits.toPersian(check.chequeIban.ifBlank{"—"})),Modifier.absoluteOffset(x(.06f),y(.895f)).width(maxWidth*.44f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
      if(check.issuerName.isNotBlank())Text(check.issuerName,Modifier.absoluteOffset(x(.69f),y(.68f)).width(maxWidth*.23f),color=ink.copy(.84f),textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     }
      }
     }
    }
