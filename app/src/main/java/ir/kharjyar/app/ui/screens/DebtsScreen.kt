@@ -294,6 +294,7 @@ private fun DebtAmountTile(
 
 @Composable
 private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: List<DebtEntity>, payments: List<DebtPaymentEntity>, onBack: () -> Unit) {
+    val context=LocalContext.current
     val settings by vm.settings.collectAsState()
     val accounts by vm.accounts.collectAsState()
     val activeAccounts=accounts.filter{!it.archived}
@@ -310,7 +311,8 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
             val recordedAmount=if(createOpposite)p.paidRial else p.appliedRial
             vm.repo.db.debtDao().insertPayment(DebtPaymentEntity(debtId = p.debt.id, amountRial = recordedAmount, paidAt = p.paidAt, note = p.note))
             vm.repo.addManualTransaction(accountId=p.accountId,amountRial=recordedAmount,direction=if(p.debt.kind==DebtKind.RECEIVABLE)TxDirection.DEPOSIT else TxDirection.WITHDRAW,nature=TxNature.NEUTRAL,categoryId=null,description=(if(p.debt.kind==DebtKind.RECEIVABLE)"دریافت مرحله‌ای طلب از " else "پرداخت مرحله‌ای بدهی به ")+person.name+(p.note.takeIf{it.isNotBlank()}?.let{" — $it"}?:""),occurredAt=p.paidAt,counterparty=person.name)
-            vm.repo.db.debtDao().updateDebt(p.debt.copy(settled = true))
+            vm.repo.db.debtDao().updateDebt(p.debt.copy(settled = true,reminderAt=null))
+            ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,p.debt.id)
             if (createOpposite && p.surplusRial > 0) {
                 val oppositeKind = if (p.debt.kind == DebtKind.RECEIVABLE) DebtKind.PAYABLE else DebtKind.RECEIVABLE
                 val title = if (oppositeKind == DebtKind.RECEIVABLE) "طلب ناشی از مازاد پرداخت" else "بدهی ناشی از مازاد پرداخت"
@@ -395,7 +397,10 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
                             } else scope.launch {
                                 vm.repo.db.debtDao().insertPayment(DebtPaymentEntity(debtId = debt.id, amountRial = value, paidAt = paidAt, note = note.trim()))
                                 vm.repo.addManualTransaction(accountId=accountId,amountRial=value,direction=if(receivable)TxDirection.DEPOSIT else TxDirection.WITHDRAW,nature=TxNature.NEUTRAL,categoryId=null,description=(if(receivable)"دریافت مرحله‌ای طلب از " else "پرداخت مرحله‌ای بدهی به ")+person.name+(note.trim().takeIf{it.isNotBlank()}?.let{" — $it"}?:""),occurredAt=paidAt,counterparty=person.name)
-                                if (value == remain) vm.repo.db.debtDao().updateDebt(debt.copy(settled = true))
+                                if (value == remain) {
+                                    vm.repo.db.debtDao().updateDebt(debt.copy(settled=true,reminderAt=null))
+                                    ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,debt.id)
+                                }
                                 amount = ""; note = ""
                             }
                         }, enabled = (Money.inputToRial(amount, settings.moneyUnit) ?: 0) > 0&&paymentAccountId!=null, modifier = Modifier.fillMaxWidth()) { Text(if(receivable)"ثبت دریافت این مرحله" else "ثبت پرداخت این مرحله") }
@@ -429,7 +434,7 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
             onDismissRequest={editingDebt=null},
             title={Text(if(debt.kind==DebtKind.RECEIVABLE)"ویرایش طلب" else "ویرایش بدهی")},
             text={Column(verticalArrangement=Arrangement.spacedBy(9.dp)){OutlinedTextField(editTitle,{editTitle=it},label={Text("عنوان")},modifier=Modifier.fillMaxWidth());AmountTextField(editAmount,{editAmount=it},"مبلغ کل",Modifier.fillMaxWidth(),unit=settings.moneyUnit);Text(if(debt.kind==DebtKind.RECEIVABLE)"تاریخ قرض‌دادن" else "تاریخ قرض‌گرفتن");PersianDateField(editOriginDate,{editOriginDate=it});Text("تاریخ سررسید تسویه");PersianDateField(editDueDate,{editDueDate=it});if(editedRial!=null&&editedRial<alreadyPaid)Text("مبلغ کل نمی‌تواند کمتر از پرداخت‌های ثبت‌شده باشد.",color=MaterialTheme.colorScheme.error)}},
-            confirmButton={TextButton(enabled=editedRial!=null&&editedRial>0&&editedRial>=alreadyPaid,onClick={scope.launch{vm.repo.db.debtDao().updateDebt(debt.copy(title=editTitle.trim(),amountRial=editedRial!!,createdAt=editOriginDate.startOfDayMillis(),dueAt=editDueDate.startOfDayMillis(),reminderAt=editDueDate.startOfDayMillis(),settled=editedRial==alreadyPaid));editingDebt=null}}){Text("ذخیره تغییرات")}},
+            confirmButton={TextButton(enabled=editedRial!=null&&editedRial>0&&editedRial>=alreadyPaid,onClick={scope.launch{val nowSettled=editedRial==alreadyPaid;vm.repo.db.debtDao().updateDebt(debt.copy(title=editTitle.trim(),amountRial=editedRial!!,createdAt=editOriginDate.startOfDayMillis(),dueAt=editDueDate.startOfDayMillis(),reminderAt=if(nowSettled)null else editDueDate.startOfDayMillis(),settled=nowSettled));if(nowSettled)ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,debt.id);editingDebt=null}}){Text("ذخیره تغییرات")}},
             dismissButton={TextButton({editingDebt=null}){Text("انصراف")}}
         )
     }
@@ -439,7 +444,7 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
             onDismissRequest={pendingDeleteDebt=null},
             title={Text(if(debt.kind==DebtKind.RECEIVABLE)"حذف طلب؟" else "حذف بدهی؟")},
             text={Text("«${debt.title.ifBlank{if(debt.kind==DebtKind.RECEIVABLE)"طلب" else "بدهی"}}» حذف شود؟"+(if(paymentCount>0)" ${Digits.toPersian(paymentCount.toString())} سابقه پرداخت مرتبط نیز حذف می‌شود." else ""))},
-            confirmButton={TextButton({scope.launch{vm.repo.db.debtDao().deletePaymentsOf(debt.id);vm.repo.db.debtDao().deleteDebt(debt);pendingDeleteDebt=null}}){Text("حذف",color=MaterialTheme.colorScheme.error)}},
+            confirmButton={TextButton({scope.launch{vm.repo.db.debtDao().deletePaymentsOf(debt.id);vm.repo.db.debtDao().deleteDebt(debt);ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,debt.id);pendingDeleteDebt=null}}){Text("حذف",color=MaterialTheme.colorScheme.error)}},
             dismissButton={TextButton({pendingDeleteDebt=null}){Text("انصراف")}}
         )
     }

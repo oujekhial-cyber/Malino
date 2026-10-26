@@ -1,5 +1,11 @@
 package ir.kharjyar.app.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -196,7 +202,17 @@ fun TransactionsScreen(
 
             // کنترل‌های جست‌وجو و فیلتر فقط بالای فهرست دیده می‌شوند و با شروع
             // اسکرول جمع می‌شوند؛ کارت تحلیل مالی پایین‌تر همیشه ثابت می‌ماند.
-            if (showInlineFilters) {
+            AnimatedVisibility(
+                visible = showInlineFilters,
+                enter = expandVertically(
+                    animationSpec = tween(520),
+                    expandFrom = Alignment.Top
+                ) + fadeIn(tween(420)),
+                exit = shrinkVertically(
+                    animationSpec = tween(520),
+                    shrinkTowards = Alignment.Top
+                ) + fadeOut(tween(360))
+            ) {
              Column {
             // ---------- نوار انتخاب چندتایی ----------
             if (selecting) {

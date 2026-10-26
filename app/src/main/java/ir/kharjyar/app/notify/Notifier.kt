@@ -116,6 +116,11 @@ object Notifier {
         manager(context).notify("traffic-fine", messageId.toInt(), notification)
     }
 
+    /** اعلان سررسید یک طلب/بدهی پس از تسویه یا حذف باید همان لحظه پاک شود. */
+    fun cancelDebtReminder(context: Context, debtId: Long) {
+        manager(context).cancel(TAG_DEBT_REMINDER, debtId.toInt())
+    }
+
     fun notifyExportReady(context: Context, uri: android.net.Uri, mimeType: String) {
         if (!canNotify(context)) return
         val open = Intent(Intent.ACTION_VIEW).apply {
@@ -173,6 +178,7 @@ object Notifier {
     private fun manager(context: Context) =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+    const val TAG_DEBT_REMINDER = "debt-reminder"
     private const val TAG_TX = "tx"
     private const val TAG_REVIEW = "review"
 }

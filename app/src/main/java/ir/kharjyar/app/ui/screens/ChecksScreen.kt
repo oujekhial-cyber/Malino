@@ -205,17 +205,17 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
      fun x(f:Float)=maxWidth*f
      fun y(f:Float)=maxHeight*f
      // جای‌گذاری اطلاعات دقیقاً مطابق ساختار چک صیادی مرجع، بدون بخش ته‌چک.
-     Text(check.bankName.ifBlank{"بانک صادرکننده"},Modifier.offset(x(.43f),y(.105f)).width(maxWidth*.20f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleMedium)
-     Text(Digits.ltr(Digits.toPersian(check.serialNumber.ifBlank{"—"})),Modifier.offset(x(.16f),y(.055f)).width(maxWidth*.25f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
-     Text(formatSayadId(check.sayadId),Modifier.offset(x(.16f),y(.215f)).width(maxWidth*.26f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.titleSmall)
-     Text(PersianDate.fromMillis(check.dueAt).format(),Modifier.offset(x(.68f),y(.105f)).width(maxWidth*.18f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
-     Text(check.amountInWords.ifBlank{Money.format(check.amountRial,moneyUnit)},Modifier.offset(x(.18f),y(.34f)).width(maxWidth*.57f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
-     Text(personOnCheck,Modifier.offset(x(.19f),y(.48f)).width(maxWidth*.67f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
-     Text(Money.format(check.amountRial,moneyUnit),Modifier.offset(x(.055f),y(.665f)).width(maxWidth*.37f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleMedium)
-     Text(Digits.ltr(Digits.toPersian(check.chequeAccountNumber.ifBlank{"—"})),Modifier.offset(x(.17f),y(.815f)).width(maxWidth*.36f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
-     Text(Digits.ltr(Digits.toPersian(check.chequeIban.ifBlank{"—"})),Modifier.offset(x(.17f),y(.895f)).width(maxWidth*.36f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
-     if(check.nationalId.isNotBlank())Text("شناسه ملی: ${Digits.ltr(Digits.toPersian(check.nationalId))}",Modifier.offset(x(.57f),y(.84f)).width(maxWidth*.25f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelSmall)
-     if(check.issuerName.isNotBlank())Text(check.issuerName,Modifier.offset(x(.69f),y(.68f)).width(maxWidth*.23f),color=ink.copy(.84f),textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     Text(check.bankName.ifBlank{"بانک صادرکننده"},Modifier.absoluteOffset(x(.43f),y(.105f)).width(maxWidth*.20f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleMedium)
+     Text(Digits.ltr(Digits.toPersian(check.serialNumber.ifBlank{"—"})),Modifier.absoluteOffset(x(.16f),y(.055f)).width(maxWidth*.25f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     Text(formatSayadId(check.sayadId),Modifier.absoluteOffset(x(.16f),y(.215f)).width(maxWidth*.26f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.titleSmall)
+     Text(PersianDate.fromMillis(check.dueAt).format(),Modifier.absoluteOffset(x(.68f),y(.105f)).width(maxWidth*.18f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
+     Text(check.amountInWords.ifBlank{ir.kharjyar.app.core.money.PersianNumberWords.rial(check.amountRial)},Modifier.absoluteOffset(x(.18f),y(.34f)).width(maxWidth*.57f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
+     Text(personOnCheck,Modifier.absoluteOffset(x(.19f),y(.48f)).width(maxWidth*.67f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleSmall)
+     Text(Money.format(check.amountRial,ir.kharjyar.app.core.money.MoneyUnit.RIAL),Modifier.absoluteOffset(x(.055f),y(.665f)).width(maxWidth*.37f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleMedium)
+     Text(Digits.ltr(Digits.toPersian(check.chequeAccountNumber.ifBlank{"—"})),Modifier.absoluteOffset(x(.17f),y(.815f)).width(maxWidth*.36f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     Text(Digits.ltr(Digits.toPersian(check.chequeIban.ifBlank{"—"})),Modifier.absoluteOffset(x(.17f),y(.895f)).width(maxWidth*.36f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     if(check.nationalId.isNotBlank())Text("شناسه ملی: ${Digits.ltr(Digits.toPersian(check.nationalId))}",Modifier.absoluteOffset(x(.57f),y(.84f)).width(maxWidth*.25f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelSmall)
+     if(check.issuerName.isNotBlank())Text(check.issuerName,Modifier.absoluteOffset(x(.69f),y(.68f)).width(maxWidth*.23f),color=ink.copy(.84f),textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
     }
    }
   }
