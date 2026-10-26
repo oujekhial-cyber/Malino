@@ -23,7 +23,7 @@ object CheckStatus { const val PENDING = 0; const val CLEARED = 1; const val BOU
 data class CheckEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val direction: Int, val amountRial: Long, val counterparty: String,
-    val bankName: String = "", val sayadId: String = "", val serialNumber: String = "",
+    val bankName: String = "", val bankBranch: String = "", val sayadId: String = "", val serialNumber: String = "",
     val accountId: Long? = null, val issuedAt: Long, val dueAt: Long, val reminderAt: Long?,
     val status: Int = CheckStatus.PENDING, val imagePath: String = "", val note: String = "",
     val issuerName: String = "", val receiverName: String = "", val nationalId: String = "",

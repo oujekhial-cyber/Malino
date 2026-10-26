@@ -28,7 +28,7 @@ class TransactionTrashGuardTest {
     }
 
     @Test fun `database migration preserves existing transactions`() {
-        assertTrue(database.contains("version = 23"))
+        assertTrue(database.contains("version = 24"))
         assertTrue(database.contains("ALTER TABLE transactions ADD COLUMN deletedAt INTEGER"))
         assertTrue(database.contains("MIGRATION_22_23"))
     }

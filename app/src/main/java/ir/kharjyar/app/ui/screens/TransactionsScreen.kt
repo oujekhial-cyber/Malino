@@ -1,11 +1,5 @@
 package ir.kharjyar.app.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -54,7 +48,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -98,7 +91,7 @@ internal fun TransactionEntity.isDebtSettlementTransaction(): Boolean {
     )
 }
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TransactionsScreen(
     viewModel: AppViewModel,
@@ -140,12 +133,6 @@ fun TransactionsScreen(
     val selected = remember { mutableStateListOf<Long>() }
     val selecting = selected.isNotEmpty()
     val transactionListState = rememberLazyListState()
-    val showInlineFilters by remember {
-        derivedStateOf {
-            transactionListState.firstVisibleItemIndex == 0 &&
-                transactionListState.firstVisibleItemScrollOffset < 12
-        }
-    }
 
     // جست‌وجو با هر تغییر متن فوراً روی فهرست اعمال می‌شود. قبلاً برای عبارت‌های
     // غیرعددی، رشته خالیِ استخراج‌شده از رقم داخل همه مبلغ‌ها پیدا می‌شد و در
@@ -191,6 +178,19 @@ fun TransactionsScreen(
         }
     }
 
+    // درآمد/هزینه واقعی از گردش حساب جداست: انتقال داخلی، قرض و تسویه
+    // موجودی را تغییر می‌دهند، ولی درآمد یا خرج تازه محسوب نمی‌شوند.
+    val actualIncome = filtered.filter { it.nature == TxNature.INCOME }.sumOf { it.amountRial }
+    val actualExpense = filtered.filter { it.nature == TxNature.EXPENSE }.sumOf { it.amountRial }
+    val internalTransfer = filtered.asSequence()
+        .filter { it.nature == TxNature.TRANSFER && it.transferGroupId != null }
+        .groupBy { requireNotNull(it.transferGroupId) }
+        .values.sumOf { pair -> pair.maxOfOrNull { it.amountRial } ?: 0L }
+    val otherMovements = filtered.filter {
+        it.nature == TxNature.NEUTRAL ||
+            (it.nature == TxNature.TRANSFER && it.transferGroupId == null)
+    }.sumOf { it.amountRial }
+
     Scaffold(
         containerColor = Color.Transparent,
         snackbarHost = { GlassSnackbarHost(snackbar) },
@@ -198,21 +198,13 @@ fun TransactionsScreen(
         // فاصله اضافه شود وگرنه صفحه از بالا و پایین حاشیه مرده می‌گیرد.
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
-
-            // کنترل‌های جست‌وجو و فیلتر فقط بالای فهرست دیده می‌شوند و با شروع
-            // اسکرول جمع می‌شوند؛ کارت تحلیل مالی پایین‌تر همیشه ثابت می‌ماند.
-            AnimatedVisibility(
-                visible = showInlineFilters,
-                enter = expandVertically(
-                    animationSpec = tween(520),
-                    expandFrom = Alignment.Top
-                ) + fadeIn(tween(420)),
-                exit = shrinkVertically(
-                    animationSpec = tween(520),
-                    shrinkTowards = Alignment.Top
-                ) + fadeOut(tween(360))
-            ) {
+        LazyColumn(
+            state = transactionListState,
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = 12.dp)
+        ) {
+            item(key = "transaction-filters") {
              Column {
             // ---------- نوار انتخاب چندتایی ----------
             if (selecting) {
@@ -335,19 +327,9 @@ fun TransactionsScreen(
              }
             }
 
-            // درآمد/هزینه واقعی از گردش حساب جداست: انتقال داخلی، قرض و تسویه
-            // موجودی را تغییر می‌دهند، ولی درآمد یا خرج تازه محسوب نمی‌شوند.
-            val actualIncome = filtered.filter { it.nature == TxNature.INCOME }.sumOf { it.amountRial }
-            val actualExpense = filtered.filter { it.nature == TxNature.EXPENSE }.sumOf { it.amountRial }
-            val internalTransfer = filtered.asSequence()
-                .filter { it.nature == TxNature.TRANSFER && it.transferGroupId != null }
-                .groupBy { requireNotNull(it.transferGroupId) }
-                .values.sumOf { pair -> pair.maxOfOrNull { it.amountRial } ?: 0L }
-            val otherMovements = filtered.filter {
-                it.nature == TxNature.NEUTRAL ||
-                    (it.nature == TxNature.TRANSFER && it.transferGroupId == null)
-            }.sumOf { it.amountRial }
-            SkinCard(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            stickyHeader(key = "transaction-summary") {
+             Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+              SkinCard(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp)) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
@@ -371,20 +353,19 @@ fun TransactionsScreen(
                         }
                     }
                 }
+              }
+             }
             }
 
             if (filtered.isEmpty()) {
+             item(key = "empty-transactions") {
                 EmptyState(
                     title = if (all.isEmpty()) "هنوز تراکنشی ندارید" else "چیزی پیدا نشد",
                     subtitle = if (all.isEmpty()) "تراکنش دستی ثبت کنید یا منتظر پیامک بانکی بمانید"
                     else "فیلترها را تغییر دهید"
                 )
+             }
             } else {
-                LazyColumn(
-                    state = transactionListState,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 12.dp)
-                ) {
                     itemsIndexed(
                         items = filtered,
                         key = { _, item -> item.id }
@@ -404,7 +385,6 @@ fun TransactionsScreen(
                             onSwipeEdit = { nav.navigate("tx/${tx.id}") }
                         )
                     }
-                }
             }
         }
     }
