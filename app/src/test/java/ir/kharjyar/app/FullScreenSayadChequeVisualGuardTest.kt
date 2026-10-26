@@ -13,7 +13,7 @@ class FullScreenSayadChequeVisualGuardTest {
   assertTrue(source.contains("CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr)"))
   assertTrue(source.contains("Box(Modifier.matchParentSize())"))
   assertTrue(source.contains("animateDpAsState(if(immersive)10.dp else 16.dp"))
-  assertTrue(source.contains("fillMaxWidth(if(immersive) .90f else .82f)"))
+  assertTrue(source.contains("fillMaxWidth(if(immersive) 0.90f else 0.82f)"))
   assertTrue(source.contains("check.bankName.ifBlank{\"نام بانک\"}"))
   assertTrue(source.contains("Modifier.absoluteOffset(x(.40f),y(.135f))"))
   assertTrue(source.contains("check.bankBranch.ifBlank{\"شعبه\"}"))

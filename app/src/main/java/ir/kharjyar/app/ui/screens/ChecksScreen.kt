@@ -185,7 +185,7 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
   AnimatedVisibility(!immersive,Modifier.align(Alignment.TopStart),enter=fadeIn(tween(520))+slideInVertically(tween(520)){ -it/2 },exit=fadeOut(tween(420))+slideOutVertically(tween(420)){ -it/2 }){
    IconButton(onBack,Modifier.background(Color.Black.copy(.42f),CircleShape)){Icon(Icons.Filled.ArrowBack,"بازگشت",tint=Color.White)}
   }
-  Column(Modifier.align(Alignment.Center).fillMaxWidth(if(immersive) .90f else .82f),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)){
+  Column(Modifier.align(Alignment.Center).fillMaxWidth(if(immersive) 0.90f else 0.82f),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)){
    AnimatedVisibility(!immersive,enter=fadeIn(tween(520)),exit=fadeOut(tween(380))){
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center){
      Text(if(received)"نمای چک دریافت‌شده" else "نمای چک صادرشده",color=Color.White,style=MaterialTheme.typography.titleMedium)
