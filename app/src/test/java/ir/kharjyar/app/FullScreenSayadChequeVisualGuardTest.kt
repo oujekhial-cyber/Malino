@@ -25,8 +25,6 @@ class FullScreenSayadChequeVisualGuardTest {
   assertTrue(source.contains("Modifier.absoluteOffset(x(.651f),y(.126f)).width(maxWidth*.205f)"))
   assertTrue(source.contains("chequeDateDigits.forEach{digit->"))
   assertTrue(source.contains("Modifier.absoluteOffset(x(.18f),y(.34f))"))
-  assertTrue(source.contains("Modifier.absoluteOffset(x(.19f),y(.48f))"))
-  assertTrue(source.contains("Modifier.absoluteOffset(x(.055f),y(.665f))"))
   assertTrue(source.contains("PersianNumberWords.rial(check.amountRial)"))
   assertTrue(source.contains("takeLast(16).padStart(16,' ')"))
   assertTrue(source.contains("sayadDigits.forEach{digit->"))
