@@ -25,7 +25,7 @@ class FullScreenSayadChequeVisualGuardTest {
   assertTrue(source.contains("chequeDate.year.toString().padStart(4,'0')"))
   assertTrue(source.contains("chequeDate.month.toString().padStart(2,'0')"))
   assertTrue(source.contains("chequeDate.day.toString().padStart(2,'0')"))
-  assertTrue(source.contains("Modifier.absoluteOffset(x(.651f),y(.126f)).width(maxWidth*.205f)"))
+  assertTrue(source.contains("Modifier.absoluteOffset(x(.651f),y(.126f)).width(chequeWidth*.205f)"))
   assertTrue(source.contains("chequeDateDigits.forEach{digit->"))
   assertTrue(source.contains("Modifier.absoluteOffset(x(.18f),y(.34f))"))
   assertTrue(source.contains("PersianNumberWords.rial(check.amountRial)"))
