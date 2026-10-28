@@ -11,9 +11,12 @@ class CheckDueReminderGuardTest {
   val source=File("src/main/java/ir/kharjyar/app/ui/screens/RemindersScreen.kt").readText()
   listOf("onEdit={editingReminder=r","DateTimeField(date,hour,minute","lastNotifiedAt=null","LifeReminderWorker.cancel(context,existing.id)","LifeReminderWorker.schedule(context,id,at)","ذخیره تغییرات یادآور").forEach{assertTrue(it,source.contains(it))}
  }
- @Test fun `cleared check disables its pending reminders`() {
+ @Test fun `cleared check disables and removes every pending reminder`() {
   val source=File("src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt").readText()
-  assertTrue(source.contains("it.category==\"چک\"&&it.note.contains(number)"))
-  assertTrue(source.contains("it.copy(enabled=false)"))
+  val cleanup=File("src/main/java/ir/kharjyar/app/work/ObligationReminderCleanup.kt").readText()
+  assertTrue(source.contains("ObligationReminderCleanup.cancelCheck(context,vm.repo.db,check)"))
+  assertTrue(cleanup.contains("it.category == \"چک\" && it.note.contains(number)"))
+  assertTrue(cleanup.contains("reminder.copy(enabled = false)"))
+  assertTrue(cleanup.contains("Notifier.cancelLifeReminder(context, reminder.id)"))
  }
 }
