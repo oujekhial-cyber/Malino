@@ -17,7 +17,8 @@ object BankBalanceRefreshService {
   val bankMappings=mappings.filter{it.accountId==account.id}.map{AccountMatcher.normalizeSender(it.sender)}.toSet()
   var best:LatestAccountBalanceSms?=null
   context.contentResolver.query(Telephony.Sms.Inbox.CONTENT_URI,arrayOf("_id","address","body","date"),null,null,"date DESC")?.use{c->
-   while(c.moveToNext()){
+   var scanned=0
+   while(c.moveToNext()&&scanned++<500){
     val id=c.getLong(0);val sender=c.getString(1).orEmpty();val body=c.getString(2).orEmpty();val sent=c.getLong(3)
     val senderOk=AccountMatcher.normalizeSender(sender) in bankMappings || BankSenderResolver.bankName(sender)?.let{BankSenderResolver.sameBank(account.bankName,it)}==true || Digits.normalizeForMatch(body).contains(Digits.normalizeForMatch(account.bankName))
     if(!senderOk)continue
@@ -26,8 +27,9 @@ object BankBalanceRefreshService {
     if(match.accountId!=account.id)continue
     val ex=Extractor.autoExtract(body);val balance=ex.balanceRial?:continue
     val occurred=ex.occurredAtMillis?.takeIf{it in 1..sent+86_400_000L}?:sent
-    val row=LatestAccountBalanceSms(id,sender,body,sent,occurred,balance)
-    if(best==null||row.occurredAt>best!!.occurredAt)best=row
+    // صندوق نزولی است؛ نخستین تطبیق قطعی جدیدترین مانده همین حساب است.
+    best=LatestAccountBalanceSms(id,sender,body,sent,occurred,balance)
+    break
    }
   };best
  }

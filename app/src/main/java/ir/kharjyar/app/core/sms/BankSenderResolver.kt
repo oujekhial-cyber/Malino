@@ -11,14 +11,18 @@ object BankSenderResolver {
         "MELLIBANK" to "ملی",
         "BANKMELLI" to "ملی",
         "MELLAT" to "ملت",
+        "BANKMELLAT" to "ملت",
         "BANSADERAT" to "صادرات",
         "BANKSADERAT" to "صادرات",
+        "BSI" to "صادرات",
         "BSEP" to "سپه",
         "BANKSEPAH" to "سپه",
         "PASARGAD" to "پاسارگاد",
         "SAMANBANK" to "سامان",
         "PARSIANBANK" to "پارسیان",
+        "BANKPARSIAN" to "پارسیان",
         "BLUBANK" to "بلو بانک",
+        "BLU" to "بلو بانک",
         "ENBANK" to "اقتصاد نوین",
         "EGHTESADNOVIN" to "اقتصاد نوین",
         "REFAHBANK" to "رفاه",
@@ -37,7 +41,13 @@ object BankSenderResolver {
         "DAYBANK" to "دی",
         "TOURISMBANK" to "گردشگری",
         "RESALATBANK" to "رسالت",
-        "MEHRIRAN" to "قرض‌الحسنه مهر"
+        "BANKRESALAT" to "رسالت",
+        "MEHRIRAN" to "قرض‌الحسنه مهر",
+        "MEHRBANK" to "قرض‌الحسنه مهر",
+        "MELALBANK" to "ملل",
+        "GHAVAMIN" to "سپه",
+        "ANSARBANK" to "سپه",
+        "HEKMATBANK" to "سپه"
     )
     fun bankName(sender:String):String? { val key=Digits.normalize(sender).uppercase().filter(Char::isLetterOrDigit);return aliases.entries.firstOrNull{key==it.key||key.contains(it.key)}?.value }
     fun sameBank(saved:String,inferred:String):Boolean {

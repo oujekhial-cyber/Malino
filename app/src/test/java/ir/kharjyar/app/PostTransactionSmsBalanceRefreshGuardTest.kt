@@ -12,9 +12,12 @@ class PostTransactionSmsBalanceRefreshGuardTest {
     @Test fun `every manual account movement refreshes reported SMS balance`() {
         assertTrue(app.contains("Repository(database, applicationContext)"))
         assertTrue(repo.contains("BankBalanceRefreshService.latest"))
-        assertTrue(repo.contains("refreshReportedSmsBalance(accountId)"))
-        assertTrue(repo.contains("refreshReportedSmsBalance(fromAccountId)"))
-        assertTrue(repo.contains("refreshReportedSmsBalance(toAccountId)"))
+        assertTrue(repo.contains("refreshAccountBalanceSnapshot(accountId)"))
+        assertTrue(repo.contains("refreshAccountBalanceSnapshot(fromAccountId)"))
+        assertTrue(repo.contains("refreshAccountBalanceSnapshot(toAccountId)"))
+        assertTrue(app.contains("observeTransactionsForBalanceRefresh()"))
+        assertTrue(app.contains("repository.txDao.observeAll()"))
+        assertTrue(app.contains("affectedAccounts.forEach { repository.refreshAccountBalanceSnapshot(it) }"))
     }
 
     @Test fun `refresh is safe and never replaces a newer reported balance`() {
@@ -22,5 +25,12 @@ class PostTransactionSmsBalanceRefreshGuardTest {
         assertTrue(dao.contains("suspend fun byAccount"))
         assertTrue(repo.contains("sms.occurredAt >= previous.messageAt"))
         assertTrue(repo.contains("BankBalanceSnapshotEntity"))
+    }
+
+    @Test fun `account card explicitly compares app and sms balances`() {
+        val dashboard=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
+        assertTrue(dashboard.contains("مانده برنامه: \$appBalance • مانده پیامک: \$smsBalance"))
+        assertTrue(dashboard.contains("مغایرت \${Money.format"))
+        assertTrue(dashboard.contains("بدون مغایرت"))
     }
 }

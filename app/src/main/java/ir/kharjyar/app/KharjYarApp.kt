@@ -31,6 +31,9 @@ class KharjYarApp : Application() {
         // فعال می‌شوند؛ در نصب‌های بدون ویجت هیچ بیدارباش پس‌زمینه‌ای نداریم.
         WidgetUpdater.syncWeatherWork(this)
         if (WidgetUpdater.hasWidgets(this)) observeDataForWidget()
+        // هر مسیر ثبت تراکنش (پیامک، دستی، چک، وام، بدهی یا انتقال) از Room
+        // دیده می‌شود؛ بنابراین هیچ فرم مستقیمی نمی‌تواند تازه‌سازی مانده را جا بیندازد.
+        observeTransactionsForBalanceRefresh()
         // پیامک‌های قبلی که به‌علت ناشناخته‌بودن سرشماره حساب نگرفته‌اند، پس از
         // به‌روزرسانی قواعد بانک دوباره پردازش می‌شوند.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
@@ -68,6 +71,32 @@ class KharjYarApp : Application() {
             // اولین مقدار هنگام راه‌اندازی رد می‌شود؛ ویجت همان موقع خودش رسم شده است
             .drop(1)
             .onEach { WidgetUpdater.requestUpdate(this@KharjYarApp) }
+            .launchIn(scope)
+    }
+
+    /**
+     * پس از درج، تأیید، ویرایش، انتقال یا حذف هر تراکنش قطعی، حساب‌های واقعاً
+     * تغییرکرده را پیدا می‌کند. مانده برنامه از همان Flow تراکنش‌ها فوراً محاسبه
+     * می‌شود و آخرین مانده پیامکی همان حساب نیز بدون دخالت کاربر تازه می‌گردد.
+     */
+    private fun observeTransactionsForBalanceRefresh() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        var previous: Map<Long, ir.kharjyar.app.data.db.TransactionEntity>? = null
+        repository.txDao.observeAll()
+            .onEach { rows ->
+                val current = rows
+                    .filter { it.status == ir.kharjyar.app.data.db.TxStatus.CONFIRMED && it.deletedAt == null }
+                    .associateBy { it.id }
+                val old = previous
+                previous = current
+                if (old != null) {
+                    val changedIds = (old.keys + current.keys).filter { old[it] != current[it] }
+                    val affectedAccounts = changedIds.flatMap { id ->
+                        listOfNotNull(old[id]?.accountId, current[id]?.accountId)
+                    }.distinct()
+                    affectedAccounts.forEach { repository.refreshAccountBalanceSnapshot(it) }
+                }
+            }
             .launchIn(scope)
     }
 

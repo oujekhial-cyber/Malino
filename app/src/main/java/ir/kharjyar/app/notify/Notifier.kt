@@ -121,6 +121,20 @@ object Notifier {
         manager(context).cancel(TAG_DEBT_REMINDER, debtId.toInt())
     }
 
+    /** اعلان دوره‌ای چک پاس‌شده/وصول‌شده/حذف‌شده را فوراً از پنل پاک می‌کند. */
+    fun cancelCheckReminder(context: Context, checkId: Long) {
+        manager(context).cancel(TAG_CHECK_REMINDER, checkId.toInt())
+    }
+
+    /** اعلان یک ReminderEntity علاوه بر لغو WorkManager باید جداگانه پاک شود. */
+    fun cancelLifeReminder(context: Context, reminderId: Long) {
+        manager(context).cancel((12000L + reminderId).toInt())
+    }
+
+    fun cancelInstallmentReminder(context: Context, installmentId: Long) {
+        manager(context).cancel(TAG_INSTALLMENT_REMINDER, installmentId.toInt())
+    }
+
     fun notifyExportReady(context: Context, uri: android.net.Uri, mimeType: String) {
         if (!canNotify(context)) return
         val open = Intent(Intent.ACTION_VIEW).apply {
@@ -179,6 +193,8 @@ object Notifier {
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     const val TAG_DEBT_REMINDER = "debt-reminder"
+    const val TAG_CHECK_REMINDER = "check-reminder"
+    const val TAG_INSTALLMENT_REMINDER = "installment-reminder"
     private const val TAG_TX = "tx"
     private const val TAG_REVIEW = "review"
 }

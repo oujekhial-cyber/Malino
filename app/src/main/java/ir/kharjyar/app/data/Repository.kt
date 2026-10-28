@@ -63,17 +63,19 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
         val normalizedSender=AccountMatcher.normalizeSender(sender)
         val knownFinancialSender=mappings.any{AccountMatcher.normalizeSender(it.sender)==normalizedSender}||
             ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sender)!=null
-        // تصمیم نهایی بر پایه چند شاهد مستقل است؛ نام بانک یا یک واژه مثل «خرید»
-        // به‌تنهایی اجازه ورود پیامک به صف تراکنش را نمی‌دهد.
-        val evidence=ir.kharjyar.app.core.sms.BankSmsEvidenceClassifier.classify(sender,body,knownFinancialSender)
-        val kind=when(evidence.verdict){
-            ir.kharjyar.app.core.sms.BankSmsVerdict.TRANSACTION->SmsKind.FINANCIAL_LIKELY
-            ir.kharjyar.app.core.sms.BankSmsVerdict.REVIEW->SmsKind.SUSPICIOUS
+        // همه مسیرهای زنده، بازیابی و واردکردن تاریخی از یک موتور چندلایه عبور می‌کنند؛
+        // OTP/امنیتی/ناموفق پیش از واژه‌های مالی رد و نتیجه تراکنش با استخراج
+        // مستقل مبلغ و جهت دوباره اعتبارسنجی می‌شود.
+        val decision=ir.kharjyar.app.core.sms.BankSmsDecisionEngine.analyze(sender,body,knownFinancialSender)
+        val kind=when {
+            decision.type==ir.kharjyar.app.core.sms.BankSmsSemanticType.TRANSACTION->SmsKind.FINANCIAL_LIKELY
+            decision.type==ir.kharjyar.app.core.sms.BankSmsSemanticType.UNKNOWN &&
+                decision.verdict==ir.kharjyar.app.core.sms.BankSmsVerdict.REVIEW->SmsKind.SUSPICIOUS
             else->SmsKind.NON_FINANCIAL
         }
-        val protectedFinancial = evidence.verdict==ir.kharjyar.app.core.sms.BankSmsVerdict.TRANSACTION
-        if(evidence.verdict==ir.kharjyar.app.core.sms.BankSmsVerdict.PROMOTION){
-            spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason="تشخیص چندنشانه‌ای تبلیغات: ${evidence.reasons.joinToString("، ")}",fingerprint=fp))
+        val protectedFinancial = decision.shouldIngest
+        if(decision.verdict==ir.kharjyar.app.core.sms.BankSmsVerdict.PROMOTION){
+            spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason="تشخیص چندلایه تبلیغات: ${decision.reasons.joinToString("، ")}",fingerprint=fp))
             return IngestResult(null,false,SmsKind.NON_FINANCIAL)
         }
         if (blockedSenderDao.isBlocked(sender) && !protectedFinancial) {
@@ -436,7 +438,7 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
      * پس از هر ثبت قطعی، آخرین مانده‌ای را که خود بانک در پیامک همان حساب اعلام
      * کرده دوباره می‌خواند. نبود مجوز/پیامک یا خطای خواندن نباید ثبت تراکنش را خراب کند.
      */
-    private suspend fun refreshReportedSmsBalance(accountId: Long) {
+    suspend fun refreshAccountBalanceSnapshot(accountId: Long) {
         val appContext = context ?: return
         runCatching {
             val account = accountDao.byId(accountId) ?: return@runCatching
@@ -486,7 +488,7 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
                 }
             }
         }
-        refreshReportedSmsBalance(accountId)
+        refreshAccountBalanceSnapshot(accountId)
         return id
     }
 
@@ -539,8 +541,8 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
                 )
             )
         }
-        refreshReportedSmsBalance(fromAccountId)
-        refreshReportedSmsBalance(toAccountId)
+        refreshAccountBalanceSnapshot(fromAccountId)
+        refreshAccountBalanceSnapshot(toAccountId)
         return outgoingId to incomingId
     }
 

@@ -23,6 +23,12 @@ object BankSmsEvidenceClassifier {
     private val currencyAmount = Regex(
         "(?:مبلغ\\s*[:：]?\\s*)?\\d{1,3}(?:[,،٬.]\\d{3})+\\s*(?:ریال|تومان)|(?:مبلغ\\s*[:：]?\\s*)\\d{4,}\\s*(?:ریال|تومان)?|\\d{4,}\\s*(?:ریال|تومان)"
     )
+    // بسیاری از بانک‌ها (از جمله قالب‌های فشرده ملی/رفاه) واحد پول را نمی‌نویسند
+    // و رویداد را فقط با +/- کنار عدد گروه‌بندی‌شده مشخص می‌کنند.
+    private val groupedAmount = Regex("\\d{1,3}(?:[,،٬.]\\d{3})+")
+    private val signedTransactionAmount = Regex(
+        "(?:[+-]\\s*\\d{1,3}(?:[,،٬.]\\d{3})+|\\d{1,3}(?:[,،٬.]\\d{3})+\\s*[+-])"
+    )
     private val accountEvidence = Regex(
         "(?:حساب|کارت|سپرده|شبا)\\s*(?:شماره|به شماره|منتهی به|[xX*•-])?\\s*(?:[xX*•-]*\\d){3,}"
     )
@@ -39,8 +45,12 @@ object BankSmsEvidenceClassifier {
         }
         var score = 0
         val reasons = mutableListOf<String>()
-        val event = completedEvent.containsMatchIn(text)
-        val amount = currencyAmount.containsMatchIn(text)
+        val signedAmount = signedTransactionAmount.containsMatchIn(text)
+        val event = completedEvent.containsMatchIn(text) || (knownSender && signedAmount)
+        // عدد گروه‌بندی‌شده بدون «ریال/تومان» فقط برای فرستنده بانکی و همراه
+        // رویداد پذیرفته می‌شود؛ بنابراین عدد تبلیغ یا پیام شخصی مالی نمی‌شود.
+        val amount = currencyAmount.containsMatchIn(text) ||
+            (knownSender && (completedEvent.containsMatchIn(text) || signedAmount) && groupedAmount.containsMatchIn(text))
         val account = accountEvidence.containsMatchIn(text)
         val balance = balanceEvidence.containsMatchIn(text)
         val reference = referenceEvidence.containsMatchIn(text)

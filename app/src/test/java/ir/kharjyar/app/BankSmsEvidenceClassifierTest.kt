@@ -18,6 +18,20 @@ class BankSmsEvidenceClassifierTest {
   samples.forEach{assertEquals(it,BankSmsVerdict.TRANSACTION,verdict(it))}
  }
 
+ @Test fun `compact live bank sms without currency unit remains a transaction`() {
+  val samples=listOf(
+   "2404.306.5918267.1\n-1,000,000\n07/03_01:53\nمانده: 10,466,426",
+   "639-824-882613-1\n+16,240,000\nمانده 16,425,824\n1405/2/9-9:53",
+   "بانک ملی ایران\nبرداشت:2,000,000-\nحساب:17000\nمانده:385,384\n0127-22:00",
+   "بانک رفاه\nحساب213478470\nخرید1,000,000-\nمانده1,845,608\n06/04-14:32"
+  )
+  samples.forEach{assertEquals(it,BankSmsVerdict.TRANSACTION,verdict(it))}
+ }
+
+ @Test fun `signed personal number from unknown sender is not a transaction`() {
+  assertEquals(BankSmsVerdict.NON_FINANCIAL,verdict("شماره من +1,234,567 است",false))
+ }
+
  @Test fun `bank promotions with amounts or purchase words are not transactions`() {
   val samples=listOf(
    "جشنواره خرید بانک؛ تا 5,000,000 تومان جایزه، همین حالا ثبت نام کنید",

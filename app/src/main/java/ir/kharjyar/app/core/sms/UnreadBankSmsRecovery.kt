@@ -56,8 +56,8 @@ object UnreadBankSmsRecovery {
                 val normalizedSender=AccountMatcher.normalizeSender(sms.sender)
                 val knownSender=senderMappings.any{AccountMatcher.normalizeSender(it.sender)==normalizedSender}||
                     BankSenderResolver.bankName(sms.sender)!=null
-                val evidence=BankSmsEvidenceClassifier.classify(sms.sender,sms.body,knownSender)
-                if(!evidence.isHighConfidenceTransaction)return@forEach
+                val decision=BankSmsDecisionEngine.analyze(sms.sender,sms.body,knownSender)
+                if(!decision.shouldIngest)return@forEach
                 // خرابی یک پیامک نباید مانع بازیابی بقیه پیام‌ها شود.
                 runCatching {
                     val result = app.repository.ingestSms(sms.sender, sms.body, sms.receivedAt)

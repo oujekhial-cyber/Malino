@@ -667,9 +667,11 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     incomeColor = skin.incomeColor,
                                     expenseColor = skin.expenseColor,
                                     bankStatus = bankSnapshot?.let { snap ->
-                                        "مانده پیامک: " + (if(amountVisible) Money.format(snap.balanceRial,settings.moneyUnit) else "••••••") +
-                                            (if(hasDiscrepancy && est.rial!=null) " • مغایرت ${Money.format(kotlin.math.abs(est.rial-snap.balanceRial),settings.moneyUnit)}" else "")
-                                    } ?: "مانده پیامک: ثبت نشده",
+                                        val appBalance=if(amountVisible&&est.rial!=null) Money.format(est.rial,settings.moneyUnit) else if(amountVisible) "نامشخص" else "••••••"
+                                        val smsBalance=if(amountVisible) Money.format(snap.balanceRial,settings.moneyUnit) else "••••••"
+                                        "مانده برنامه: $appBalance • مانده پیامک: $smsBalance" +
+                                            (if(hasDiscrepancy && est.rial!=null) " • مغایرت ${Money.format(kotlin.math.abs(est.rial-snap.balanceRial),settings.moneyUnit)}" else if(est.rial!=null) " • بدون مغایرت" else "")
+                                    } ?: "مانده برنامه: ${if(amountVisible&&est.rial!=null)Money.format(est.rial,settings.moneyUnit)else if(amountVisible)"نامشخص" else "••••••"} • مانده پیامک: ثبت نشده",
                                     hasDiscrepancy = hasDiscrepancy,
                                     onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
                                     onRefresh = { requestBalanceRefresh(account) }

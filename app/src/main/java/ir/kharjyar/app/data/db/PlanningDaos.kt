@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
  @Update suspend fun updateLoan(v:LoanEntity)
  @Update suspend fun updateInstallment(v:LoanInstallmentEntity)
  @Query("DELETE FROM loan_installments WHERE loanId=:loanId") suspend fun deleteInstallments(loanId:Long)
+ @Query("DELETE FROM loan_installments WHERE loanId=:loanId AND paid=0") suspend fun deleteUnpaidInstallments(loanId:Long)
  @Query("DELETE FROM loans WHERE id=:id") suspend fun deleteLoan(id:Long)
  @Query("SELECT * FROM loan_installments WHERE paid=0 AND dueAt<=:until") suspend fun due(until:Long):List<LoanInstallmentEntity>
 }
