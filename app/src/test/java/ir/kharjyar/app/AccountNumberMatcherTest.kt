@@ -36,6 +36,16 @@ class AccountNumberMatcherTest {
         assertEquals(AccountMatch.Single(1), AccountNumberMatcher.match("حساب 430659", overlapping))
     }
 
+    @Test fun `similar long account numbers remain physically distinct`() {
+        val similar=listOf(
+            MatchableAccount(11,"","2520.764.2564589.001","",""),
+            MatchableAccount(12,"","2520.854.2564589.001","","")
+        )
+        assertEquals(AccountMatch.Single(11),AccountNumberMatcher.match("برداشت از 2520.764.2564589.001",similar))
+        assertEquals(AccountMatch.Single(12),AccountNumberMatcher.match("واریز به 2520.854.2564589.001",similar))
+        assertTrue(AccountNumberMatcher.match("حساب 2564589.001",similar) is AccountMatch.Ambiguous)
+    }
+
     @Test fun `does not mistake unrelated amount for an account`() {
         assertTrue(AccountNumberMatcher.match("برداشت مبلغ 500000 ریال", accounts) is AccountMatch.Unknown)
     }

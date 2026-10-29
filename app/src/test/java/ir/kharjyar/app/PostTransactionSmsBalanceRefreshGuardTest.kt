@@ -29,8 +29,9 @@ class PostTransactionSmsBalanceRefreshGuardTest {
 
     @Test fun `account card explicitly compares app and sms balances`() {
         val dashboard=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
-        assertTrue(dashboard.contains("مانده برنامه: \$appBalance • مانده پیامک: \$smsBalance"))
-        assertTrue(dashboard.contains("مغایرت \${Money.format"))
-        assertTrue(dashboard.contains("بدون مغایرت"))
+        assertTrue(dashboard.contains("AccountBalanceTile(\"مانده برنامه\",appBalance"))
+        assertTrue(dashboard.contains("AccountBalanceTile(\"مانده پیامکی\",smsBalance?:\"ثبت نشده\""))
+        assertTrue(dashboard.contains("مغایرت: \${discrepancy?:\"نیازمند بررسی\"}"))
+        assertTrue(dashboard.contains("مانده‌ها بدون مغایرت هستند"))
     }
 }

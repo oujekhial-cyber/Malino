@@ -337,10 +337,11 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 val peek = 22.dp
                 val pageWidth = (LocalConfiguration.current.screenWidthDp.dp - 32.dp - peek * 2)
                     .coerceAtLeast(180.dp)
-                // ردیف در حالت عادی هم‌ارتفاع کارت‌های جمع‌وجور است؛ فقط با انتخاب
-                // یک حساب برای نمایش جزئیات باز می‌شود و تراکنش‌های اخیر بی‌دلیل پایین نمی‌روند.
-                val compactAccountCardHeight = 230.dp
-                val accountCarouselHeight = 240.dp
+                // ارتفاع کارت با fontScale رشد می‌کند؛ در نتیجه بزرگ‌کردن فونت، نوارهای
+                // مانده/واریز/برداشت را از پایین کارت بیرون نمی‌راند یا clip نمی‌کند.
+                val accountFontScale=LocalDensity.current.fontScale
+                val compactAccountCardHeight = (330f + (accountFontScale-1f).coerceAtLeast(0f)*190f).dp
+                val accountCarouselHeight = compactAccountCardHeight + 10.dp
                 val dashboardLayoutDirection = LocalLayoutDirection.current
                 // وضعیت جابه‌جایی تا زمان رهاکردن ثابت می‌ماند؛ ترتیب فقط در پایان ذخیره می‌شود.
                 var draggingId by remember { mutableStateOf<Long?>(null) }
@@ -666,12 +667,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     expense = if (amountVisible) Money.format(accSum.expenseRial, settings.moneyUnit) else "••••",
                                     incomeColor = skin.incomeColor,
                                     expenseColor = skin.expenseColor,
-                                    bankStatus = bankSnapshot?.let { snap ->
-                                        val appBalance=if(amountVisible&&est.rial!=null) Money.format(est.rial,settings.moneyUnit) else if(amountVisible) "نامشخص" else "••••••"
-                                        val smsBalance=if(amountVisible) Money.format(snap.balanceRial,settings.moneyUnit) else "••••••"
-                                        "مانده برنامه: $appBalance • مانده پیامک: $smsBalance" +
-                                            (if(hasDiscrepancy && est.rial!=null) " • مغایرت ${Money.format(kotlin.math.abs(est.rial-snap.balanceRial),settings.moneyUnit)}" else if(est.rial!=null) " • بدون مغایرت" else "")
-                                    } ?: "مانده برنامه: ${if(amountVisible&&est.rial!=null)Money.format(est.rial,settings.moneyUnit)else if(amountVisible)"نامشخص" else "••••••"} • مانده پیامک: ثبت نشده",
+                                    appBalance = if(amountVisible&&est.rial!=null) Money.format(est.rial,settings.moneyUnit) else if(amountVisible) "نامشخص" else "••••••",
+                                    smsBalance = bankSnapshot?.let{if(amountVisible)Money.format(it.balanceRial,settings.moneyUnit)else "••••••"},
+                                    discrepancy = bankSnapshot?.takeIf{hasDiscrepancy&&est.rial!=null}?.let{Money.format(kotlin.math.abs(est.rial!!-it.balanceRial),settings.moneyUnit)},
                                     hasDiscrepancy = hasDiscrepancy,
                                     onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
                                     onRefresh = { requestBalanceRefresh(account) }
@@ -891,12 +889,30 @@ private fun heroChipBg(skin: ir.kharjyar.app.ui.theme.AppSkin): Color =
 @Composable
 private fun AccountBelowCardPanel(
     income:String, expense:String, incomeColor:Color, expenseColor:Color,
-    bankStatus:String?, hasDiscrepancy:Boolean, onDiscrepancy:()->Unit, onRefresh:()->Unit
+    appBalance:String, smsBalance:String?, discrepancy:String?, hasDiscrepancy:Boolean,
+    onDiscrepancy:()->Unit, onRefresh:()->Unit
 ) {
-    Column(Modifier.fillMaxWidth().padding(top=5.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-            bankStatus?.let { status -> Text(status,style=MaterialTheme.typography.labelSmall,color=if(hasDiscrepancy)Color(0xFFFF8A93)else Color.White.copy(.78f),maxLines=1,modifier=Modifier.weight(1f).clickable(enabled=hasDiscrepancy,onClick=onDiscrepancy)) } ?: Spacer(Modifier.weight(1f))
-            TextButton(onClick=onRefresh,contentPadding=PaddingValues(horizontal=6.dp,vertical=0.dp)){Icon(Icons.Filled.Refresh,null,Modifier.size(14.dp),tint=Color.White);Spacer(Modifier.width(3.dp));Text("بروزرسانی",style=MaterialTheme.typography.labelSmall,color=Color.White)}
+    Column(Modifier.fillMaxWidth().padding(top=7.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(7.dp)) {
+            AccountBalanceTile("مانده برنامه",appBalance,Icons.Filled.AccountBalanceWallet,Color(0xFF8ED8FF),Modifier.weight(1f))
+            AccountBalanceTile("مانده پیامکی",smsBalance?:"ثبت نشده",Icons.Filled.Sms,Color(0xFFFFD77A),Modifier.weight(1f))
+        }
+        Row(
+            Modifier.fillMaxWidth().background(if(hasDiscrepancy)Color(0xFF8D2430).copy(.72f)else Color.Black.copy(.28f),RoundedCornerShape(12.dp))
+                .border(1.dp,if(hasDiscrepancy)Color(0xFFFF9AA3).copy(.72f)else Color.White.copy(.14f),RoundedCornerShape(12.dp))
+                .clickable(enabled=hasDiscrepancy,onClick=onDiscrepancy).padding(start=9.dp,end=4.dp,top=3.dp,bottom=3.dp),
+            verticalAlignment=Alignment.CenterVertically
+        ) {
+            Icon(if(hasDiscrepancy)Icons.Filled.WarningAmber else Icons.Filled.Verified,null,tint=if(hasDiscrepancy)Color(0xFFFFB1B8)else Color(0xFF82E6B1),modifier=Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                when{hasDiscrepancy->"مغایرت: ${discrepancy?:"نیازمند بررسی"}";smsBalance==null->"برای استعلام مانده پیامکی، بروزرسانی کنید";else->"مانده‌ها بدون مغایرت هستند"},
+                style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold,color=Color.White,
+                modifier=Modifier.weight(1f),maxLines=2
+            )
+            TextButton(onClick=onRefresh,contentPadding=PaddingValues(horizontal=7.dp,vertical=2.dp)){
+                Icon(Icons.Filled.Refresh,null,Modifier.size(17.dp),tint=Color.White);Spacer(Modifier.width(3.dp));Text("بروزرسانی",style=MaterialTheme.typography.labelMedium,color=Color.White)
+            }
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             CompactAccountFlow("واریز",income,incomeColor,Icons.Filled.SouthWest,Modifier.weight(1f))
@@ -906,12 +922,18 @@ private fun AccountBelowCardPanel(
 }
 
 @Composable
+private fun AccountBalanceTile(label:String,value:String,icon:ImageVector,tint:Color,modifier:Modifier=Modifier){
+    Column(modifier.background(Color.Black.copy(alpha=.34f),RoundedCornerShape(12.dp)).border(1.dp,tint.copy(alpha=.34f),RoundedCornerShape(12.dp)).padding(horizontal=9.dp,vertical=7.dp),verticalArrangement=Arrangement.spacedBy(3.dp)){
+        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){Icon(icon,null,tint=tint,modifier=Modifier.size(17.dp));Text(label,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold,color=Color.White.copy(.88f),maxLines=1)}
+        Text(value,style=MaterialTheme.typography.bodyMedium,fontWeight=FontWeight.Black,color=Color.White,maxLines=2)
+    }
+}
+
+@Composable
 private fun CompactAccountFlow(label:String,value:String,tint:Color,icon:ImageVector,modifier:Modifier=Modifier){
-    Row(modifier.background(Color.Black.copy(alpha=.32f),RoundedCornerShape(10.dp)).border(1.dp,Color.White.copy(alpha=.16f),RoundedCornerShape(10.dp)).padding(horizontal=8.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){
-        Icon(icon,null,tint=tint,modifier=Modifier.size(15.dp))
-        Text(label,style=MaterialTheme.typography.labelSmall,color=Color.White.copy(.82f),maxLines=1)
-        Spacer(Modifier.weight(1f))
-        Text(value,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Black,color=Color.White,maxLines=1)
+    Column(modifier.background(Color.Black.copy(alpha=.34f),RoundedCornerShape(12.dp)).border(1.dp,tint.copy(alpha=.30f),RoundedCornerShape(12.dp)).padding(horizontal=9.dp,vertical=7.dp),verticalArrangement=Arrangement.spacedBy(3.dp)){
+        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){Icon(icon,null,tint=tint,modifier=Modifier.size(17.dp));Text(label,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold,color=Color.White.copy(.86f),maxLines=1)}
+        Text(value,style=MaterialTheme.typography.bodyMedium,fontWeight=FontWeight.Black,color=Color.White,maxLines=2)
     }
 }
 

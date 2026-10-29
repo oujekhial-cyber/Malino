@@ -74,7 +74,7 @@ class TxSummaryTest {
     }
 
     @Test
-    fun `transfers are neither income nor expense`() {
+    fun `internal transfer is neutral globally but visible in each account cash flow`() {
         val txs = listOf(
             tx(1, 10, 500_000, TxNature.TRANSFER, TxDirection.WITHDRAW, day),
             tx(2, 20, 500_000, TxNature.TRANSFER, TxDirection.DEPOSIT, day)
@@ -85,10 +85,10 @@ class TxSummaryTest {
         assertTrue(s.isEmpty)
         val source = TxSummarizer.summarize(txs, accountId = 10)
         val destination = TxSummarizer.summarize(txs, accountId = 20)
-        assertEquals(0L, source.expenseRial)
-        assertEquals(0L, destination.incomeRial)
-        assertTrue(source.isEmpty)
-        assertTrue(destination.isEmpty)
+        assertEquals(500_000L, source.expenseRial)
+        assertEquals(500_000L, destination.incomeRial)
+        assertEquals(-500_000L,source.netRial)
+        assertEquals(500_000L,destination.netRial)
     }
 
     @Test

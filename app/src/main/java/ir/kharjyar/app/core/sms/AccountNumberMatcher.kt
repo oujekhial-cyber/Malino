@@ -37,8 +37,16 @@ object AccountNumberMatcher {
      */
     private fun agreementScore(inMessage:String,saved:String):Int {
         if(inMessage==saved)return 100+saved.length
-        for(length in 6 downTo 4){
-            if(inMessage.length<length||saved.length<length)continue
+        // وقتی پیامک یک شناسه بلند و کامل دارد، تطبیق چند رقم مشترک ممنوع است.
+        // حساب‌هایی مثل 2520.764.2564589.001 و 2520.854.2564589.001 بخش‌های
+        // طولانی مشترک دارند، ولی فقط تطبیق کامل/دربرگیریِ کل شناسه معتبر است.
+        if(inMessage.length>=10&&saved.length>=10){
+            val shorter=minOf(inMessage.length,saved.length)
+            return if(shorter>=8&&(inMessage.contains(saved)||saved.contains(inMessage)))80+shorter else 0
+        }
+        // شناسه کوتاه یا ماسک‌شده فقط وقتی استفاده می‌شود که بهترین قطعه در میان
+        // حساب‌ها یکتا باشد؛ امتیاز مساوی در match به Ambiguous تبدیل می‌شود.
+        for(length in minOf(9,inMessage.length,saved.length) downTo 4){
             val fragments=(0..inMessage.length-length).asSequence().map{inMessage.substring(it,it+length)}
             if(fragments.any{saved.contains(it)})return length
         }

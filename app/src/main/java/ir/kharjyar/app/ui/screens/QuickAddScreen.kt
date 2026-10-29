@@ -294,6 +294,14 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
         val accId=p.accountId?:return
         val amount=p.amountRial?:return
         scope.launch {
+            val sourceAccount=accounts.firstOrNull{it.id==accId}
+            val isWithdrawal=p.direction==TxDirection.WITHDRAW||p.nature==ir.kharjyar.app.data.db.TxNature.TRANSFER
+            val available=sourceAccount?.let{ir.kharjyar.app.core.balance.AccountBalance.estimate(it,transactions).rial}
+            if(isWithdrawal&&available!=null&&amount>available){
+                aiError="مانده حساب «${sourceAccount.title}» کمتر از مبلغ برداشت است؛ مانده فعلی ${Money.format(available,settings.moneyUnit)} است"
+                autoRegisterPending=false
+                return@launch
+            }
             val occurredAt=PersianDate.toMillis(p.date,p.hour,p.minute)
             if(p.nature==ir.kharjyar.app.data.db.TxNature.TRANSFER&&p.transferToOwn&&p.targetAccountId!=null) {
                 viewModel.repo.addInternalTransfer(accId,p.targetAccountId,amount,p.description,occurredAt)

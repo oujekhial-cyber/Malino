@@ -48,12 +48,16 @@ object TxSummarizer {
             if (accountId != null && t.accountId != accountId) continue
             if (from != null && t.occurredAt < from) continue
             if (to != null && t.occurredAt >= to) continue
-            // انتقال بین حساب‌ها حتی هنگام فیلتر یک حساب، گردش موجودی است نه درآمد/هزینه.
-            if (t.nature == TxNature.TRANSFER) continue
+            // در جمع کل، انتقال داخلی درآمد/هزینه نیست و دو بار شمرده نمی‌شود؛
+            // اما روی کارت یک حساب باید گردش واقعی همان حساب دیده شود: خروج از مبدأ
+            // برداشت و ورود به مقصد واریز است.
+            if (t.nature == TxNature.TRANSFER && accountId == null) continue
 
-            val isIncome = t.nature == TxNature.INCOME ||
+            val isIncome = (t.nature == TxNature.TRANSFER && t.direction == TxDirection.DEPOSIT) ||
+                t.nature == TxNature.INCOME ||
                 (t.nature == TxNature.UNKNOWN && t.direction == TxDirection.DEPOSIT)
-            val isExpense = t.nature == TxNature.EXPENSE ||
+            val isExpense = (t.nature == TxNature.TRANSFER && t.direction == TxDirection.WITHDRAW) ||
+                t.nature == TxNature.EXPENSE ||
                 (t.nature == TxNature.UNKNOWN && t.direction == TxDirection.WITHDRAW)
             val confirmed = t.status == TxStatus.CONFIRMED
 
