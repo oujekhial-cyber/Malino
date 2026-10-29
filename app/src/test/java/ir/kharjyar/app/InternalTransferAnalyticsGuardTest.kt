@@ -17,6 +17,8 @@ class InternalTransferAnalyticsGuardTest {
   assertTrue(screen.contains("هزینه واقعی"))
   assertTrue(screen.contains("انتقال بین حساب‌ها"))
   assertTrue(screen.contains("سایر جابه‌جایی‌ها"))
-  assertTrue(summary.contains("if (t.nature == TxNature.TRANSFER) continue"))
+  assertTrue(summary.contains("if (t.nature == TxNature.TRANSFER && accountId == null) continue"))
+  assertTrue(summary.contains("t.nature == TxNature.TRANSFER && t.direction == TxDirection.DEPOSIT"))
+  assertTrue(summary.contains("t.nature == TxNature.TRANSFER && t.direction == TxDirection.WITHDRAW"))
  }
 }
