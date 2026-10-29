@@ -38,9 +38,9 @@ class WidgetBitmapSizeTest {
     }
 
     @Test
-    fun `opacity default keeps widget mostly opaque`() {
+    fun `opacity default is fifty percent`() {
         val opacity = AppSettings().widgetOpacity
         assertTrue(opacity in 0..100)
-        assertTrue("پیش‌فرض باید خوانا باشد", opacity >= 70)
+        assertEquals(50, opacity)
     }
 }

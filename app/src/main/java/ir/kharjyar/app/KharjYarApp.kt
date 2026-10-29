@@ -16,17 +16,36 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 class KharjYarApp : Application() {
 
     val database: KharjYarDatabase by lazy { KharjYarDatabase.get(this) }
-    val repository: Repository by lazy { Repository(database) }
+    val repository: Repository by lazy { Repository(database, applicationContext) }
     val settings: SettingsRepository by lazy { SettingsRepository(this) }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
-        observeDataForWidget()
+        // کار دوره‌ای هوا و رصد دائمی دیتابیس فقط وقتی ویجت واقعاً روی صفحه است
+        // فعال می‌شوند؛ در نصب‌های بدون ویجت هیچ بیدارباش پس‌زمینه‌ای نداریم.
+        WidgetUpdater.syncWeatherWork(this)
+        if (WidgetUpdater.hasWidgets(this)) observeDataForWidget()
+        // هر مسیر ثبت تراکنش (پیامک، دستی، چک، وام، بدهی یا انتقال) از Room
+        // دیده می‌شود؛ بنابراین هیچ فرم مستقیمی نمی‌تواند تازه‌سازی مانده را جا بیندازد.
+        observeTransactionsForBalanceRefresh()
+        // پیامک‌های قبلی که به‌علت ناشناخته‌بودن سرشماره حساب نگرفته‌اند، پس از
+        // به‌روزرسانی قواعد بانک دوباره پردازش می‌شوند.
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            repository.reprocessPendingAccounts().filterIsInstance<Repository.ProcessOutcome.DraftReady>().forEach {
+                ir.kharjyar.app.notify.Notifier.notifyDraftReady(this@KharjYarApp, it.smsId, it.txId)
+            }
+        }
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "obligation-reminders",
+            androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+            androidx.work.PeriodicWorkRequestBuilder<ir.kharjyar.app.work.ObligationReminderWorker>(12, java.util.concurrent.TimeUnit.HOURS).build()
+        )
     }
 
     /**
@@ -52,6 +71,32 @@ class KharjYarApp : Application() {
             // اولین مقدار هنگام راه‌اندازی رد می‌شود؛ ویجت همان موقع خودش رسم شده است
             .drop(1)
             .onEach { WidgetUpdater.requestUpdate(this@KharjYarApp) }
+            .launchIn(scope)
+    }
+
+    /**
+     * پس از درج، تأیید، ویرایش، انتقال یا حذف هر تراکنش قطعی، حساب‌های واقعاً
+     * تغییرکرده را پیدا می‌کند. مانده برنامه از همان Flow تراکنش‌ها فوراً محاسبه
+     * می‌شود و آخرین مانده پیامکی همان حساب نیز بدون دخالت کاربر تازه می‌گردد.
+     */
+    private fun observeTransactionsForBalanceRefresh() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        var previous: Map<Long, ir.kharjyar.app.data.db.TransactionEntity>? = null
+        repository.txDao.observeAll()
+            .onEach { rows ->
+                val current = rows
+                    .filter { it.status == ir.kharjyar.app.data.db.TxStatus.CONFIRMED && it.deletedAt == null }
+                    .associateBy { it.id }
+                val old = previous
+                previous = current
+                if (old != null) {
+                    val changedIds = (old.keys + current.keys).filter { old[it] != current[it] }
+                    val affectedAccounts = changedIds.flatMap { id ->
+                        listOfNotNull(old[id]?.accountId, current[id]?.accountId)
+                    }.distinct()
+                    affectedAccounts.forEach { repository.refreshAccountBalanceSnapshot(it) }
+                }
+            }
             .launchIn(scope)
     }
 

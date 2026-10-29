@@ -20,11 +20,25 @@ class MoneyTest {
     }
 
     @Test
-    fun `no silent rounding when displaying toman`() {
-        // 150,005 ریال => ۱۵٬۰۰۰ تومان و ۵ ریال — باقی‌مانده حذف نمی‌شود
+    fun `toman display hides the trailing rial digit`() {
+        // نمایش تومان ساده می‌ماند: «۱۵،۰۰۰ تومان» بدون «و ۵ ریال»
         val formatted = Money.format(150_005L, MoneyUnit.TOMAN)
         assertTrue(formatted.contains("تومان"))
-        assertTrue("remainder shown: $formatted", formatted.contains("ریال"))
+        assertTrue("رقم ریالی نباید نمایش داده شود: $formatted", !formatted.contains("ریال"))
+        assertTrue(formatted.contains("۱۵،۰۰۰"))
+    }
+
+    @Test
+    fun `hidden rial digit is only hidden, not lost`() {
+        // مقدار ذخیره‌شده دست‌نخورده است و محاسبه‌ها روی ریال کامل انجام می‌شوند
+        val stored = 150_005L
+        assertEquals(15_000L, Money.rialToTomanWhole(stored))
+        assertEquals(5L, Money.rialToTomanRemainder(stored))
+        // جمع دو مبلغ با رقم ریالی، ریال‌ها را نگه می‌دارد
+        assertEquals(300_010L, stored + stored)
+        assertEquals(30_001L, Money.rialToTomanWhole(stored + stored))
+        // نمایش ریالی همچنان عدد کامل را نشان می‌دهد
+        assertTrue(Money.format(stored, MoneyUnit.RIAL).contains("۱۵۰،۰۰۵"))
     }
 
     @Test

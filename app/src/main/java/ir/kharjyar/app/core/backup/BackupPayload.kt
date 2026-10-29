@@ -8,6 +8,7 @@ import ir.kharjyar.app.data.db.SmsCandidateEntity
 import ir.kharjyar.app.data.db.SmsTemplateEntity
 import ir.kharjyar.app.data.db.TransactionEntity
 import ir.kharjyar.app.data.db.TransferGroupEntity
+import ir.kharjyar.app.data.db.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -27,6 +28,16 @@ data class BackupPayload(
     val transactions: List<BTransaction> = emptyList(),
     val transferGroups: List<BTransferGroup> = emptyList(),
     val smsQueue: List<BSms> = emptyList(),
+    val blockedSenders: List<BBlockedSender> = emptyList(),
+    val spamMessages: List<BSpamSms> = emptyList(),
+    val debtPeople: List<DebtPersonEntity> = emptyList(), val debts: List<DebtEntity> = emptyList(), val debtPayments: List<DebtPaymentEntity> = emptyList(),
+    val checks: List<CheckEntity> = emptyList(), val bankBalances: List<BankBalanceSnapshotEntity> = emptyList(),
+    val notes: List<NoteEntity> = emptyList(), val loans: List<LoanEntity> = emptyList(), val installments: List<LoanInstallmentEntity> = emptyList(),
+    val assets: List<AssetEntity> = emptyList(), val assetTrades: List<AssetTradeEntity> = emptyList(), val stockSmsDrafts: List<StockSmsDraftEntity> = emptyList(), val attachments: List<TransactionAttachmentEntity> = emptyList(),
+    val reminders: List<ReminderEntity> = emptyList(), val profiles: List<UserProfileEntity> = emptyList(), val coveredPeople: List<CoveredPersonEntity> = emptyList(),
+    val vehicles: List<VehicleEntity> = emptyList(), val oilServices: List<VehicleOilServiceEntity> = emptyList(), val utilityBillProfiles: List<UtilityBillProfileEntity> = emptyList(), val civicMessages: List<CivicMessageEntity> = emptyList(), val privateFiles: List<BPrivateFile> = emptyList(),
+    /** وضعیت مالی محلی خارج از Room؛ فعلاً دفترچه مانده و آخرین استعلام کالابرگ. */
+    val localFinancialState: Map<String, String> = emptyMap(),
     val settings: Map<String, String> = emptyMap()
 ) {
     fun toJson(): String = json.encodeToString(serializer(), this)
@@ -44,12 +55,19 @@ data class BAccount(
     val initialBalanceAt: Long?, val archived: Boolean, val createdAt: Long,
     // فیلدهای کارت بانکی؛ پیش‌فرض خالی تا بکاپ‌های قدیمی هم خوانده شوند
     val accountNumber: String = "", val iban: String = "",
-    val cardNumber: String = "", val cardExpiry: String = "", val cardCvv2: String = ""
+    val cardNumber: String = "", val cardExpiry: String = "", val cardCvv2: String = "",
+    val accountType: String = "BANK", val ownerName: String = "",
+    val cashLocation: String = "", val note: String = "",
+    val bankAccountKind: String = "OTHER", val monthlyInterestBearing: Boolean = false,
+    val monthlyInterestRatePercent: Double? = null, val interestDestinationAccountId: Long? = null
 ) {
     fun toEntity() = AccountEntity(
         id = id, title = title, bankName = bankName, colorArgb = colorArgb, icon = icon,
         maskedNumber = maskedNumber, accountNumber = accountNumber, iban = iban,
         cardNumber = cardNumber, cardExpiry = cardExpiry, cardCvv2 = cardCvv2,
+        accountType = accountType, ownerName = ownerName, cashLocation = cashLocation, note = note,
+        bankAccountKind = bankAccountKind, monthlyInterestBearing = monthlyInterestBearing,
+        monthlyInterestRatePercent = monthlyInterestRatePercent, interestDestinationAccountId = interestDestinationAccountId,
         initialBalanceRial = initialBalanceRial, initialBalanceAt = initialBalanceAt,
         archived = archived, createdAt = createdAt
     )
@@ -60,7 +78,11 @@ data class BAccount(
             initialBalanceRial = e.initialBalanceRial, initialBalanceAt = e.initialBalanceAt,
             archived = e.archived, createdAt = e.createdAt,
             accountNumber = e.accountNumber, iban = e.iban,
-            cardNumber = e.cardNumber, cardExpiry = e.cardExpiry, cardCvv2 = e.cardCvv2
+            cardNumber = e.cardNumber, cardExpiry = e.cardExpiry, cardCvv2 = e.cardCvv2,
+            accountType = e.accountType, ownerName = e.ownerName,
+            cashLocation = e.cashLocation, note = e.note,
+            bankAccountKind = e.bankAccountKind, monthlyInterestBearing = e.monthlyInterestBearing,
+            monthlyInterestRatePercent = e.monthlyInterestRatePercent, interestDestinationAccountId = e.interestDestinationAccountId
         )
     }
 }
@@ -72,9 +94,9 @@ data class BSender(val id: Long, val accountId: Long, val sender: String, val id
 }
 
 @Serializable
-data class BCategory(val id: Long, val name: String, val colorArgb: Long, val kind: Int, val archived: Boolean, val builtin: Boolean) {
-    fun toEntity() = CategoryEntity(id, name, colorArgb, kind, archived, builtin)
-    companion object { fun of(e: CategoryEntity) = BCategory(e.id, e.name, e.colorArgb, e.kind, e.archived, e.builtin) }
+data class BCategory(val id: Long, val name: String, val colorArgb: Long, val kind: Int, val archived: Boolean, val builtin: Boolean, val sortOrder:Int=0) {
+    fun toEntity() = CategoryEntity(id, name, colorArgb, kind, archived, builtin, sortOrder)
+    companion object { fun of(e: CategoryEntity) = BCategory(e.id, e.name, e.colorArgb, e.kind, e.archived, e.builtin, e.sortOrder) }
 }
 
 @Serializable
@@ -120,3 +142,18 @@ data class BSms(
     fun toEntity() = SmsCandidateEntity(id, sender, body, receivedAt, fingerprint, status, matchedAccountId, matchedTemplateId, extractionJson, updatedAt)
     companion object { fun of(e: SmsCandidateEntity) = BSms(e.id, e.sender, e.body, e.receivedAt, e.fingerprint, e.status, e.matchedAccountId, e.matchedTemplateId, e.extractionJson, e.updatedAt) }
 }
+
+
+@Serializable
+data class BBlockedSender(val id:Long,val sender:String,val createdAt:Long){
+ fun toEntity()=BlockedSenderEntity(id,sender,createdAt)
+ companion object{fun of(e:BlockedSenderEntity)=BBlockedSender(e.id,e.sender,e.createdAt)}
+}
+@Serializable data class BSpamSms(val id:Long,val sender:String,val body:String,val receivedAt:Long,val reason:String,val fingerprint:String){
+ fun toEntity()=SpamSmsEntity(id,sender,body,receivedAt,reason,fingerprint)
+ companion object{fun of(e:SpamSmsEntity)=BSpamSms(e.id,e.sender,e.body,e.receivedAt,e.reason,e.fingerprint)}
+}
+
+
+@Serializable
+data class BPrivateFile(val path:String,val base64:String)

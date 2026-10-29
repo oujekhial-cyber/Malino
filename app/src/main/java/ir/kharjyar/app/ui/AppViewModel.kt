@@ -4,7 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ir.kharjyar.app.KharjYarApp
+import ir.kharjyar.app.core.balance.TxSummarizer
 import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.core.sms.ReconcileFinding
+import ir.kharjyar.app.core.sms.ReconcilePhoneSms
 import ir.kharjyar.app.data.Repository
 import ir.kharjyar.app.data.db.AccountEntity
 import ir.kharjyar.app.data.db.BlockedSenderEntity
@@ -13,17 +17,75 @@ import ir.kharjyar.app.data.db.SmsStatus
 import ir.kharjyar.app.data.db.TransactionEntity
 import ir.kharjyar.app.data.prefs.AppSettings
 import ir.kharjyar.app.data.prefs.SettingsRepository
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 /**
  * ViewModel سراسری: تنظیمات، وضعیت قفل و جریان‌های داده مشترک.
  */
 class AppViewModel(app: Application) : AndroidViewModel(app) {
+
+    data class PendingObligationDraft(
+        val action: String,
+        val amountRial: Long,
+        val party: String,
+        val accountHint: String,
+        val title: String
+    )
+
+    data class PendingFeatureCommand(
+        val action: String,
+        val amountRial: Long?,
+        val title: String,
+        val details: String,
+        val party: String = "",
+        val accountHint: String = "",
+        val quantity: Double? = null,
+        val dueDate: String = "",
+        val sayadId: String = "",
+        val serialNumber: String = "",
+        val bankName: String = "",
+        val nationalId: String = "",
+        val chequeAccountNumber: String = "",
+        val chequeIban: String = "",
+        /** تاریخ صریح استخراج‌شده از فرمان برای فرم‌های تخصصی مثل خرید دارایی. */
+        val occurredAt: Long? = null
+    )
+    private val _pendingFeatureCommand = MutableStateFlow<PendingFeatureCommand?>(null)
+    val pendingFeatureCommand: StateFlow<PendingFeatureCommand?> = _pendingFeatureCommand
+    fun prepareFeatureCommand(command: PendingFeatureCommand) { _pendingFeatureCommand.value = command }
+    fun clearFeatureCommand() { _pendingFeatureCommand.value = null }
+
+    data class PendingRecordEdit(val type:String,val id:Long)
+    private val _pendingRecordEdit=MutableStateFlow<PendingRecordEdit?>(null)
+    val pendingRecordEdit:StateFlow<PendingRecordEdit?> = _pendingRecordEdit
+    fun prepareRecordEdit(type:String,id:Long){_pendingRecordEdit.value=PendingRecordEdit(type,id)}
+    fun clearRecordEdit(){_pendingRecordEdit.value=null}
+
+    data class SmsDiscrepancySession(
+        val accountId:Long,
+        val bank:String,
+        val fromYear:Int,val fromMonth:Int,val fromDay:Int,val fromHour:Int,val fromMinute:Int,
+        val toYear:Int,val toMonth:Int,val toDay:Int,val toHour:Int,val toMinute:Int,
+        val items:List<ReconcilePhoneSms>,val findings:Map<Long,ReconcileFinding>,val skipped:Set<Long>
+    )
+    private val _smsDiscrepancySession=MutableStateFlow<SmsDiscrepancySession?>(null)
+    val smsDiscrepancySession:StateFlow<SmsDiscrepancySession?> = _smsDiscrepancySession
+    fun saveSmsDiscrepancySession(value:SmsDiscrepancySession){_smsDiscrepancySession.value=value}
+    fun clearSmsDiscrepancySession(){_smsDiscrepancySession.value=null}
+
+    private val _pendingObligationDraft = MutableStateFlow<PendingObligationDraft?>(null)
+    val pendingObligationDraft: StateFlow<PendingObligationDraft?> = _pendingObligationDraft
+    fun prepareObligationDraft(draft: PendingObligationDraft) { _pendingObligationDraft.value = draft }
+    fun clearObligationDraft() { _pendingObligationDraft.value = null }
 
     private val application = app as KharjYarApp
     val repo: Repository = application.repository
@@ -34,6 +96,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     val accounts: StateFlow<List<AccountEntity>> = repo.accountDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val debtPeople = repo.db.debtDao().observePeople().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val debts = repo.db.debtDao().observeDebts().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val debtPayments = repo.db.debtDao().observePayments().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val checks = repo.db.checkDao().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val bankBalances = repo.db.bankBalanceSnapshotDao().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val notes = repo.db.noteDao().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val loans = repo.db.loanDao().observeLoans().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val loanInstallments = repo.db.loanDao().observeInstallments().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val assets = repo.db.assetDao().observeAssets().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val assetTrades = repo.db.assetDao().observeTrades().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val categories: StateFlow<List<CategoryEntity>> = repo.categoryDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -76,38 +148,67 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val pendingTxCount: StateFlow<Int> = repo.txDao.observePendingCount()
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
-    // ---------- خلاصه ماه جاری ----------
+    // ---------- خلاصه کارت اصلی ----------
+
+    /** بازه کارت اصلی صفحه خانه. */
+    enum class SummaryRange { MONTH, ALL }
+
     data class MonthSummary(
         val monthTitle: String = "",
         val incomeRial: Long = 0,
         val expenseRial: Long = 0,
         val pendingCount: Int = 0,
         val pendingIncomeRial: Long = 0,
-        val pendingExpenseRial: Long = 0
+        val pendingExpenseRial: Long = 0,
+        val range: SummaryRange = SummaryRange.MONTH,
+        /** آیا بیرون از این بازه داده‌ای هست؟ برای پیشنهاد «همه» بعد از بازیابی بکاپ. */
+        val hasDataOutsideRange: Boolean = false
     )
 
-    private val _monthSummary = MutableStateFlow(MonthSummary())
-    val monthSummary: StateFlow<MonthSummary> = _monthSummary
+    private val _summaryRange = MutableStateFlow(SummaryRange.MONTH)
+    val summaryRange: StateFlow<SummaryRange> = _summaryRange
 
-    init {
-        viewModelScope.launch {
-            combine(allTransactions, defaultAccount) { _, acc -> acc?.id }.collect { refreshSummary() }
+    fun toggleSummaryRange() {
+        _summaryRange.value =
+            if (_summaryRange.value == SummaryRange.MONTH) SummaryRange.ALL else SummaryRange.MONTH
+    }
+
+    /** در نیمه‌شب تهران دوباره منتشر می‌شود؛ روز اول ماه، بازه ماهانه را بی‌درنگ عوض می‌کند. */
+    private val calendarDay = flow {
+        while (true) {
+            val now = ZonedDateTime.now(PersianDate.TEHRAN)
+            emit(PersianDate.today())
+            val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(PersianDate.TEHRAN)
+            delay(ChronoUnit.MILLIS.between(now, nextMidnight).coerceAtLeast(1_000L) + 500L)
         }
     }
 
-    private suspend fun refreshSummary() {
-        val today = PersianDate.today()
-        val (from, to) = repo.currentPersianMonthRange()
-        val s = repo.summary(from, to, defaultAccount.value?.id)
-        _monthSummary.value = MonthSummary(
-            monthTitle = "${today.monthName()} ${ir.kharjyar.app.core.text.Digits.toPersian(today.year.toString())}",
-            incomeRial = s.incomeRial,
-            expenseRial = s.expenseRial,
-            pendingCount = s.pendingCount,
-            pendingIncomeRial = s.pendingIncomeRial,
-            pendingExpenseRial = s.pendingExpenseRial
-        )
-    }
+    /**
+     * خلاصه کارت اصلی مستقیماً از همان فهرست تراکنش‌های حافظه ساخته می‌شود که
+     * کارت‌ها و نمودار از آن استفاده می‌کنند. به همین دلیل با تعویض کارت یا با
+     * ورود داده تازه (مثلاً بازیابی بکاپ) بدون هیچ تازه‌سازی دستی، درست و
+     * فیلترشده به‌روز می‌شود.
+     */
+    val monthSummary: StateFlow<MonthSummary> =
+        combine(allTransactions, defaultAccount, _summaryRange, calendarDay) { txs, acc, range, today ->
+            val (from, to) = repo.currentPersianMonthRange()
+            val accountId = acc?.id
+            val month = TxSummarizer.summarize(txs, accountId, from, to)
+            val all = TxSummarizer.summarize(txs, accountId)
+            val chosen = if (range == SummaryRange.MONTH) month else all
+            MonthSummary(
+                monthTitle = if (range == SummaryRange.MONTH)
+                    "${today.monthName()} ${Digits.toPersian(today.year.toString())}"
+                else "همه تراکنش‌ها",
+                incomeRial = chosen.incomeRial,
+                expenseRial = chosen.expenseRial,
+                pendingCount = chosen.pendingCount,
+                pendingIncomeRial = chosen.pendingIncomeRial,
+                pendingExpenseRial = chosen.pendingExpenseRial,
+                range = range,
+                hasDataOutsideRange = !all.isEmpty && month.isEmpty
+            )
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, MonthSummary())
 
     // ---------- قفل برنامه ----------
     private val _locked = MutableStateFlow(false)
@@ -116,6 +217,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun onAppStart() {
         if (settings.value.appLockEnabled) _locked.value = true
+        // تراکنش‌های بیش از ۳۰ روز مانده در سطل زباله، بدون دخالت کاربر پاک می‌شوند.
+        viewModelScope.launch {
+            repo.txDao.purgeTrashOlderThan(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000)
+            repo.txDao.purgeOrphanAttachments()
+        }
     }
 
     fun onAppBackground() {

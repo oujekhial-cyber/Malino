@@ -34,6 +34,8 @@ import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
 import ir.kharjyar.app.data.db.TransactionEntity
+import ir.kharjyar.app.data.db.TxDirection
+import ir.kharjyar.app.data.db.TxNature
 import ir.kharjyar.app.data.db.TxStatus
 import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
@@ -54,6 +56,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
 
     var tx by remember { mutableStateOf<TransactionEntity?>(null) }
     var loaded by remember { mutableStateOf(false) }
+    var duplicateResolved by remember { mutableStateOf(false) }
 
     var accountId by remember { mutableStateOf<Long?>(null) }
     var amountText by remember { mutableStateOf("") }
@@ -66,10 +69,13 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
     var minute by remember { mutableStateOf(0) }
     var error by remember { mutableStateOf<String?>(null) }
     var showDelete by remember { mutableStateOf(false) }
-    var suggestRule by remember { mutableStateOf(false) }
 
     LaunchedEffect(txId) {
-        val loadedTx = viewModel.repo.txDao.byId(txId)
+        // پیش از نمایش فرم، بررسی کن آیا کاربر همین برداشت/واریز را از مسیر دستی
+        // ثبت کرده است؛ در این حالت کلیک اعلان نباید فرم ثبت دوباره را باز کند.
+        val existingId = viewModel.repo.resolvePendingDuplicate(txId)
+        duplicateResolved = existingId != null
+        val loadedTx = viewModel.repo.txDao.byId(existingId ?: txId)
         tx = loadedTx
         loadedTx?.let { t ->
             accountId = t.accountId
@@ -107,9 +113,6 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
     }
 
     val isPending = t.status == TxStatus.PENDING
-    // واحد ورودی مبلغ همان واحد نمایش است مگر مبلغ ریالی رند نباشد
-    val amountUnitForInput = if (settings.moneyUnit == MoneyUnit.TOMAN && t.amountRial % 10 != 0L) MoneyUnit.RIAL else settings.moneyUnit
-
     Column(
         modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -118,6 +121,16 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
             if (isPending) "تکمیل تراکنش — بابت چی بوده؟" else "جزئیات و ویرایش تراکنش",
             style = MaterialTheme.typography.headlineSmall
         )
+        if (duplicateResolved) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                Text(
+                    "این تراکنش قبلاً ثبت شده است؛ همان تراکنش موجود برای مشاهده باز شد.",
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
         if (isPending) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
                 Text(
@@ -141,14 +154,26 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         AmountTextField(
             value = amountText,
             onValueChange = { amountText = it },
-            label = "مبلغ (${if (amountUnitForInput == MoneyUnit.TOMAN) "تومان" else "ریال"})",
-            supportingText = Money.inputToRial(amountText, amountUnitForInput)
+            label = "مبلغ",
+            unit = settings.moneyUnit,
+            supportingText = Money.inputToRial(amountText, settings.moneyUnit)
                 ?.let { Money.format(it, settings.moneyUnit) },
             modifier = Modifier.fillMaxWidth()
         )
 
         NaturePicker(nature, direction, onNature = { nature = it }, onDirection = { direction = it })
-        CategoryPicker(categories, categoryId, nature) { categoryId = it }
+        CategoryPicker(
+            categories = categories,
+            selectedId = categoryId,
+            nature = nature,
+            onCreate = { name ->
+                scope.launch {
+                    categoryId = viewModel.repo.categoryDao.insert(
+                        ir.kharjyar.app.data.db.CategoryEntity(name = name, colorArgb = 0xFF6C8AE4)
+                    )
+                }
+            }
+        ) { categoryId = it }
         DatePickerRow(date, hour, minute, onDate = { date = it }, onTime = { h, m -> hour = h; minute = m })
         if (t.timeIsApproximate) {
             Text(
@@ -161,7 +186,17 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("خرید/واریز بابت چی بوده؟") },
+            label = {
+                Text(
+                    when {
+                        nature == TxNature.TRANSFER -> "انتقال بابت چه بود؟"
+                        nature == TxNature.NEUTRAL && direction == TxDirection.DEPOSIT -> "این واریز غیر‌درآمدی بابت چه بود؟"
+                        nature == TxNature.NEUTRAL -> "این برداشت غیرهزینه‌ای بابت چه بود؟"
+                        direction == TxDirection.DEPOSIT -> "واریز بابت چه بود؟"
+                        else -> "خرید بابت چه بود؟"
+                    }
+                )
+            },
             modifier = Modifier.fillMaxWidth().keepAboveKeyboard()
         )
 
@@ -170,7 +205,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         Button(
             onClick = {
                 val acc = accountId
-                val amount = Money.inputToRial(amountText, amountUnitForInput)
+                val amount = Money.inputToRial(amountText, settings.moneyUnit)
                 when {
                     acc == null -> error = "حساب را انتخاب کنید"
                     amount == null || amount <= 0 -> error = "مبلغ معتبر وارد کنید"
@@ -189,12 +224,9 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
                                 occurredAt = PersianDate.toMillis(date, hour, minute)
                             )
                             ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context)
-                            // پیشنهاد قانون: اگر دسته انتخاب شد و طرف مقابل معلوم است
-                            if (categoryId != null && t.counterparty.isNotBlank() && categoryId != t.categoryId) {
-                                suggestRule = true
-                            } else {
-                                nav.popBackStack()
-                            }
+                            // ثبت تراکنش باید بی‌وقفه تمام شود؛ ساخت و مدیریت قانون‌های
+                            // خودکار فقط از بخش اختصاصی دسته‌بندی‌ها انجام می‌شود.
+                            nav.popBackStack()
                         }
                     }
                 }
@@ -213,37 +245,6 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
                 Text("حذف تراکنش", color = MaterialTheme.colorScheme.error)
             }
         }
-    }
-
-    if (suggestRule) {
-        val catName = categories.firstOrNull { it.id == categoryId }?.name ?: ""
-        AlertDialog(
-            onDismissRequest = { suggestRule = false; nav.popBackStack() },
-            title = { Text("ساخت قانون خودکار؟") },
-            text = { Text("از این پس تراکنش‌های «${t.counterparty}» به‌صورت خودکار در دسته «$catName» پیشنهاد شوند؟") },
-            confirmButton = {
-                TextButton(onClick = {
-                    scope.launch {
-                        categoryId?.let { cid ->
-                            viewModel.repo.categoryDao.insertRule(
-                                ir.kharjyar.app.data.db.CategoryRuleEntity(
-                                    keyword = t.counterparty,
-                                    categoryId = cid,
-                                    priority = 10,
-                                    createdByUser = true,
-                                    createdAt = System.currentTimeMillis()
-                                )
-                            )
-                        }
-                        suggestRule = false
-                        nav.popBackStack()
-                    }
-                }) { Text("بله، بساز") }
-            },
-            dismissButton = {
-                TextButton(onClick = { suggestRule = false; nav.popBackStack() }) { Text("خیر") }
-            }
-        )
     }
 
     if (showDelete) {

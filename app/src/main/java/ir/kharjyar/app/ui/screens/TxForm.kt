@@ -7,6 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -69,51 +76,85 @@ fun AccountPicker(
     )
 }
 
-/** گزینه‌های «جهت بانکی» و «ماهیت» به‌صورت کمبوباکس. */
+private data class FinancialFlowChoice(val id:Int,val direction:Int,val nature:Int,val title:String)
+private val financialFlowChoices=listOf(
+    FinancialFlowChoice(1,TxDirection.DEPOSIT,TxNature.INCOME,"درآمد — پول وارد حساب شد"),
+    FinancialFlowChoice(2,TxDirection.WITHDRAW,TxNature.EXPENSE,"هزینه — پول از حساب خارج شد"),
+    FinancialFlowChoice(3,TxDirection.DEPOSIT,TxNature.TRANSFER,"انتقال ورودی — از حساب دیگر خودم"),
+    FinancialFlowChoice(4,TxDirection.WITHDRAW,TxNature.TRANSFER,"انتقال خروجی — به حساب دیگر خودم"),
+    FinancialFlowChoice(5,TxDirection.DEPOSIT,TxNature.NEUTRAL,"واریز غیر‌درآمدی — وام، وصول طلب یا برگشت وجه"),
+    FinancialFlowChoice(6,TxDirection.WITHDRAW,TxNature.NEUTRAL,"برداشت غیرهزینه‌ای — اصل بدهی، امانت یا تسویه")
+)
+
+/** یک انتخاب قابل‌فهم برای کاربر؛ جهت و ماهیت همچنان جدا و دقیق ذخیره می‌شوند. */
 @Composable
-fun NaturePicker(nature: Int, direction: Int, onNature: (Int) -> Unit, onDirection: (Int) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ComboBox(
-            label = "جهت بانکی",
-            options = listOf(TxDirection.DEPOSIT, TxDirection.WITHDRAW),
-            selected = direction,
-            labelOf = { if (it == TxDirection.DEPOSIT) "واریز (پول وارد حساب شد)" else "برداشت (پول از حساب خارج شد)" },
-            onSelect = onDirection
-        )
-        ComboBox(
-            label = "ماهیت",
-            options = listOf(TxNature.INCOME, TxNature.EXPENSE, TxNature.TRANSFER),
-            selected = nature,
-            labelOf = {
-                when (it) {
-                    TxNature.INCOME -> "واریز (درآمد)"
-                    TxNature.TRANSFER -> "انتقال بین حساب‌ها"
-                    else -> "برداشت (خرج)"
-                }
-            },
-            onSelect = onNature
-        )
-        Text(
-            "هر واریزی درآمد نیست و هر برداشتی خرج نیست؛ مثلاً جابه‌جایی پول بین حساب‌های خودتان انتقال است.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+fun NaturePicker(nature:Int,direction:Int,onNature:(Int)->Unit,onDirection:(Int)->Unit,showDirection:Boolean=true){
+    val compatible=if(showDirection)financialFlowChoices else financialFlowChoices.filter{it.direction==direction}
+    val selected=compatible.firstOrNull{it.direction==direction&&it.nature==nature}?:compatible.first()
+    Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
+        ComboBox(label="نوع جریان مالی",options=compatible.map{it.id},selected=selected.id,labelOf={id->compatible.first{it.id==id}.title},onSelect={id->val choice=compatible.first{it.id==id};onDirection(choice.direction);onNature(choice.nature)})
+        Text(when(selected.id){1->"موجودی و درآمد هر دو افزایش می‌یابند.";2->"موجودی و هزینه هر دو افزایش می‌یابند.";3,4->"موجودی حساب تغییر می‌کند، اما در جمع درآمد و هزینه محاسبه نمی‌شود.";5->"موجودی حساب بیشتر می‌شود، ولی این مبلغ درآمد نیست.";else->"موجودی حساب کمتر می‌شود، ولی این مبلغ هزینه مصرفی نیست."},style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-fun CategoryPicker(categories: List<CategoryEntity>, selectedId: Long?, nature: Int, onSelect: (Long?) -> Unit) {
+fun CategoryPicker(
+    categories: List<CategoryEntity>,
+    selectedId: Long?,
+    nature: Int,
+    /** اگر داده شود، گزینه «دسته‌بندی جدید» هم در فهرست می‌آید. */
+    onCreate: ((String) -> Unit)? = null,
+    onSelect: (Long?) -> Unit
+) {
     val visible = categories.filter { !it.archived }
-    // گزینه ۰ به معنی «نامشخص» است
+    var showNew by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf("") }
+
+    // گزینه ۰ به معنی «نامشخص» و گزینه ۱- به معنی «ساختن دسته تازه» است
     ComboBox(
         label = "دسته‌بندی",
-        options = listOf(0L) + visible.map { it.id },
+        options = listOf(0L) + visible.map { it.id } + if (onCreate != null) listOf(-1L) else emptyList(),
         selected = selectedId ?: 0L,
         labelOf = { id ->
-            if (id == 0L) "نامشخص" else visible.firstOrNull { it.id == id }?.name ?: "—"
+            when (id) {
+                0L -> "نامشخص"
+                -1L -> "+ دسته‌بندی جدید"
+                else -> visible.firstOrNull { it.id == id }?.name ?: "—"
+            }
         },
-        onSelect = { id -> onSelect(if (id == 0L) null else id) }
+        onSelect = { id ->
+            when (id) {
+                -1L -> { newName = ""; showNew = true }
+                0L -> onSelect(null)
+                else -> onSelect(id)
+            }
+        }
     )
+
+    if (showNew) {
+        AlertDialog(
+            onDismissRequest = { showNew = false },
+            title = { Text("دسته‌بندی جدید") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("نام دسته (مثل «نان و خواربار»)") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = newName.isNotBlank(),
+                    onClick = {
+                        onCreate?.invoke(newName.trim())
+                        showNew = false
+                    }
+                ) { Text("بساز و انتخاب کن") }
+            },
+            dismissButton = { TextButton(onClick = { showNew = false }) { Text("انصراف") } }
+        )
+    }
 }
 
 @Composable

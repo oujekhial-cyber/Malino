@@ -54,7 +54,14 @@ class MainActivity : FragmentActivity() {
         lifecycle.addObserver(LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> viewModel.onAppBackground()
-                Lifecycle.Event.ON_START -> viewModel.onAppForeground()
+                Lifecycle.Event.ON_START -> {
+                    viewModel.onAppForeground()
+                    lifecycleScope.launch {
+                        runCatching {
+                            ir.kharjyar.app.core.sms.UnreadBankSmsRecovery.scanOnAppOpen(applicationContext)
+                        }
+                    }
+                }
                 else -> {}
             }
         })
@@ -78,6 +85,7 @@ class MainActivity : FragmentActivity() {
 
     private fun parseDest(intent: Intent?): String? {
         intent ?: return null
+        intent.getStringExtra(Notifier.EXTRA_ROUTE)?.takeIf { it.isNotBlank() }?.let { return it }
         val dest = intent.getStringExtra(Notifier.EXTRA_DEST) ?: return null
         val smsId = intent.getLongExtra(Notifier.EXTRA_SMS_ID, -1)
         val txId = intent.getLongExtra(Notifier.EXTRA_TX_ID, -1)

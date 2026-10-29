@@ -3,9 +3,16 @@ package ir.kharjyar.app
 import ir.kharjyar.app.core.text.Digits
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DigitsTest {
+
+    @org.junit.Before
+    fun setUp() {
+        // این تست‌ها با ارقام فارسی نوشته شده‌اند؛ پرچم سراسری ممکن است از تست دیگری مانده باشد
+        Digits.usePersianDigits = true
+    }
 
     @Test
     fun `persian digits normalize`() {
@@ -72,5 +79,29 @@ class DigitsTest {
     @Test
     fun `group formatting persian`() {
         assertEquals("۱،۲۳۴،۵۶۷", Digits.group(1234567))
+    }
+
+    @Test
+    fun `ltr isolate wraps text without changing digits`() {
+        val wrapped = Digits.ltr("۵۰۲۹  ۰۸۱۰")
+        assertEquals('\u2066', wrapped.first())
+        assertEquals('\u2069', wrapped.last())
+        assertEquals("۵۰۲۹  ۰۸۱۰", Digits.stripBidi(wrapped))
+    }
+
+    @Test
+    fun `ltr leaves empty text alone`() {
+        assertEquals("", Digits.ltr(""))
+    }
+
+    @Test
+    fun `card groups keep the printed order of the card`() {
+        // ترتیب گروه‌ها باید همان ترتیب روی کارت بماند: ۵۰۲۹ اول و ۸۶۰۵ آخر
+        val shown = Digits.cardGroups("5029081083248605", separator = " ")
+        val plain = Digits.stripBidi(shown)
+        assertEquals("۵۰۲۹ ۰۸۱۰ ۸۳۲۴ ۸۶۰۵", plain)
+        assertTrue("باید داخل ایزوله چپ‌به‌راست باشد", shown.first() == '\u2066' && shown.last() == '\u2069')
+        // رقم‌های خام هم باید دست‌نخورده بمانند
+        assertEquals("5029 0810 8324 8605", Digits.normalize(plain))
     }
 }

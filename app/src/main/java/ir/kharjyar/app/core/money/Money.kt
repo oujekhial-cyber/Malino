@@ -18,8 +18,11 @@ object Money {
 
     /**
      * قالب‌بندی مبلغ ریالی برای نمایش.
-     * اگر واحد تومان انتخاب شده و باقی‌مانده ریالی وجود دارد، باقی‌مانده صریحاً نمایش داده می‌شود
-     * تا هیچ ریالی بی‌صدا حذف نشود.
+     *
+     * در واحد تومان، رقم آخرِ ریالی نمایش داده نمی‌شود چون برای کاربر معنایی ندارد
+     * و فقط عدد را شلوغ می‌کند. مقدار ذخیره‌شده همچنان ریال کامل است و همه
+     * محاسبه‌ها (جمع، مانده، گزارش) روی همان عدد دقیق انجام می‌شود؛ یعنی چیزی
+     * گرد نمی‌شود، فقط نمایش داده نمی‌شود.
      */
     fun format(rial: Long, unit: MoneyUnit, withUnit: Boolean = true): String {
         return when (unit) {
@@ -28,11 +31,8 @@ object Money {
                 if (withUnit) "$body ریال" else body
             }
             MoneyUnit.TOMAN -> {
-                val whole = rialToTomanWhole(rial)
-                val rem = rialToTomanRemainder(rial)
-                val body = Digits.group(whole)
-                val remPart = if (rem != 0L) " و ${Digits.toPersian(kotlin.math.abs(rem).toString())} ریال" else ""
-                if (withUnit) "$body تومان$remPart" else body + remPart
+                val body = Digits.group(rialToTomanWhole(rial))
+                if (withUnit) "$body تومان" else body
             }
         }
     }

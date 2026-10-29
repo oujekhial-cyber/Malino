@@ -16,11 +16,13 @@ class PrivacyGuardTest {
     private val manifest = File("src/main/AndroidManifest.xml").readText()
 
     @Test
-    fun `app has no internet permission`() {
-        assertFalse(
-            "برنامه نباید مجوز اینترنت بگیرد؛ تحلیل جمله باید روی خود گوشی بماند",
-            manifest.contains("android.permission.INTERNET")
-        )
+    fun `weather uses manually selected city without location permission`() {
+        assertTrue(manifest.contains("android.permission.INTERNET"))
+        assertFalse("هواشناسی نباید به موقعیت تقریبی دسترسی داشته باشد", manifest.contains("android.permission.ACCESS_COARSE_LOCATION"))
+        assertFalse("هواشناسی نباید به موقعیت دقیق دسترسی داشته باشد", manifest.contains("android.permission.ACCESS_FINE_LOCATION"))
+        val weather = File("src/main/java/ir/kharjyar/app/weather/WeatherService.kt").readText()
+        assertTrue(weather.contains("api.open-meteo.com"))
+        assertTrue("دمای هوا باید کش شود", weather.contains("weather_cache"))
     }
 
     @Test
@@ -34,6 +36,50 @@ class PrivacyGuardTest {
             "برای دیدن برنامه گفتار به متن، queries لازم است",
             manifest.contains("android.speech.action.RECOGNIZE_SPEECH")
         )
+    }
+
+    @Test
+    fun `card scanning stays on device`() {
+        // مدل تشخیص متن داخل خود APK است (نسخه bundled). نسخه وابسته به
+        // پلی‌سرویس، مدل را از اینترنت می‌گیرد و وعده آفلاین بودن را می‌شکند.
+        val gradle = File("build.gradle.kts").readText()
+        assertTrue(
+            "تشخیص متن باید با مدل همراه برنامه باشد",
+            gradle.contains("mlkit.text.recognition")
+        )
+        assertFalse(
+            "نسخه پلی‌سرویسی مدل را دانلود می‌کند و آفلاین نیست",
+            gradle.contains("play-services-mlkit")
+        )
+        val catalog = File("../gradle/libs.versions.toml").readText()
+        assertTrue(catalog.contains("com.google.mlkit"))
+        assertFalse(catalog.contains("play-services-mlkit"))
+    }
+
+    @Test
+    fun `camera permission is only for the card scanner`() {
+        assertTrue(
+            "اسکن کارت به مجوز دوربین نیاز دارد",
+            manifest.contains("android.permission.CAMERA")
+        )
+        // نبود دوربین نباید نصب برنامه را روی گوشی محدود کند
+        assertTrue(manifest.contains("android:required=\"false\""))
+        // خواندن گالری یا حافظه لازم نیست؛ فقط فریم زنده دوربین پردازش می‌شود
+        assertFalse(manifest.contains("READ_EXTERNAL_STORAGE"))
+        assertFalse(manifest.contains("READ_MEDIA_IMAGES"))
+    }
+
+    @Test
+    fun `card scanner does not touch the network`() {
+        listOf(
+            "src/main/java/ir/kharjyar/app/ui/components/CardScanner.kt",
+            "src/main/java/ir/kharjyar/app/core/card/CardScanParser.kt"
+        ).forEach { path ->
+            val source = File(path).readText()
+            listOf("http://", "https://", "URL(", "OkHttp", "Retrofit").forEach { needle ->
+                assertFalse("اسکن کارت نباید به شبکه وصل شود ($needle در $path)", source.contains(needle))
+            }
+        }
     }
 
     @Test

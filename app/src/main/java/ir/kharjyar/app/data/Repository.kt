@@ -1,11 +1,13 @@
 package ir.kharjyar.app.data
 
+import android.content.Context
 import androidx.room.withTransaction
 import ir.kharjyar.app.core.category.CategorySuggester
 import ir.kharjyar.app.core.category.Rule
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.sms.AccountMatch
 import ir.kharjyar.app.core.sms.AccountMatcher
+import ir.kharjyar.app.core.sms.BankBalanceRefreshService
 import ir.kharjyar.app.core.sms.Confidence
 import ir.kharjyar.app.core.sms.ExtractedDirection
 import ir.kharjyar.app.core.sms.ExtractionResult
@@ -18,7 +20,9 @@ import ir.kharjyar.app.core.sms.SmsKind
 import ir.kharjyar.app.core.transfer.TransferCandidate
 import ir.kharjyar.app.core.transfer.TransferMatch
 import ir.kharjyar.app.core.transfer.TransferMatcher
+import ir.kharjyar.app.core.balance.TxSummarizer
 import ir.kharjyar.app.data.db.BlockedSenderEntity
+import ir.kharjyar.app.data.db.BankBalanceSnapshotEntity
 import ir.kharjyar.app.data.db.KharjYarDatabase
 import ir.kharjyar.app.data.db.SmsCandidateEntity
 import ir.kharjyar.app.data.db.SmsStatus
@@ -33,7 +37,7 @@ import ir.kharjyar.app.data.db.TxStatus
 /**
  * لایه Repository: منطق پردازش پیامک، ساخت پیش‌نویس، انتقال و دسته‌بندی.
  */
-class Repository(val db: KharjYarDatabase) {
+class Repository(val db: KharjYarDatabase, private val context: Context? = null) {
 
     val accountDao = db.accountDao()
     val smsDao = db.smsDao()
@@ -42,6 +46,7 @@ class Repository(val db: KharjYarDatabase) {
     val transferDao = db.transferDao()
     val categoryDao = db.categoryDao()
     val blockedSenderDao = db.blockedSenderDao()
+    val spamSmsDao = db.spamSmsDao()
 
     /** نتیجه ثبت اولیه پیامک (از Receiver). */
     data class IngestResult(val smsId: Long?, val duplicate: Boolean, val kind: SmsKind)
@@ -51,14 +56,41 @@ class Repository(val db: KharjYarDatabase) {
      * پیامک غیرمالی ذخیره نمی‌شود (OTP و پیامک شخصی نگه داشته نمی‌شوند).
      */
     suspend fun ingestSms(sender: String, body: String, receivedAt: Long): IngestResult {
-        // فرستنده‌ای که کاربر «تبلیغاتی» علامت زده: بی‌سروصدا نادیده گرفته می‌شود
-        // و متن پیامک هم اصلاً ذخیره نمی‌شود.
-        if (blockedSenderDao.isBlocked(sender)) {
+        // رمز پویا حتی برای فرستنده مسدودشده ذخیره نمی‌شود.
+        if (SmsClassifier.isOtp(body)) return IngestResult(null,false,SmsKind.NON_FINANCIAL)
+        val fp = SmsFingerprint.of(sender, body, receivedAt)
+        val mappings=accountDao.allSenders()
+        val normalizedSender=AccountMatcher.normalizeSender(sender)
+        val knownFinancialSender=mappings.any{AccountMatcher.normalizeSender(it.sender)==normalizedSender}||
+            ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sender)!=null
+        // همه مسیرهای زنده، بازیابی و واردکردن تاریخی از یک موتور چندلایه عبور می‌کنند؛
+        // OTP/امنیتی/ناموفق پیش از واژه‌های مالی رد و نتیجه تراکنش با استخراج
+        // مستقل مبلغ و جهت دوباره اعتبارسنجی می‌شود.
+        val decision=ir.kharjyar.app.core.sms.BankSmsDecisionEngine.analyze(sender,body,knownFinancialSender)
+        val kind=when {
+            decision.type==ir.kharjyar.app.core.sms.BankSmsSemanticType.TRANSACTION->SmsKind.FINANCIAL_LIKELY
+            decision.type==ir.kharjyar.app.core.sms.BankSmsSemanticType.UNKNOWN &&
+                decision.verdict==ir.kharjyar.app.core.sms.BankSmsVerdict.REVIEW->SmsKind.SUSPICIOUS
+            else->SmsKind.NON_FINANCIAL
+        }
+        val protectedFinancial = decision.shouldIngest
+        if(decision.verdict==ir.kharjyar.app.core.sms.BankSmsVerdict.PROMOTION){
+            spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason="تشخیص چندلایه تبلیغات: ${decision.reasons.joinToString("، ")}",fingerprint=fp))
+            return IngestResult(null,false,SmsKind.NON_FINANCIAL)
+        }
+        if (blockedSenderDao.isBlocked(sender) && !protectedFinancial) {
+            spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason="فرستنده مسدودشده توسط کاربر",fingerprint=fp))
             return IngestResult(null, false, SmsKind.NON_FINANCIAL)
         }
-        val kind = SmsClassifier.classify(body)
+        // اگر یک تراکنش قطعی از فرستنده‌ای که قبلاً اشتباهی تبلیغاتی شده رسید،
+        // مسدودی را خودکار برمی‌داریم تا اعلان‌های بعدی نیز از دست نروند.
+        if (protectedFinancial) blockedSenderDao.unblock(sender)
+        val spam=ir.kharjyar.app.core.sms.SpamSmsClassifier.decide(body)
+        if(!protectedFinancial&&!knownFinancialSender&&spam.confident){
+            spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason=spam.reason,fingerprint=fp))
+            return IngestResult(null,false,SmsKind.NON_FINANCIAL)
+        }
         if (kind == SmsKind.NON_FINANCIAL) return IngestResult(null, false, kind)
-        val fp = SmsFingerprint.of(sender, body, receivedAt)
         val row = SmsCandidateEntity(
             sender = sender,
             body = body,
@@ -82,11 +114,24 @@ class Repository(val db: KharjYarDatabase) {
         // صف فعلی را هم از همین فرستنده پاک می‌کنیم
         smsDao.allOnce()
             .filter { it.sender == sender && it.status != SmsStatus.DONE }
-            .forEach { smsDao.update(it.copy(status = SmsStatus.DISMISSED, updatedAt = now())) }
+            .forEach {
+                spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=it.sender,body=it.body,receivedAt=it.receivedAt,reason="علامت‌گذاری دستی کاربر",fingerprint=it.fingerprint))
+                smsDao.update(it.copy(status = SmsStatus.DISMISSED, updatedAt = now()))
+            }
     }
 
     /** برداشتن علامت تبلیغاتی از یک فرستنده. */
     suspend fun unblockSender(sender: String) = blockedSenderDao.unblock(sender)
+
+    /** بازگردانی پیام قرنطینه‌شده به صف مالی؛ فرستنده دستی نیز آزاد می‌شود. */
+    suspend fun restoreSpamMessage(id:Long):ProcessOutcome? {
+        val row=spamSmsDao.byId(id)?:return null
+        blockedSenderDao.unblock(row.sender)
+        val existing=smsDao.byFingerprint(row.fingerprint)
+        val smsId=if(existing!=null){smsDao.update(existing.copy(status=SmsStatus.RAW,updatedAt=now()));existing.id}else smsDao.insertIgnore(SmsCandidateEntity(sender=row.sender,body=row.body,receivedAt=row.receivedAt,fingerprint=row.fingerprint,status=SmsStatus.RAW,updatedAt=now()))
+        spamSmsDao.delete(id)
+        return if(smsId>0)processSms(smsId) else null
+    }
 
     /** نتیجه پردازش کامل پیامک (در Worker). */
     sealed class ProcessOutcome {
@@ -94,6 +139,7 @@ class Repository(val db: KharjYarDatabase) {
         data class NeedsAccount(val smsId: Long) : ProcessOutcome()
         data class NeedsTemplate(val smsId: Long) : ProcessOutcome()
         data class AmbiguousAccount(val smsId: Long, val accountIds: List<Long>) : ProcessOutcome()
+        data class DuplicateFound(val smsId:Long,val existingTxId:Long,val description:String):ProcessOutcome()
         object AlreadyProcessed : ProcessOutcome()
         object NotFound : ProcessOutcome()
     }
@@ -111,7 +157,41 @@ class Repository(val db: KharjYarDatabase) {
         val mappings = accountDao.allSenders().map {
             SenderMapping(it.id, it.accountId, it.sender, it.identifierHint)
         }
-        val match = AccountMatcher.match(sms.sender, sms.body, mappings)
+        val senderMatch = AccountMatcher.match(sms.sender, sms.body, mappings)
+        // اگر نگاشت فرستنده هنوز ساخته نشده یا چند حساب از یک سرشماره پیام می‌گیرند،
+        // شماره کارت/حساب/شبا را مستقیماً از متن با همه حساب‌های ذخیره‌شده تطبیق بده.
+        val activeAccounts = accountDao.allOnce().filter { !it.archived }
+        val numberMatch = ir.kharjyar.app.core.sms.AccountNumberMatcher.match(
+            sms.body,
+            activeAccounts.map {
+                ir.kharjyar.app.core.sms.MatchableAccount(
+                    it.id, it.maskedNumber, it.accountNumber, it.iban, it.cardNumber
+                )
+            }
+        )
+        // پیامک سود ممکن است شماره سپرده مبدأ را بنویسد، در حالی‌که وجه به حساب
+        // دیگری واریز شده است. مقصد فقط از تنظیم صریح کاربر انتخاب می‌شود؛ حدس نمی‌زنیم.
+        val normalizedSms = ir.kharjyar.app.core.text.Digits.normalizeForMatch(sms.body)
+        val isInterestSms = ir.kharjyar.app.core.sms.InterestSmsDetector.isInterest(normalizedSms)
+        val configuredInterestDestinations = if(isInterestSms) activeAccounts.filter { it.monthlyInterestBearing }.mapNotNull { source ->
+            val sourceMentioned = ir.kharjyar.app.core.sms.AccountNumberMatcher.match(sms.body,listOf(ir.kharjyar.app.core.sms.MatchableAccount(source.id,source.maskedNumber,source.accountNumber,source.iban,source.cardNumber))) is AccountMatch.Single
+            if(sourceMentioned) (source.interestDestinationAccountId ?: source.id) else null
+        }.distinct() else emptyList()
+        val interestMatch:AccountMatch=when(configuredInterestDestinations.size){1->AccountMatch.Single(configuredInterestDestinations.single());in 2..Int.MAX_VALUE->AccountMatch.Ambiguous(configuredInterestDestinations);else->AccountMatch.Unknown}
+        // سرشماره‌های نام‌دار بانک: فقط وقتی دقیقاً یک حساب از همان بانک وجود دارد
+        // به‌صورت خودکار انتخاب می‌شوند؛ با چند حساب هرگز حدس خطرناک نمی‌زنیم.
+        val inferredBank = ir.kharjyar.app.core.sms.BankSenderResolver.bankName(sms.sender)
+        val bankIds = inferredBank?.let { bank -> activeAccounts.filter { ir.kharjyar.app.core.sms.BankSenderResolver.sameBank(it.bankName, bank) }.map { it.id }.distinct() }.orEmpty()
+        val bankMatch: AccountMatch = when(bankIds.size){1->AccountMatch.Single(bankIds.single());in 2..Int.MAX_VALUE->AccountMatch.Ambiguous(bankIds);else->AccountMatch.Unknown}
+        val match = when {
+            interestMatch is AccountMatch.Single -> interestMatch
+            interestMatch is AccountMatch.Ambiguous -> interestMatch
+            numberMatch is AccountMatch.Single -> numberMatch
+            senderMatch is AccountMatch.Single -> senderMatch
+            numberMatch is AccountMatch.Ambiguous -> numberMatch
+            senderMatch is AccountMatch.Ambiguous -> senderMatch
+            else -> bankMatch
+        }
         val accountId = when (match) {
             is AccountMatch.Single -> match.accountId
             is AccountMatch.Ambiguous -> {
@@ -124,22 +204,34 @@ class Repository(val db: KharjYarDatabase) {
             }
         }
 
+        // پس از تطبیق امن، فرستنده برای پیامک‌های بعدی همین حساب یاد گرفته می‌شود.
+        if (mappings.none { it.accountId == accountId && AccountMatcher.normalizeSender(it.sender) == AccountMatcher.normalizeSender(sms.sender) }) {
+            val hint = Extractor.autoExtract(sms.body).accountIdHint?.let { AccountMatcher.shortIdentifier(it) }.orEmpty()
+            accountDao.insertSender(ir.kharjyar.app.data.db.AccountSenderEntity(accountId = accountId, sender = sms.sender, identifierHint = hint))
+        }
         return processWithAccount(sms, accountId)
     }
 
     /** پردازش پیامک وقتی حساب معلوم است (پس از معرفی حساب هم صدا زده می‌شود). */
     suspend fun processWithAccount(sms: SmsCandidateEntity, accountId: Long): ProcessOutcome {
-        // ۲) اعمال قالب‌های آموزش‌دیده این فرستنده
-        val templates = templateDao.enabledForSender(sms.sender)
+        // ۲) اعمال قالب‌های آموزش‌دیده: اول قالب‌های همین فرستنده، و اگر نتیجه
+        // نداد، همه قالب‌های آموزش‌دیده. بانک‌ها گاهی از چند سرشماره پیامک
+        // می‌فرستند و قالبِ یاد گرفته‌شده نباید فقط به یک سرشماره گره بخورد.
         var best: ExtractionResult? = null
         var bestTemplateId: Long? = null
-        for (t in templates) {
-            val rules = FieldRule.listFromJson(t.rulesJson)
-            if (rules.isEmpty()) continue
-            val r = Extractor.applyRules(sms.body, rules, t.amountUnit)
-            if (r.amountRial != null && (best == null || rank(r) > rank(best!!))) {
-                best = r; bestTemplateId = t.id
+        fun tryTemplates(list: List<ir.kharjyar.app.data.db.SmsTemplateEntity>) {
+            for (t in list) {
+                val rules = FieldRule.listFromJson(t.rulesJson)
+                if (rules.isEmpty()) continue
+                val r = Extractor.applyRules(sms.body, rules, t.amountUnit)
+                if (r.amountRial != null && (best == null || rank(r) > rank(best!!))) {
+                    best = r; bestTemplateId = t.id
+                }
             }
+        }
+        tryTemplates(templateDao.enabledForSender(sms.sender))
+        if (best == null || rank(best!!) < 3) {
+            tryTemplates(templateDao.allEnabled().filter { it.sender != sms.sender })
         }
         // ۳) استخراج خودکار به عنوان جایگزین
         val auto = Extractor.autoExtract(sms.body)
@@ -168,8 +260,15 @@ class Repository(val db: KharjYarDatabase) {
 
         // ۵) ساخت پیش‌نویس تراکنش (PENDING) — پیشنهاد است، نه ثبت قطعی
         val direction = if (chosen.directionEnum() == ExtractedDirection.DEPOSIT) TxDirection.DEPOSIT else TxDirection.WITHDRAW
-        val suggestedCategory = suggestCategory(sms.body, chosen.counterparty ?: "")
+        val interestDeposit = ir.kharjyar.app.core.sms.InterestSmsDetector.isInterest(sms.body) && direction == TxDirection.DEPOSIT
+        val suggestedCategory = if(interestDeposit) categoryDao.allOnce().firstOrNull{it.name=="سود و سرمایه‌گذاری"}?.id
+            ?: suggestCategory(sms.body, chosen.counterparty ?: "") else suggestCategory(sms.body, chosen.counterparty ?: "")
         val occurredAt = chosen.occurredAtMillis ?: sms.receivedAt
+        txDao.findDuplicate(accountId,chosen.amountRial,direction,occurredAt)?.let { duplicate ->
+            smsDao.update(sms.copy(status=SmsStatus.DONE,matchedAccountId=accountId,extractionJson=chosen.toJson(),updatedAt=now()))
+            val reason=duplicate.description.ifBlank{duplicate.categoryId?.let{categoryDao.byId(it)?.name}.orEmpty()}
+            return ProcessOutcome.DuplicateFound(sms.id,duplicate.id,reason)
+        }
 
         val txId = db.withTransaction {
             val existing = txDao.bySmsId(sms.id)
@@ -179,8 +278,9 @@ class Repository(val db: KharjYarDatabase) {
                     accountId = accountId,
                     amountRial = chosen.amountRial,
                     direction = direction,
-                    nature = TxNature.UNKNOWN,
+                    nature = if(interestDeposit) TxNature.INCOME else TxNature.UNKNOWN,
                     categoryId = suggestedCategory,
+                    description = if(interestDeposit) "سود واریزشده سپرده" else "",
                     occurredAt = occurredAt,
                     recordedAt = now(),
                     timeIsApproximate = chosen.occurredAtMillis == null,
@@ -206,6 +306,31 @@ class Repository(val db: KharjYarDatabase) {
         return ProcessOutcome.DraftReady(sms.id, txId)
     }
 
+    /** تلاش دوباره برای پیامک‌های بی‌حساب پس از اضافه‌شدن نگاشت‌ها یا پشتیبانی بانک جدید. */
+    suspend fun reprocessPendingAccounts(): List<ProcessOutcome> {
+        val results = mutableListOf<ProcessOutcome>()
+        for (sms in smsDao.listByStatus(listOf(SmsStatus.RAW, SmsStatus.NEEDS_ACCOUNT))) {
+            results += processSms(sms.id)
+        }
+        return results
+    }
+
+    /**
+     * پیامک‌هایی که منتظر قالب مانده‌اند را دوباره پردازش می‌کند.
+     *
+     * بعد از اینکه کاربر یک قالب را آموزش داد، دیگر نباید برای پیامک‌های
+     * هم‌شکلِ در صف، دوباره همان پرسش‌ها تکرار شود.
+     */
+    suspend fun reprocessPending(): Int {
+        var fixed = 0
+        for (sms in smsDao.listByStatus(listOf(SmsStatus.NEEDS_TEMPLATE))) {
+            val accountId = sms.matchedAccountId ?: continue
+            val outcome = processWithAccount(sms, accountId)
+            if (outcome is ProcessOutcome.DraftReady) fixed++
+        }
+        return fixed
+    }
+
     private fun rank(r: ExtractionResult): Int = when (r.confidenceEnum()) {
         Confidence.HIGH -> 3
         Confidence.MEDIUM -> 2
@@ -217,6 +342,27 @@ class Repository(val db: KharjYarDatabase) {
             Rule(it.id, it.keyword, it.categoryId, it.priority, it.createdByUser)
         }
         return CategorySuggester.suggest(text, counterparty, rules)
+    }
+
+    /**
+     * اعلان ممکن است بعد از ثبت دستی همان تراکنش هنوز در نوار اعلان مانده باشد.
+     * پیش‌نویس پیامکی تکراری را اتمیک حذف و شناسه تراکنش ثبت‌شده را برمی‌گرداند.
+     */
+    suspend fun resolvePendingDuplicate(txId:Long):Long? {
+        var existingId:Long?=null
+        db.withTransaction {
+            val pending=txDao.byId(txId)?:return@withTransaction
+            if(pending.status!=TxStatus.PENDING)return@withTransaction
+            val duplicate=txDao.findConfirmedDuplicateExcluding(
+                pending.id,pending.accountId,pending.amountRial,pending.direction,pending.occurredAt
+            )?:return@withTransaction
+            pending.smsId?.let { sid ->
+                smsDao.byId(sid)?.let { smsDao.update(it.copy(status=SmsStatus.DONE,updatedAt=now())) }
+            }
+            txDao.delete(pending.id)
+            existingId=duplicate.id
+        }
+        return existingId
     }
 
     /**
@@ -288,6 +434,25 @@ class Repository(val db: KharjYarDatabase) {
         }
     }
 
+    /**
+     * پس از هر ثبت قطعی، آخرین مانده‌ای را که خود بانک در پیامک همان حساب اعلام
+     * کرده دوباره می‌خواند. نبود مجوز/پیامک یا خطای خواندن نباید ثبت تراکنش را خراب کند.
+     */
+    suspend fun refreshAccountBalanceSnapshot(accountId: Long) {
+        val appContext = context ?: return
+        runCatching {
+            val account = accountDao.byId(accountId) ?: return@runCatching
+            val accounts = accountDao.allOnce()
+            val mappings = accountDao.allSenders()
+            val sms = BankBalanceRefreshService.latest(appContext, account, accounts, mappings) ?: return@runCatching
+            val dao = db.bankBalanceSnapshotDao()
+            val previous = dao.byAccount(account.id)
+            if (previous == null || sms.occurredAt >= previous.messageAt) {
+                dao.upsert(BankBalanceSnapshotEntity(account.id, sms.balanceRial, sms.occurredAt, sms.smsId))
+            }
+        }
+    }
+
     /** ثبت دستی تراکنش. */
     suspend fun addManualTransaction(
         accountId: Long,
@@ -323,7 +488,62 @@ class Repository(val db: KharjYarDatabase) {
                 }
             }
         }
+        refreshAccountBalanceSnapshot(accountId)
         return id
+    }
+
+    /**
+     * انتقال بین دو حساب خود کاربر؛ هر دو سمت در یک تراکنش دیتابیس ساخته می‌شوند.
+     * سمت مبدأ برداشت و سمت مقصد واریز است و هر دو یک transferGroupId مشترک دارند.
+     */
+    suspend fun addInternalTransfer(
+        fromAccountId: Long,
+        toAccountId: Long,
+        amountRial: Long,
+        description: String,
+        occurredAt: Long
+    ): Pair<Long, Long> {
+        require(fromAccountId != toAccountId) { "مبدأ و مقصد انتقال یکسان است" }
+        require(amountRial > 0) { "مبلغ انتقال باید مثبت باشد" }
+        var outgoingId = 0L
+        var incomingId = 0L
+        db.withTransaction {
+            val fromTitle = accountDao.byId(fromAccountId)?.title ?: "مبدأ"
+            val toTitle = accountDao.byId(toAccountId)?.title ?: "مقصد"
+            val reason = description.trim().takeIf { it.isNotBlank() }?.let { " — بابت $it" } ?: ""
+            val outgoingDescription = "انتقال وجه به حساب $toTitle$reason"
+            val incomingDescription = "انتقال وجه از حساب $fromTitle$reason"
+            val groupId = transferDao.insert(
+                TransferGroupEntity(createdAt = now(), incomplete = false, note = "انتقال دستی بین حساب‌های کاربر")
+            )
+            val common = TransactionEntity(
+                accountId = fromAccountId,
+                amountRial = amountRial,
+                direction = TxDirection.WITHDRAW,
+                nature = TxNature.TRANSFER,
+                categoryId = null,
+                description = outgoingDescription,
+                occurredAt = occurredAt,
+                recordedAt = now(),
+                source = TxSource.MANUAL,
+                status = TxStatus.CONFIRMED,
+                transferGroupId = groupId,
+                userEdited = true
+            )
+            outgoingId = txDao.insert(common.copy(counterparty = "حساب دیگر من"))
+            incomingId = txDao.insert(
+                common.copy(
+                    id = 0,
+                    accountId = toAccountId,
+                    direction = TxDirection.DEPOSIT,
+                    description = incomingDescription,
+                    counterparty = "حساب دیگر من"
+                )
+            )
+        }
+        refreshAccountBalanceSnapshot(fromAccountId)
+        refreshAccountBalanceSnapshot(toAccountId)
+        return outgoingId to incomingId
     }
 
     /** خلاصه مالی یک بازه: انتقال داخلی در جمع درآمد/هزینه حساب نمی‌شود. */
@@ -339,24 +559,9 @@ class Repository(val db: KharjYarDatabase) {
 
     /** @param accountId اگر داده شود، خلاصه فقط برای همان حساب محاسبه می‌شود. */
     suspend fun summary(from: Long, to: Long, accountId: Long? = null): Summary {
-        val txs = txDao.listRange(from, to).let { list ->
-            if (accountId == null) list else list.filter { it.accountId == accountId }
-        }
-        var income = 0L; var expense = 0L
-        var pIncome = 0L; var pExpense = 0L; var pCount = 0
-        for (t in txs) {
-            if (t.nature == TxNature.TRANSFER) continue
-            val isConfirmed = t.status == TxStatus.CONFIRMED
-            when {
-                t.nature == TxNature.INCOME || (t.nature == TxNature.UNKNOWN && t.direction == TxDirection.DEPOSIT) -> {
-                    if (isConfirmed) income += t.amountRial else { pIncome += t.amountRial; pCount++ }
-                }
-                t.nature == TxNature.EXPENSE || (t.nature == TxNature.UNKNOWN && t.direction == TxDirection.WITHDRAW) -> {
-                    if (isConfirmed) expense += t.amountRial else { pExpense += t.amountRial; pCount++ }
-                }
-            }
-        }
-        return Summary(income, expense, pCount, pIncome, pExpense)
+        // منطق جمع‌زدن در TxSummarizer است تا صفحه خانه و ویجت دقیقاً یک محاسبه داشته باشند.
+        val s = TxSummarizer.summarize(txDao.listRange(from, to), accountId)
+        return Summary(s.incomeRial, s.expenseRial, s.pendingCount, s.pendingIncomeRial, s.pendingExpenseRial)
     }
 
     /** بازه ماه شمسی جاری. */

@@ -137,6 +137,12 @@ data class PersianDate(val year: Int, val month: Int, val day: Int) : Comparable
 
         fun today(zone: ZoneId = TEHRAN): PersianDate = fromLocalDate(LocalDate.now(zone))
 
+        /** ساعت و دقیقه همین لحظه (به وقت تهران)؛ مقدار پیش‌فرض فرم‌های ثبت. */
+        fun nowHourMinute(zone: ZoneId = TEHRAN): Pair<Int, Int> {
+            val t = java.time.LocalTime.now(zone)
+            return t.hour to t.minute
+        }
+
         fun formatDateTime(millis: Long, zone: ZoneId = TEHRAN, persianDigits: Boolean = true): String {
             val zdt = Instant.ofEpochMilli(millis).atZone(zone)
             val pd = fromLocalDate(zdt.toLocalDate())

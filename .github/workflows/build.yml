@@ -39,6 +39,26 @@ jobs:
           set -o pipefail
           ./gradlew :app:testDebugUnitTest --stacktrace --console=plain 2>&1 | tee unittest.log
 
+      - name: Report unit-test failures
+        if: steps.unittests.outcome != 'success'
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          found = False
+          for path in glob.glob('app/build/test-results/testDebugUnitTest/*.xml'):
+              root = ET.parse(path).getroot()
+              for case in root.findall('.//testcase'):
+                  failure = case.find('failure')
+                  error = case.find('error')
+                  problem = failure if failure is not None else error
+                  if problem is not None:
+                      found = True
+                      message = (problem.get('message') or problem.text or 'failed').splitlines()[0]
+                      print(f"::error title=Unit test failed::{case.get('classname')}.{case.get('name')}: {message}")
+          if not found:
+              print('::error title=Unit tests failed::No parsed test result; inspect unittest.log artifact')
+          PY
+
       - name: Assemble debug APK
         id: assemble
         continue-on-error: true
@@ -74,6 +94,22 @@ jobs:
           set -o pipefail
           ./gradlew :app:assembleRelease --stacktrace --console=plain 2>&1 | tee release.log
 
+      # هواشناسی به اینترنت و موقعیت تقریبی نیاز دارد، اما موقعیت دقیق همچنان ممنوع است.
+      - name: Privacy check on merged manifest
+        id: privacy
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          FOUND=0
+          for M in $(find app/build/intermediates -path '*merged_manifest*' -name 'AndroidManifest.xml'); do
+            if grep -Eq 'android.permission.ACCESS_(FINE|COARSE)_LOCATION' "$M"; then
+              echo "::error::مجوز موقعیت مکانی در مانیفست ادغام‌شده پیدا شد: $M"
+              FOUND=1
+            fi
+          done
+          if [ "$FOUND" = "1" ]; then exit 1; fi
+          echo "مانیفست هیچ مجوز موقعیت مکانی ندارد"
+
       - name: Lint debug
         id: lint
         continue-on-error: true
@@ -93,6 +129,7 @@ jobs:
             echo "- تاریخ: $(date -u '+%Y-%m-%d %H:%M UTC')"
             echo "- unit tests: ${{ steps.unittests.outcome }}"
             echo "- assembleDebug: ${{ steps.assemble.outcome }}"
+            echo "- بررسی حریم خصوصی (مانیفست ادغام‌شده): ${{ steps.privacy.outcome }}"
             echo "- lintDebug: ${{ steps.lint.outcome }}"
             echo "- assembleRelease: ${{ steps.release.outcome }}"
             echo ""
@@ -101,13 +138,19 @@ jobs:
             python3 scripts/test_summary.py
             echo '```'
           } > dist/build-report.md
-          tail -n 120 unittest.log > dist/unittest-tail.log || true
-          tail -n 120 assemble.log > dist/assemble-tail.log || true
+          tail -n 5000 unittest.log > dist/unittest-tail.log || true
+          tail -n 5000 assemble.log > dist/assemble-tail.log || true
           # خطاهای کامپایل کاتلین/جاوا جدا ذخیره می‌شوند (دنباله لاگ معمولاً فقط stacktrace گریدل است)
-          grep -hE "^(e:|w: .*error|.*error:)" unittest.log assemble.log 2>/dev/null \
+          grep -hE "^(e:|w: .*error|.*error:)|FAILURE:|Execution failed for task|^Caused by:" unittest.log assemble.log 2>/dev/null \
             | head -n 200 > dist/compile-errors.log || true
+          if [ -s dist/compile-errors.log ]; then
+            while IFS= read -r line; do
+              safe=${line//'%'/'%25'}; safe=${safe//$'\r'/'%0D'}; safe=${safe//$'\n'/'%0A'}
+              echo "::error title=Gradle diagnostic::$safe"
+            done < <(head -n 20 dist/compile-errors.log)
+          fi
           tail -n 60 lint.log > dist/lint-tail.log || true
-          tail -n 120 release.log > dist/release-tail.log || true
+          tail -n 5000 release.log > dist/release-tail.log || true
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             cp app/build/outputs/apk/debug/app-debug.apk dist/KharjYar-debug.apk
             (cd dist && sha256sum KharjYar-debug.apk > KharjYar-debug.apk.sha256)
@@ -143,19 +186,8 @@ jobs:
             mkdir -p dist/schemas && cp -r app/schemas/. dist/schemas/ || true
           fi
 
-      - name: Commit outputs back to branch
-        if: always()
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A dist app/schemas || true
-          if git diff --cached --quiet; then
-            echo "nothing to commit"
-          else
-            git commit -m "ci: build outputs (${GITHUB_RUN_NUMBER}) [skip ci]"
-            git pull --rebase origin "${GITHUB_REF_NAME}" || true
-            git push origin HEAD:"${GITHUB_REF_NAME}"
-          fi
+      # خروجی باینری فقط به‌صورت Artifact منتشر می‌شود. commit کردن APK از داخل همان
+      # Workflow باعث push race و قرمز شدن اجرای موفق می‌شد.
 
       - name: Upload artifacts
         if: always()
@@ -168,6 +200,6 @@ jobs:
           if-no-files-found: warn
 
       - name: Fail job if build failed
-        if: steps.assemble.outcome != 'success' || steps.unittests.outcome != 'success'
+        if: steps.assemble.outcome != 'success' || steps.unittests.outcome != 'success' || steps.privacy.outcome != 'success'
         run: |
           echo "build or tests failed"; exit 1

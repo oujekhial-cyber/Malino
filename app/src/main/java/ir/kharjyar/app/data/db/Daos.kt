@@ -27,7 +27,7 @@ interface AccountDao {
     @Query("SELECT * FROM accounts")
     suspend fun allOnce(): List<AccountEntity>
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE accountId = :accountId")
+    @Query("SELECT COUNT(*) FROM transactions WHERE accountId = :accountId AND deletedAt IS NULL")
     suspend fun transactionCount(accountId: Long): Int
 
     @Query("DELETE FROM accounts WHERE id = :id")
@@ -64,6 +64,15 @@ interface BlockedSenderDao {
     suspend fun unblock(sender: String)
 }
 
+@Dao interface SpamSmsDao {
+    @Query("SELECT * FROM spam_sms ORDER BY receivedAt DESC") fun observeAll():Flow<List<SpamSmsEntity>>
+    @Query("SELECT * FROM spam_sms ORDER BY receivedAt DESC") suspend fun allOnce():List<SpamSmsEntity>
+    @Query("SELECT * FROM spam_sms WHERE id=:id") suspend fun byId(id:Long):SpamSmsEntity?
+    @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insert(v:SpamSmsEntity):Long
+    @Query("DELETE FROM spam_sms WHERE id=:id") suspend fun delete(id:Long)
+    @Query("DELETE FROM spam_sms WHERE sender=:sender") suspend fun deleteSenderMessages(sender:String)
+}
+
 @Dao
 interface SmsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -74,6 +83,9 @@ interface SmsDao {
 
     @Query("SELECT * FROM sms_candidates WHERE id = :id")
     suspend fun byId(id: Long): SmsCandidateEntity?
+
+    @Query("SELECT * FROM sms_candidates WHERE fingerprint=:fingerprint LIMIT 1")
+    suspend fun byFingerprint(fingerprint:String):SmsCandidateEntity?
 
     @Query("SELECT * FROM sms_candidates WHERE status IN (:statuses) ORDER BY receivedAt DESC")
     fun observeByStatus(statuses: List<Int>): Flow<List<SmsCandidateEntity>>
@@ -126,49 +138,79 @@ interface TransactionDao {
     @Update
     suspend fun update(tx: TransactionEntity)
 
-    @Query("SELECT * FROM transactions WHERE id = :id")
+    @Query("SELECT * FROM transactions WHERE id = :id AND deletedAt IS NULL")
     suspend fun byId(id: Long): TransactionEntity?
 
-    @Query("SELECT * FROM transactions WHERE smsId = :smsId LIMIT 1")
+    @Query("SELECT * FROM transactions WHERE smsId = :smsId AND deletedAt IS NULL LIMIT 1")
     suspend fun bySmsId(smsId: Long): TransactionEntity?
 
-    @Query("SELECT * FROM transactions ORDER BY occurredAt DESC LIMIT :limit")
+    @Query("SELECT * FROM transactions WHERE deletedAt IS NULL AND accountId=:accountId AND amountRial=:amount AND direction=:direction AND occurredAt BETWEEN :from AND :to ORDER BY ABS(occurredAt-:at) LIMIT 1")
+    suspend fun findDuplicate(accountId:Long,amount:Long,direction:Int,at:Long,from:Long=at-120000,to:Long=at+120000):TransactionEntity?
+
+    @Query("SELECT * FROM transactions WHERE deletedAt IS NULL AND id != :excludeId AND status = 1 AND accountId=:accountId AND amountRial=:amount AND direction=:direction AND occurredAt BETWEEN :from AND :to ORDER BY ABS(occurredAt-:at) LIMIT 1")
+    suspend fun findConfirmedDuplicateExcluding(excludeId:Long,accountId:Long,amount:Long,direction:Int,at:Long,from:Long=at-120000,to:Long=at+120000):TransactionEntity?
+
+    @Query("SELECT * FROM transactions WHERE deletedAt IS NULL ORDER BY occurredAt DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<TransactionEntity>>
 
     @Query(
         """SELECT * FROM transactions
-           WHERE occurredAt >= :from AND occurredAt < :to
+           WHERE deletedAt IS NULL AND occurredAt >= :from AND occurredAt < :to
            ORDER BY occurredAt DESC"""
     )
     fun observeRange(from: Long, to: Long): Flow<List<TransactionEntity>>
 
     @Query(
         """SELECT * FROM transactions
-           WHERE occurredAt >= :from AND occurredAt < :to
+           WHERE deletedAt IS NULL AND occurredAt >= :from AND occurredAt < :to
            ORDER BY occurredAt ASC"""
     )
     suspend fun listRange(from: Long, to: Long): List<TransactionEntity>
 
-    @Query("SELECT * FROM transactions ORDER BY occurredAt DESC")
+    @Query("SELECT * FROM transactions WHERE deletedAt IS NULL ORDER BY occurredAt DESC")
     fun observeAll(): Flow<List<TransactionEntity>>
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE status = 0")
+    @Query("SELECT COUNT(*) FROM transactions WHERE deletedAt IS NULL AND status = 0")
     fun observePendingCount(): Flow<Int>
 
-    @Query("DELETE FROM transactions WHERE id = :id")
-    suspend fun delete(id: Long)
+    @Query("UPDATE transactions SET deletedAt=:deletedAt WHERE id = :id")
+    suspend fun delete(id: Long, deletedAt: Long = System.currentTimeMillis())
 
     /** حذف گروهی برای انتخاب چندتایی. */
-    @Query("DELETE FROM transactions WHERE id IN (:ids)")
-    suspend fun deleteAll(ids: List<Long>)
+    @Query("UPDATE transactions SET deletedAt=:deletedAt WHERE id IN (:ids)")
+    suspend fun deleteAll(ids: List<Long>, deletedAt: Long = System.currentTimeMillis())
 
     /** درج دوباره با همان شناسه، برای «بازگرداندن» پس از حذف. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun restore(txs: List<TransactionEntity>)
 
+    @Query("SELECT * FROM transactions WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC")
+    fun observeTrash(): Flow<List<TransactionEntity>>
+
+    @Query("UPDATE transactions SET deletedAt=NULL WHERE id=:id")
+    suspend fun restoreFromTrash(id: Long)
+
+    @Query("UPDATE transactions SET deletedAt=NULL WHERE transferGroupId=:groupId")
+    suspend fun restoreTransferFromTrash(groupId: Long)
+
+    @Query("DELETE FROM transactions WHERE id=:id AND deletedAt IS NOT NULL")
+    suspend fun permanentlyDelete(id: Long)
+
+    @Query("DELETE FROM transactions WHERE transferGroupId=:groupId AND deletedAt IS NOT NULL")
+    suspend fun permanentlyDeleteTransfer(groupId: Long)
+
+    @Query("DELETE FROM transactions WHERE deletedAt IS NOT NULL")
+    suspend fun emptyTrash()
+
+    @Query("DELETE FROM transactions WHERE deletedAt IS NOT NULL AND deletedAt <= :cutoff")
+    suspend fun purgeTrashOlderThan(cutoff: Long)
+
+    @Query("DELETE FROM transaction_attachments WHERE transactionId NOT IN (SELECT id FROM transactions)")
+    suspend fun purgeOrphanAttachments()
+
     @Query(
         """SELECT * FROM transactions
-           WHERE transferGroupId IS NULL AND nature = 3
+           WHERE deletedAt IS NULL AND transferGroupId IS NULL AND nature = 3
              AND amountRial = :amount AND direction = :direction
              AND accountId != :excludeAccountId
              AND occurredAt BETWEEN :from AND :to"""
@@ -181,10 +223,10 @@ interface TransactionDao {
         to: Long
     ): List<TransactionEntity>
 
-    @Query("SELECT * FROM transactions")
+    @Query("SELECT * FROM transactions WHERE deletedAt IS NULL")
     suspend fun allOnce(): List<TransactionEntity>
 
-    @Query("SELECT * FROM transactions WHERE accountId = :accountId AND balanceAfterRial IS NOT NULL ORDER BY occurredAt DESC LIMIT 1")
+    @Query("SELECT * FROM transactions WHERE deletedAt IS NULL AND accountId = :accountId AND balanceAfterRial IS NOT NULL ORDER BY occurredAt DESC LIMIT 1")
     suspend fun latestWithBalance(accountId: Long): TransactionEntity?
 }
 
@@ -205,23 +247,45 @@ interface TransferDao {
 
 @Dao
 interface CategoryDao {
-    @Insert
+    /** نام دسته در دیتابیس یکتا است؛ تکراری به‌جای crash با -1 رد می‌شود. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(category: CategoryEntity): Long
 
     @Update
     suspend fun update(category: CategoryEntity)
 
-    @Query("SELECT * FROM categories WHERE archived = 0 ORDER BY name")
+    @Query("SELECT * FROM categories WHERE archived = 0 ORDER BY sortOrder, name")
     fun observeActive(): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM categories ORDER BY archived, name")
+    @Query("SELECT * FROM categories ORDER BY sortOrder, name")
     fun observeAll(): Flow<List<CategoryEntity>>
+
+    @Query("UPDATE categories SET sortOrder=:position WHERE id=:id")
+    suspend fun setSortOrder(id:Long,position:Int)
+
+    @Query("SELECT COALESCE(MAX(sortOrder),-1)+1 FROM categories")
+    suspend fun nextSortOrder():Int
 
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun byId(id: Long): CategoryEntity?
 
     @Query("SELECT * FROM categories")
     suspend fun allOnce(): List<CategoryEntity>
+
+    /** تعداد تراکنش‌هایی که این دسته را دارند. */
+    @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :id AND deletedAt IS NULL")
+    suspend fun usageCount(id: Long): Int
+
+    /** برداشتن دسته از تراکنش‌ها (پیش از حذف دسته، تا ارجاع بی‌صاحب نماند). */
+    @Query("UPDATE transactions SET categoryId = NULL WHERE categoryId = :id")
+    suspend fun detachTransactions(id: Long)
+
+    @Query("DELETE FROM categories WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    /** حذف قوانین خودکاری که به این دسته اشاره می‌کنند. */
+    @Query("DELETE FROM category_rules WHERE categoryId = :id")
+    suspend fun deleteRulesOfCategory(id: Long)
 
     @Insert
     suspend fun insertRule(rule: CategoryRuleEntity): Long
