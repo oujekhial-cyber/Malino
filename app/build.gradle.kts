@@ -14,9 +14,8 @@ android {
 
     defaultConfig {
         applicationId = "ir.kharjyar.app"
-        // Android 11 (API 30) and newer. Kept in an isolated commit so this
-        // compatibility change can be rolled back without reverting other fixes.
-        minSdk = 30
+        // Android 12 (API 31) and newer.
+        minSdk = 31
         targetSdk = 35
         versionCode = 13
         versionName = "1.0.12"
