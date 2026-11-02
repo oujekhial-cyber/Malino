@@ -20,7 +20,8 @@ class ProfessionalInteractiveReportGuardTest {
  }
  @Test fun `transaction account combo starts with all accounts`() {
   val s=File("src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt").readText()
-  assertTrue(s.contains("var filterAccount by remember { mutableStateOf<Long?>(null) }"))
+  assertTrue(s.contains("settings.defaultAccountId?.takeIf"))
+  assertTrue(s.contains("transactionFilterSession==null"))
   assertTrue(s.contains("options=listOf<Long?>(null)+accounts.filterNot{it.archived}.map{it.id}"))
   assertTrue(s.contains("if(id==null)\"همه حساب‌ها\""))
  }

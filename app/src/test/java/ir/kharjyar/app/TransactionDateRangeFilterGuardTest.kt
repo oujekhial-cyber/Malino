@@ -12,7 +12,7 @@ class TransactionDateRangeFilterGuardTest {
             "PersianDateField(filterFromDate",
             "PersianDateField(filterToDate",
             "tx.occurredAt in rangeStart until rangeEndExclusive",
-            "filterPeriod=it;dateRangeEnabled=false",
+            "selectTransactionPeriod(it);dateRangeEnabled=false",
             "درآمد واقعی",
             "هزینه واقعی",
             "actualIncome",

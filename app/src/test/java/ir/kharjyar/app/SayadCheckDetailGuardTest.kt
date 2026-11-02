@@ -23,7 +23,7 @@ class SayadCheckDetailGuardTest {
    "val target=2.5f",
    "detectTransformGestures",
    "coerceIn(1f,4f)",
-   "sayadDigits.forEach{digit->",
+   "Digits.toPersian(check.sayadId.ifBlank{\"—\"})",
    "numericAmountDigits.forEach{digit->",
    "check.amountInWords",
    "check.chequeAccountNumber",

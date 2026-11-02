@@ -12,7 +12,7 @@ class TransactionAccountComboFilterGuardTest {
   assertTrue(month>=0)
   assertTrue(account>month)
   assertTrue(source.contains("options=listOf<Long?>(null)+accounts.filterNot{it.archived}.map{it.id}"))
-  assertTrue(source.contains("onSelect={filterAccount=it}"))
+  assertTrue(source.contains("onSelect={viewModel.setTransactionAccountFilter(it)}"))
   assertTrue(source.contains("if(id==null)\"همه حساب‌ها\""))
  }
 }

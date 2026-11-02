@@ -18,7 +18,7 @@ class CheckBankBranchMigrationGuardTest {
   assertTrue(screen.contains("check.bankBranch.ifBlank{\"شعبه\"}"))
   assertTrue(screen.contains("check.chequeAccountNumber"))
   assertTrue(screen.contains("check.chequeIban"))
-  assertTrue(screen.contains("Modifier.absoluteOffset(x(.06f),y(.815f))"))
-  assertTrue(screen.contains("Modifier.absoluteOffset(x(.06f),y(.895f))"))
+  assertTrue(screen.contains("Modifier.absoluteOffset(x(.055f),y(.762f))"))
+  assertTrue(screen.contains("Modifier.absoluteOffset(x(.055f),y(.842f))"))
  }
 }
