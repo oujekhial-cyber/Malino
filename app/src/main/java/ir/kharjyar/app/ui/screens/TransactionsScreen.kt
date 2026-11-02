@@ -102,19 +102,32 @@ fun TransactionsScreen(
     val all by viewModel.allTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val transactionFilterSession by viewModel.transactionFilterSession.collectAsState()
     val skin = LocalAppSkin.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
 
     var query by remember { mutableStateOf("") }
-    var filterAccount by remember { mutableStateOf<Long?>(null) }
     var filterNature by remember { mutableStateOf<Int?>(null) }
-    val monthPeriods=remember(all){
-        val current=PersianDate.today()
-        val keys=(all.map{PersianDate.fromMillis(it.occurredAt)}.map{it.year to it.month}+(current.year to current.month)).distinct().sortedWith(compareByDescending<Pair<Int,Int>>{it.first}.thenByDescending{it.second})
+    val currentTransactionMonth=PersianDate.today()
+    val monthPeriods=remember(all,currentTransactionMonth.year,currentTransactionMonth.month){
+        val keys=(all.map{PersianDate.fromMillis(it.occurredAt)}.map{it.year to it.month}+(currentTransactionMonth.year to currentTransactionMonth.month)).distinct().sortedWith(compareByDescending<Pair<Int,Int>>{it.first}.thenByDescending{it.second})
         listOf(TransactionMonthPeriod(null,null,"همه ماه‌ها"))+keys.map{(year,month)->TransactionMonthPeriod(year,month,"${PersianDate(year,month,1).monthName()} ${Digits.toPersian(year.toString())}")}
     }
-    var filterPeriod by remember { mutableStateOf(TransactionMonthPeriod(null,null,"همه ماه‌ها")) }
+    // تا وقتی کاربر چیزی را عوض نکرده، حساب پیش‌فرض تنظیمات و ماه جاری انتخاب‌اند.
+    // session داخل ViewModel باعث می‌شود ورود به جزئیات یا صفحه دیگر این دو را reset نکند.
+    val filterAccount=if(transactionFilterSession==null){
+        settings.defaultAccountId?.takeIf{id->accounts.any{it.id==id&&!it.archived}}
+    }else transactionFilterSession?.accountId
+    val selectedFilterYear=transactionFilterSession?.year
+        ?:if(transactionFilterSession==null)currentTransactionMonth.year else null
+    val selectedFilterMonth=transactionFilterSession?.month
+        ?:if(transactionFilterSession==null)currentTransactionMonth.month else null
+    val filterPeriod=monthPeriods.firstOrNull{it.year==selectedFilterYear&&it.month==selectedFilterMonth}
+        ?:monthPeriods.first{it.year==currentTransactionMonth.year&&it.month==currentTransactionMonth.month}
+    fun selectTransactionPeriod(period:TransactionMonthPeriod){
+        viewModel.setTransactionMonthFilter(period.year,period.month)
+    }
     var dateRangeEnabled by remember { mutableStateOf(false) }
     var filterFromDate by remember { mutableStateOf(PersianDate.today().plusDays(-30)) }
     var filterToDate by remember { mutableStateOf(PersianDate.today()) }
@@ -262,12 +275,12 @@ fun TransactionsScreen(
             }
 
             // انتخاب ماه، کمبوباکس کلاسیک روی خود صفحه است و فهرست آن مستقیم زیر کنترل باز می‌شود.
-            ComboBox("ماه",monthPeriods,filterPeriod,{filterPeriod=it;dateRangeEnabled=false},labelOf={it.label})
+            ComboBox("ماه",monthPeriods,filterPeriod,{selectTransactionPeriod(it);dateRangeEnabled=false},labelOf={it.label})
             ComboBox(
                 label="حساب",
                 options=listOf<Long?>(null)+accounts.filterNot{it.archived}.map{it.id},
                 selected=filterAccount,
-                onSelect={filterAccount=it},
+                onSelect={viewModel.setTransactionAccountFilter(it)},
                 labelOf={id->if(id==null)"همه حساب‌ها" else accounts.firstOrNull{it.id==id}?.let{account->if(account.bankName.isBlank())account.title else "${account.title} • ${account.bankName}"}?:"حساب"}
             )
 
@@ -281,7 +294,7 @@ fun TransactionsScreen(
             ) {
                 item {
                     ProfessionalFilterChip("همه", activeFilterCount == 0) {
-                        filterDirection = null; filterNature = null; filterAccount = null; filterPeriod=monthPeriods.first(); dateRangeEnabled=false; exactAmountInput=""; onlyPending = false
+                        filterDirection = null; filterNature = null; viewModel.setTransactionAccountFilter(null); selectTransactionPeriod(monthPeriods.first()); dateRangeEnabled=false; exactAmountInput=""; onlyPending = false
                     }
                 }
                 item {
@@ -312,12 +325,12 @@ fun TransactionsScreen(
                 ) {
                     Text("فعال:", style = MaterialTheme.typography.labelSmall, color = skin.onBackdrop.copy(alpha = .65f))
                     filterAccount?.let { id ->
-                        ProfessionalFilterChip(accounts.firstOrNull { it.id == id }?.title ?: "حساب", true) { filterAccount = null }
+                        ProfessionalFilterChip(accounts.firstOrNull { it.id == id }?.title ?: "حساب", true) { viewModel.setTransactionAccountFilter(null) }
                     }
                     filterNature?.let { nature ->
                         ProfessionalFilterChip(when (nature) { TxNature.INCOME -> "درآمد"; TxNature.EXPENSE -> "هزینه"; TxNature.TRANSFER -> "انتقال"; else -> "غیر درآمد/هزینه" }, true) { filterNature = null }
                     }
-                    if(filterPeriod.year!=null) ProfessionalFilterChip(filterPeriod.label,true){filterPeriod=monthPeriods.first()}
+                    if(filterPeriod.year!=null) ProfessionalFilterChip(filterPeriod.label,true){selectTransactionPeriod(monthPeriods.first())}
                     if(dateRangeEnabled) ProfessionalFilterChip(
                         "${filterFromDate.format()} تا ${filterToDate.format()}", true
                     ){dateRangeEnabled=false}
@@ -430,7 +443,7 @@ fun TransactionsScreen(
                                 checked = dateRangeEnabled,
                                 onCheckedChange = { enabled ->
                                     dateRangeEnabled = enabled
-                                    if (enabled) filterPeriod = monthPeriods.first()
+                                    if (enabled) selectTransactionPeriod(monthPeriods.first())
                                 }
                             )
                         }
@@ -444,8 +457,8 @@ fun TransactionsScreen(
                 }
                 Text("حساب", style = MaterialTheme.typography.titleSmall)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    item { ProfessionalFilterChip("همه حساب‌ها", filterAccount == null) { filterAccount = null } }
-                    items(accounts.size) { index -> val account = accounts[index]; ProfessionalFilterChip(account.title, filterAccount == account.id) { filterAccount = account.id } }
+                    item { ProfessionalFilterChip("همه حساب‌ها", filterAccount == null) { viewModel.setTransactionAccountFilter(null) } }
+                    items(accounts.size) { index -> val account = accounts[index]; ProfessionalFilterChip(account.title, filterAccount == account.id) { viewModel.setTransactionAccountFilter(account.id) } }
                 }
                 SkinCard(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -454,7 +467,7 @@ fun TransactionsScreen(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;filterAccount=null;filterPeriod=monthPeriods.first();dateRangeEnabled=false;exactAmountInput="";onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
+                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;viewModel.setTransactionAccountFilter(null);selectTransactionPeriod(monthPeriods.first());dateRangeEnabled=false;exactAmountInput="";onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
                     androidx.compose.material3.Button(onClick = { showFilters=false }, modifier = Modifier.weight(1f)) { Text("نمایش ${Digits.toPersian(filtered.size.toString())} نتیجه") }
                 }
             }

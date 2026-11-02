@@ -9,7 +9,8 @@ class DashboardAccountSnapGuardTest {
   val screen=File("src/main/java/ir/kharjyar/app/ui/screens/DashboardScreen.kt").readText()
   listOf(
    "val accountSnapStepPx",
-   "pageWidth + 10.dp",
+   "pageWidth.roundToPx() + 10.dp.roundToPx()",
+   "اختلاف نیم/یک پیکسلی در هر صفحه جمع",
    "snapshotFlow{rowState.isScrollInProgress}",
    ".distinctUntilChanged().drop(1)",
    "kotlin.math.round(rowState.value/accountSnapStepPx)",

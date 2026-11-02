@@ -366,7 +366,12 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                 val accountAutoScrollEdgePx = with(LocalDensity.current) { 96.dp.toPx() }
                 val accountAutoScrollStepPx = with(LocalDensity.current) { 7.dp.toPx() }
                 val dashboardWindowWidthPx = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
-                val accountSnapStepPx = with(LocalDensity.current) { (pageWidth + 10.dp).toPx() }
+                // Compose عرض کارت و فاصله را جداگانه به پیکسل صحیح گرد می‌کند. اگر مجموع
+                // dp را یک‌جا با toPx تبدیل کنیم، اختلاف نیم/یک پیکسلی در هر صفحه جمع
+                // می‌شود و پس از چند رفت‌وبرگشت مرکز کارت به‌تدریج جابه‌جا خواهد شد.
+                val accountSnapStepPx = with(LocalDensity.current) {
+                    (pageWidth.roundToPx() + 10.dp.roundToPx()).toFloat()
+                }
                 // بعد از پایان هر fling/drag معمولی، ردیف دقیقاً روی نزدیک‌ترین کارت می‌ایستد؛
                 // بنابراین در حالت سکون هیچ‌گاه دو کارت نصفه قاب اصلی را اشغال نمی‌کنند.
                 LaunchedEffect(rowState,accountSnapStepPx){

@@ -176,7 +176,6 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
  val personOnCheck=(if(received)check.issuerName else check.receiverName).ifBlank{check.counterparty}
  val chequeDate=PersianDate.fromMillis(check.dueAt)
  val chequeDateDigits=chequeDate.year.toString().padStart(4,'0')+chequeDate.month.toString().padStart(2,'0')+chequeDate.day.toString().padStart(2,'0')
- val sayadDigits=Digits.normalize(check.sayadId).filter(Char::isDigit).takeLast(16).padStart(16,' ')
  // خانه‌های مبلغ از چپ به راست چیده شده‌اند؛ padStart باعث می‌شود رقم یکان
  // همیشه داخل آخرین خانه فیزیکی سمت راست قرار بگیرد.
  val numericAmountDigits=check.amountRial.toString().takeLast(15).padStart(15,' ')
@@ -231,14 +230,16 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
      // جای‌گذاری اطلاعات دقیقاً مطابق ساختار چک صیادی مرجع، بدون بخش ته‌چک.
      Text(check.bankName.ifBlank{"نام بانک"},Modifier.absoluteOffset(x(.40f),y(.135f)).width(chequeWidth*.25f),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.titleMedium)
      Text(check.bankBranch.ifBlank{"شعبه"},Modifier.absoluteOffset(x(.43f),y(.205f)).width(chequeWidth*.19f),color=ink.copy(.82f),fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
-     Text(Digits.ltr(Digits.toPersian(check.serialNumber.ifBlank{"—"})),Modifier.absoluteOffset(x(.16f),y(.055f)).width(chequeWidth*.25f),color=ink,fontWeight=FontWeight.Bold,maxLines=1,style=MaterialTheme.typography.labelMedium)
-     Row(Modifier.absoluteOffset(x(.160f),y(.235f)).width(chequeWidth*.254f).height(chequeHeight*.076f)){
-      sayadDigits.forEach{digit->
-       Box(Modifier.weight(1f).fillMaxHeight(),contentAlignment=Alignment.Center){
-        if(digit!=' ')Text(Digits.toPersian(digit.toString()),color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
-       }
-      }
-     }
+     // شماره سریال باید داخل فضای سفید زیر عنوان چاپی باشد، نه روی خود عنوان.
+     Text(Digits.ltr(Digits.toPersian(check.serialNumber.ifBlank{"—"})),Modifier.absoluteOffset(x(.16f),y(.100f)).width(chequeWidth*.18f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     // قاب‌های مربعی شناسه از قالب حذف شده‌اند؛ شناسه به‌صورت یک نوشته پیوسته
+     // و خوانا در فضای سفید زیر عنوان صیاد قرار می‌گیرد.
+     Text(
+      Digits.ltr(Digits.toPersian(check.sayadId.ifBlank{"—"})),
+      Modifier.absoluteOffset(x(.160f),y(.235f)).width(chequeWidth*.254f),
+      color=ink,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,maxLines=1,
+      style=MaterialTheme.typography.titleSmall
+     )
      Row(Modifier.absoluteOffset(x(.651f),y(.126f)).width(chequeWidth*.205f).height(chequeHeight*.065f)){
       chequeDateDigits.forEach{digit->
        Box(Modifier.weight(1f).fillMaxHeight(),contentAlignment=Alignment.Center){
@@ -256,8 +257,9 @@ private fun SayadCheckDetail(vm:AppViewModel,check:CheckEntity,moneyUnit:ir.khar
        }
       }
      }
-     Text(Digits.ltr(Digits.toPersian(check.chequeAccountNumber.ifBlank{"—"})),Modifier.absoluteOffset(x(.06f),y(.815f)).width(chequeWidth*.44f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
-     Text(Digits.ltr(Digits.toPersian(check.chequeIban.ifBlank{"—"})),Modifier.absoluteOffset(x(.06f),y(.895f)).width(chequeWidth*.44f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     // متن حساب و شبا بالای خط چاپی خودشان قرار می‌گیرد تا خط زیر نوشته بماند.
+     Text(Digits.ltr(Digits.toPersian(check.chequeAccountNumber.ifBlank{"—"})),Modifier.absoluteOffset(x(.055f),y(.762f)).width(chequeWidth*.455f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
+     Text(Digits.ltr(Digits.toPersian(check.chequeIban.ifBlank{"—"})),Modifier.absoluteOffset(x(.055f),y(.842f)).width(chequeWidth*.455f),color=ink,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
      if(check.issuerName.isNotBlank())Text(check.issuerName,Modifier.absoluteOffset(x(.69f),y(.68f)).width(chequeWidth*.23f),color=ink.copy(.84f),textAlign=TextAlign.Center,maxLines=1,style=MaterialTheme.typography.labelMedium)
      }
      }

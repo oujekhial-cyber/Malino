@@ -59,6 +59,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         /** تاریخ صریح استخراج‌شده از فرمان برای فرم‌های تخصصی مثل خرید دارایی. */
         val occurredAt: Long? = null
     )
+    /**
+     * فیلترهای موقت صفحه تراکنش‌ها فقط در حافظه ViewModel نگه داشته می‌شوند:
+     * بین رفت‌وبرگشت‌های ناوبری باقی می‌مانند، اما با بسته‌شدن واقعی برنامه از نو
+     * با حساب پیش‌فرض و ماه جاری آغاز خواهند شد.
+     */
+    data class TransactionFilterSession(val accountId:Long?,val year:Int?,val month:Int?)
+    private val _transactionFilterSession=MutableStateFlow<TransactionFilterSession?>(null)
+    val transactionFilterSession:StateFlow<TransactionFilterSession?> = _transactionFilterSession
+    fun setTransactionAccountFilter(accountId:Long?){
+        val today=PersianDate.today()
+        _transactionFilterSession.value=(_transactionFilterSession.value
+            ?:TransactionFilterSession(accountId,today.year,today.month)).copy(accountId=accountId)
+    }
+    fun setTransactionMonthFilter(year:Int?,month:Int?){
+        _transactionFilterSession.value=(_transactionFilterSession.value
+            ?:TransactionFilterSession(settings.value.defaultAccountId,year,month)).copy(year=year,month=month)
+    }
+
     private val _pendingFeatureCommand = MutableStateFlow<PendingFeatureCommand?>(null)
     val pendingFeatureCommand: StateFlow<PendingFeatureCommand?> = _pendingFeatureCommand
     fun prepareFeatureCommand(command: PendingFeatureCommand) { _pendingFeatureCommand.value = command }
