@@ -22,8 +22,10 @@ class WidgetAlignTest {
         val s = AppSettings()
         assertEquals(WidgetAlign.START, s.widgetTitleAlign)
         assertEquals(WidgetAlign.CENTER, s.widgetClockAlign)
-        // پیش‌فرض عمودی هر دو وسط است
-        assertEquals(WidgetVAlign.CENTER, s.widgetTitleVAlign)
+        // عنوان پیش‌فرض بالاست؛ قیمت‌ها و ساعت جایگاه مستقل و میانی دارند.
+        assertEquals(WidgetVAlign.TOP, s.widgetTitleVAlign)
+        assertEquals(WidgetAlign.START, s.widgetValuesAlign)
+        assertEquals(WidgetVAlign.CENTER, s.widgetValuesVAlign)
         assertEquals(WidgetVAlign.CENTER, s.widgetClockVAlign)
     }
 

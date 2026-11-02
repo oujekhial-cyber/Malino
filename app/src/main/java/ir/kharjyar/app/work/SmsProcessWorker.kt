@@ -43,6 +43,10 @@ class SmsProcessWorker(
                     Notifier.notifyNeedsTemplate(applicationContext, outcome.smsId)
                     Result.success()
                 }
+                is Repository.ProcessOutcome.DuplicateFound -> {
+                    Notifier.notifyDuplicateTransaction(applicationContext,outcome.smsId,outcome.existingTxId,outcome.description)
+                    Result.success()
+                }
                 Repository.ProcessOutcome.AlreadyProcessed -> Result.success()
                 Repository.ProcessOutcome.NotFound -> Result.failure()
             }

@@ -1,0 +1,111 @@
+package ir.kharjyar.app.ui.screens
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import ir.kharjyar.app.assets.GoldPriceService
+import ir.kharjyar.app.assets.MarketPriceCache
+import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.core.money.Money
+import ir.kharjyar.app.core.money.MoneyUnit
+import ir.kharjyar.app.core.text.Digits
+import ir.kharjyar.app.ui.AppViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+
+private data class MarketItem(val code:String,val title:String,val subtitle:String,val symbol:String,val accent:Color)
+private val metalItems=listOf(
+ MarketItem("GOLD18","طلای ۱۸ عیار","هر گرم","Au",Color(0xFFFFC54D)),
+ MarketItem("GOLD24","طلای ۲۴ عیار","هر گرم","24",Color(0xFFFFA83D)),
+ MarketItem("MESGHAL","مثقال طلا","بازار ایران","مث",Color(0xFFE59E31)),
+ MarketItem("SILVER","نقره ۹۹۹","هر گرم","Ag",Color(0xFF9EACBF)))
+private val coinItems=listOf(
+ MarketItem("COIN_EMAMI","سکه امامی","طرح جدید","س",Color(0xFFFFB52E)),MarketItem("COIN_BAHAR","سکه بهار آزادی","طرح قدیم","س",Color(0xFFE6A02D)),
+ MarketItem("COIN_HALF","نیم‌سکه","بهار آزادی","½",Color(0xFFD99731)),MarketItem("COIN_QUARTER","ربع‌سکه","بهار آزادی","¼",Color(0xFFC88D35)),MarketItem("COIN_GRAM","سکه گرمی","بانک مرکزی","گ",Color(0xFFB78642)))
+private val currencyItems=listOf(
+ MarketItem("USD","دلار آمریکا","بازار آزاد","\$",Color(0xFF35C4BB)),MarketItem("EUR","یورو","بازار آزاد","€",Color(0xFF5798FF)),
+ MarketItem("GBP","پوند انگلیس","بازار آزاد","£",Color(0xFFAC79F2)),MarketItem("AED","درهم امارات","بازار آزاد","د.إ",Color(0xFF43B985)),
+ MarketItem("TRY","لیر ترکیه","بازار آزاد","₺",Color(0xFFE98563)),MarketItem("CAD","دلار کانادا","بازار آزاد","C\$",Color(0xFFE45D79)),
+ MarketItem("AUD","دلار استرالیا","بازار آزاد","A\$",Color(0xFF49A5D8)),MarketItem("CHF","فرانک سوئیس","بازار آزاد","Fr",Color(0xFFDF6B70)),
+ MarketItem("CNY","یوان چین","بازار آزاد","¥",Color(0xFFE75858)))
+
+@Composable fun MarketPulseScreen(vm:AppViewModel){
+ val settings by vm.settings.collectAsState();val context=LocalContext.current;val scope=rememberCoroutineScope();val allItems=metalItems+coinItems+currencyItems
+ var selectedGroup by remember{mutableIntStateOf(0)};var refreshKey by remember{mutableStateOf(0)};var loading by remember{mutableStateOf(true)}
+ var values by remember{mutableStateOf<Map<String,Long?>>(emptyMap())};var dailyChanges by remember{mutableStateOf<Map<String,Double?>>(emptyMap())}
+ var updatedAt by remember{mutableStateOf<Long?>(null)};var stale by remember{mutableStateOf(false)}
+ LaunchedEffect(refreshKey){
+  loading=true;val cached=allItems.associate{it.code to MarketPriceCache.read(context,it.code)}
+  if(values.isEmpty())values=cached.mapValues{it.value?.valueRial}
+  val fresh=coroutineScope{allItems.associate{item->item.code to async{GoldPriceService.marketQuote(item.code)}}.mapValues{it.value.await()}}
+  val now=System.currentTimeMillis()
+  fresh.forEach{(code,quote)->quote?.let{MarketPriceCache.write(context,code,it.valueRial,now)}}
+  stale=fresh.values.any{it==null};values=fresh.mapValues{(code,quote)->quote?.valueRial?:cached[code]?.valueRial}
+  dailyChanges=fresh.mapValues{it.value?.dailyChangePercent}
+  updatedAt=if(stale)fresh.mapNotNull{(code,quote)->if(quote==null)cached[code]?.updatedAt else now}.minOrNull() else now;loading=false
+ }
+ val bg=Brush.verticalGradient(listOf(MaterialTheme.colorScheme.background,MaterialTheme.colorScheme.primary.copy(.045f),MaterialTheme.colorScheme.background))
+ LazyColumn(Modifier.fillMaxSize().background(bg),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+  item{MarketHeader(updatedAt,loading,stale){refreshKey++}}
+  item{MarketGroupTabs(selectedGroup){selectedGroup=it}}
+  item{Box(Modifier.fillMaxWidth().height(30.dp).pointerInput(selectedGroup){var drag=0f;detectVerticalDragGestures(onVerticalDrag={change,amount->change.consume();drag+=amount},onDragEnd={if(drag>45f)refreshKey++;drag=0f})},contentAlignment=Alignment.Center){Text("برای بروزرسانی این گروه، این فضای خالی را پایین بکشید",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}
+  val groupItems=when(selectedGroup){0->metalItems;1->coinItems;else->currencyItems}
+  item{MarketSectionHeader(when(selectedGroup){0->"طلا و نقره";1->"سکه";else->"ارز"},when(selectedGroup){0->"فلزات گران‌بها";1->"سکه‌های رایج بازار ایران";else->"نرخ آزاد بازار ایران"},if(selectedGroup==2)Icons.Filled.CurrencyExchange else Icons.Filled.WorkspacePremium)}
+  item{MarketList(groupItems,values,dailyChanges,settings.moneyUnit){item->scope.launch{val quote=GoldPriceService.marketQuote(item.code);if(quote!=null){values=values+(item.code to quote.valueRial);dailyChanges=dailyChanges+(item.code to quote.dailyChangePercent);val now=System.currentTimeMillis();MarketPriceCache.write(context,item.code,quote.valueRial,now);updatedAt=now}}}}
+  item{Text("قیمت‌ها صرفاً جهت اطلاع‌اند و مقدار ناموجود تخمین زده نمی‌شود.",Modifier.fillMaxWidth().padding(horizontal=8.dp,vertical=6.dp),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant,textAlign=TextAlign.Center)}
+ }
+}
+
+@Composable private fun MarketHeader(updatedAt:Long?,loading:Boolean,stale:Boolean,onRefresh:()->Unit){
+ Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant.copy(.72f)),border=BorderStroke(1.dp,MaterialTheme.colorScheme.primary.copy(.18f))){
+  Box(Modifier.background(Brush.horizontalGradient(listOf(Color(0x1735C4BB),Color.Transparent,Color(0x16FF4C9A)))).padding(15.dp)){
+   Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(44.dp).background(Color(0xFF35C4BB).copy(.14f),RoundedCornerShape(14.dp)).border(1.dp,Color(0xFF35C4BB).copy(.48f),RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(Icons.Filled.AutoGraph,null,tint=Color(0xFF35C4BB))};Spacer(Modifier.width(11.dp));Column(Modifier.weight(1f)){Text("نمای کلی بازار",fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleLarge);Text("آخرین بروزرسانی: ${updatedAt?.let{PersianDate.formatDateTime(it)}?:"—"}",style=MaterialTheme.typography.bodySmall,color=if(stale)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)};FilledIconButton(onRefresh,enabled=!loading,colors=IconButtonDefaults.filledIconButtonColors(containerColor=MaterialTheme.colorScheme.primary.copy(.13f))){Icon(Icons.Filled.Refresh,"به‌روزرسانی")}};if(loading)LinearProgressIndicator(Modifier.fillMaxWidth()) else Row(verticalAlignment=Alignment.CenterVertically){Icon(if(stale)Icons.Filled.CloudOff else Icons.Filled.Verified,null,Modifier.size(15.dp),tint=if(stale)MaterialTheme.colorScheme.error else Color(0xFF35B98B));Spacer(Modifier.width(5.dp));Text(if(stale)"اتصال ممکن نشد؛ آخرین قیمت ذخیره‌شده" else "داده عمومی TGJU",style=MaterialTheme.typography.labelSmall,color=if(stale)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)}}
+  }
+ }
+}
+
+@Composable private fun MarketGroupTabs(selected:Int,onSelect:(Int)->Unit){
+ val tabs=listOf(Triple("طلا و نقره",Icons.Filled.WorkspacePremium,Color(0xFFE7A72F)),Triple("سکه",Icons.Filled.MonetizationOn,Color(0xFFFFB52E)),Triple("ارز",Icons.Filled.CurrencyExchange,Color(0xFF35C4BB)))
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){tabs.forEachIndexed{i,(title,icon,color)->Surface(Modifier.weight(1f).clickable{onSelect(i)},shape=RoundedCornerShape(18.dp),color=if(selected==i)color.copy(.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(.55f),border=BorderStroke(if(selected==i)1.5.dp else 1.dp,color.copy(if(selected==i).75f else .22f))){Column(Modifier.padding(vertical=12.dp),horizontalAlignment=Alignment.CenterHorizontally){Icon(icon,null,tint=color);Spacer(Modifier.height(4.dp));Text(title,fontWeight=if(selected==i)FontWeight.Black else FontWeight.Medium,style=MaterialTheme.typography.labelLarge)}}}}
+}
+
+@Composable private fun MarketSectionHeader(title:String,subtitle:String,icon:ImageVector){Row(Modifier.fillMaxWidth().padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically){Icon(icon,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(23.dp));Spacer(Modifier.width(8.dp));Column{Text(title,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleMedium);Text(subtitle,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
+
+@Composable private fun MarketList(items:List<MarketItem>,values:Map<String,Long?>,dailyChanges:Map<String,Double?>,unit:MoneyUnit,onRefresh:(MarketItem)->Unit){
+ Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface.copy(.90f)),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant.copy(.65f))){Column{items.forEachIndexed{i,item->MarketRow(item,values[item.code],dailyChanges[item.code],unit){onRefresh(item)};if(i<items.lastIndex)HorizontalDivider(Modifier.padding(start=68.dp),color=MaterialTheme.colorScheme.outlineVariant.copy(.55f))}}}
+}
+
+@Composable private fun MarketRow(item:MarketItem,value:Long?,dailyChange:Double?,unit:MoneyUnit,onRefresh:()->Unit){
+ val direction=dailyChange?.compareTo(0.0)?:0;var dragX by remember{mutableFloatStateOf(0f)};var refreshing by remember{mutableStateOf(false)}
+ Box(Modifier.fillMaxWidth().background(item.accent.copy(.12f)),contentAlignment=if(dragX>=0)Alignment.CenterStart else Alignment.CenterEnd){if(kotlin.math.abs(dragX)>8f)Text("بروزرسانی",Modifier.padding(horizontal=18.dp),color=item.accent,fontWeight=FontWeight.Bold)
+ Row(Modifier.fillMaxWidth().graphicsLayer{translationX=dragX}.pointerInput(item.code){detectHorizontalDragGestures(onHorizontalDrag={change,amount->change.consume();dragX=(dragX+amount).coerceIn(-110f,110f)},onDragEnd={if(kotlin.math.abs(dragX)>48f){refreshing=true;onRefresh()};dragX=0f;refreshing=false})}.background(Brush.horizontalGradient(listOf(item.accent.copy(.055f),Color.Transparent))).padding(horizontal=13.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically){
+  Box(Modifier.size(43.dp).background(item.accent.copy(.13f),CircleShape).border(1.dp,item.accent.copy(.55f),CircleShape),contentAlignment=Alignment.Center){Text(item.symbol,color=item.accent,fontWeight=FontWeight.Black,textAlign=TextAlign.Center,style=MaterialTheme.typography.labelLarge)}
+  Spacer(Modifier.width(11.dp));Column(Modifier.weight(1f)){Text(item.title,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.bodyLarge);Text(item.subtitle,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+  Column(horizontalAlignment=Alignment.End,verticalArrangement=Arrangement.spacedBy(3.dp)){Text(value?.let{Money.format(it,unit)}?:"دریافت نشد",fontWeight=FontWeight.Black,color=if(value==null)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,maxLines=1);if(dailyChange!=null){val up=direction>0;val down=direction<0;val trendColor=when{up->Color(0xFF22A878);down->Color(0xFFE05C68);else->MaterialTheme.colorScheme.onSurfaceVariant};Row(verticalAlignment=Alignment.CenterVertically){if(direction!=0)Icon(if(up)Icons.Filled.NorthEast else Icons.Filled.SouthWest,null,Modifier.size(14.dp),tint=trendColor);Spacer(Modifier.width(2.dp));Text("${if(up) "+" else if(down) "−" else ""}${Digits.toPersian(String.format(java.util.Locale.US,"%.2f",kotlin.math.abs(dailyChange)))}٪ روزانه",style=MaterialTheme.typography.labelSmall,color=trendColor)}}else Text(" ",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+ }
+}
+
+}

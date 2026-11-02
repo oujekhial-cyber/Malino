@@ -108,6 +108,16 @@ class AccountBalanceTest {
     }
 
     @Test
+    fun transactionsWithoutInitialStillProduceProgramBalance() {
+        val e=AccountBalance.estimate(account(),listOf(
+            tx(1,10_000_000,TxDirection.DEPOSIT,100),
+            tx(2,2_500_000,TxDirection.WITHDRAW,200)
+        ))
+        assertEquals(BalanceSource.TRANSACTIONS_ONLY,e.source)
+        assertEquals(7_500_000L,e.rial)
+    }
+
+    @Test
     fun smsBalanceWithoutInitial_works() {
         val e = AccountBalance.estimate(
             account(),

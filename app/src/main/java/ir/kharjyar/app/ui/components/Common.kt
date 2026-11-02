@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.CallMade
+import androidx.compose.material.icons.filled.CallReceived
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.money.MoneyUnit
@@ -59,8 +60,8 @@ fun MoneyText(
 fun DirectionBadge(direction: Int, nature: Int, modifier: Modifier = Modifier) {
     val (icon, label, color) = when {
         nature == TxNature.TRANSFER -> Triple(Icons.Filled.SwapHoriz, "انتقال", MaterialTheme.colorScheme.tertiary)
-        direction == TxDirection.DEPOSIT -> Triple(Icons.AutoMirrored.Filled.TrendingUp, "واریز", LocalAppSkin.current.incomeColor)
-        else -> Triple(Icons.AutoMirrored.Filled.TrendingDown, "برداشت", LocalAppSkin.current.expenseColor)
+        direction == TxDirection.DEPOSIT -> Triple(Icons.Filled.CallReceived, "واریز", LocalAppSkin.current.incomeColor)
+        else -> Triple(Icons.Filled.CallMade, "برداشت", LocalAppSkin.current.expenseColor)
     }
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(18.dp))
@@ -103,11 +104,13 @@ fun LineChart(
     expenseSeries: List<Long>,
     modifier: Modifier = Modifier,
     incomeColor: Color = LocalAppSkin.current.incomeColor,
-    expenseColor: Color = LocalAppSkin.current.expenseColor
+    expenseColor: Color = LocalAppSkin.current.expenseColor,
+    /** ارتفاع ناحیه نمودار. */
+    height: Dp = 160.dp
 ) {
     val skin = LocalAppSkin.current
     val gridColor = skin.onBackdrop.copy(alpha = 0.12f)
-    Canvas(modifier = modifier.fillMaxWidth().height(160.dp)) {
+    Canvas(modifier = modifier.fillMaxWidth().height(height)) {
         val n = maxOf(incomeSeries.size, expenseSeries.size)
         if (n < 2) return@Canvas
         val maxValue = maxOf(incomeSeries.maxOrNull() ?: 0L, expenseSeries.maxOrNull() ?: 0L, 1L)

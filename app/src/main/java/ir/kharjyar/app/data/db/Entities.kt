@@ -4,7 +4,12 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** حساب بانکی کاربر. */
+object AccountType {
+    const val BANK = "BANK"
+    const val CASH = "CASH"
+}
+
+/** حساب مالی کاربر؛ حساب بانکی یا صندوق نقدی یک فرد. */
 @Entity(tableName = "accounts")
 data class AccountEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -24,6 +29,22 @@ data class AccountEntity(
     val cardExpiry: String = "",
     /** CVV2 کارت. */
     val cardCvv2: String = "",
+    /** BANK برای حساب بانکی و CASH برای کیف پول/صندوق فیزیکی. */
+    val accountType: String = AccountType.BANK,
+    /** صاحب پول نقد؛ برای نمونه خودم، همسر یا فرزند. */
+    val ownerName: String = "",
+    /** محل نگهداری وجه نقد؛ مانند کیف پول، خانه یا صندوق محل کار. */
+    val cashLocation: String = "",
+    /** توضیح اختیاری حساب یا صندوق. */
+    val note: String = "",
+    /** نوع محصول بانکی: جاری، قرض‌الحسنه، کوتاه‌مدت، بلندمدت یا سایر. */
+    val bankAccountKind: String = "OTHER",
+    /** آیا بانک برای این سپرده سود ماهانه واریز می‌کند؟ */
+    val monthlyInterestBearing: Boolean = false,
+    /** نرخ سود ماهانه اعلامی؛ فقط اطلاعات کاربر است و مبلغی را خودکار نمی‌سازد. */
+    val monthlyInterestRatePercent: Double? = null,
+    /** حسابی که سود واقعی به آن واریز می‌شود. */
+    val interestDestinationAccountId: Long? = null,
     /** موجودی اولیه اختیاری (ریال). */
     val initialBalanceRial: Long? = null,
     /** زمان ثبت موجودی اولیه. */
@@ -69,6 +90,17 @@ data class BlockedSenderEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sender: String,
     val createdAt: Long
+)
+
+/** پیام تبلیغاتی قرنطینه‌شده؛ فقط روی گوشی می‌ماند و قابل بازگردانی است. */
+@Entity(tableName="spam_sms",indices=[Index("receivedAt"),Index("sender"),Index(value=["fingerprint"],unique=true)])
+data class SpamSmsEntity(
+    @PrimaryKey(autoGenerate=true) val id:Long=0,
+    val sender:String,
+    val body:String,
+    val receivedAt:Long,
+    val reason:String,
+    val fingerprint:String
 )
 
 /** پیامک مالی یا مشکوک به مالی در صف بررسی. */
@@ -122,6 +154,8 @@ object TxNature {
     const val INCOME = 1
     const val EXPENSE = 2
     const val TRANSFER = 3
+    /** موجودی را تغییر می‌دهد، اما در جمع درآمد/هزینه وارد نمی‌شود؛ مثل دریافت اصل وام یا وصول اصل طلب. */
+    const val NEUTRAL = 4
 }
 
 object TxStatus {
@@ -136,7 +170,7 @@ object TxSource {
 
 @Entity(
     tableName = "transactions",
-    indices = [Index("accountId"), Index("occurredAt"), Index("status"), Index("categoryId"), Index("transferGroupId"), Index("smsId")]
+    indices = [Index("accountId"), Index("occurredAt"), Index("status"), Index("categoryId"), Index("transferGroupId"), Index("smsId"), Index("deletedAt")]
 )
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -161,7 +195,9 @@ data class TransactionEntity(
     val counterparty: String = "",
     val refNumber: String = "",
     /** آیا کاربر این تراکنش را دستی ویرایش کرده؟ پردازش خودکار مجدد نباید بازنویسی کند. */
-    val userEdited: Boolean = false
+    val userEdited: Boolean = false,
+    /** زمان انتقال به سطل زباله؛ null یعنی تراکنش فعال است. */
+    val deletedAt: Long? = null
 )
 
 /** گروه انتقال بین حساب‌های خود کاربر. */
@@ -180,14 +216,16 @@ object CategoryKind {
     const val BOTH = 2
 }
 
-@Entity(tableName = "categories", indices = [Index("archived")])
+@Entity(tableName = "categories", indices = [Index("archived"), Index(value = ["name"], unique = true)])
 data class CategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val colorArgb: Long,
     val kind: Int = CategoryKind.EXPENSE,
     val archived: Boolean = false,
-    val builtin: Boolean = false
+    val builtin: Boolean = false,
+    /** ترتیب قابل‌تغییر کاربر در فهرست دسته‌ها. */
+    val sortOrder: Int = 0
 )
 
 /** قانون دسته‌بندی خودکار: اگر کلیدواژه در متن/طرف مقابل بود، دسته پیشنهاد شود. */

@@ -28,7 +28,7 @@ object AccountMatcher {
 
     fun match(sender: String, body: String, mappings: List<SenderMapping>): AccountMatch {
         val senderNorm = normalizeSender(sender)
-        val bodyNorm = Digits.normalize(body)
+        val bodyNorm = Digits.normalizeForMatch(body)
         val forSender = mappings.filter { normalizeSender(it.sender) == senderNorm }
         if (forSender.isEmpty()) return AccountMatch.Unknown
 
@@ -61,6 +61,21 @@ object AccountMatcher {
         // بخش‌های شبه‌شناسه: دنباله‌های عددی همراه ستاره/نقطه
         val tokens = Regex("[*٭.\\d-]{3,}").findAll(body).map { it.value.filter(Char::isDigit) }
         return tokens.any { it.isNotEmpty() && it.contains(hintDigits) }
+    }
+
+    /** شش رقم پایانی شناسه با حفظ جداکننده‌های بین آن‌ها و بدون ستاره. */
+    fun shortIdentifier(raw: String, digitCount: Int = 6): String {
+        val normalized = Digits.normalize(raw)
+        val reversed = StringBuilder()
+        var digits = 0
+        for (ch in normalized.reversed()) {
+            when {
+                ch.isDigit() && digits < digitCount -> { reversed.append(ch); digits++ }
+                digits in 1 until digitCount && ch in ".-/\\" -> reversed.append(ch)
+                digits >= digitCount -> break
+            }
+        }
+        return reversed.reverse().toString().trim('.', '-', '/', '\\')
     }
 
     fun normalizeSender(sender: String): String =

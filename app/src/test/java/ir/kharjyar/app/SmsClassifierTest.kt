@@ -29,9 +29,27 @@ class SmsClassifierTest {
     }
 
     @Test
+    fun `dynamic password mentioning purchase and amount is still non financial`() {
+        val sms = "رمز پویا خرید شما 123456 مبلغ 2,500,000 ریال است"
+        assertEquals(SmsKind.NON_FINANCIAL, SmsClassifier.classify(sms))
+    }
+
+    @Test
     fun `verification code is non financial`() {
         val sms = "کد تایید شما 98765 می‌باشد"
         assertEquals(SmsKind.NON_FINANCIAL, SmsClassifier.classify(sms))
+    }
+
+    @Test
+    fun `common Iranian dynamic password variants are silently ignored`() {
+        val samples = listOf(
+            "رمز پویای کارت شما ۱۲۳۴۵۶ است. اعتبار رمز ۱۲۰ ثانیه",
+            "رمز دوم یک‌بار مصرف: 987654 مبلغ خرید 3,500,000 ریال",
+            "رمز خرید اینترنتی شما 445566 است",
+            "رمز موقت کارت 112233 زمان اعتبار رمز دو دقیقه",
+            "One Time Password: 778899 for online payment"
+        )
+        samples.forEach { assertEquals(it, SmsKind.NON_FINANCIAL, SmsClassifier.classify(it)) }
     }
 
     @Test

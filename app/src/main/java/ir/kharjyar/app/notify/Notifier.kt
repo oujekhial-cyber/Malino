@@ -20,6 +20,7 @@ object Notifier {
     const val EXTRA_DEST = "kharjyar_dest"
     const val EXTRA_SMS_ID = "kharjyar_sms_id"
     const val EXTRA_TX_ID = "kharjyar_tx_id"
+    const val EXTRA_ROUTE = "kharjyar_route"
 
     const val DEST_CONFIRM_TX = "confirm_tx"
     const val DEST_NEEDS_ACCOUNT = "needs_account"
@@ -29,7 +30,8 @@ object Notifier {
         if (!canNotify(context)) return
         val pi = pendingIntent(context, smsId.toInt(), DEST_CONFIRM_TX, smsId, txId)
         val n = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_TRANSACTIONS)
-            .setSmallIcon(android.R.drawable.stat_notify_more)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
             .setContentTitle("تراکنش جدید شناسایی شد")
             .setContentText("برای تکمیل و تأیید «برای چه بود؟» لمس کنید")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -37,22 +39,34 @@ object Notifier {
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 NotificationCompat.Builder(context, KharjYarApp.CHANNEL_TRANSACTIONS)
-                    .setSmallIcon(android.R.drawable.stat_notify_more)
+                    .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
                     .setContentTitle("خرج‌یار")
                     .setContentText("یک مورد جدید")
                     .build()
             )
             .setContentIntent(pi)
+            // همان پیش‌نویس با اقدام صریح اعلان مستقیماً در فرم قابل‌ویرایش باز می‌شود.
+            .addAction(ir.kharjyar.app.R.drawable.ic_notification_kharjyar, "ویرایش و تکمیل", pi)
             .setAutoCancel(true)
             .build()
         manager(context).notify(TAG_TX, smsId.toInt(), n)
+    }
+
+    fun notifyDuplicateTransaction(context:Context,smsId:Long,txId:Long,@Suppress("UNUSED_PARAMETER") description:String){
+        if(!canNotify(context))return
+        val pi=pendingIntent(context,smsId.toInt(),DEST_CONFIRM_TX,smsId,txId)
+        val n=NotificationCompat.Builder(context,KharjYarApp.CHANNEL_TRANSACTIONS).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent)).setContentTitle("این تراکنش قبلاً ثبت شده").setContentText("برای مشاهده اینکه بابت چه بوده لمس کنید").setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setContentIntent(pi).setAutoCancel(true).build()
+        manager(context).notify(TAG_TX,smsId.toInt(),n)
     }
 
     fun notifyNeedsAccount(context: Context, smsId: Long) {
         if (!canNotify(context)) return
         val pi = pendingIntent(context, smsId.toInt(), DEST_NEEDS_ACCOUNT, smsId, null)
         val n = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
-            .setSmallIcon(android.R.drawable.stat_notify_more)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
             .setContentTitle("پیامک بانکی از حساب ناشناخته")
             .setContentText("برای معرفی حساب جدید لمس کنید")
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -66,7 +80,8 @@ object Notifier {
         if (!canNotify(context)) return
         val pi = pendingIntent(context, smsId.toInt(), DEST_NEEDS_TEMPLATE, smsId, null)
         val n = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
-            .setSmallIcon(android.R.drawable.stat_notify_more)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
             .setContentTitle("پیامک نیازمند بررسی")
             .setContentText("قالب این پیامک شناخته نشد؛ برای آموزش لمس کنید")
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -74,6 +89,80 @@ object Notifier {
             .setAutoCancel(true)
             .build()
         manager(context).notify(TAG_REVIEW, smsId.toInt(), n)
+    }
+
+    fun notifyTrafficFine(context: Context, messageId: Long, vehicleTitle: String?, amountRial: Long?) {
+        if (!canNotify(context)) return
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(EXTRA_DEST, "civicCenter")
+        }
+        val pi = PendingIntent.getActivity(context, (messageId xor 0x46494E45L).toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val detail = buildString {
+            append(if (vehicleTitle.isNullOrBlank()) "یک جریمه رانندگی جدید دریافت شد" else "جریمه جدید برای $vehicleTitle")
+            amountRial?.let { append("؛ مبلغ ${ir.kharjyar.app.core.money.Money.format(it, ir.kharjyar.app.core.money.MoneyUnit.RIAL)}") }
+        }
+        val notification = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
+            .setContentTitle("جریمه راهنمایی و رانندگی")
+            .setContentText(detail)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW).setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent)).setContentTitle("خرج‌یار").setContentText("یک اعلان جدید خودرو").build())
+            .setContentIntent(pi).setAutoCancel(true).build()
+        manager(context).notify("traffic-fine", messageId.toInt(), notification)
+    }
+
+    /** اعلان سررسید یک طلب/بدهی پس از تسویه یا حذف باید همان لحظه پاک شود. */
+    fun cancelDebtReminder(context: Context, debtId: Long) {
+        manager(context).cancel(TAG_DEBT_REMINDER, debtId.toInt())
+    }
+
+    /** اعلان دوره‌ای چک پاس‌شده/وصول‌شده/حذف‌شده را فوراً از پنل پاک می‌کند. */
+    fun cancelCheckReminder(context: Context, checkId: Long) {
+        manager(context).cancel(TAG_CHECK_REMINDER, checkId.toInt())
+    }
+
+    /** اعلان یک ReminderEntity علاوه بر لغو WorkManager باید جداگانه پاک شود. */
+    fun cancelLifeReminder(context: Context, reminderId: Long) {
+        manager(context).cancel((12000L + reminderId).toInt())
+    }
+
+    fun cancelInstallmentReminder(context: Context, installmentId: Long) {
+        manager(context).cancel(TAG_INSTALLMENT_REMINDER, installmentId.toInt())
+    }
+
+    fun notifyExportReady(context: Context, uri: android.net.Uri, mimeType: String) {
+        if (!canNotify(context)) return
+        val open = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mimeType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val pi = PendingIntent.getActivity(
+            context, uri.hashCode(), open,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, KharjYarApp.CHANNEL_REVIEW)
+            .setSmallIcon(ir.kharjyar.app.R.drawable.ic_notification_kharjyar)
+            .setColor(ContextCompat.getColor(context, ir.kharjyar.app.R.color.notification_accent))
+            .setContentTitle("گزارش خرج‌یار آماده شد")
+            .setContentText("برای باز کردن فایل لمس کنید")
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .build()
+        manager(context).notify("export", uri.hashCode(), notification)
+    }
+
+    /** PendingIntent یکتا برای اعلان‌هایی که باید یک مسیر مشخص برنامه را باز کنند. */
+    fun routePendingIntent(context:Context,requestCode:Int,route:String):PendingIntent {
+        val intent=Intent(context,MainActivity::class.java).apply {
+            flags=Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(EXTRA_ROUTE,route)
+        }
+        return PendingIntent.getActivity(context,requestCode,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
     private fun pendingIntent(context: Context, requestCode: Int, dest: String, smsId: Long?, txId: Long?): PendingIntent {
@@ -103,6 +192,9 @@ object Notifier {
     private fun manager(context: Context) =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+    const val TAG_DEBT_REMINDER = "debt-reminder"
+    const val TAG_CHECK_REMINDER = "check-reminder"
+    const val TAG_INSTALLMENT_REMINDER = "installment-reminder"
     private const val TAG_TX = "tx"
     private const val TAG_REVIEW = "review"
 }

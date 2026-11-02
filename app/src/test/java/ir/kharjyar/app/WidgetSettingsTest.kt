@@ -12,7 +12,7 @@ class WidgetSettingsTest {
     @Test
     fun `widget defaults are sane`() {
         val s = AppSettings()
-        assertEquals(92, s.widgetOpacity)
+        assertEquals(50, s.widgetOpacity)
         assertTrue(s.widgetShowNumbers)
         // پیش‌فرض: قالب دوبخشی
         assertEquals(WidgetLayout.SPLIT, s.widgetLayout)
@@ -29,7 +29,7 @@ class WidgetSettingsTest {
 
     @Test
     fun `opacity maps to alpha fraction`() {
-        assertEquals(0.92f, AppSettings().widgetOpacity / 100f, 0.0001f)
+        assertEquals(0.50f, AppSettings().widgetOpacity / 100f, 0.0001f)
         assertEquals(0f, 0 / 100f, 0.0001f)
     }
 }

@@ -13,7 +13,10 @@ enum class BalanceSource {
     /** آخرین ماندهٔ اعلام‌شده در پیامک بانک + تراکنش‌های تأییدشدهٔ بعد از آن. */
     SMS_BALANCE,
 
-    /** هیچ مبنایی وجود ندارد (نه موجودی اولیه، نه ماندهٔ پیامکی). */
+    /** موجودی اولیه ثبت نشده و مانده از خالص تراکنش‌های قطعی برنامه محاسبه شده است. */
+    TRANSACTIONS_ONLY,
+
+    /** هیچ مبنایی و هیچ تراکنش قطعی وجود ندارد. */
     NONE
 }
 
@@ -34,6 +37,7 @@ data class EstimatedBalance(
     fun sourceLabel(): String = when (source) {
         BalanceSource.INITIAL_PLUS_TX -> "موجودی اولیه + تراکنش‌های تأییدشده"
         BalanceSource.SMS_BALANCE -> "آخرین مانده پیامک بانک + تراکنش‌های بعد"
+        BalanceSource.TRANSACTIONS_ONLY -> "خالص تراکنش‌های تأییدشده برنامه"
         BalanceSource.NONE -> "مبنای محاسبه ثبت نشده"
     }
 }
@@ -79,6 +83,13 @@ object AccountBalance {
                 val delta = confirmed.filter { it.occurredAt >= from }.sumOf { signed(it) }
                 EstimatedBalance(initialRial + delta, BalanceSource.INITIAL_PLUS_TX, initialAt, pendingCount)
             }
+
+            confirmed.isNotEmpty() -> EstimatedBalance(
+                confirmed.sumOf { signed(it) },
+                BalanceSource.TRANSACTIONS_ONLY,
+                confirmed.minOfOrNull { it.occurredAt },
+                pendingCount
+            )
 
             else -> EstimatedBalance(null, BalanceSource.NONE, null, pendingCount)
         }

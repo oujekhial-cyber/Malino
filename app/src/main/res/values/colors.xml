@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- رنگ روشن و اشباع برای پس‌زمینه/تأکید آیکون اعلان در تم روشن و تیره سیستم. -->
+    <color name="notification_accent">#29B6F6</color>
+</resources>

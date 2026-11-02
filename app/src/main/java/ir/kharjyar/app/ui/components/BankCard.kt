@@ -1,22 +1,28 @@
 package ir.kharjyar.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,25 +30,33 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
+import ir.kharjyar.app.data.db.AccountType
 
 /**
  * نسخه کوتاه برای پیش‌نمایش در فرم معرفی حساب: مستقیماً موجودیت حساب را می‌گیرد.
@@ -57,6 +71,7 @@ fun BankCard(
     balanceCaption: String?,
     selected: Boolean,
     masked: Boolean,
+    showDetailsWhenSelected: Boolean = true,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onCopy: (label: String, value: String) -> Unit = { _, _ -> }
@@ -65,6 +80,9 @@ fun BankCard(
         title = account.title,
         bankName = account.bankName,
         colorArgb = account.colorArgb,
+        accountType = account.accountType,
+        ownerName = account.ownerName,
+        cashLocation = account.cashLocation,
         balanceText = balanceText ?: "",
         balanceHint = balanceCaption ?: "",
         selected = selected,
@@ -74,6 +92,8 @@ fun BankCard(
         expiry = account.cardExpiry,
         cvv2 = account.cardCvv2,
         showSecrets = !masked,
+        balanceColor = null,
+        showDetailsWhenSelected = showDetailsWhenSelected,
         modifier = modifier,
         onClick = onClick,
         onCopy = onCopy
@@ -97,17 +117,40 @@ fun BankCard(
     balanceText: String,
     balanceHint: String,
     selected: Boolean,
+    accountType: String = AccountType.BANK,
+    ownerName: String = "",
+    cashLocation: String = "",
     cardNumber: String = "",
     accountNumber: String = "",
     iban: String = "",
     expiry: String = "",
     cvv2: String = "",
     showSecrets: Boolean = false,
+    balanceColor: Color? = null,
+    showDetailsWhenSelected: Boolean = true,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
-    onCopy: (label: String, value: String) -> Unit = { _, _ -> }
+    onCopy: (label: String, value: String) -> Unit = { _, _ -> },
+    /** محتوای دلخواه زیر مانده؛ برای نمایش خلاصه واریز/برداشت همین حساب. */
+    content: @Composable ColumnScope.() -> Unit = {}
 ) {
-    val base = Color(colorArgb)
+    if (accountType == AccountType.CASH) {
+        CashFundCard(
+            title = title,
+            ownerName = ownerName,
+            location = cashLocation,
+            colorArgb = colorArgb,
+            balanceText = balanceText,
+            balanceHint = balanceHint,
+            selected = selected,
+            modifier = modifier,
+            onClick = onClick,
+            content = content
+        )
+        return
+    }
+    // رنگ کارت از روی لوگوی بانک؛ برای بانک ناشناس، رنگ ذخیره‌شده خود حساب
+    val base = bankCardColor(bankName, colorArgb)
     // گرادیان از رنگ حساب: روشن‌تر در بالا-راست، تیره‌تر در پایین-چپ
     val top = base.lighten(0.18f)
     val bottom = base.darken(0.32f)
@@ -115,24 +158,104 @@ fun BankCard(
     val onCard = if (base.luminance() > 0.55f) Color(0xFF14121A) else Color.White
     val shape = RoundedCornerShape(20.dp)
 
-    val borderColor by animateColorAsState(
-        if (selected) onCard.copy(alpha = 0.85f) else Color.Transparent,
-        tween(220),
-        label = "cardBorder"
+    var targetRotation by remember(title, cardNumber) { mutableFloatStateOf(0f) }
+    var verticalDrag by remember { mutableFloatStateOf(0f) }
+    // زاویه تجمعی است: حتی اگر کاربر ده بار پیاپی از بالا به پایین بکشد، هر بار
+    // یک نیم‌دور دیگر در همان جهت افزوده می‌شود و جهت به‌صورت یکی‌درمیان برنمی‌گردد.
+    val flipRotation by animateFloatAsState(
+        targetValue = targetRotation,
+        animationSpec = tween(
+            durationMillis = 880,
+            easing = CubicBezierEasing(.22f, 0f, .18f, 1f)
+        ),
+        label = "bankCardDirectionalFlip"
     )
-    val borderWidth by animateDpAsState(
-        if (selected) 2.dp else 0.dp,
-        tween(220),
-        label = "cardBorderWidth"
-    )
+    val radians = Math.toRadians(flipRotation.toDouble())
+    val flipWave = kotlin.math.abs(kotlin.math.sin(radians).toFloat())
+    val faceStrength = ((kotlin.math.abs(kotlin.math.cos(radians)).toFloat() - .10f) / .35f).coerceIn(0f,1f)
+    val showingFront = kotlin.math.cos(radians) >= 0.0
+    val frontVisible = if(showingFront) faceStrength else 0f
+    val backVisible = if(showingFront) 0f else faceStrength
 
-    Column(
+    Box(
         modifier = modifier
+            .graphicsLayer {
+                rotationX = flipRotation
+                cameraDistance = 28f * density
+                scaleX = 1f - (.025f * flipWave)
+                scaleY = 1f - (.045f * flipWave)
+                translationY = -5.dp.toPx() * flipWave
+                // سایه برجسته قدیمی حذف شده؛ در میانه چرخش یک برق نرم داخل خود
+                // کارت دیده می‌شود و لبه بیرونی تمیز باقی می‌ماند.
+                shadowElevation = 0f
+                clip = false
+            }
+            .pointerInput(title,cardNumber) {
+                detectVerticalDragGestures(
+                    onVerticalDrag = { change, amount -> change.consume();verticalDrag+=amount },
+                    onDragEnd = {
+                        if(kotlin.math.abs(verticalDrag)>42f){
+                            // پشت کارت نسبت به روی آن ۱۸۰ درجه برعکس است؛ برای اینکه
+                            // جهت «قابل مشاهده» در تکرارهای پیاپی ثابت بماند، علامت
+                            // چرخش جهانی روی پشت معکوس می‌شود.
+                            // علامت rotationX در مختصات صحنه نسبت به جهت دیداری
+                            // لبه کارت معکوس است: drag رو به پایین باید زاویه منفی بگیرد.
+                            val gestureDirection=if(verticalDrag>0f)-1f else 1f
+                            val turns=kotlin.math.round(kotlin.math.abs(targetRotation)/180f).toInt()
+                            val visibleFaceDirection=if(turns%2==0)1f else -1f
+                            targetRotation+=gestureDirection*visibleFaceDirection*180f
+                        }
+                        verticalDrag=0f
+                    },
+                    onDragCancel={verticalDrag=0f}
+                )
+            }
             .clip(shape)
             .background(Brush.linearGradient(listOf(top, bottom)))
-            .border(borderWidth, borderColor, shape)
+            // انتخاب با نشان تیک مشخص است؛ قاب خطی هنگام چرخش حذف شده تا لبه‌ها نرم بمانند.
             .clickable(onClick = onClick)
+    ) {
+        // هاله شیشه‌ای داخلی جای سایه سنگین قدیمی را گرفته است. شدت آن فقط نزدیک
+        // لبه چرخش بیشتر می‌شود و در ابتدا/انتهای حرکت کاملاً محو است.
+        Box(
+            Modifier.matchParentSize().background(
+                Brush.linearGradient(
+                    listOf(
+                        Color.Transparent,
+                        onCard.copy(alpha=.16f*flipWave),
+                        base.lighten(.28f).copy(alpha=.10f*flipWave),
+                        Color.Transparent
+                    )
+                )
+            )
+        )
+        // نشان بانک به‌صورت واترمارک: تک‌رنگ و بسیار کم‌رنگ، در گوشه کارت.
+        // آن‌قدر محو است که خواندن مبلغ و شماره کارت را سخت نمی‌کند.
+        bankLogoRes(bankName)?.let { logo ->
+            Box(modifier = Modifier.matchParentSize(), contentAlignment = Alignment.CenterEnd) {
+                Image(
+                    painter = painterResource(logo),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(onCard),
+                    modifier = Modifier
+                        .fillMaxHeight(0.92f)
+                        .aspectRatio(1f)
+                        .offset(x = 16.dp)
+                        .alpha(0.10f * frontVisible)
+                )
+            }
+        }
+
+    Column(
+        modifier = Modifier
+            .matchParentSize()
             .padding(16.dp)
+            .graphicsLayer {
+                alpha = frontVisible
+                // متن هنگام دورشدن کارت اندکی عقب می‌رود تا عمق واقعی‌تری حس شود.
+                translationY = 3.dp.toPx() * flipWave
+            }
     ) {
         // ---------- ردیف بالا: نام بانک و نشان ----------
         Row(
@@ -145,7 +268,7 @@ fun BankCard(
                     title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = onCard,
+                    color = balanceColor ?: onCard,
                     maxLines = 1
                 )
                 if (bankName.isNotBlank()) {
@@ -157,19 +280,27 @@ fun BankCard(
                     )
                 }
             }
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(onCard.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (selected) Icons.Filled.Check else Icons.Filled.AccountBalance,
-                    contentDescription = null,
-                    tint = onCard,
-                    modifier = Modifier.size(18.dp)
-                )
+            // نشان بانک: دایره‌ای با رنگ و کوته‌نوشت همان بانک. اگر بانک ناشناس
+            // باشد، نشان خنثی با آیکون بانک نشان داده می‌شود.
+            Box(contentAlignment = Alignment.Center) {
+                BankLogo(bankName = bankName, size = 34.dp, ringColor = onCard)
+                if (selected) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(15.dp)
+                            .clip(CircleShape)
+                            .background(onCard),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = bottom,
+                            modifier = Modifier.size(11.dp)
+                        )
+                    }
+                }
             }
         }
 
@@ -209,64 +340,104 @@ fun BankCard(
             }
         }
 
-        // ---------- جزئیات، فقط وقتی کارت انتخاب شده ----------
-        AnimatedVisibility(
-            visible = selected,
-            enter = fadeIn(tween(200)) + expandVertically(tween(220)),
-            exit = fadeOut(tween(140)) + shrinkVertically(tween(180))
-        ) {
-            Column {
-                Spacer(Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(onCard.copy(alpha = 0.22f))
-                )
-                Spacer(Modifier.height(10.dp))
+        // خلاصه واریز/برداشت همیشه به لبه پایین کارت تکیه می‌کند؛ محتوای
+        // بالایی با تغییر طول شماره یا مانده، جای این نوارها را عوض نمی‌کند.
+        Spacer(Modifier.weight(1f))
+        content()
 
-                if (accountNumber.isNotBlank()) {
-                    CardField("شماره حساب", Digits.toPersian(accountNumber), onCard) { onCopy("شماره حساب", accountNumber) }
+        // جزئیات کامل روی پشت کارت نمایش داده می‌شوند.
+    }
+
+    Column(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    rotationX = 180f
+                    alpha = backVisible
+                    translationY = -3.dp.toPx() * flipWave
                 }
-                if (iban.isNotBlank()) {
-                    CardField("شبا", "IR" + Digits.toPersian(iban), onCard) { onCopy("شماره شبا", "IR$iban") }
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column { Text(title, color=onCard, fontWeight=FontWeight.Black);Text("اطلاعات کامل حساب",color=onCard.copy(.72f),style=MaterialTheme.typography.labelSmall) }
+                BankLogo(bankName=bankName,size=34.dp,ringColor=onCard)
+            }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(onCard.copy(.24f)))
+            if(accountNumber.isNotBlank()) CardField("شماره حساب",Digits.ltr(Digits.toPersian(accountNumber)),onCard){onCopy("شماره حساب",accountNumber)}
+            if(iban.isNotBlank()) CardField("شبا",Digits.ltr("IR"+Digits.toPersian(iban)),onCard){onCopy("شماره شبا","IR$iban")}
+            Row(horizontalArrangement=Arrangement.spacedBy(28.dp)) {
+                if(expiry.isNotBlank()) CardField("انقضا",formatCardExpiry(expiry),onCard){}
+                if(cvv2.isNotBlank()) CardField("CVV2",if(showSecrets)Digits.ltr(Digits.toPersian(cvv2)) else "•••",onCard){}
+            }
+            if(ownerName.isNotBlank()) Text("دارنده: $ownerName",color=onCard,style=MaterialTheme.typography.bodyMedium)
+            Text("برای بازگشت، کارت را عمودی بکشید",color=onCard.copy(.68f),style=MaterialTheme.typography.labelSmall,modifier=Modifier.align(Alignment.CenterHorizontally))
+        }
+
+    }
+}
+
+
+/** کارت مدرن مخصوص پول فیزیکی؛ از کارت بانکی متمایز اما هم‌خانواده داشبورد است. */
+@Composable
+private fun CashFundCard(
+    title:String,
+    ownerName:String,
+    location:String,
+    colorArgb:Long,
+    balanceText:String,
+    balanceHint:String,
+    selected:Boolean,
+    modifier:Modifier=Modifier,
+    onClick:()->Unit={},
+    content:@Composable ColumnScope.()->Unit={}
+) {
+    val accent=Color(colorArgb)
+    val deep=Color(0xFF102820)
+    val shape=RoundedCornerShape(24.dp)
+    Box(
+        modifier.clip(shape)
+            .background(Brush.linearGradient(listOf(deep,accent.darken(.48f),Color(0xFF071B1B))))
+            .border(if(selected)2.dp else 1.dp,if(selected)Color(0xFFFFD978) else Color.White.copy(.14f),shape)
+            .clickable(onClick=onClick)
+    ) {
+        // حلقه‌ها و سکه محو، حس پول فیزیکی می‌دهند بدون اینکه متن شلوغ شود.
+        Box(Modifier.size(190.dp).offset(x=(-58).dp,y=(-82).dp).border(28.dp,accent.copy(.10f),CircleShape))
+        Box(Modifier.size(130.dp).align(Alignment.BottomEnd).offset(x=42.dp,y=48.dp).background(Color(0xFFFFD66B).copy(.07f),CircleShape))
+        Text("﷼",fontSize=92.sp,fontWeight=FontWeight.Black,color=Color.White.copy(.055f),modifier=Modifier.align(Alignment.CenterEnd).offset(x=(-20).dp))
+        Column(Modifier.matchParentSize().padding(17.dp)) {
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(title,fontWeight=FontWeight.Black,style=MaterialTheme.typography.titleMedium,color=Color.White,maxLines=1)
+                    Text("صندوق نقدی",style=MaterialTheme.typography.labelMedium,color=Color(0xFFFFD978))
                 }
-                if (expiry.isNotBlank() || cvv2.isNotBlank()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                        if (expiry.isNotBlank()) {
-                            Column {
-                                Text(
-                                    "انقضا",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = onCard.copy(alpha = 0.7f)
-                                )
-                                Text(
-                                    Digits.toPersian(expiry),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = onCard
-                                )
-                            }
-                        }
-                        if (cvv2.isNotBlank()) {
-                            Column {
-                                Text(
-                                    "CVV2",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = onCard.copy(alpha = 0.7f)
-                                )
-                                Text(
-                                    if (showSecrets) Digits.toPersian(cvv2) else "•••",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = onCard
-                                )
-                            }
-                        }
-                    }
+                Box(Modifier.size(48.dp).background(Brush.radialGradient(listOf(Color(0xFFFFE69B),Color(0xFFDCA93B))),RoundedCornerShape(15.dp)).border(1.dp,Color.White.copy(.45f),RoundedCornerShape(15.dp)),contentAlignment=Alignment.Center) {
+                    Icon(Icons.Filled.Payments,"صندوق نقدی",tint=Color(0xFF49320A),modifier=Modifier.size(27.dp))
+                    if(selected) Box(Modifier.align(Alignment.BottomEnd).size(16.dp).background(Color(0xFF35D39A),CircleShape),contentAlignment=Alignment.Center){Icon(Icons.Filled.Check,null,tint=Color(0xFF06251C),modifier=Modifier.size(11.dp))}
                 }
             }
+            Spacer(Modifier.height(16.dp))
+            if(balanceText.isNotBlank()) {
+                Text(balanceHint.ifBlank{"وجه نقد موجود"},style=MaterialTheme.typography.labelSmall,color=Color.White.copy(.65f))
+                Text(balanceText,style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Black,color=Color.White,maxLines=1)
+            }
+            if(ownerName.isNotBlank()||location.isNotBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                    if(ownerName.isNotBlank()) CashMetaPill(Icons.Filled.Person,ownerName,Modifier.weight(1f))
+                    if(location.isNotBlank()) CashMetaPill(Icons.Filled.Place,location,Modifier.weight(1f))
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            content()
         }
+    }
+}
+
+@Composable
+private fun CashMetaPill(icon:androidx.compose.ui.graphics.vector.ImageVector,text:String,modifier:Modifier=Modifier){
+    Row(modifier.background(Color.White.copy(.08f),RoundedCornerShape(50)).border(1.dp,Color.White.copy(.11f),RoundedCornerShape(50)).padding(horizontal=9.dp,vertical=6.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){
+        Icon(icon,null,tint=Color(0xFFFFD978),modifier=Modifier.size(14.dp));Text(text,color=Color.White.copy(.84f),style=MaterialTheme.typography.labelSmall,maxLines=1)
     }
 }
 
@@ -307,13 +478,27 @@ private fun CardField(
     }
 }
 
-/** گروه‌بندی چهارتایی شماره کارت؛ در حالت مخفی فقط چهار رقم آخر دیده می‌شود. */
+/**
+ * گروه‌بندی چهارتایی شماره کارت؛ در حالت مخفی فقط چهار رقم آخر دیده می‌شود.
+ *
+ * خروجی داخل ایزوله چپ‌به‌راست پیچیده می‌شود تا در چیدمان راست‌به‌چپ، ترتیب
+ * گروه‌ها برعکس دیده نشود (۵۰۲۹ باید سمت چپ‌ترین نباشد بلکه اولین گروه بماند).
+ */
+/**
+ * تاریخ در دیتابیس به صورت ماه/سال نگهداری می‌شود، اما روی کارت از چپ به راست
+ * «سال/ماه» نمایش داده می‌شود تا سال سمت چپ و ماه سمت راست قرار بگیرد.
+ */
+internal fun formatCardExpiry(raw: String): String {
+    val visual = ir.kharjyar.app.core.card.CardExpiry.storageToDisplay(raw)
+    return Digits.ltr(Digits.toPersian(visual))
+}
+
 private fun formatCardNumber(raw: String, reveal: Boolean): String {
     val digits = Digits.normalize(raw).filter { it.isDigit() }
     if (digits.isEmpty()) return ""
     val shown = if (reveal || digits.length <= 4) digits
     else "•".repeat(digits.length - 4) + digits.takeLast(4)
-    return Digits.toPersian(shown.chunked(4).joinToString("  "))
+    return Digits.ltr(Digits.toPersian(shown.chunked(4).joinToString("  ")))
 }
 
 private fun Color.lighten(f: Float) = Color(

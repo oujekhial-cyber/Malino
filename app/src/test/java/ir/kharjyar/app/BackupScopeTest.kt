@@ -1,38 +1,13 @@
 package ir.kharjyar.app
 
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/**
- * تم بخشی از سلیقه ظاهری روی همین دستگاه است، نه داده کاربر.
- * این تست مطمئن می‌شود تم دوباره وارد بکاپ نشود.
- */
+/** تنظیمات کاربر برای بازیابی کامل تجربه برنامه در نسخه پشتیبان نگهداری می‌شوند. */
 class BackupScopeTest {
-
-    private val source =
-        File("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt").readText()
-
-    @Test
-    fun `theme is excluded from backup payload`() {
-        val export = source.substringAfter("exportForBackup").substringBefore("importFromBackup")
-        assertFalse("تم نباید در بکاپ ذخیره شود", export.contains("\"palette\""))
-        assertFalse("حالت روشن/تاریک نباید در بکاپ ذخیره شود", export.contains("\"theme_mode\""))
-    }
-
-    @Test
-    fun `theme is not restored from backup`() {
-        val import = source.substringAfter("importFromBackup")
-        assertFalse("تم نباید از بکاپ بازگردانی شود", import.contains("map[\"palette\"]"))
-        assertFalse("حالت نمایش نباید از بکاپ بازگردانی شود", import.contains("map[\"theme_mode\"]"))
-    }
-
-    @Test
-    fun `financial settings are still backed up`() {
-        val export = source.substringAfter("exportForBackup").substringBefore("importFromBackup")
-        // واحد پول و شکل ارقام همچنان باید بکاپ شوند
-        assertTrue(export.contains("money_unit"))
-        assertTrue(export.contains("digit_style"))
-    }
+ private val source=File("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt").readText()
+ @Test fun `theme is included in complete backup payload`(){val export=source.substringAfter("exportForBackup").substringBefore("importFromBackup");assertTrue(export.contains("\"palette\""));assertTrue(export.contains("\"theme_mode\""))}
+ @Test fun `theme is restored from complete backup`(){val import=source.substringAfter("importFromBackup");assertTrue(import.contains("enum(\"theme_mode\""));assertTrue(import.contains("enum(\"palette\""))}
+ @Test fun `financial settings are backed up`(){val export=source.substringAfter("exportForBackup").substringBefore("importFromBackup");assertTrue(export.contains("money_unit"));assertTrue(export.contains("digit_style"))}
 }
