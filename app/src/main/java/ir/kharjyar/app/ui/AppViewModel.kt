@@ -32,6 +32,7 @@ import java.time.temporal.ChronoUnit
  * ViewModel سراسری: تنظیمات، وضعیت قفل و جریان‌های داده مشترک.
  */
 class AppViewModel(app: Application) : AndroidViewModel(app) {
+    val reportFilterSession = ir.kharjyar.app.ui.screens.ReportFilterSession()
 
     data class PendingObligationDraft(
         val action: String,

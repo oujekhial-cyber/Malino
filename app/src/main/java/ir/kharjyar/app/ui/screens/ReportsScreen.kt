@@ -66,9 +66,29 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class RangeKind(val label: String) {
+enum class RangeKind(val label: String) {
     DAY("امروز"), WEEK("هفته"), MONTH("ماه"), YEAR("سال"), CUSTOM("دلخواه")
 }
+
+/** In-memory only: survives navigation and configuration changes, not process exit. */
+class ReportFilterSession {
+    private val today = PersianDate.today()
+    var range by mutableStateOf(RangeKind.MONTH)
+    var month by mutableStateOf(today.firstOfMonth())
+    var account by mutableStateOf<Long?>(null)
+    var category by mutableStateOf<Long?>(null)
+    var breakdown by mutableStateOf(TxNature.EXPENSE)
+    var customFromDate by mutableStateOf(today.firstOfMonth())
+    var customFromHour by mutableStateOf(0)
+    var customFromMinute by mutableStateOf(0)
+    var customToDate by mutableStateOf(today)
+    var customToHour by mutableStateOf(23)
+    var customToMinute by mutableStateOf(59)
+    var drilldownActive by mutableStateOf(false)
+    var drilldownCategory by mutableStateOf<Long?>(null)
+}
+
+private data class ReportSlice(val id: Long?, val name: String, val amount: Long, val color: Long)
 
 @Composable
 fun ReportsScreen(viewModel: AppViewModel) {
@@ -80,23 +100,25 @@ fun ReportsScreen(viewModel: AppViewModel) {
     val categories by viewModel.categories.collectAsState()
     val skin = LocalAppSkin.current
 
-    var range by remember { mutableStateOf(RangeKind.MONTH) }
-    var filterAccount by remember { mutableStateOf<Long?>(null) }
-    var filterCategory by remember { mutableStateOf<Long?>(null) }
-    var selectedBreakdown by remember { mutableStateOf(TxNature.EXPENSE) }
+    val session = viewModel.reportFilterSession
+    var range by session::range
+    var filterAccount by session::account
+    var filterCategory by session::category
+    var selectedBreakdown by session::breakdown
+    var customFromDate by session::customFromDate
+    var customFromHour by session::customFromHour
+    var customFromMinute by session::customFromMinute
+    var customToDate by session::customToDate
+    var customToHour by session::customToHour
+    var customToMinute by session::customToMinute
     var exportMessage by remember { mutableStateOf<String?>(null) }
-
     val today = PersianDate.today()
-    var customFromDate by remember { mutableStateOf(today.firstOfMonth()) }
-    var customFromHour by remember { mutableStateOf(0) }
-    var customFromMinute by remember { mutableStateOf(0) }
-    var customToDate by remember { mutableStateOf(today) }
-    var customToHour by remember { mutableStateOf(23) }
-    var customToMinute by remember { mutableStateOf(59) }
+    val years = (allTx.map { PersianDate.fromMillis(it.occurredAt).year } + today.year + session.month.year).distinct().sortedDescending()
+    val months = years.flatMap { year -> (12 downTo 1).map { PersianDate(year, it, 1) } }
     val (from, to) = when (range) {
         RangeKind.DAY -> today.startOfDayMillis() to today.endOfDayMillisExclusive()
         RangeKind.WEEK -> today.plusDays(-6).startOfDayMillis() to today.endOfDayMillisExclusive()
-        RangeKind.MONTH -> today.firstOfMonth().startOfDayMillis() to today.lastOfMonth().endOfDayMillisExclusive()
+        RangeKind.MONTH -> session.month.startOfDayMillis() to session.month.lastOfMonth().endOfDayMillisExclusive()
         RangeKind.YEAR -> PersianDate(today.year, 1, 1).startOfDayMillis() to
             PersianDate(today.year, 12, PersianDate.monthLength(today.year, 12)).endOfDayMillisExclusive()
         RangeKind.CUSTOM -> PersianDate.toMillis(customFromDate, customFromHour, customFromMinute) to
@@ -119,8 +141,8 @@ fun ReportsScreen(viewModel: AppViewModel) {
     val income = confirmed.filter { it.nature == TxNature.INCOME || (it.nature == TxNature.UNKNOWN && it.direction == TxDirection.DEPOSIT) }.sumOf { it.amountRial }
     val expense = confirmed.filter { it.nature == TxNature.EXPENSE || (it.nature == TxNature.UNKNOWN && it.direction == TxDirection.WITHDRAW) }.sumOf { it.amountRial }
 
-    val days = ((to - from) / 86_400_000L).toInt().coerceIn(2, 366)
-    val (incomeSeries, expenseSeries) = buildDailySeries(filtered, days)
+    val days = (java.time.temporal.ChronoUnit.DAYS.between(PersianDate.fromMillis(from).toLocalDate(), PersianDate.fromMillis((to - 1).coerceAtLeast(from)).toLocalDate()) + 1).toInt().coerceIn(1, 366)
+    val (incomeSeries, expenseSeries) = buildDailySeries(filtered, days, PersianDate.fromMillis((to - 1).coerceAtLeast(from)))
 
     val savePdf = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/pdf")
@@ -222,8 +244,8 @@ fun ReportsScreen(viewModel: AppViewModel) {
         .groupBy { it.categoryId }
         .map { (catId, list) ->
             val category=categories.firstOrNull { it.id == catId }
-            Triple(category?.name ?: "بدون دسته",list.sumOf { it.amountRial },category?.colorArgb ?: 0xFF8A8F98)
-        }.sortedByDescending { it.second }
+            ReportSlice(catId, category?.name ?: "بدون دسته",list.sumOf { it.amountRial },category?.colorArgb ?: 0xFF8A8F98)
+        }.sortedByDescending { it.amount }
     val expenseBreakdown=categoryBreakdown(TxNature.EXPENSE,TxDirection.WITHDRAW)
     val incomeBreakdown=categoryBreakdown(TxNature.INCOME,TxDirection.DEPOSIT)
     val selectedSlices=if(selectedBreakdown==TxNature.INCOME)incomeBreakdown else expenseBreakdown
@@ -232,6 +254,9 @@ fun ReportsScreen(viewModel: AppViewModel) {
         if(selectedBreakdown==TxNature.INCOME) it.nature==TxNature.INCOME||(it.nature==TxNature.UNKNOWN&&it.direction==TxDirection.DEPOSIT)
         else it.nature==TxNature.EXPENSE||(it.nature==TxNature.UNKNOWN&&it.direction==TxDirection.WITHDRAW)
     }.sortedByDescending{it.occurredAt}
+
+    val detailTransactions = if (session.drilldownActive) selectedTransactions.filter { it.categoryId == session.drilldownCategory } else selectedTransactions
+    val detailTotal = detailTransactions.sumOf { it.amountRial }
 
     Column(
         modifier = Modifier
@@ -287,7 +312,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
                         tint = skin.incomeColor,
                         up = true,
                         selected=selectedBreakdown==TxNature.INCOME,
-                        onClick={selectedBreakdown=TxNature.INCOME},
+                        onClick={selectedBreakdown=TxNature.INCOME; session.drilldownActive=false},
                         modifier = Modifier.weight(1f)
                     )
                     StatTile(
@@ -296,7 +321,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
                         tint = skin.expenseColor,
                         up = false,
                         selected=selectedBreakdown==TxNature.EXPENSE,
-                        onClick={selectedBreakdown=TxNature.EXPENSE},
+                        onClick={selectedBreakdown=TxNature.EXPENSE; session.drilldownActive=false},
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -322,6 +347,13 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     "فیلترها",
                     style = MaterialTheme.typography.titleSmall,
                     color = skin.onBackdrop
+                )
+                ComboBox(
+                    label = "ماه گزارش",
+                    options = months,
+                    selected = session.month,
+                    labelOf = { "${it.monthName()} ${Digits.toPersian(it.year.toString())}" },
+                    onSelect = { session.month = it; range = RangeKind.MONTH; session.drilldownActive = false }
                 )
                 ComboBox(
                     label = "حساب",
@@ -360,14 +392,14 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     val total=selectedTotal.coerceAtLeast(1L)
                     Canvas(Modifier.size(218.dp).align(Alignment.CenterHorizontally)) {
                         var start=-90f
-                        selectedSlices.forEach{(_,amount,argb)->val sweep=amount.toFloat()/total*360f;drawArc(Color(argb),start,sweep,useCenter=true);start+=sweep}
+                        selectedSlices.forEach{slice->val sweep=slice.amount.toFloat()/total*360f;drawArc(Color(slice.color),start,sweep,useCenter=true);start+=sweep}
                         drawCircle(color=skin.cardColor,radius=size.minDimension*.26f)
                     }
-                    selectedSlices.forEach{(name,amount,colorArgb)->
-                        val percent=(amount*100.0/total).coerceIn(0.0,100.0)
-                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
-                            ChartLegend(Color(colorArgb),name)
-                            Column(horizontalAlignment=Alignment.End){Text(Money.format(amount,settings.moneyUnit),style=MaterialTheme.typography.bodySmall,fontWeight=FontWeight.Bold);Text("${Digits.toPersian(String.format("%.1f",percent))}٪",style=MaterialTheme.typography.labelSmall,color=skin.onBackdrop.copy(alpha=.62f))}
+                    selectedSlices.forEach{slice->
+                        val percent=(slice.amount*100.0/total).coerceIn(0.0,100.0)
+                        Row(Modifier.fillMaxWidth().clickable { session.drilldownCategory = slice.id; session.drilldownActive = true }.padding(vertical = 8.dp),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                            ChartLegend(Color(slice.color),slice.name)
+                            Column(horizontalAlignment=Alignment.End){Text(Money.format(slice.amount,settings.moneyUnit),style=MaterialTheme.typography.bodySmall,fontWeight=FontWeight.Bold);Text("${Digits.toPersian(String.format("%.1f",percent))}٪",style=MaterialTheme.typography.labelSmall,color=skin.onBackdrop.copy(alpha=.62f))}
                         }
                     }
                 }
@@ -378,13 +410,18 @@ fun ReportsScreen(viewModel: AppViewModel) {
         SkinCard(Modifier.fillMaxWidth()){
             Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
                 Text(if(selectedBreakdown==TxNature.INCOME)"ریز درآمدهای این بازه" else "ریز مخارج این بازه",style=MaterialTheme.typography.titleMedium)
-                val count=selectedTransactions.size
-                val average=if(count==0)0L else selectedTotal/count
+                if (session.drilldownActive) {
+                    val name = categories.firstOrNull { it.id == session.drilldownCategory }?.name ?: "بدون دسته"
+                    Text("دسته انتخاب‌شده: $name", fontWeight = FontWeight.Bold)
+                    androidx.compose.material3.TextButton(onClick = { session.drilldownActive = false }) { Text("نمایش همه دسته‌ها") }
+                }
+                val count=detailTransactions.size
+                val average=if(count==0)0L else detailTotal/count
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("تعداد تراکنش");Text(Digits.toPersian(count.toString()),fontWeight=FontWeight.Bold)}
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("میانگین هر تراکنش");Text(Money.format(average,settings.moneyUnit),fontWeight=FontWeight.Bold)}
-                selectedSlices.firstOrNull()?.let{top->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(selectedBreakdown==TxNature.INCOME)"بیشترین منبع" else "بیشترین محل هزینه");Text(top.first,fontWeight=FontWeight.Bold)}}
+                selectedSlices.firstOrNull()?.let{top->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(if(selectedBreakdown==TxNature.INCOME)"بیشترین منبع" else "بیشترین محل هزینه");Text(top.name,fontWeight=FontWeight.Bold)}}
                 Divider(color=MaterialTheme.colorScheme.outlineVariant)
-                selectedTransactions.take(20).forEach{tx->
+                (if (session.drilldownActive) detailTransactions else detailTransactions.take(20)).forEach{tx->
                     val category=categories.firstOrNull{it.id==tx.categoryId}?.name?:"بدون دسته"
                     val account=accounts.firstOrNull{it.id==tx.accountId}?.title?:"حساب نامشخص"
                     Column(Modifier.fillMaxWidth().padding(vertical=4.dp)){
@@ -392,7 +429,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
                         Text("$category • $account • ${PersianDate.formatDateTime(tx.occurredAt)}",style=MaterialTheme.typography.labelSmall,color=skin.onBackdrop.copy(alpha=.62f))
                     }
                 }
-                if(selectedTransactions.size>20)Text("۲۰ مورد آخر نمایش داده شده؛ خروجی PDF یا Excel شامل همه موارد است.",style=MaterialTheme.typography.labelSmall,color=skin.accent)
+                if(!session.drilldownActive && detailTransactions.size>20)Text("۲۰ مورد آخر نمایش داده شده؛ خروجی PDF یا Excel شامل همه موارد است.",style=MaterialTheme.typography.labelSmall,color=skin.accent)
             }
         }
 

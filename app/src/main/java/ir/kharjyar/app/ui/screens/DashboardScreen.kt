@@ -1001,9 +1001,9 @@ private fun SummaryChip(
 /** سری روزانه درآمد/هزینه برای n روز اخیر (بر اساس روز شمسی/منطقه زمانی تهران). */
 internal fun buildDailySeries(
     txs: List<ir.kharjyar.app.data.db.TransactionEntity>,
-    days: Int
+    days: Int,
+    today: PersianDate = PersianDate.today()
 ): Pair<List<Long>, List<Long>> {
-    val today = PersianDate.today()
     val income = MutableList(days) { 0L }
     val expense = MutableList(days) { 0L }
     val dayStartList = (0 until days).map { today.plusDays(-(days - 1 - it)) }
