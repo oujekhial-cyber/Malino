@@ -22,17 +22,19 @@ object ObligationTrash {
 
     /** Recreate only future check reminders; cancelled past notifications stay cancelled. */
     suspend fun restoreCheck(context: Context, db: KharjYarDatabase, check: CheckEntity) {
-        db.checkDao().restore(check.id)
-        if (check.status != CheckStatus.PENDING) return
-        val due = PersianDate.fromMillis(check.dueAt)
-        val number = check.sayadId.ifBlank { check.serialNumber }
-        val note = "چک ${if (check.direction == CheckDirection.RECEIVED) "دریافتی" else "صادرشده"} شماره $number — طرف حساب: ${check.counterparty}"
-        listOf("یادآوری چک؛ یک روز مانده به سررسید" to due.plusDays(-1), "موعد چک" to due).forEach { (title, date) ->
-            val at = date.startOfDayMillis() + 9 * 60 * 60 * 1000L
-            if (at > System.currentTimeMillis()) {
-                val id = db.reminderDao().insert(ReminderEntity(title = title, category = "چک", note = note, nextAt = at))
-                LifeReminderWorker.schedule(context, id, at)
+        val created = db.withTransaction {
+            if (db.checkDao().restore(check.id) == 0 || check.status != CheckStatus.PENDING) return@withTransaction emptyList<Pair<Long, Long>>()
+            val due = PersianDate.fromMillis(check.dueAt)
+            val number = check.sayadId.ifBlank { check.serialNumber }
+            val note = "چک ${if (check.direction == CheckDirection.RECEIVED) "دریافتی" else "صادرشده"} شماره $number — طرف حساب: ${check.counterparty}"
+            listOf("یادآوری چک؛ یک روز مانده به سررسید" to due.plusDays(-1), "موعد چک" to due).mapNotNull { (title, date) ->
+                val at = date.startOfDayMillis() + 9 * 60 * 60 * 1000L
+                if (at <= System.currentTimeMillis()) null else {
+                    val id = db.reminderDao().insert(ReminderEntity(title = title, category = "چک", note = note, nextAt = at))
+                    id to at
+                }
             }
         }
+        created.forEach { (id, at) -> LifeReminderWorker.schedule(context, id, at) }
     }
 }

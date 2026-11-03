@@ -47,7 +47,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM checks") suspend fun allOnce():List<CheckEntity>
     @Query("SELECT * FROM checks WHERE deletedAt IS NULL ORDER BY status, dueAt") fun observeAll(): Flow<List<CheckEntity>>
     @Query("UPDATE checks SET deletedAt=:at WHERE id=:id AND deletedAt IS NULL") suspend fun trash(id: Long, at: Long)
-    @Query("UPDATE checks SET deletedAt=NULL WHERE id=:id") suspend fun restore(id: Long)
+    @Query("UPDATE checks SET deletedAt=NULL WHERE id=:id AND deletedAt IS NOT NULL") suspend fun restore(id: Long): Int
     @Query("SELECT * FROM checks WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC") fun observeTrash(): Flow<List<CheckEntity>>
     @Query("SELECT * FROM checks WHERE deletedAt IS NOT NULL AND deletedAt<=:cutoff") suspend fun expired(cutoff: Long): List<CheckEntity>
     @Query("DELETE FROM checks WHERE id=:id AND deletedAt IS NOT NULL") suspend fun permanentlyDelete(id: Long)
