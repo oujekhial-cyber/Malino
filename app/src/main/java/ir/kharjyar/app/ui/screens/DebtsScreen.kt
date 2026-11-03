@@ -219,13 +219,10 @@ fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
         )
     }
     deletingPerson?.let { person ->
-        val allPersonDebts = debts.filter { it.personId == person.id }
-        val debtIds = allPersonDebts.map { it.id }.toSet()
-        val paymentCount = payments.count { it.debtId in debtIds }
         AlertDialog(
             onDismissRequest = { deletingPerson = null },
             title = { Text("حذف شخص؟") },
-            text = { Text("با حذف «${person.name}»، همه ${Digits.toPersian(allPersonDebts.size.toString())} طلب و بدهی و ${Digits.toPersian(paymentCount.toString())} سابقه پرداخت او، حتی موارد خارج از فیلتر فعلی، به سطل زباله منتقل می‌شوند و تا ۳۰ روز قابل بازگرداندن هستند. تراکنش‌های مالی حساب‌ها حذف نمی‌شوند.") },
+            text = { Text("با حذف «${person.name}»، همه طلب‌ها، بدهی‌ها و سوابق پرداخت او، حتی موارد خارج از فیلتر فعلی، به سطل زباله منتقل می‌شوند. مواردی که قبلاً جداگانه حذف شده‌اند با زمان حذف قبلی خود در سطل باقی می‌مانند. تراکنش‌های مالی حساب‌ها حذف نمی‌شوند.") },
             confirmButton = { TextButton(onClick = {
                 scope.launch {
                     val deletedIds = vm.repo.db.debtDao().debtIdsOfPerson(person.id)

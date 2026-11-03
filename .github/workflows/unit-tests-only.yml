@@ -17,6 +17,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v3
+      - name: Verify trash database queries
+        run: python3 scripts/test_obligation_trash_sql.py
       - name: Run unit tests (no APK)
         run: |
           set -o pipefail

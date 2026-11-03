@@ -35,7 +35,7 @@ fun ObligationTrashScreen(vm: AppViewModel, onBack: () -> Unit) {
         loans.map { TrashItem("وام", it.id, it.title, it.deletedAt!!) } +
         checks.map { TrashItem("چک", it.id, it.counterparty, it.deletedAt!!, check = it) }).sortedByDescending { it.deletedAt }
     BackHandler(onBack = onBack)
-    LaunchedEffect(Unit) { ObligationTrash.purgeExpired(db) }
+    LaunchedEffect(Unit) { ObligationTrash.purgeExpired(context, db) }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth()) {
             TextButton(onClick = onBack) { Text("بازگشت") }
@@ -75,7 +75,7 @@ fun ObligationTrashScreen(vm: AppViewModel, onBack: () -> Unit) {
                     "شخص" -> db.debtDao().deletePersonWithDebts(item.id)
                     "طلب", "بدهی" -> item.debt?.let { db.debtDao().permanentlyDeleteDebt(it) }
                     "وام" -> db.loanDao().permanentlyDelete(item.id)
-                    "چک" -> item.check?.let { db.checkDao().permanentlyDelete(it.id) }
+                    "چک" -> item.check?.let { ObligationTrash.permanentlyDeleteCheck(context, db, it) }
                 }
             } }) { Text("حذف همیشگی", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text("انصراف") } })
