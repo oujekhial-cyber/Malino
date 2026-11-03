@@ -519,7 +519,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                         "transaction"->viewModel.repo.txDao.delete(target.id)
                         "asset"->{viewModel.repo.db.assetDao().deleteTrades(target.id);viewModel.repo.db.assetDao().delete(target.id)}
                         "debt"->{viewModel.repo.db.debtDao().trashDebt(target.id,System.currentTimeMillis());ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,target.id)}
-                        "loan"->{viewModel.loanInstallments.value.filter{it.loanId==target.id}.forEach{ir.kharjyar.app.notify.Notifier.cancelInstallmentReminder(context,it.id)};viewModel.repo.db.loanDao().trash(target.id,System.currentTimeMillis())}
+                        "loan"->{viewModel.repo.db.loanDao().trash(target.id,System.currentTimeMillis());viewModel.repo.db.loanDao().allInstallmentsOnce().filter{it.loanId==target.id}.forEach{ir.kharjyar.app.notify.Notifier.cancelInstallmentReminder(context,it.id)}}
                     }
                     saved=true;input=""
                 } else {

@@ -187,7 +187,7 @@ fun LoansScreen(vm:AppViewModel,initialLoanId:Long?=null,initialInstallmentId:Lo
    onDismissRequest={deletingLoan=null},
    title={Text("حذف وام؟")},
    text={Text("وام «${loan.title}» و برنامه ${Digits.toPersian(loanRows.size.toString())} قسطی آن به سطل زباله منتقل می‌شود و تا ۳۰ روز قابل بازگرداندن است.${if(paidCount>0)" سابقه ${Digits.toPersian(paidCount.toString())} پرداخت قسط نیز همراه آن نگهداری می‌شود." else ""} تراکنش‌های مالی که قبلاً در حساب ثبت شده‌اند حذف نمی‌شوند.")},
-   confirmButton={TextButton({scope.launch{loanRows.forEach{ir.kharjyar.app.notify.Notifier.cancelInstallmentReminder(context,it.id)};vm.repo.db.loanDao().trash(loan.id,System.currentTimeMillis());deletingLoan=null}}){Text("حذف وام",color=MaterialTheme.colorScheme.error)}},
+   confirmButton={TextButton({scope.launch{vm.repo.db.loanDao().trash(loan.id,System.currentTimeMillis());loanRows.forEach{ir.kharjyar.app.notify.Notifier.cancelInstallmentReminder(context,it.id)};deletingLoan=null}}){Text("حذف وام",color=MaterialTheme.colorScheme.error)}},
    dismissButton={TextButton({deletingLoan=null}){Text("انصراف")}}
   )
  }
