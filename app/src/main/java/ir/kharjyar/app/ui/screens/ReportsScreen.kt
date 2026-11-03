@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.core.date.persianYearChoices
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.AccountEntity
@@ -113,14 +114,15 @@ fun ReportsScreen(viewModel: AppViewModel) {
     var customToMinute by session::customToMinute
     var exportMessage by remember { mutableStateOf<String?>(null) }
     val today = PersianDate.today()
-    val years = (allTx.map { PersianDate.fromMillis(it.occurredAt).year } + today.year + session.month.year).distinct().sortedDescending()
-    val months = years.flatMap { year -> (12 downTo 1).map { PersianDate(year, it, 1) } }
+    val years = remember(allTx, today.year, session.month.year) {
+        persianYearChoices(today.year, allTx.map { PersianDate.fromMillis(it.occurredAt).year }, session.month.year)
+    }
     val (from, to) = when (range) {
         RangeKind.DAY -> today.startOfDayMillis() to today.endOfDayMillisExclusive()
         RangeKind.WEEK -> today.plusDays(-6).startOfDayMillis() to today.endOfDayMillisExclusive()
         RangeKind.MONTH -> session.month.startOfDayMillis() to session.month.lastOfMonth().endOfDayMillisExclusive()
-        RangeKind.YEAR -> PersianDate(today.year, 1, 1).startOfDayMillis() to
-            PersianDate(today.year, 12, PersianDate.monthLength(today.year, 12)).endOfDayMillisExclusive()
+        RangeKind.YEAR -> PersianDate(session.month.year, 1, 1).startOfDayMillis() to
+            PersianDate(session.month.year, 12, PersianDate.monthLength(session.month.year, 12)).endOfDayMillisExclusive()
         RangeKind.CUSTOM -> PersianDate.toMillis(customFromDate, customFromHour, customFromMinute) to
             (PersianDate.toMillis(customToDate, customToHour, customToMinute) + 60_000L)
     }
@@ -349,11 +351,22 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     color = skin.onBackdrop
                 )
                 ComboBox(
+                    label = "سال گزارش",
+                    options = years,
+                    selected = session.month.year,
+                    labelOf = { Digits.toPersian(it.toString()) },
+                    onSelect = { year ->
+                        session.month = PersianDate(year, session.month.month, 1)
+                        if (range != RangeKind.YEAR) range = RangeKind.MONTH
+                        session.drilldownActive = false
+                    }
+                )
+                ComboBox(
                     label = "ماه گزارش",
-                    options = months,
-                    selected = session.month,
-                    labelOf = { "${it.monthName()} ${Digits.toPersian(it.year.toString())}" },
-                    onSelect = { session.month = it; range = RangeKind.MONTH; session.drilldownActive = false }
+                    options = (1..12).toList(),
+                    selected = session.month.month,
+                    labelOf = { PersianDate.MONTH_NAMES[it - 1] },
+                    onSelect = { month -> session.month = PersianDate(session.month.year, month, 1); range = RangeKind.MONTH; session.drilldownActive = false }
                 )
                 ComboBox(
                     label = "حساب",

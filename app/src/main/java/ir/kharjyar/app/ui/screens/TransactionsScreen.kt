@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import ir.kharjyar.app.core.date.PersianDate
+import ir.kharjyar.app.core.date.persianYearChoices
 import ir.kharjyar.app.core.money.Money
 import ir.kharjyar.app.core.text.Digits
 import ir.kharjyar.app.data.db.TransactionEntity
@@ -79,8 +80,8 @@ import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.theme.LocalAppSkin
 import kotlinx.coroutines.launch
 
-private data class TransactionMonthPeriod(val year:Int?,val month:Int?,val label:String){
- fun contains(time:Long):Boolean=year==null||PersianDate.fromMillis(time).let{it.year==year&&it.month==month}
+internal data class TransactionMonthPeriod(val year:Int?,val month:Int?,val label:String){
+ fun contains(time:Long):Boolean=PersianDate.fromMillis(time).let{(year==null||it.year==year)&&(month==null||it.month==month)}
 }
 
 internal fun TransactionEntity.isDebtSettlementTransaction(): Boolean {
@@ -110,10 +111,6 @@ fun TransactionsScreen(
     var query by remember { mutableStateOf("") }
     var filterNature by remember { mutableStateOf<Int?>(null) }
     val currentTransactionMonth=PersianDate.today()
-    val monthPeriods=remember(all,currentTransactionMonth.year,currentTransactionMonth.month){
-        val keys=(all.map{PersianDate.fromMillis(it.occurredAt)}.map{it.year to it.month}+(currentTransactionMonth.year to currentTransactionMonth.month)).distinct().sortedWith(compareByDescending<Pair<Int,Int>>{it.first}.thenByDescending{it.second})
-        listOf(TransactionMonthPeriod(null,null,"همه ماه‌ها"))+keys.map{(year,month)->TransactionMonthPeriod(year,month,"${PersianDate(year,month,1).monthName()} ${Digits.toPersian(year.toString())}")}
-    }
     // تا وقتی کاربر چیزی را عوض نکرده، حساب پیش‌فرض تنظیمات و ماه جاری انتخاب‌اند.
     // session داخل ViewModel باعث می‌شود ورود به جزئیات یا صفحه دیگر این دو را reset نکند.
     val filterAccount=if(transactionFilterSession==null){
@@ -123,11 +120,13 @@ fun TransactionsScreen(
         ?:if(transactionFilterSession==null)currentTransactionMonth.year else null
     val selectedFilterMonth=transactionFilterSession?.month
         ?:if(transactionFilterSession==null)currentTransactionMonth.month else null
-    val filterPeriod=monthPeriods.firstOrNull{it.year==selectedFilterYear&&it.month==selectedFilterMonth}
-        ?:monthPeriods.first{it.year==currentTransactionMonth.year&&it.month==currentTransactionMonth.month}
-    fun selectTransactionPeriod(period:TransactionMonthPeriod){
-        viewModel.setTransactionMonthFilter(period.year,period.month)
+    val transactionYears = remember(all, currentTransactionMonth.year, selectedFilterYear) {
+        persianYearChoices(currentTransactionMonth.year, all.map { PersianDate.fromMillis(it.occurredAt).year }, selectedFilterYear)
     }
+    val filterPeriod = TransactionMonthPeriod(selectedFilterYear, selectedFilterMonth,
+        listOf(selectedFilterMonth?.let { PersianDate.MONTH_NAMES[it - 1] } ?: "همه ماه‌ها",
+            selectedFilterYear?.let { Digits.toPersian(it.toString()) } ?: "همه سال‌ها").joinToString(" • "))
+    fun clearTransactionPeriod() { viewModel.setTransactionMonthFilter(null, null) }
     var dateRangeEnabled by remember { mutableStateOf(false) }
     var filterFromDate by remember { mutableStateOf(PersianDate.today().plusDays(-30)) }
     var filterToDate by remember { mutableStateOf(PersianDate.today()) }
@@ -274,8 +273,13 @@ fun TransactionsScreen(
                 )
             }
 
-            // انتخاب ماه، کمبوباکس کلاسیک روی خود صفحه است و فهرست آن مستقیم زیر کنترل باز می‌شود.
-            ComboBox("ماه",monthPeriods,filterPeriod,{selectTransactionPeriod(it);dateRangeEnabled=false},labelOf={it.label})
+            // سال و ماه مستقل‌اند؛ گزینه صفر به معنی همه سال‌ها یا همه ماه‌هاست.
+            ComboBox("سال", listOf(0) + transactionYears, selectedFilterYear ?: 0,
+                { year -> viewModel.setTransactionMonthFilter(year.takeIf { it != 0 }, selectedFilterMonth); dateRangeEnabled = false },
+                labelOf = { year -> if (year == 0) "همه سال‌ها" else Digits.toPersian(year.toString()) })
+            ComboBox("ماه", listOf(0) + (1..12).toList(), selectedFilterMonth ?: 0,
+                { month -> viewModel.setTransactionMonthFilter(selectedFilterYear, month.takeIf { it != 0 }); dateRangeEnabled = false },
+                labelOf = { month -> if (month == 0) "همه ماه‌ها" else PersianDate.MONTH_NAMES[month - 1] })
             ComboBox(
                 label="حساب",
                 options=listOf<Long?>(null)+accounts.filterNot{it.archived}.map{it.id},
@@ -286,7 +290,7 @@ fun TransactionsScreen(
 
             // فیلترهای پرکاربرد همیشه جلوی چشم و با یک لمس قابل انتخاب‌اند.
             val activeFilterCount = listOf(
-                filterDirection != null, filterNature != null, filterAccount != null, filterPeriod.year != null, dateRangeEnabled, exactAmountRial!=null, onlyPending
+                filterDirection != null, filterNature != null, filterAccount != null, (filterPeriod.year != null || filterPeriod.month != null), dateRangeEnabled, exactAmountRial!=null, onlyPending
             ).count { it }
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -294,7 +298,7 @@ fun TransactionsScreen(
             ) {
                 item {
                     ProfessionalFilterChip("همه", activeFilterCount == 0) {
-                        filterDirection = null; filterNature = null; viewModel.setTransactionAccountFilter(null); selectTransactionPeriod(monthPeriods.first()); dateRangeEnabled=false; exactAmountInput=""; onlyPending = false
+                        filterDirection = null; filterNature = null; viewModel.setTransactionAccountFilter(null); clearTransactionPeriod(); dateRangeEnabled=false; exactAmountInput=""; onlyPending = false
                     }
                 }
                 item {
@@ -313,11 +317,11 @@ fun TransactionsScreen(
                 item {
                     ProfessionalFilterChip(
                         if (activeFilterCount == 0) "فیلترهای بیشتر" else "بیشتر ($activeFilterCount)",
-                        filterNature != null || filterAccount != null || filterPeriod.year != null || dateRangeEnabled || exactAmountRial!=null
+                        filterNature != null || filterAccount != null || (filterPeriod.year != null || filterPeriod.month != null) || dateRangeEnabled || exactAmountRial!=null
                     ) { showFilters = true }
                 }
             }
-            if (filterAccount != null || filterNature != null || filterPeriod.year != null || dateRangeEnabled || exactAmountRial!=null) {
+            if (filterAccount != null || filterNature != null || (filterPeriod.year != null || filterPeriod.month != null) || dateRangeEnabled || exactAmountRial!=null) {
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 5.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -330,7 +334,7 @@ fun TransactionsScreen(
                     filterNature?.let { nature ->
                         ProfessionalFilterChip(when (nature) { TxNature.INCOME -> "درآمد"; TxNature.EXPENSE -> "هزینه"; TxNature.TRANSFER -> "انتقال"; else -> "غیر درآمد/هزینه" }, true) { filterNature = null }
                     }
-                    if(filterPeriod.year!=null) ProfessionalFilterChip(filterPeriod.label,true){selectTransactionPeriod(monthPeriods.first())}
+                    if((filterPeriod.year!=null || filterPeriod.month!=null)) ProfessionalFilterChip(filterPeriod.label,true){clearTransactionPeriod()}
                     if(dateRangeEnabled) ProfessionalFilterChip(
                         "${filterFromDate.format()} تا ${filterToDate.format()}", true
                     ){dateRangeEnabled=false}
@@ -443,7 +447,7 @@ fun TransactionsScreen(
                                 checked = dateRangeEnabled,
                                 onCheckedChange = { enabled ->
                                     dateRangeEnabled = enabled
-                                    if (enabled) selectTransactionPeriod(monthPeriods.first())
+                                    if (enabled) clearTransactionPeriod()
                                 }
                             )
                         }
@@ -467,7 +471,7 @@ fun TransactionsScreen(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;viewModel.setTransactionAccountFilter(null);selectTransactionPeriod(monthPeriods.first());dateRangeEnabled=false;exactAmountInput="";onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
+                    androidx.compose.material3.OutlinedButton(onClick = { filterDirection=null;filterNature=null;viewModel.setTransactionAccountFilter(null);clearTransactionPeriod();dateRangeEnabled=false;exactAmountInput="";onlyPending=false }, modifier = Modifier.weight(1f)) { Text("پاک کردن") }
                     androidx.compose.material3.Button(onClick = { showFilters=false }, modifier = Modifier.weight(1f)) { Text("نمایش ${Digits.toPersian(filtered.size.toString())} نتیجه") }
                 }
             }
