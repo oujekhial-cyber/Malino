@@ -56,6 +56,8 @@ private data class PendingExcessPayment(
 
 @Composable
 fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val people by vm.debtPeople.collectAsState()
     val debts by vm.debts.collectAsState()
     val payments by vm.debtPayments.collectAsState()
@@ -64,6 +66,8 @@ fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
     val pendingEdit by vm.pendingRecordEdit.collectAsState()
     var entryKind by remember(pendingDraft) { mutableStateOf(when(pendingDraft?.action){"debt_receivable"->DebtKind.RECEIVABLE;"debt_payable"->DebtKind.PAYABLE;else->null}) }
     var showChooser by remember { mutableStateOf(false) }
+    var editingPerson by remember { mutableStateOf<DebtPersonEntity?>(null) }
+    var deletingPerson by remember { mutableStateOf<DebtPersonEntity?>(null) }
     var selectedPersonId by remember(pendingEdit,debts,initialDebtId) { mutableStateOf(initialDebtId?.let{id->debts.firstOrNull{it.id==id}?.personId}?:pendingEdit?.takeIf{it.type=="debt"}?.let{edit->debts.firstOrNull{it.id==edit.id}?.personId}) }
     LaunchedEffect(selectedPersonId){if(selectedPersonId!=null&&pendingEdit?.type=="debt")vm.clearRecordEdit()}
     var filterKind by remember { mutableStateOf<Int?>(null) }
@@ -139,6 +143,8 @@ fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
                 }
                 val netAmount = kotlin.math.abs(receivable - payable)
                 val nearestDue = listOfNotNull(receivableDate, payableDate).minOrNull()
+                key(person.id) {
+                SwipeActionRow(onEdit = { editingPerson = person }, onDelete = { deletingPerson = person }, removeOnDelete = false) {
                 Card(
                     modifier = Modifier.fillMaxWidth()
                         .border(1.dp, relationAccent.copy(alpha = .28f), RoundedCornerShape(20.dp))
@@ -181,9 +187,55 @@ fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
                         }
                     }
                 }
+                }
+                }
             }
         }
         ThemedFloatingActionButton(onClick = { showChooser = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) { Icon(Icons.Filled.Add, "افزودن طلب یا بدهی") }
+    }
+    editingPerson?.let { person ->
+        var name by remember(person.id) { mutableStateOf(person.name) }
+        var phone by remember(person.id) { mutableStateOf(person.phone) }
+        var note by remember(person.id) { mutableStateOf(person.note) }
+        val duplicate = people.any { it.id != person.id && it.name.trim().equals(name.trim(), ignoreCase = true) }
+        AlertDialog(
+            onDismissRequest = { editingPerson = null },
+            title = { Text("ویرایش شخص") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(name, { name = it }, label = { Text("نام شخص") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(phone, { phone = it }, label = { Text("شماره تماس") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(note, { note = it }, label = { Text("یادداشت") }, modifier = Modifier.fillMaxWidth())
+                    if (duplicate) Text("شخص دیگری با این نام وجود دارد.", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            confirmButton = { TextButton(enabled = name.isNotBlank() && !duplicate, onClick = {
+                scope.launch {
+                    vm.repo.db.debtDao().updatePerson(person.copy(name = name.trim(), phone = phone.trim(), note = note.trim()))
+                    editingPerson = null
+                }
+            }) { Text("ذخیره تغییرات") } },
+            dismissButton = { TextButton(onClick = { editingPerson = null }) { Text("انصراف") } }
+        )
+    }
+    deletingPerson?.let { person ->
+        val allPersonDebts = debts.filter { it.personId == person.id }
+        val debtIds = allPersonDebts.map { it.id }.toSet()
+        val paymentCount = payments.count { it.debtId in debtIds }
+        AlertDialog(
+            onDismissRequest = { deletingPerson = null },
+            title = { Text("حذف شخص؟") },
+            text = { Text("با حذف «${person.name}»، همه ${Digits.toPersian(allPersonDebts.size.toString())} طلب و بدهی و ${Digits.toPersian(paymentCount.toString())} سابقه پرداخت او، حتی موارد خارج از فیلتر فعلی، به سطل زباله منتقل می‌شوند و تا ۳۰ روز قابل بازگرداندن هستند. تراکنش‌های مالی حساب‌ها حذف نمی‌شوند.") },
+            confirmButton = { TextButton(onClick = {
+                scope.launch {
+                    val deletedIds = vm.repo.db.debtDao().debtIdsOfPerson(person.id)
+                    vm.repo.db.debtDao().trashPerson(person.id, System.currentTimeMillis())
+                    deletedIds.forEach { ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context, it) }
+                    deletingPerson = null
+                }
+            }) { Text("حذف", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { deletingPerson = null }) { Text("انصراف") } }
+        )
     }
     if(showChooser)ModernChoiceDialog("طلب یا بدهی","نوع تعهد مالی را انتخاب کنید",listOf(ModernChoiceOption("ثبت طلب","مبلغی که باید از شخص دیگری دریافت کنید",Color(0xFF1B8F52),Icons.Filled.CallReceived){showChooser=false;entryKind=DebtKind.RECEIVABLE},ModernChoiceOption("ثبت بدهی","مبلغی که باید به شخص دیگری پرداخت کنید",Color(0xFFD33B45),Icons.Filled.CallMade){showChooser=false;entryKind=DebtKind.PAYABLE}),{showChooser=false})
 }
@@ -443,8 +495,8 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
         AlertDialog(
             onDismissRequest={pendingDeleteDebt=null},
             title={Text(if(debt.kind==DebtKind.RECEIVABLE)"حذف طلب؟" else "حذف بدهی؟")},
-            text={Text("«${debt.title.ifBlank{if(debt.kind==DebtKind.RECEIVABLE)"طلب" else "بدهی"}}» حذف شود؟"+(if(paymentCount>0)" ${Digits.toPersian(paymentCount.toString())} سابقه پرداخت مرتبط نیز حذف می‌شود." else ""))},
-            confirmButton={TextButton({scope.launch{vm.repo.db.debtDao().deletePaymentsOf(debt.id);vm.repo.db.debtDao().deleteDebt(debt);ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,debt.id);pendingDeleteDebt=null}}){Text("حذف",color=MaterialTheme.colorScheme.error)}},
+            text={Text("«${debt.title.ifBlank{if(debt.kind==DebtKind.RECEIVABLE)"طلب" else "بدهی"}}» حذف شود؟"+(if(paymentCount>0)" ${Digits.toPersian(paymentCount.toString())} سابقه پرداخت مرتبط نیز همراه آن به سطل زباله منتقل می‌شود." else ""))},
+            confirmButton={TextButton({scope.launch{vm.repo.db.debtDao().trashDebt(debt.id,System.currentTimeMillis());ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,debt.id);pendingDeleteDebt=null}}){Text("حذف",color=MaterialTheme.colorScheme.error)}},
             dismissButton={TextButton({pendingDeleteDebt=null}){Text("انصراف")}}
         )
     }

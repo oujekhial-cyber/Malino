@@ -238,6 +238,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (settings.value.appLockEnabled) _locked.value = true
         // تراکنش‌های بیش از ۳۰ روز مانده در سطل زباله، بدون دخالت کاربر پاک می‌شوند.
         viewModelScope.launch {
+            ir.kharjyar.app.work.ObligationTrash.purgeExpired(repo.db)
             repo.txDao.purgeTrashOlderThan(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000)
             repo.txDao.purgeOrphanAttachments()
         }

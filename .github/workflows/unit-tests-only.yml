@@ -1,0 +1,27 @@
+name: Android unit tests only
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/dd2a5ba2-malino
+permissions:
+  contents: read
+jobs:
+  test:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[tests only]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v3
+      - name: Run unit tests (no APK)
+        run: ./gradlew :app:testDebugUnitTest --stacktrace --console=plain
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: ignore
