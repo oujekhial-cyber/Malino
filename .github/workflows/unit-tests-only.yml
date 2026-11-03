@@ -18,7 +18,25 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v3
       - name: Run unit tests (no APK)
-        run: ./gradlew :app:testDebugUnitTest --stacktrace --console=plain
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest --stacktrace --console=plain 2>&1 | tee unittest.log
+      - name: Publish failure diagnostics
+        if: failure()
+        run: |
+          python3 - <<'PYCODE'
+          import glob, re, xml.etree.ElementTree as ET
+          lines = open('unittest.log', errors='replace').read().splitlines()
+          matches = [line for line in lines if re.search(r'(^e: |error:|FAILURE:|Execution failed for task|^Caused by:| FAILED)', line)]
+          for line in matches[:35]:
+              print('::error title=Test diagnostic::' + line.replace('%','%25').replace('\r','%0D').replace('\n','%0A'))
+          for path in glob.glob('app/build/test-results/testDebugUnitTest/*.xml'):
+              for case in ET.parse(path).getroot().findall('.//testcase'):
+                  failure = case.find('failure')
+                  if failure is not None:
+                      message = (failure.get('message') or failure.text or 'failed').splitlines()[0]
+                      print('::error title=Unit test failed::' + case.get('classname','') + '.' + case.get('name','') + ': ' + message.replace('%','%25'))
+          PYCODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
