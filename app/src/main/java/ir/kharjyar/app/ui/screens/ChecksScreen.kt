@@ -71,6 +71,7 @@ import ir.kharjyar.app.ui.components.showSavedMessage
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.PersianDateField
 import ir.kharjyar.app.ui.components.ComboBox
+import ir.kharjyar.app.ui.components.opaqueCardTint
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.work.LifeReminderWorker
 import ir.kharjyar.app.work.ObligationReminderCleanup
@@ -117,8 +118,8 @@ private fun ModernCheckListCard(
  val accent=if(received)Color(0xFF159B73) else Color(0xFFE0525E)
  val statusText=when(check.status){CheckStatus.CLEARED->if(received)"وصول‌شده" else "پاس‌شده";CheckStatus.BOUNCED->"برگشت‌خورده";CheckStatus.CANCELLED->"لغوشده";else->"در انتظار"}
  val statusColor=when(check.status){CheckStatus.CLEARED->Color(0xFF159B73);CheckStatus.BOUNCED->Color(0xFFE0525E);CheckStatus.CANCELLED->MaterialTheme.colorScheme.onSurfaceVariant;else->Color(0xFFE09B2D)}
- Card(modifier=Modifier.fillMaxWidth().border(1.dp,accent.copy(.3f),RoundedCornerShape(24.dp)).clickable(onClick=onOpen),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=Color.Transparent),elevation=CardDefaults.cardElevation(3.dp)){
-  Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(accent.copy(.17f),MaterialTheme.colorScheme.surface,MaterialTheme.colorScheme.surface))).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+ Card(modifier=Modifier.fillMaxWidth().border(1.dp,accent.copy(.3f),RoundedCornerShape(24.dp)).clickable(onClick=onOpen),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface.copy(alpha=1f)),elevation=CardDefaults.cardElevation(3.dp)){
+  Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(opaqueCardTint(accent, MaterialTheme.colorScheme.surface, .17f),MaterialTheme.colorScheme.surface,MaterialTheme.colorScheme.surface))).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
     Box(Modifier.size(50.dp).background(accent.copy(.16f),RoundedCornerShape(16.dp)).border(1.dp,accent.copy(.32f),RoundedCornerShape(16.dp)),contentAlignment=Alignment.Center){Icon(if(received)Icons.Filled.CallReceived else Icons.Filled.CallMade,null,tint=accent,modifier=Modifier.size(27.dp))}
     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){Text(if(received)"چک دریافت‌شده" else "چک صادرشده",style=MaterialTheme.typography.labelLarge,color=accent);Text(check.counterparty,style=MaterialTheme.typography.titleMedium);val chequePerson=if(received)check.issuerName else check.receiverName;if(chequePerson.isNotBlank()&&chequePerson!=check.counterparty)Text((if(received)"صادرکننده: " else "دریافت‌کننده: ")+chequePerson,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}

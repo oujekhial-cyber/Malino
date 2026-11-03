@@ -40,6 +40,7 @@ import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.PersianDateField
+import ir.kharjyar.app.ui.components.opaqueCardTint
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.showSavedMessage
 import kotlinx.coroutines.launch
@@ -265,7 +266,7 @@ private fun DebtDueSpotlight(
     }
     Card(
         modifier = modifier.border(1.5.dp, accent.copy(alpha = .48f), RoundedCornerShape(18.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 1f)),
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -274,7 +275,7 @@ private fun DebtDueSpotlight(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(accent.copy(alpha = .24f), accent.copy(alpha = .08f), MaterialTheme.colorScheme.surface)
+                        listOf(opaqueCardTint(accent, MaterialTheme.colorScheme.surface, .24f), opaqueCardTint(accent, MaterialTheme.colorScheme.surface, .08f), MaterialTheme.colorScheme.surface)
                     )
                 )
                 .padding(horizontal = 12.dp, vertical = 11.dp),
@@ -423,8 +424,8 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
                 onEdit = { editingDebt = debt },
                 removeOnDelete = false
             ) {
-            Card(colors = CardDefaults.cardColors(containerColor = Color.Transparent),shape=RoundedCornerShape(22.dp),elevation=CardDefaults.cardElevation(3.dp),modifier = Modifier.fillMaxWidth().border(1.dp,accent.copy(.34f),RoundedCornerShape(22.dp))) {
-                Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(accent.copy(.16f),MaterialTheme.colorScheme.surface,MaterialTheme.colorScheme.surface))).padding(15.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 1f)),shape=RoundedCornerShape(22.dp),elevation=CardDefaults.cardElevation(3.dp),modifier = Modifier.fillMaxWidth().border(1.dp,accent.copy(.34f),RoundedCornerShape(22.dp))) {
+                Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(opaqueCardTint(accent, MaterialTheme.colorScheme.surface, .16f),MaterialTheme.colorScheme.surface,MaterialTheme.colorScheme.surface))).padding(15.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
                     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){Box(Modifier.size(42.dp).background(accent.copy(.15f),RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(if(receivable)Icons.Filled.CallReceived else Icons.Filled.CallMade,null,tint=accent)};Column(Modifier.weight(1f)){Text(debt.title.ifBlank { if (receivable) "طلب" else "بدهی" }, style = MaterialTheme.typography.titleMedium);Text(if(receivable)"طلب از ${person.name}" else "بدهی به ${person.name}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)};Surface(color=accent.copy(.13f),shape=RoundedCornerShape(50)){Text(if(receivable)"طلب" else "بدهی",Modifier.padding(horizontal=9.dp,vertical=4.dp),color=accent,style=MaterialTheme.typography.labelMedium)}}
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){DebtMiniMetric("مبلغ اولیه",Money.format(debt.amountRial,settings.moneyUnit),MaterialTheme.colorScheme.onSurface,Modifier.weight(1f));DebtMiniMetric("مانده",Money.format(remain,settings.moneyUnit),accent,Modifier.weight(1f))}
                     Column(verticalArrangement=Arrangement.spacedBy(5.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("پیشرفت بازپرداخت",style=MaterialTheme.typography.labelMedium);Text("${Digits.toPersian(debtPayments.size.toString())} مرحله ثبت‌شده",style=MaterialTheme.typography.labelSmall,color=accent)};Box(Modifier.fillMaxWidth().height(7.dp).background(accent.copy(.12f),RoundedCornerShape(50))){Box(Modifier.fillMaxWidth(progress).height(7.dp).background(accent,RoundedCornerShape(50)))}}
