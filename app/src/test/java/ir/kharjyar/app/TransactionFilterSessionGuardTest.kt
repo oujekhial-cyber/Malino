@@ -17,6 +17,7 @@ class TransactionFilterSessionGuardTest {
   assertTrue(screen.contains("currentTransactionMonth.month"))
   assertTrue(screen.contains("viewModel.transactionFilterSession.collectAsState()"))
   assertTrue(screen.contains("viewModel.setTransactionAccountFilter(it)"))
-  assertTrue(screen.contains("selectTransactionPeriod(it)"))
+  assertTrue(screen.contains("viewModel.setTransactionMonthFilter(year.takeIf { it != 0 }, selectedFilterMonth)"))
+  assertTrue(screen.contains("viewModel.setTransactionMonthFilter(selectedFilterYear, month.takeIf { it != 0 })"))
  }
 }
