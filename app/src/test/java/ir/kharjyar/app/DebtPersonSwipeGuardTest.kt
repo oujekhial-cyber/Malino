@@ -16,7 +16,7 @@ class DebtPersonSwipeGuardTest {
     }
 
     @Test fun `deletion confirms full impact and removes records atomically without financial transactions`() {
-        assertTrue(screen.contains("debts.filter { it.personId == person.id }"))
+        assertTrue(screen.contains("debtIdsOfPerson(person.id)"))
         assertTrue(screen.contains("حتی موارد خارج از فیلتر فعلی"))
         assertTrue(screen.contains("trashPerson(person.id, System.currentTimeMillis())"))
         assertTrue(screen.contains("Notifier.cancelDebtReminder(context, it)"))
