@@ -8,11 +8,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PersianYearMonthFilterTest {
-    @Test fun `year choices include future years without data and older transaction years`() {
-        val choices = persianYearChoices(1405, listOf(1370, 1418), 1365)
-        assertTrue(choices.containsAll(listOf(1405, 1406, 1370, 1418, 1365)))
-        assertEquals(choices.distinct(), choices)
-        assertEquals(choices.sortedDescending(), choices)
+    @Test fun `year choices run from 1400 through 1450 inclusive`() {
+        val choices = persianYearChoices()
+        assertEquals((1400..1450).toList(), choices)
+        assertEquals(51, choices.size)
+    }
+
+    @Test fun `year and month controls share a row with equal weights`() {
+        val transaction = File("src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt").readText()
+        val report = File("src/main/java/ir/kharjyar/app/ui/screens/ReportsScreen.kt").readText()
+        listOf(transaction.substringAfter("// سال و ماه مستقل‌اند").substringBefore("label=\"حساب\""),
+            report.substringAfter("// ---------- فیلترها").substringBefore("label = \"حساب\"")).forEach { section ->
+            assertTrue(section.contains("Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp))"))
+            assertEquals(2, Regex("Modifier\\.weight\\(1f\\)").findAll(section).count())
+            assertTrue(section.indexOf("سال") < section.indexOf("ماه"))
+        }
     }
 
     @Test fun `transaction year and month filter independently including all options`() {

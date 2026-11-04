@@ -16,7 +16,7 @@ class AutomaticMonthRolloverAndSearchGuardTest {
   val s=File("src/main/java/ir/kharjyar/app/ui/screens/TransactionsScreen.kt").readText()
   assertTrue(s.contains("TransactionMonthPeriod")&&s.contains("ماه"))
   assertTrue(s.contains("filterPeriod.contains(tx.occurredAt)"))
-  assertTrue(s.contains("PersianDate.fromMillis(it.occurredAt)"))
+  assertTrue(s.contains("PersianDate.fromMillis(time)"))
   assertTrue(s.contains("همه ماه‌ها"))
  }
 }

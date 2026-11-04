@@ -120,9 +120,7 @@ fun TransactionsScreen(
         ?:if(transactionFilterSession==null)currentTransactionMonth.year else null
     val selectedFilterMonth=transactionFilterSession?.month
         ?:if(transactionFilterSession==null)currentTransactionMonth.month else null
-    val transactionYears = remember(all, currentTransactionMonth.year, selectedFilterYear) {
-        persianYearChoices(currentTransactionMonth.year, all.map { PersianDate.fromMillis(it.occurredAt).year }, selectedFilterYear)
-    }
+    val transactionYears = remember { persianYearChoices() }
     val filterPeriod = TransactionMonthPeriod(selectedFilterYear, selectedFilterMonth,
         listOf(selectedFilterMonth?.let { PersianDate.MONTH_NAMES[it - 1] } ?: "همه ماه‌ها",
             selectedFilterYear?.let { Digits.toPersian(it.toString()) } ?: "همه سال‌ها").joinToString(" • "))
@@ -274,12 +272,16 @@ fun TransactionsScreen(
             }
 
             // سال و ماه مستقل‌اند؛ گزینه صفر به معنی همه سال‌ها یا همه ماه‌هاست.
-            ComboBox("سال", listOf(0) + transactionYears, selectedFilterYear ?: 0,
-                { year -> viewModel.setTransactionMonthFilter(year.takeIf { it != 0 }, selectedFilterMonth); dateRangeEnabled = false },
-                labelOf = { year -> if (year == 0) "همه سال‌ها" else Digits.toPersian(year.toString()) })
-            ComboBox("ماه", listOf(0) + (1..12).toList(), selectedFilterMonth ?: 0,
-                { month -> viewModel.setTransactionMonthFilter(selectedFilterYear, month.takeIf { it != 0 }); dateRangeEnabled = false },
-                labelOf = { month -> if (month == 0) "همه ماه‌ها" else PersianDate.MONTH_NAMES[month - 1] })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ComboBox("سال", listOf(0) + transactionYears, selectedFilterYear ?: 0,
+                    { year -> viewModel.setTransactionMonthFilter(year.takeIf { it != 0 }, selectedFilterMonth); dateRangeEnabled = false },
+                    modifier = Modifier.weight(1f),
+                    labelOf = { year -> if (year == 0) "همه سال‌ها" else Digits.toPersian(year.toString()) })
+                ComboBox("ماه", listOf(0) + (1..12).toList(), selectedFilterMonth ?: 0,
+                    { month -> viewModel.setTransactionMonthFilter(selectedFilterYear, month.takeIf { it != 0 }); dateRangeEnabled = false },
+                    modifier = Modifier.weight(1f),
+                    labelOf = { month -> if (month == 0) "همه ماه‌ها" else PersianDate.MONTH_NAMES[month - 1] })
+            }
             ComboBox(
                 label="حساب",
                 options=listOf<Long?>(null)+accounts.filterNot{it.archived}.map{it.id},

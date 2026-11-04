@@ -114,9 +114,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
     var customToMinute by session::customToMinute
     var exportMessage by remember { mutableStateOf<String?>(null) }
     val today = PersianDate.today()
-    val years = remember(allTx, today.year, session.month.year) {
-        persianYearChoices(today.year, allTx.map { PersianDate.fromMillis(it.occurredAt).year }, session.month.year)
-    }
+    val years = remember { persianYearChoices() }
     val (from, to) = when (range) {
         RangeKind.DAY -> today.startOfDayMillis() to today.endOfDayMillisExclusive()
         RangeKind.WEEK -> today.plusDays(-6).startOfDayMillis() to today.endOfDayMillisExclusive()
@@ -350,24 +348,28 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     style = MaterialTheme.typography.titleSmall,
                     color = skin.onBackdrop
                 )
-                ComboBox(
-                    label = "سال گزارش",
-                    options = years,
-                    selected = session.month.year,
-                    labelOf = { Digits.toPersian(it.toString()) },
-                    onSelect = { year ->
-                        session.month = PersianDate(year, session.month.month, 1)
-                        if (range != RangeKind.YEAR) range = RangeKind.MONTH
-                        session.drilldownActive = false
-                    }
-                )
-                ComboBox(
-                    label = "ماه گزارش",
-                    options = (1..12).toList(),
-                    selected = session.month.month,
-                    labelOf = { PersianDate.MONTH_NAMES[it - 1] },
-                    onSelect = { month -> session.month = PersianDate(session.month.year, month, 1); range = RangeKind.MONTH; session.drilldownActive = false }
-                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ComboBox(
+                        label = "سال گزارش",
+                        options = years,
+                        selected = session.month.year,
+                        modifier = Modifier.weight(1f),
+                        labelOf = { Digits.toPersian(it.toString()) },
+                        onSelect = { year ->
+                            session.month = PersianDate(year, session.month.month, 1)
+                            if (range != RangeKind.YEAR) range = RangeKind.MONTH
+                            session.drilldownActive = false
+                        }
+                    )
+                    ComboBox(
+                        label = "ماه گزارش",
+                        options = (1..12).toList(),
+                        selected = session.month.month,
+                        modifier = Modifier.weight(1f),
+                        labelOf = { PersianDate.MONTH_NAMES[it - 1] },
+                        onSelect = { month -> session.month = PersianDate(session.month.year, month, 1); range = RangeKind.MONTH; session.drilldownActive = false }
+                    )
+                }
                 ComboBox(
                     label = "حساب",
                     options = listOf(0L) + accounts.filter { !it.archived }.map { it.id },
