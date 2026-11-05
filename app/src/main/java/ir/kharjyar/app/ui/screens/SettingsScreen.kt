@@ -194,24 +194,6 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                     }
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("قاب نئونی کارت اصلی", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        "نور نئونی دور کارت موجودی در صفحه خانه، با رنگ تم فعال",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = settings.cardShine,
-                    onCheckedChange = { scope.launch { viewModel.settingsRepo.setCardShine(it) } }
-                )
-            }
             HorizontalDivider()
             NavRow("تنظیمات ویجت") { nav.navigate("widgetSettings") }
         }

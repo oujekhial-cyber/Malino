@@ -25,8 +25,8 @@ class DisplaySettingsTest {
         assertEquals(MoneyUnit.RIAL, s.moneyUnit)
         assertEquals(DigitStyle.PERSIAN, s.digitStyle)
         assertEquals(Palette.SAKURA, s.palette)
-        // هاله دور کارت طبق خواست کاربر پیش‌فرض خاموش است
-        assertFalse(s.cardShine)
+        // قاب نئونی همواره برای کارت اصلی فعال است
+        assertTrue(s.cardShine)
     }
 
     @Test

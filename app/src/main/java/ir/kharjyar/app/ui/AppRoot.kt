@@ -894,6 +894,11 @@ private fun DrawerRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (selected) Modifier.shadow(
+                elevation = 8.dp, shape = shape, clip = false,
+                ambientColor = skin.accent.copy(alpha = 0.36f),
+                spotColor = skin.accent.copy(alpha = 0.45f)
+            ) else Modifier)
             .clip(shape)
             .background(
                 if (sakuraSelected) Brush.horizontalGradient(listOf(skin.accent, skin.accent))

@@ -98,7 +98,7 @@ data class AppSettings(
     /** ارقام فارسی یا لاتین در کل برنامه و ویجت. */
     val digitStyle: DigitStyle = DigitStyle.PERSIAN,
     /** حرکت آرام هاله نور شیشه‌ای روی کارت‌های صفحه خانه. */
-    val cardShine: Boolean = false,
+    val cardShine: Boolean = true,
     /** مقیاس متن و اعداد کل برنامه؛ ۱۰۰ اندازه استاندارد است. */
     val appFontScale: Int = 100,
     /** نمایش مبالغ در کارت خانه (با دکمه چشم عوض می‌شود و ماندگار است). */
@@ -219,7 +219,7 @@ class SettingsRepository(private val context: Context) {
                 // پرچم سراسری ارقام همگام با تنظیم کاربر نگه داشته می‌شود
                 ir.kharjyar.app.core.text.Digits.usePersianDigits = it == DigitStyle.PERSIAN
             },
-            cardShine = p[Keys.CARD_SHINE] ?: false,
+            cardShine = true, // Old preferences/backups cannot turn the permanent frame off.
             appFontScale = (p[Keys.APP_FONT_SCALE] ?: 100).coerceIn(85, 130),
             amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
             bankFeePercent = (p[Keys.BANK_FEE_PERCENT] ?: p[Keys.BANK_FEE_PERCENT_LEGACY]?.toFloat() ?: 1f).coerceIn(0f, 100f),

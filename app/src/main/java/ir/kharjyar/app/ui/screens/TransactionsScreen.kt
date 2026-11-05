@@ -277,7 +277,7 @@ fun TransactionsScreen(
                     { year -> viewModel.setTransactionMonthFilter(year.takeIf { it != 0 }, selectedFilterMonth); dateRangeEnabled = false },
                     modifier = Modifier.weight(1f),
                     labelOf = { year -> if (year == 0) "همه سال‌ها" else Digits.toPersian(year.toString()) })
-                ComboBox("ماه", listOf(0) + (1..12).toList(), selectedFilterMonth ?: 0,
+                ComboBox("ماه", listOf(0) + (12 downTo 1).toList(), selectedFilterMonth ?: 0,
                     { month -> viewModel.setTransactionMonthFilter(selectedFilterYear, month.takeIf { it != 0 }); dateRangeEnabled = false },
                     modifier = Modifier.weight(1f),
                     labelOf = { month -> if (month == 0) "همه ماه‌ها" else PersianDate.MONTH_NAMES[month - 1] })

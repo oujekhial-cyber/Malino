@@ -400,7 +400,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     .width(pageWidth)
                                     .height(compactAccountCardHeight)
                                     .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
-                                neon = settings.cardShine
+                                neon = true
                             ) {
                                 // بدنه کارت اصلی دقیقاً تمام ابعاد همان قاب ۲۳۰dp کارت‌های حساب را
                                 // پر می‌کند؛ HeroCard در حالت wrap-content در بعضی تم‌ها کوتاه‌تر دیده می‌شد.

@@ -10,7 +10,7 @@ import org.junit.Test
 class PersianYearMonthFilterTest {
     @Test fun `year choices run from 1400 through 1450 inclusive`() {
         val choices = persianYearChoices()
-        assertEquals((1400..1450).toList(), choices)
+        assertEquals((1450 downTo 1400).toList(), choices)
         assertEquals(51, choices.size)
     }
 
@@ -44,6 +44,6 @@ class PersianYearMonthFilterTest {
         assertTrue(report.contains("label = \"ماه گزارش\""))
         assertTrue(report.contains("PersianDate(year, session.month.month, 1)"))
         assertTrue(report.contains("PersianDate(session.month.year, 1, 1).startOfDayMillis()"))
-        assertTrue(report.contains("options = (1..12).toList()"))
+        assertTrue(report.contains("options = (12 downTo 1).toList()"))
     }
 }

@@ -363,7 +363,7 @@ fun ReportsScreen(viewModel: AppViewModel) {
                     )
                     ComboBox(
                         label = "ماه گزارش",
-                        options = (1..12).toList(),
+                        options = (12 downTo 1).toList(),
                         selected = session.month.month,
                         modifier = Modifier.weight(1f),
                         labelOf = { PersianDate.MONTH_NAMES[it - 1] },
