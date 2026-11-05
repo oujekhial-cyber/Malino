@@ -40,6 +40,7 @@ import ir.kharjyar.app.ui.AppViewModel
 import ir.kharjyar.app.ui.components.AmountTextField
 import ir.kharjyar.app.ui.components.ComboBox
 import ir.kharjyar.app.ui.components.PersianDateField
+import ir.kharjyar.app.ui.components.opaqueCardTint
 import ir.kharjyar.app.ui.components.SwipeActionRow
 import ir.kharjyar.app.ui.components.showSavedMessage
 import kotlinx.coroutines.launch
@@ -56,6 +57,8 @@ private data class PendingExcessPayment(
 
 @Composable
 fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val people by vm.debtPeople.collectAsState()
     val debts by vm.debts.collectAsState()
     val payments by vm.debtPayments.collectAsState()
@@ -64,6 +67,8 @@ fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
     val pendingEdit by vm.pendingRecordEdit.collectAsState()
     var entryKind by remember(pendingDraft) { mutableStateOf(when(pendingDraft?.action){"debt_receivable"->DebtKind.RECEIVABLE;"debt_payable"->DebtKind.PAYABLE;else->null}) }
     var showChooser by remember { mutableStateOf(false) }
+    var editingPerson by remember { mutableStateOf<DebtPersonEntity?>(null) }
+    var deletingPerson by remember { mutableStateOf<DebtPersonEntity?>(null) }
     var selectedPersonId by remember(pendingEdit,debts,initialDebtId) { mutableStateOf(initialDebtId?.let{id->debts.firstOrNull{it.id==id}?.personId}?:pendingEdit?.takeIf{it.type=="debt"}?.let{edit->debts.firstOrNull{it.id==edit.id}?.personId}) }
     LaunchedEffect(selectedPersonId){if(selectedPersonId!=null&&pendingEdit?.type=="debt")vm.clearRecordEdit()}
     var filterKind by remember { mutableStateOf<Int?>(null) }
@@ -139,6 +144,8 @@ fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
                 }
                 val netAmount = kotlin.math.abs(receivable - payable)
                 val nearestDue = listOfNotNull(receivableDate, payableDate).minOrNull()
+                key(person.id) {
+                SwipeActionRow(onEdit = { editingPerson = person }, onDelete = { deletingPerson = person }, removeOnDelete = false) {
                 Card(
                     modifier = Modifier.fillMaxWidth()
                         .border(1.dp, relationAccent.copy(alpha = .28f), RoundedCornerShape(20.dp))
@@ -181,9 +188,52 @@ fun DebtsScreen(vm: AppViewModel, initialDebtId:Long?=null) {
                         }
                     }
                 }
+                }
+                }
             }
         }
         ThemedFloatingActionButton(onClick = { showChooser = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) { Icon(Icons.Filled.Add, "افزودن طلب یا بدهی") }
+    }
+    editingPerson?.let { person ->
+        var name by remember(person.id) { mutableStateOf(person.name) }
+        var phone by remember(person.id) { mutableStateOf(person.phone) }
+        var note by remember(person.id) { mutableStateOf(person.note) }
+        val duplicate = people.any { it.id != person.id && it.name.trim().equals(name.trim(), ignoreCase = true) }
+        AlertDialog(
+            onDismissRequest = { editingPerson = null },
+            title = { Text("ویرایش شخص") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(name, { name = it }, label = { Text("نام شخص") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(phone, { phone = it }, label = { Text("شماره تماس") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(note, { note = it }, label = { Text("یادداشت") }, modifier = Modifier.fillMaxWidth())
+                    if (duplicate) Text("شخص دیگری با این نام وجود دارد.", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            confirmButton = { TextButton(enabled = name.isNotBlank() && !duplicate, onClick = {
+                scope.launch {
+                    vm.repo.db.debtDao().updatePerson(person.copy(name = name.trim(), phone = phone.trim(), note = note.trim()))
+                    editingPerson = null
+                }
+            }) { Text("ذخیره تغییرات") } },
+            dismissButton = { TextButton(onClick = { editingPerson = null }) { Text("انصراف") } }
+        )
+    }
+    deletingPerson?.let { person ->
+        AlertDialog(
+            onDismissRequest = { deletingPerson = null },
+            title = { Text("حذف شخص؟") },
+            text = { Text("با حذف «${person.name}»، همه طلب‌ها، بدهی‌ها و سوابق پرداخت او، حتی موارد خارج از فیلتر فعلی، به سطل زباله منتقل می‌شوند. مواردی که قبلاً جداگانه حذف شده‌اند با زمان حذف قبلی خود در سطل باقی می‌مانند. تراکنش‌های مالی حساب‌ها حذف نمی‌شوند.") },
+            confirmButton = { TextButton(onClick = {
+                scope.launch {
+                    val deletedIds = vm.repo.db.debtDao().debtIdsOfPerson(person.id)
+                    vm.repo.db.debtDao().trashPerson(person.id, System.currentTimeMillis())
+                    deletedIds.forEach { ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context, it) }
+                    deletingPerson = null
+                }
+            }) { Text("حذف", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { deletingPerson = null }) { Text("انصراف") } }
+        )
     }
     if(showChooser)ModernChoiceDialog("طلب یا بدهی","نوع تعهد مالی را انتخاب کنید",listOf(ModernChoiceOption("ثبت طلب","مبلغی که باید از شخص دیگری دریافت کنید",Color(0xFF1B8F52),Icons.Filled.CallReceived){showChooser=false;entryKind=DebtKind.RECEIVABLE},ModernChoiceOption("ثبت بدهی","مبلغی که باید به شخص دیگری پرداخت کنید",Color(0xFFD33B45),Icons.Filled.CallMade){showChooser=false;entryKind=DebtKind.PAYABLE}),{showChooser=false})
 }
@@ -216,7 +266,7 @@ private fun DebtDueSpotlight(
     }
     Card(
         modifier = modifier.border(1.5.dp, accent.copy(alpha = .48f), RoundedCornerShape(18.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 1f)),
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -225,7 +275,7 @@ private fun DebtDueSpotlight(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(accent.copy(alpha = .24f), accent.copy(alpha = .08f), MaterialTheme.colorScheme.surface)
+                        listOf(opaqueCardTint(accent, MaterialTheme.colorScheme.surface, .24f), opaqueCardTint(accent, MaterialTheme.colorScheme.surface, .08f), MaterialTheme.colorScheme.surface)
                     )
                 )
                 .padding(horizontal = 12.dp, vertical = 11.dp),
@@ -374,8 +424,8 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
                 onEdit = { editingDebt = debt },
                 removeOnDelete = false
             ) {
-            Card(colors = CardDefaults.cardColors(containerColor = Color.Transparent),shape=RoundedCornerShape(22.dp),elevation=CardDefaults.cardElevation(3.dp),modifier = Modifier.fillMaxWidth().border(1.dp,accent.copy(.34f),RoundedCornerShape(22.dp))) {
-                Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(accent.copy(.16f),MaterialTheme.colorScheme.surface,MaterialTheme.colorScheme.surface))).padding(15.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 1f)),shape=RoundedCornerShape(22.dp),elevation=CardDefaults.cardElevation(3.dp),modifier = Modifier.fillMaxWidth().border(1.dp,accent.copy(.34f),RoundedCornerShape(22.dp))) {
+                Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(opaqueCardTint(accent, MaterialTheme.colorScheme.surface, .16f),MaterialTheme.colorScheme.surface,MaterialTheme.colorScheme.surface))).padding(15.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
                     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){Box(Modifier.size(42.dp).background(accent.copy(.15f),RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(if(receivable)Icons.Filled.CallReceived else Icons.Filled.CallMade,null,tint=accent)};Column(Modifier.weight(1f)){Text(debt.title.ifBlank { if (receivable) "طلب" else "بدهی" }, style = MaterialTheme.typography.titleMedium);Text(if(receivable)"طلب از ${person.name}" else "بدهی به ${person.name}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)};Surface(color=accent.copy(.13f),shape=RoundedCornerShape(50)){Text(if(receivable)"طلب" else "بدهی",Modifier.padding(horizontal=9.dp,vertical=4.dp),color=accent,style=MaterialTheme.typography.labelMedium)}}
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){DebtMiniMetric("مبلغ اولیه",Money.format(debt.amountRial,settings.moneyUnit),MaterialTheme.colorScheme.onSurface,Modifier.weight(1f));DebtMiniMetric("مانده",Money.format(remain,settings.moneyUnit),accent,Modifier.weight(1f))}
                     Column(verticalArrangement=Arrangement.spacedBy(5.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("پیشرفت بازپرداخت",style=MaterialTheme.typography.labelMedium);Text("${Digits.toPersian(debtPayments.size.toString())} مرحله ثبت‌شده",style=MaterialTheme.typography.labelSmall,color=accent)};Box(Modifier.fillMaxWidth().height(7.dp).background(accent.copy(.12f),RoundedCornerShape(50))){Box(Modifier.fillMaxWidth(progress).height(7.dp).background(accent,RoundedCornerShape(50)))}}
@@ -443,8 +493,8 @@ private fun PersonDebtDetail(vm: AppViewModel, person: DebtPersonEntity, debts: 
         AlertDialog(
             onDismissRequest={pendingDeleteDebt=null},
             title={Text(if(debt.kind==DebtKind.RECEIVABLE)"حذف طلب؟" else "حذف بدهی؟")},
-            text={Text("«${debt.title.ifBlank{if(debt.kind==DebtKind.RECEIVABLE)"طلب" else "بدهی"}}» حذف شود؟"+(if(paymentCount>0)" ${Digits.toPersian(paymentCount.toString())} سابقه پرداخت مرتبط نیز حذف می‌شود." else ""))},
-            confirmButton={TextButton({scope.launch{vm.repo.db.debtDao().deletePaymentsOf(debt.id);vm.repo.db.debtDao().deleteDebt(debt);ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,debt.id);pendingDeleteDebt=null}}){Text("حذف",color=MaterialTheme.colorScheme.error)}},
+            text={Text("«${debt.title.ifBlank{if(debt.kind==DebtKind.RECEIVABLE)"طلب" else "بدهی"}}» حذف شود؟"+(if(paymentCount>0)" ${Digits.toPersian(paymentCount.toString())} سابقه پرداخت مرتبط نیز همراه آن به سطل زباله منتقل می‌شود." else ""))},
+            confirmButton={TextButton({scope.launch{vm.repo.db.debtDao().trashDebt(debt.id,System.currentTimeMillis());ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,debt.id);pendingDeleteDebt=null}}){Text("حذف",color=MaterialTheme.colorScheme.error)}},
             dismissButton={TextButton({pendingDeleteDebt=null}){Text("انصراف")}}
         )
     }

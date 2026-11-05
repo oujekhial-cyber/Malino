@@ -18,8 +18,7 @@ class DebtSwipeEditDeleteGuardTest {
    "ذخیره تغییرات",
    "حذف طلب؟",
    "حذف بدهی؟",
-   "deletePaymentsOf(debt.id)",
-   "deleteDebt(debt)"
+   "trashDebt(debt.id"
   ).forEach{assertTrue(it,screen.contains(it))}
   assertTrue(dao.contains("DELETE FROM debt_payments WHERE debtId = :debtId"))
   assertTrue(dao.contains("@Delete suspend fun deleteDebt(v: DebtEntity)"))

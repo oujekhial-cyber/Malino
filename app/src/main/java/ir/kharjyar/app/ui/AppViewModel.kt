@@ -32,6 +32,7 @@ import java.time.temporal.ChronoUnit
  * ViewModel سراسری: تنظیمات، وضعیت قفل و جریان‌های داده مشترک.
  */
 class AppViewModel(app: Application) : AndroidViewModel(app) {
+    val reportFilterSession = ir.kharjyar.app.ui.screens.ReportFilterSession()
 
     data class PendingObligationDraft(
         val action: String,
@@ -237,6 +238,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (settings.value.appLockEnabled) _locked.value = true
         // تراکنش‌های بیش از ۳۰ روز مانده در سطل زباله، بدون دخالت کاربر پاک می‌شوند.
         viewModelScope.launch {
+            ir.kharjyar.app.work.ObligationTrash.purgeExpired(getApplication<Application>(), repo.db)
             repo.txDao.purgeTrashOlderThan(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000)
             repo.txDao.purgeOrphanAttachments()
         }

@@ -55,8 +55,8 @@ enum class WidgetAlign { START, CENTER, END }
 enum class WidgetVAlign { TOP, CENTER, BOTTOM }
 
 data class AppSettings(
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val palette: Palette = Palette.MINIMAL_DAY,
+    val themeMode: ThemeMode = ThemeMode.LIGHT,
+    val palette: Palette = Palette.SAKURA,
     val moneyUnit: MoneyUnit = MoneyUnit.RIAL,
     val appLockEnabled: Boolean = false,
     val lockTimeoutSeconds: Int = 60,
@@ -98,7 +98,7 @@ data class AppSettings(
     /** ارقام فارسی یا لاتین در کل برنامه و ویجت. */
     val digitStyle: DigitStyle = DigitStyle.PERSIAN,
     /** حرکت آرام هاله نور شیشه‌ای روی کارت‌های صفحه خانه. */
-    val cardShine: Boolean = false,
+    val cardShine: Boolean = true,
     /** مقیاس متن و اعداد کل برنامه؛ ۱۰۰ اندازه استاندارد است. */
     val appFontScale: Int = 100,
     /** نمایش مبالغ در کارت خانه (با دکمه چشم عوض می‌شود و ماندگار است). */
@@ -184,8 +184,8 @@ class SettingsRepository(private val context: Context) {
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
         AppSettings(
-            themeMode = enumOf(p[Keys.THEME], ThemeMode.SYSTEM),
-            palette = enumOf(p[Keys.PALETTE], Palette.MINIMAL_DAY),
+            themeMode = enumOf(p[Keys.THEME], ThemeMode.LIGHT),
+            palette = enumOf(p[Keys.PALETTE], Palette.SAKURA),
             moneyUnit = enumOf(p[Keys.MONEY_UNIT], MoneyUnit.RIAL),
             appLockEnabled = p[Keys.APP_LOCK] ?: false,
             lockTimeoutSeconds = p[Keys.LOCK_TIMEOUT] ?: 60,
@@ -219,7 +219,7 @@ class SettingsRepository(private val context: Context) {
                 // پرچم سراسری ارقام همگام با تنظیم کاربر نگه داشته می‌شود
                 ir.kharjyar.app.core.text.Digits.usePersianDigits = it == DigitStyle.PERSIAN
             },
-            cardShine = p[Keys.CARD_SHINE] ?: false,
+            cardShine = true, // Old preferences/backups cannot turn the permanent frame off.
             appFontScale = (p[Keys.APP_FONT_SCALE] ?: 100).coerceIn(85, 130),
             amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
             bankFeePercent = (p[Keys.BANK_FEE_PERCENT] ?: p[Keys.BANK_FEE_PERCENT_LEGACY]?.toFloat() ?: 1f).coerceIn(0f, 100f),

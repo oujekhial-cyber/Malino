@@ -113,6 +113,7 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
             SettingsMenuRow("مدیریت حساب") { nav.navigate("settings/account") }
             SettingsMenuRow("نمایش اعداد و واحد پول") { nav.navigate("settings/numbers") }
             SettingsMenuRow("دسته‌بندی‌ها") { nav.navigate("categories") }
+            SettingsMenuRow("سطل زباله وام، چک و طلب و بدهی") { nav.navigate("obligationTrash") }
             SettingsMenuRow("سطل زباله تراکنش‌ها") { nav.navigate("transactionTrash") }
             SettingsMenuRow("مجوزها و اعلان‌ها") { nav.navigate("settings/permissions") }
             SettingsMenuRow("امنیت") { nav.navigate("settings/security") }
@@ -192,24 +193,6 @@ fun SettingsScreen(viewModel: AppViewModel, nav: NavHostController, section: Str
                         TextButton(onClick = { fontScaleDraft = 100f; scope.launch { viewModel.settingsRepo.setAppFontScale(100) } }) { Text("اندازه استاندارد") }
                     }
                 }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("قاب نئونی کارت اصلی", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        "نور نئونی دور کارت موجودی در صفحه خانه، با رنگ تم فعال",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = settings.cardShine,
-                    onCheckedChange = { scope.launch { viewModel.settingsRepo.setCardShine(it) } }
-                )
             }
             HorizontalDivider()
             NavRow("تنظیمات ویجت") { nav.navigate("widgetSettings") }

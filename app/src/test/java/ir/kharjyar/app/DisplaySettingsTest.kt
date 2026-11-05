@@ -20,13 +20,13 @@ class DisplaySettingsTest {
     }
 
     @Test
-    fun `defaults are rial persian minimal day with shine`() {
+    fun `defaults are rial persian sakura with shine`() {
         val s = AppSettings()
         assertEquals(MoneyUnit.RIAL, s.moneyUnit)
         assertEquals(DigitStyle.PERSIAN, s.digitStyle)
-        assertEquals(Palette.MINIMAL_DAY, s.palette)
-        // هاله دور کارت طبق خواست کاربر پیش‌فرض خاموش است
-        assertFalse(s.cardShine)
+        assertEquals(Palette.SAKURA, s.palette)
+        // قاب نئونی همواره برای کارت اصلی فعال است
+        assertTrue(s.cardShine)
     }
 
     @Test

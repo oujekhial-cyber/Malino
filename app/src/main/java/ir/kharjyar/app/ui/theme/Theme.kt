@@ -123,15 +123,15 @@ private val SakuraScheme = darkColorScheme(
 )
 
 private val SakuraLightScheme = lightColorScheme(
-    primary = Color(0xFFC21875), onPrimary = Color.White,
+    primary = Color(0xFFD41471), onPrimary = Color.White,
     primaryContainer = Color(0xFFFFD8EC), onPrimaryContainer = Color(0xFF52002D),
-    secondary = Color(0xFF8640B5), onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF4DCFF), onSecondaryContainer = Color(0xFF31004D),
+    secondary = Color(0xFFAC2B69), onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFE1EF), onSecondaryContainer = Color(0xFF420924),
     tertiary = Color(0xFF007C68), onTertiary = Color.White,
     tertiaryContainer = Color(0xFFB5F3E5), onTertiaryContainer = Color(0xFF002F27),
-    background = Color(0xFFFFF7FB), onBackground = Color(0xFF261820),
-    surface = Color(0xFFFFFBFD), onSurface = Color(0xFF261820),
-    surfaceVariant = Color(0xFFF8E8F1), onSurfaceVariant = Color(0xFF68545F),
+    background = Color(0xFFFFFFFF), onBackground = Color(0xFF261820),
+    surface = Color(0xFFFFFFFF), onSurface = Color(0xFF261820),
+    surfaceVariant = Color(0xFFFFF0F6), onSurfaceVariant = Color(0xFF68545F),
     outline = Color(0xFF9C6A85), outlineVariant = Color(0xFFEBC8DA),
     error = Color(0xFFBA1A1A), onError = Color.White,
     errorContainer = Color(0xFFFFDAD6), onErrorContainer = Color(0xFF410002)
@@ -173,23 +173,23 @@ private val SakuraSkin = AppSkin(
 private val SakuraLightSkin = SakuraSkin.copy(
     subtitle = "شکوفه‌های نئون با زمینه روشن و لطیف",
     dark = false,
-    backgroundColors = listOf(Color(0xFFFFF7FB), Color(0xFFFFEDF6)),
-    backdropBlobs = listOf(
-        AppSkin.Blob(Color(0x24FF3DAF), 0.85f, 0.12f, 0.06f),
-        AppSkin.Blob(Color(0x18B44DFF), 0.9f, 0.92f, 0.5f)
-    ),
-    cardColor = Color(0xFFFFFBFD),
-    cardAlpha = 0.97f,
-    cardBorderColors = listOf(Color(0x66FF3DAF), Color(0x45B44DFF)),
-    accent = Color(0xFFC21875),
+    backgroundColors = listOf(Color.White, Color.White),
+    backdropBlobs = emptyList(),
+    cardColor = Color.White,
+    cardAlpha = 1f,
+    cardBorderColors = listOf(Color(0x55E64891), Color(0x33D41471)),
+    heroGradient = listOf(Color(0xFFD41471), Color(0xFFB81363)),
+    fabGradient = listOf(Color(0xFFD41471), Color(0xFFB81363)),
+    accent = Color(0xFFD41471),
     incomeColor = Color(0xFF007C68),
     expenseColor = Color(0xFFC62852),
     bigNumberColor = Color.White,
     onBackdrop = Color(0xFF261820),
-    dialogColor = Color(0xFFFFFBFD),
-    navBarColor = Color(0xFFFFF5FA),
-    navSelected = Color(0xFFC21875),
-    navUnselected = Color(0xFF806675)
+    dialogColor = Color.White,
+    navBarColor = Color.White,
+    navSelected = Color(0xFFD41471),
+    navUnselected = Color(0xFF806675),
+    neonColors = listOf(Color(0xFFD41471), Color(0xFFFF89B9))
 )
 
 // ================================================================ تم ۲: موج نیلی
