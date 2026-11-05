@@ -55,8 +55,8 @@ enum class WidgetAlign { START, CENTER, END }
 enum class WidgetVAlign { TOP, CENTER, BOTTOM }
 
 data class AppSettings(
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val palette: Palette = Palette.MINIMAL_DAY,
+    val themeMode: ThemeMode = ThemeMode.LIGHT,
+    val palette: Palette = Palette.SAKURA,
     val moneyUnit: MoneyUnit = MoneyUnit.RIAL,
     val appLockEnabled: Boolean = false,
     val lockTimeoutSeconds: Int = 60,
@@ -184,8 +184,8 @@ class SettingsRepository(private val context: Context) {
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
         AppSettings(
-            themeMode = enumOf(p[Keys.THEME], ThemeMode.SYSTEM),
-            palette = enumOf(p[Keys.PALETTE], Palette.MINIMAL_DAY),
+            themeMode = enumOf(p[Keys.THEME], ThemeMode.LIGHT),
+            palette = enumOf(p[Keys.PALETTE], Palette.SAKURA),
             moneyUnit = enumOf(p[Keys.MONEY_UNIT], MoneyUnit.RIAL),
             appLockEnabled = p[Keys.APP_LOCK] ?: false,
             lockTimeoutSeconds = p[Keys.LOCK_TIMEOUT] ?: 60,

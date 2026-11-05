@@ -720,13 +720,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 
             // ---------- میان‌بر «ثبت سریع» ----------
             item {
+                val sakuraLight = skin.id == ir.kharjyar.app.data.prefs.Palette.SAKURA && !skin.dark
+                val quickContent = if (sakuraLight) Color.White else skin.onBackdrop
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(30.dp))
                         .background(
                             Brush.horizontalGradient(
-                                listOf(skin.accent.copy(alpha = 0.22f), skin.accent.copy(alpha = 0.06f))
+                                if (sakuraLight) listOf(skin.accent, skin.accent) else
+                                    listOf(skin.accent.copy(alpha = 0.22f), skin.accent.copy(alpha = 0.06f))
                             )
                         )
                         .border(1.dp, skin.accent.copy(alpha = 0.38f), RoundedCornerShape(30.dp))
@@ -738,13 +741,13 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(skin.accent.copy(alpha = 0.22f)),
+                            .background(if (sakuraLight) Color.White.copy(alpha = 0.20f) else skin.accent.copy(alpha = 0.22f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.Mic,
                             contentDescription = null,
-                            tint = skin.accent,
+                            tint = if (sakuraLight) Color.White else skin.accent,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -753,13 +756,13 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         "فرمان هوشمند",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = skin.onBackdrop,
+                        color = quickContent,
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
                         Icons.Filled.AutoAwesome,
                         contentDescription = null,
-                        tint = skin.accent.copy(alpha = 0.9f),
+                        tint = if (sakuraLight) Color.White else skin.accent.copy(alpha = 0.9f),
                         modifier = Modifier.size(16.dp)
                     )
                 }
