@@ -578,7 +578,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 expiry = account.cardExpiry,
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
-                                balanceColor = when { account.id in greenBalanceAccounts -> Color(0xFF43E08D); hasDiscrepancy -> skin.expenseColor; else -> null },
+                                balanceColor = when { hasDiscrepancy -> skin.expenseColor; account.id in greenBalanceAccounts -> Color(0xFF43E08D); else -> null },
                                 showDetailsWhenSelected = false,
                                 modifier = Modifier
                                     .width(pageWidth)
@@ -678,7 +678,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     expenseColor = skin.expenseColor,
                                     appBalance = if(amountVisible&&est.rial!=null) Money.format(est.rial,settings.moneyUnit) else if(amountVisible) "نامشخص" else "••••••",
                                     smsBalance = bankSnapshot?.let{if(amountVisible)Money.format(it.balanceRial,settings.moneyUnit)else "••••••"},
-                                    discrepancy = bankSnapshot?.takeIf{hasDiscrepancy&&est.rial!=null}?.let{Money.format(kotlin.math.abs(est.rial!!-it.balanceRial),settings.moneyUnit)},
+                                    discrepancy = bankSnapshot?.takeIf{hasDiscrepancy&&est.rial!=null}?.let{if (amountVisible) Money.format(kotlin.math.abs(est.rial!!-it.balanceRial),settings.moneyUnit) else "••••••"},
                                     hasDiscrepancy = hasDiscrepancy,
                                     onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
                                     onRefresh = { requestBalanceRefresh(account) }

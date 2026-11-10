@@ -59,7 +59,8 @@ data class BAccount(
     val accountType: String = "BANK", val ownerName: String = "",
     val cashLocation: String = "", val note: String = "",
     val bankAccountKind: String = "OTHER", val monthlyInterestBearing: Boolean = false,
-    val monthlyInterestRatePercent: Double? = null, val interestDestinationAccountId: Long? = null
+    val monthlyInterestRatePercent: Double? = null, val interestDestinationAccountId: Long? = null,
+    val programBalanceOffsetRial: Long? = null, val hasProgramBalanceOffset: Boolean = false
 ) {
     fun toEntity() = AccountEntity(
         id = id, title = title, bankName = bankName, colorArgb = colorArgb, icon = icon,
@@ -69,7 +70,7 @@ data class BAccount(
         bankAccountKind = bankAccountKind, monthlyInterestBearing = monthlyInterestBearing,
         monthlyInterestRatePercent = monthlyInterestRatePercent, interestDestinationAccountId = interestDestinationAccountId,
         initialBalanceRial = initialBalanceRial, initialBalanceAt = initialBalanceAt,
-        archived = archived, createdAt = createdAt
+        archived = archived, createdAt = createdAt, programBalanceOffsetRial = programBalanceOffsetRial
     )
     companion object {
         fun of(e: AccountEntity) = BAccount(
@@ -82,7 +83,8 @@ data class BAccount(
             accountType = e.accountType, ownerName = e.ownerName,
             cashLocation = e.cashLocation, note = e.note,
             bankAccountKind = e.bankAccountKind, monthlyInterestBearing = e.monthlyInterestBearing,
-            monthlyInterestRatePercent = e.monthlyInterestRatePercent, interestDestinationAccountId = e.interestDestinationAccountId
+            monthlyInterestRatePercent = e.monthlyInterestRatePercent, interestDestinationAccountId = e.interestDestinationAccountId,
+            programBalanceOffsetRial = e.programBalanceOffsetRial, hasProgramBalanceOffset = true
         )
     }
 }

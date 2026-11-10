@@ -435,6 +435,7 @@ fun AccountEditScreen(
                                 cardCvv2 = cardCvv2.trim(),
                                 initialBalanceRial = balanceRial,
                                 initialBalanceAt = if (balanceRial != null) now else null,
+                                programBalanceOffsetRial = balanceRial,
                                 archived = false, createdAt = now
                             )
                         )
@@ -451,6 +452,11 @@ fun AccountEditScreen(
                                 cardCvv2 = cardCvv2.trim(),
                                 initialBalanceRial = balanceRial,
                                 initialBalanceAt = if (balanceRial != null) (existing!!.initialBalanceAt ?: now) else null,
+                                programBalanceOffsetRial = if (balanceRial == existing!!.initialBalanceRial) existing!!.programBalanceOffsetRial else balanceRial?.let { initial ->
+                                    val cutoff = existing!!.initialBalanceAt ?: now
+                                    val earlier = viewModel.repo.txDao.allOnce().filter { it.accountId == id && it.status == ir.kharjyar.app.data.db.TxStatus.CONFIRMED && it.occurredAt < cutoff }
+                                    initial - earlier.sumOf { if (it.direction == ir.kharjyar.app.data.db.TxDirection.DEPOSIT) it.amountRial else -it.amountRial }
+                                },
                                 archived = archived
                             )
                         )

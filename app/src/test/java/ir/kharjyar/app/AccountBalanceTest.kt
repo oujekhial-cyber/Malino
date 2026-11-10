@@ -75,7 +75,7 @@ class AccountBalanceTest {
     }
 
     @Test
-    fun newerSmsBalanceWins_andLaterTxAreAdded() {
+    fun smsDoesNotOverrideProgramBalance() {
         val e = AccountBalance.estimate(
             account(initial = 1_000_000, at = 100),
             listOf(
@@ -83,9 +83,9 @@ class AccountBalanceTest {
                 tx(2, 100_000, TxDirection.DEPOSIT, 600)
             )
         )
-        assertEquals(BalanceSource.SMS_BALANCE, e.source)
-        assertEquals(2_100_000L, e.rial)
-        assertEquals(500L, e.asOf)
+        assertEquals(BalanceSource.INITIAL_PLUS_TX, e.source)
+        assertEquals(800_000L, e.rial)
+        assertEquals(100L, e.asOf)
     }
 
     @Test
@@ -118,12 +118,36 @@ class AccountBalanceTest {
     }
 
     @Test
-    fun smsBalanceWithoutInitial_works() {
+    fun smsWithoutInitialDoesNotOverrideTransactionNet() {
         val e = AccountBalance.estimate(
             account(),
             listOf(tx(1, 10_000, TxDirection.WITHDRAW, 400, balanceAfter = 750_000))
         )
-        assertEquals(BalanceSource.SMS_BALANCE, e.source)
-        assertEquals(750_000L, e.rial)
+        assertEquals(BalanceSource.TRANSACTIONS_ONLY, e.source)
+        assertEquals(-10_000L, e.rial)
     }
+    @Test
+    fun migrationFreezesLegacyBalanceAndDeletionAndRestorationChangeIt() {
+        val original = account(initial = 1_000_000, at = 100)
+        val old = listOf(tx(1, 300_000, TxDirection.WITHDRAW, 500, balanceAfter = 2_000_000), tx(2, 100_000, TxDirection.DEPOSIT, 600))
+        val migrated = original.copy(programBalanceOffsetRial = AccountBalance.legacyOffset(original, old))
+        assertEquals(2_100_000L, AccountBalance.estimate(migrated, old).rial)
+        assertEquals(2_000_000L, AccountBalance.estimate(migrated, old.dropLast(1)).rial)
+        assertEquals(2_400_000L, AccountBalance.estimate(migrated, old.drop(1)).rial)
+        assertEquals(2_100_000L, AccountBalance.estimate(migrated, old).rial)
+        val backdated = tx(3, 50_000, TxDirection.DEPOSIT, 50)
+        assertEquals(2_150_000L, AccountBalance.estimate(migrated, old + backdated).rial)
+        assertEquals(2_100_000L, AccountBalance.estimate(migrated, old + backdated.copy(status = TxStatus.PENDING)).rial)
+        assertEquals(2_100_000L, AccountBalance.estimate(migrated, old + backdated.copy(deletedAt = 900)).rial)
+    }
+
+    @Test
+    fun migratedAccountWithoutInitialRetainsSmsBalanceEvenIfSmsTransactionDeleted() {
+        val a = account()
+        val list = listOf(tx(1, 10_000, TxDirection.WITHDRAW, 400, balanceAfter = 750_000))
+        val anchored = a.copy(programBalanceOffsetRial = AccountBalance.legacyOffset(a, list))
+        assertEquals(750_000L, AccountBalance.estimate(anchored, list).rial)
+        assertEquals(760_000L, AccountBalance.estimate(anchored, emptyList()).rial)
+    }
+
 }

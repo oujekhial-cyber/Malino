@@ -50,7 +50,9 @@ data class AccountEntity(
     /** زمان ثبت موجودی اولیه. */
     val initialBalanceAt: Long? = null,
     val archived: Boolean = false,
-    val createdAt: Long
+    val createdAt: Long,
+    /** مبنای ثابت مانده برنامه پیش از جمع تراکنش‌های قطعی. */
+    val programBalanceOffsetRial: Long? = null
 )
 
 /** نگاشت فرستنده پیامک + شناسه داخل متن به حساب. */

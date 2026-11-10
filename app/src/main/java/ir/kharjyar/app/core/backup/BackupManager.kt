@@ -142,7 +142,14 @@ class BackupManager(
 
             db.clearAllTablesInTransaction(clearTemplates = payload.templates.isNotEmpty())
             if (payload.templates.isNotEmpty()) payload.templates.forEach { repo.templateDao.insert(it.toEntity()) }
-            payload.accounts.forEach { repo.accountDao.insert(it.toEntity()) }
+            val restoredTransactions = payload.transactions.map { it.toEntity() }
+            payload.accounts.forEach { saved ->
+                val account = saved.toEntity()
+                val restored = if (saved.hasProgramBalanceOffset) account else account.copy(
+                    programBalanceOffsetRial = ir.kharjyar.app.core.balance.AccountBalance.legacyOffset(account, restoredTransactions)
+                )
+                repo.accountDao.insert(restored)
+            }
             payload.senders.forEach { repo.accountDao.insertSender(it.toEntity()) }
             payload.categories.forEach { repo.categoryDao.insert(it.toEntity()) }
             payload.rules.forEach { repo.categoryDao.insertRule(it.toEntity()) }
