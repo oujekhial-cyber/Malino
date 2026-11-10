@@ -138,6 +138,7 @@ import ir.kharjyar.app.ui.screens.ChecksScreen
 import ir.kharjyar.app.ui.screens.TemplateTrainScreen
 import ir.kharjyar.app.ui.screens.TransactionEditScreen
 import ir.kharjyar.app.ui.screens.TransactionsScreen
+import ir.kharjyar.app.ui.screens.ObligationTrashScreen
 import ir.kharjyar.app.ui.screens.TransactionTrashScreen
 import ir.kharjyar.app.ui.screens.WidgetSettingsScreen
 import ir.kharjyar.app.ui.screens.CivicCenterScreen
@@ -544,6 +545,7 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("reports") { ReportsScreen(viewModel) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
                 composable("settings/{section}") { back -> SettingsScreen(viewModel, navController, back.arguments?.getString("section")) }
+                composable("obligationTrash") { ObligationTrashScreen(viewModel) { navController.popBackStack() } }
                 composable("transactionTrash") { TransactionTrashScreen(viewModel) { navController.popBackStack() } }
                 composable("widgetSettings") { WidgetSettingsScreen(viewModel) }
                 composable("manual") { ManualEntryScreen(viewModel, navController) }
@@ -887,12 +889,20 @@ private fun DrawerRow(
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(16.dp)
+    val sakuraSelected = selected && skin.id == ir.kharjyar.app.data.prefs.Palette.SAKURA && !skin.dark
+    val selectedContent = if (sakuraSelected) Color.White else skin.accent
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (selected) Modifier.shadow(
+                elevation = 8.dp, shape = shape, clip = false,
+                ambientColor = skin.accent.copy(alpha = 0.36f),
+                spotColor = skin.accent.copy(alpha = 0.45f)
+            ) else Modifier)
             .clip(shape)
             .background(
-                if (selected) Brush.horizontalGradient(
+                if (sakuraSelected) Brush.horizontalGradient(listOf(skin.accent, skin.accent))
+                else if (selected) Brush.horizontalGradient(
                     listOf(skin.accent.copy(alpha = 0.22f), Color.Transparent)
                 ) else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
             )
@@ -905,20 +915,20 @@ private fun DrawerRow(
             modifier = Modifier
                 .size(width = 3.dp, height = 18.dp)
                 .clip(CircleShape)
-                .background(if (selected) skin.accent else Color.Transparent)
+                .background(if (selected) selectedContent else Color.Transparent)
         )
         Spacer(Modifier.width(10.dp))
         Icon(
             entry.icon,
             contentDescription = entry.label,
-            tint = if (selected) skin.accent else skin.onBackdrop.copy(alpha = 0.75f),
+            tint = if (selected) selectedContent else skin.onBackdrop.copy(alpha = 0.75f),
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(12.dp))
         Text(
             entry.label,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (selected) skin.accent else skin.onBackdrop,
+            color = if (selected) selectedContent else skin.onBackdrop,
             modifier = Modifier.weight(1f)
         )
         if (badgeCount > 0) {

@@ -52,6 +52,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
     val settings by viewModel.settings.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val allTransactions by viewModel.allTransactions.collectAsState()
     val scope = rememberCoroutineScope()
 
     var tx by remember { mutableStateOf<TransactionEntity?>(null) }
@@ -163,7 +164,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
 
         NaturePicker(nature, direction, onNature = { nature = it }, onDirection = { direction = it })
         CategoryPicker(
-            categories = categories,
+            categories = ir.kharjyar.app.core.category.categoriesByUsage(categories, allTransactions),
             selectedId = categoryId,
             nature = nature,
             onCreate = { name ->

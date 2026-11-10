@@ -155,8 +155,9 @@ fun HeroCard(
     // لایه بیرونی بریده نمی‌شود تا هاله نئون بتواند از کادر بزند بیرون
     Box(
         modifier = modifier.then(
-            if (neon && skin.neonColors.isNotEmpty()) {
-                Modifier.neonFrame(skin.neonColors, skin.cardCorner)
+            if (neon) {
+                val frameColors = skin.neonColors.ifEmpty { listOf(skin.accent, skin.accent) }
+                Modifier.neonFrame(frameColors, skin.cardCorner)
             } else Modifier
         )
     ) {

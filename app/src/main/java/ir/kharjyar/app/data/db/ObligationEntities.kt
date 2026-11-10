@@ -8,10 +8,10 @@ import androidx.room.PrimaryKey
 object DebtKind { const val RECEIVABLE = 0; const val PAYABLE = 1 }
 @Entity(tableName = "debt_people")
 @Serializable
-data class DebtPersonEntity(@PrimaryKey(autoGenerate = true) val id: Long = 0, val name: String, val phone: String = "", val note: String = "", val createdAt: Long)
+data class DebtPersonEntity(@PrimaryKey(autoGenerate = true) val id: Long = 0, val name: String, val phone: String = "", val note: String = "", val createdAt: Long, val deletedAt: Long? = null)
 @Entity(tableName = "debts", indices = [Index("personId"), Index("dueAt")])
 @Serializable
-data class DebtEntity(@PrimaryKey(autoGenerate = true) val id: Long = 0, val personId: Long, val kind: Int, val amountRial: Long, val title: String, val createdAt: Long, val dueAt: Long?, val reminderAt: Long?, val settled: Boolean = false)
+data class DebtEntity(@PrimaryKey(autoGenerate = true) val id: Long = 0, val personId: Long, val kind: Int, val amountRial: Long, val title: String, val createdAt: Long, val dueAt: Long?, val reminderAt: Long?, val settled: Boolean = false, val deletedAt: Long? = null)
 @Entity(tableName = "debt_payments", indices = [Index("debtId"), Index("paidAt")])
 @Serializable
 data class DebtPaymentEntity(@PrimaryKey(autoGenerate = true) val id: Long = 0, val debtId: Long, val amountRial: Long, val paidAt: Long, val note: String = "")
@@ -27,5 +27,5 @@ data class CheckEntity(
     val accountId: Long? = null, val issuedAt: Long, val dueAt: Long, val reminderAt: Long?,
     val status: Int = CheckStatus.PENDING, val imagePath: String = "", val note: String = "",
     val issuerName: String = "", val receiverName: String = "", val nationalId: String = "",
-    val chequeAccountNumber: String = "", val chequeIban: String = "", val amountInWords: String = ""
+    val chequeAccountNumber: String = "", val chequeIban: String = "", val amountInWords: String = "", val deletedAt: Long? = null
 )

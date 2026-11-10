@@ -400,7 +400,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     .width(pageWidth)
                                     .height(compactAccountCardHeight)
                                     .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
-                                neon = settings.cardShine
+                                neon = true
                             ) {
                                 // بدنه کارت اصلی دقیقاً تمام ابعاد همان قاب ۲۳۰dp کارت‌های حساب را
                                 // پر می‌کند؛ HeroCard در حالت wrap-content در بعضی تم‌ها کوتاه‌تر دیده می‌شد.
@@ -578,7 +578,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 expiry = account.cardExpiry,
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
-                                balanceColor = when { account.id in greenBalanceAccounts -> Color(0xFF43E08D); hasDiscrepancy -> skin.expenseColor; else -> null },
+                                balanceColor = when { hasDiscrepancy -> skin.expenseColor; account.id in greenBalanceAccounts -> Color(0xFF43E08D); else -> null },
                                 showDetailsWhenSelected = false,
                                 modifier = Modifier
                                     .width(pageWidth)
@@ -678,7 +678,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     expenseColor = skin.expenseColor,
                                     appBalance = if(amountVisible&&est.rial!=null) Money.format(est.rial,settings.moneyUnit) else if(amountVisible) "نامشخص" else "••••••",
                                     smsBalance = bankSnapshot?.let{if(amountVisible)Money.format(it.balanceRial,settings.moneyUnit)else "••••••"},
-                                    discrepancy = bankSnapshot?.takeIf{hasDiscrepancy&&est.rial!=null}?.let{Money.format(kotlin.math.abs(est.rial!!-it.balanceRial),settings.moneyUnit)},
+                                    discrepancy = bankSnapshot?.takeIf{hasDiscrepancy&&est.rial!=null}?.let{if (amountVisible) Money.format(kotlin.math.abs(est.rial!!-it.balanceRial),settings.moneyUnit) else "••••••"},
                                     hasDiscrepancy = hasDiscrepancy,
                                     onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
                                     onRefresh = { requestBalanceRefresh(account) }
@@ -720,13 +720,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 
             // ---------- میان‌بر «ثبت سریع» ----------
             item {
+                val sakuraLight = skin.id == ir.kharjyar.app.data.prefs.Palette.SAKURA && !skin.dark
+                val quickContent = if (sakuraLight) Color.White else skin.onBackdrop
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(30.dp))
                         .background(
                             Brush.horizontalGradient(
-                                listOf(skin.accent.copy(alpha = 0.22f), skin.accent.copy(alpha = 0.06f))
+                                if (sakuraLight) listOf(skin.accent, skin.accent) else
+                                    listOf(skin.accent.copy(alpha = 0.22f), skin.accent.copy(alpha = 0.06f))
                             )
                         )
                         .border(1.dp, skin.accent.copy(alpha = 0.38f), RoundedCornerShape(30.dp))
@@ -738,13 +741,13 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(skin.accent.copy(alpha = 0.22f)),
+                            .background(if (sakuraLight) Color.White.copy(alpha = 0.20f) else skin.accent.copy(alpha = 0.22f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.Mic,
                             contentDescription = null,
-                            tint = skin.accent,
+                            tint = if (sakuraLight) Color.White else skin.accent,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -753,13 +756,13 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         "فرمان هوشمند",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = skin.onBackdrop,
+                        color = quickContent,
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
                         Icons.Filled.AutoAwesome,
                         contentDescription = null,
-                        tint = skin.accent.copy(alpha = 0.9f),
+                        tint = if (sakuraLight) Color.White else skin.accent.copy(alpha = 0.9f),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -1001,9 +1004,9 @@ private fun SummaryChip(
 /** سری روزانه درآمد/هزینه برای n روز اخیر (بر اساس روز شمسی/منطقه زمانی تهران). */
 internal fun buildDailySeries(
     txs: List<ir.kharjyar.app.data.db.TransactionEntity>,
-    days: Int
+    days: Int,
+    today: PersianDate = PersianDate.today()
 ): Pair<List<Long>, List<Long>> {
-    val today = PersianDate.today()
     val income = MutableList(days) { 0L }
     val expense = MutableList(days) { 0L }
     val dayStartList = (0 until days).map { today.plusDays(-(days - 1 - it)) }
