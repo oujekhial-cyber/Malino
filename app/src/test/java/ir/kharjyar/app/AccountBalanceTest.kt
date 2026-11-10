@@ -150,4 +150,17 @@ class AccountBalanceTest {
         assertEquals(760_000L, AccountBalance.estimate(anchored, emptyList()).rial)
     }
 
+    @Test
+    fun firstSmsOffsetRetainsLaterConfirmedActivityAndIgnoresDrafts() {
+        val transactions = listOf(
+            tx(1, 200, TxDirection.DEPOSIT, 100),
+            tx(2, 50, TxDirection.WITHDRAW, 300),
+            tx(3, 999, TxDirection.DEPOSIT, 150, status = TxStatus.PENDING)
+        )
+        val offset = AccountBalance.offsetAtSms(1, 1_000, 200, transactions)
+        val anchored = account().copy(programBalanceOffsetRial = offset)
+        assertEquals(950L, AccountBalance.estimate(anchored, transactions).rial)
+        assertEquals(1_000L, AccountBalance.estimate(anchored, transactions.filter { it.id != 2L }).rial)
+    }
+
 }

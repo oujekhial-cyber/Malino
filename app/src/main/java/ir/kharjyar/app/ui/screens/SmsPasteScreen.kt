@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 fun SmsPasteScreen(viewModel: AppViewModel, nav: NavHostController) {
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val allTransactions by viewModel.allTransactions.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -67,7 +68,7 @@ fun SmsPasteScreen(viewModel: AppViewModel, nav: NavHostController) {
             Text("این تراکنش بابت چه بوده؟",style=MaterialTheme.typography.titleSmall)
             NaturePicker(nature=nature,direction=direction,onNature={nature=it;categoryId=null},onDirection={},showDirection=false)
             if(nature!=TxNature.TRANSFER){
-                CategoryPicker(categories=categories,selectedId=categoryId,nature=nature,onCreate={name->scope.launch{categoryId=viewModel.repo.categoryDao.insert(ir.kharjyar.app.data.db.CategoryEntity(name=name,colorArgb=0xFF6C8AE4))}}){categoryId=it}
+                CategoryPicker(categories=ir.kharjyar.app.core.category.categoriesByUsage(categories,allTransactions),selectedId=categoryId,nature=nature,onCreate={name->scope.launch{categoryId=viewModel.repo.categoryDao.insert(ir.kharjyar.app.data.db.CategoryEntity(name=name,colorArgb=0xFF6C8AE4))}}){categoryId=it}
             }
             OutlinedTextField(description,{description=it},label={Text(if(direction==TxDirection.DEPOSIT)"توضیح واریز (اختیاری)" else "توضیح برداشت (اختیاری)")},supportingText={Text("مثلاً حقوق مهر، خرید سوپرمارکت، دریافت وام یا تسویه طلب")},modifier=Modifier.fillMaxWidth(),minLines=2)
             Text("پیش از ثبت، حساب، نوع جریان مالی و بابت تراکنش را بررسی کنید.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)

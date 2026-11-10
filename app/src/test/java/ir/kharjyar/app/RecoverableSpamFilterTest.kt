@@ -27,6 +27,6 @@ class RecoverableSpamFilterTest {
   val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
   assertTrue(repo.contains("restoreSpamMessage")&&repo.contains("knownFinancialSender"))
   assertTrue(screen.contains("تبلیغاتی نیست؛ بازگرداندن")&&screen.contains("دلیل:"))
-  assertTrue(db.contains("version = 26")&&db.contains("MIGRATION_18_19"))
+  assertTrue(db.contains("version = 27")&&db.contains("MIGRATION_18_19"))
  }
 }

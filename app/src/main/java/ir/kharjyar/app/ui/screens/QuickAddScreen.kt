@@ -473,7 +473,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             }
             if (p.nature != ir.kharjyar.app.data.db.TxNature.TRANSFER && p.categoryId == null) {
                 Text("این تراکنش مربوط به کدام دسته‌بندی است؟",style=MaterialTheme.typography.titleSmall,color=skin.accent)
-                ComboBox("دسته‌بندی",categories.filterNot{it.archived},null,{category->parsed=p.copy(categoryId=category.id,categoryName=category.name,warnings=p.warnings.filterNot{it.contains("دسته")})},labelOf={it.name})
+                ComboBox("دسته‌بندی",ir.kharjyar.app.core.category.categoriesByUsage(categories.filterNot{it.archived},transactions),null,{category->parsed=p.copy(categoryId=category.id,categoryName=category.name,warnings=p.warnings.filterNot{it.contains("دسته")})},labelOf={it.name})
             }
             if (!p.dateExplicit) {
                 Text("تراکنش در چه تاریخی انجام شد؟",style=MaterialTheme.typography.titleSmall,color=skin.accent)

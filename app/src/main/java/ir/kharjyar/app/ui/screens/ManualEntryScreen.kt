@@ -61,7 +61,7 @@ fun ManualEntryScreen(viewModel:AppViewModel,nav:NavHostController,presetDirecti
      val incoming=direction==TxDirection.DEPOSIT
      ComboBox(label=if(incoming)"انتقال از" else "انتقال به",options=listOf(true,false),selected=transferToOwn,labelOf={if(it)"یکی از حساب‌های خودم" else "حساب شخص دیگر"},onSelect={transferToOwn=it;targetAccountId=null})
      if(transferToOwn){val targets=active.filter{it.id!=accountId};ComboBox(label=if(incoming)"حساب مبدأ" else "حساب مقصد",options=targets.map{it.id},selected=targetAccountId,labelOf={id->targets.firstOrNull{it.id==id}?.title?:"انتخاب حساب"},placeholder="انتخاب حساب",onSelect={targetAccountId=it})}
-    }else CategoryPicker(categories,categoryId,nature,onCreate={name->scope.launch{categoryId=viewModel.repo.categoryDao.insert(CategoryEntity(name=name,colorArgb=0xFF6C8AE4))}}){categoryId=it}
+    }else CategoryPicker(ir.kharjyar.app.core.category.categoriesByUsage(categories,allTx),categoryId,nature,onCreate={name->scope.launch{categoryId=viewModel.repo.categoryDao.insert(CategoryEntity(name=name,colorArgb=0xFF6C8AE4))}}){categoryId=it}
     OutlinedTextField(value=description,onValueChange={description=it},label={Text(if(direction==TxDirection.DEPOSIT)"بابت چه بود؟ (اختیاری)" else "برای چه بود؟ (اختیاری)")},singleLine=true,modifier=Modifier.fillMaxWidth().keepAboveKeyboard())
    }
   }}

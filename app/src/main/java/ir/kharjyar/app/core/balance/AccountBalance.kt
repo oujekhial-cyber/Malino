@@ -35,7 +35,7 @@ data class EstimatedBalance(
 ) {
     /** برچسب فارسی منبع، برای نمایش شفاف روی کارت داشبورد. */
     fun sourceLabel(): String = when (source) {
-        BalanceSource.INITIAL_PLUS_TX -> "موجودی اولیه + تراکنش‌های تأییدشده"
+        BalanceSource.INITIAL_PLUS_TX -> "مبنای ثبت‌شده + تراکنش‌های تأییدشده"
         BalanceSource.SMS_BALANCE -> "آخرین مانده پیامک بانک + تراکنش‌های بعد"
         BalanceSource.TRANSACTIONS_ONLY -> "خالص تراکنش‌های تأییدشده برنامه"
         BalanceSource.NONE -> "مبنای محاسبه ثبت نشده"
@@ -73,6 +73,12 @@ object AccountBalance {
         )
         return EstimatedBalance(null, BalanceSource.NONE, null, pendingCount)
     }
+
+    /** Fix the bank balance at the message time while retaining later confirmed activity. */
+    fun offsetAtSms(accountId: Long, balance: Long, at: Long, transactions: List<TransactionEntity>): Long =
+        balance - transactions.asSequence().filter {
+            it.accountId == accountId && it.deletedAt == null && it.status == TxStatus.CONFIRMED && it.occurredAt <= at
+        }.sumOf { signed(it) }
 
     /** Freeze the old displayed balance while preserving the effect of every active transaction. */
     fun legacyOffset(account: AccountEntity, transactions: List<TransactionEntity>): Long? {
