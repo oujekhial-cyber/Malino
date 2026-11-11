@@ -200,6 +200,6 @@ jobs:
           if-no-files-found: warn
 
       - name: Fail job if build failed
-        if: steps.assemble.outcome != 'success' || steps.unittests.outcome != 'success' || steps.privacy.outcome != 'success'
+        if: steps.assemble.conclusion != 'success' || steps.unittests.conclusion != 'success' || steps.privacy.conclusion != 'success'
         run: |
           echo "build or tests failed"; exit 1
