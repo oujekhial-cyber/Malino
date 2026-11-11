@@ -55,8 +55,8 @@ enum class WidgetAlign { START, CENTER, END }
 enum class WidgetVAlign { TOP, CENTER, BOTTOM }
 
 data class AppSettings(
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val palette: Palette = Palette.MINIMAL_DAY,
+    val themeMode: ThemeMode = ThemeMode.LIGHT,
+    val palette: Palette = Palette.SAKURA,
     val moneyUnit: MoneyUnit = MoneyUnit.RIAL,
     val appLockEnabled: Boolean = false,
     val lockTimeoutSeconds: Int = 60,
@@ -98,11 +98,14 @@ data class AppSettings(
     /** ارقام فارسی یا لاتین در کل برنامه و ویجت. */
     val digitStyle: DigitStyle = DigitStyle.PERSIAN,
     /** حرکت آرام هاله نور شیشه‌ای روی کارت‌های صفحه خانه. */
-    val cardShine: Boolean = false,
+    val cardShine: Boolean = true,
     /** مقیاس متن و اعداد کل برنامه؛ ۱۰۰ اندازه استاندارد است. */
     val appFontScale: Int = 100,
     /** نمایش مبالغ در کارت خانه (با دکمه چشم عوض می‌شود و ماندگار است). */
     val amountsVisible: Boolean = true,
+    /** سقف ماهانه ریالی برای هر دسته، تکرارشونده در همه ماه‌ها. */
+    val categoryBudgets: Map<Long, Long> = emptyMap(),
+    val homeShortcuts: List<String> = DEFAULT_HOME_SHORTCUTS,
     val bankFeePercent: Float = 1f,
     val dashboardAccountOrder: List<Long> = emptyList(),
     /** ترتیب دلخواه پلاک‌ها در صفحه وسایل نقلیه. */
@@ -164,6 +167,8 @@ class SettingsRepository(private val context: Context) {
         val CARD_SHINE = booleanPreferencesKey("card_shine")
         val APP_FONT_SCALE = intPreferencesKey("app_font_scale")
         val AMOUNTS_VISIBLE = booleanPreferencesKey("amounts_visible")
+        val HOME_SHORTCUTS = stringPreferencesKey("home_shortcuts")
+        val CATEGORY_BUDGETS = stringPreferencesKey("category_budgets")
         val BANK_FEE_PERCENT = floatPreferencesKey("bank_fee_percent_decimal")
         val BANK_FEE_PERCENT_LEGACY = intPreferencesKey("bank_fee_percent")
         val DASHBOARD_ACCOUNT_ORDER = stringPreferencesKey("dashboard_account_order")
@@ -184,8 +189,8 @@ class SettingsRepository(private val context: Context) {
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
         AppSettings(
-            themeMode = enumOf(p[Keys.THEME], ThemeMode.SYSTEM),
-            palette = enumOf(p[Keys.PALETTE], Palette.MINIMAL_DAY),
+            themeMode = enumOf(p[Keys.THEME], ThemeMode.LIGHT),
+            palette = enumOf(p[Keys.PALETTE], Palette.SAKURA),
             moneyUnit = enumOf(p[Keys.MONEY_UNIT], MoneyUnit.RIAL),
             appLockEnabled = p[Keys.APP_LOCK] ?: false,
             lockTimeoutSeconds = p[Keys.LOCK_TIMEOUT] ?: 60,
@@ -219,9 +224,11 @@ class SettingsRepository(private val context: Context) {
                 // پرچم سراسری ارقام همگام با تنظیم کاربر نگه داشته می‌شود
                 ir.kharjyar.app.core.text.Digits.usePersianDigits = it == DigitStyle.PERSIAN
             },
-            cardShine = p[Keys.CARD_SHINE] ?: false,
+            cardShine = true, // Old preferences/backups cannot turn the permanent frame off.
             appFontScale = (p[Keys.APP_FONT_SCALE] ?: 100).coerceIn(85, 130),
             amountsVisible = p[Keys.AMOUNTS_VISIBLE] ?: true,
+            categoryBudgets = parseCategoryBudgets(p[Keys.CATEGORY_BUDGETS].orEmpty()),
+            homeShortcuts = p[Keys.HOME_SHORTCUTS]?.let(::parseHomeShortcuts) ?: DEFAULT_HOME_SHORTCUTS,
             bankFeePercent = (p[Keys.BANK_FEE_PERCENT] ?: p[Keys.BANK_FEE_PERCENT_LEGACY]?.toFloat() ?: 1f).coerceIn(0f, 100f),
             dashboardAccountOrder = p[Keys.DASHBOARD_ACCOUNT_ORDER]?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList(),
             vehicleOrder = p[Keys.VEHICLE_ORDER]?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList(),
@@ -253,6 +260,14 @@ class SettingsRepository(private val context: Context) {
         // انتخاب بعدی کاربر (حتی لوکس) باید محترم بماند و دیگر مهاجرت نشود.
         it[Keys.WIDGET_SPLIT_DEFAULT_MIGRATED] = true
     }
+    suspend fun setHomeShortcuts(routes: List<String>) = edit { it[Keys.HOME_SHORTCUTS] = parseHomeShortcuts(routes.joinToString(",")).joinToString(",") }
+
+    suspend fun setCategoryBudget(categoryId: Long, amountRial: Long?) = edit { p ->
+        val values = parseCategoryBudgets(p[Keys.CATEGORY_BUDGETS].orEmpty()).toMutableMap()
+        if (amountRial == null || amountRial <= 0) values.remove(categoryId) else values[categoryId] = amountRial
+        p[Keys.CATEGORY_BUDGETS] = encodeCategoryBudgets(values)
+    }
+
     suspend fun setWidgetShowNumbers(v: Boolean) = edit { it[Keys.WIDGET_NUMBERS] = v }
     suspend fun setWidgetShowNumbersWhenLocked(v: Boolean) = edit { it[Keys.WIDGET_NUMBERS_LOCKED] = v }
     suspend fun setDefaultAccount(v: Long?) = edit { it[Keys.DEFAULT_ACCOUNT] = v ?: 0L }
@@ -317,6 +332,7 @@ class SettingsRepository(private val context: Context) {
             "dashboard_account_order" to s.dashboardAccountOrder.joinToString(","), "vehicle_order" to s.vehicleOrder.joinToString(","), "w_title_align" to s.widgetTitleAlign.name, "w_values_align" to s.widgetValuesAlign.name, "w_values_valign" to s.widgetValuesVAlign.name, "w_clock_align" to s.widgetClockAlign.name,
             "w_title_valign" to s.widgetTitleVAlign.name, "w_clock_valign" to s.widgetClockVAlign.name, "w_dates_below" to s.widgetDatesBelowClock.toString(),
             "w_clock_offset_y" to s.widgetClockOffsetY.toString(), "w_title_offset_y" to s.widgetTitleOffsetY.toString(),
+            "category_budgets" to encodeCategoryBudgets(s.categoryBudgets), "home_shortcuts" to s.homeShortcuts.joinToString(","),
             "weather_city" to ir.kharjyar.app.weather.WeatherService.city(context)
         )
     }
@@ -340,6 +356,8 @@ class SettingsRepository(private val context: Context) {
             enum("widget_palette",Keys.WIDGET_PALETTE,Palette.entries.toTypedArray()); int("widget_title_size",Keys.WIDGET_TITLE_SIZE,9..30); int("widget_weather_size",Keys.WIDGET_WEATHER_SIZE,8..28)
             enum("w_weather_align",Keys.W_WEATHER_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_weather_valign",Keys.W_WEATHER_VALIGN,WidgetVAlign.entries.toTypedArray())
             bool("widget_auto_pin",Keys.WIDGET_AUTO_PIN); bool("secure_screen",Keys.SECURE_SCREEN); enum("digit_style",Keys.DIGIT_STYLE,DigitStyle.entries.toTypedArray())
+            map["home_shortcuts"]?.let { p[Keys.HOME_SHORTCUTS] = parseHomeShortcuts(it).joinToString(",") }
+            map["category_budgets"]?.let { p[Keys.CATEGORY_BUDGETS] = encodeCategoryBudgets(parseCategoryBudgets(it)) }
             bool("card_shine",Keys.CARD_SHINE); int("app_font_scale",Keys.APP_FONT_SCALE,85..130); bool("amounts_visible",Keys.AMOUNTS_VISIBLE); float("bank_fee_percent",Keys.BANK_FEE_PERCENT,0f..100f)
             map["dashboard_account_order"]?.let { p[Keys.DASHBOARD_ACCOUNT_ORDER]=it }; map["vehicle_order"]?.let { p[Keys.VEHICLE_ORDER]=it }; enum("w_title_align",Keys.W_TITLE_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_values_align",Keys.W_VALUES_ALIGN,WidgetAlign.entries.toTypedArray()); enum("w_values_valign",Keys.W_VALUES_VALIGN,WidgetVAlign.entries.toTypedArray()); enum("w_clock_align",Keys.W_CLOCK_ALIGN,WidgetAlign.entries.toTypedArray())
             enum("w_title_valign",Keys.W_TITLE_VALIGN,WidgetVAlign.entries.toTypedArray()); enum("w_clock_valign",Keys.W_CLOCK_VALIGN,WidgetVAlign.entries.toTypedArray()); bool("w_dates_below",Keys.W_DATES_BELOW)
@@ -359,3 +377,19 @@ class SettingsRepository(private val context: Context) {
     private inline fun <reified T : Enum<T>> enumOf(name: String?, default: T): T =
         name?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default
 }
+
+internal fun parseCategoryBudgets(value: String): Map<Long, Long> = value.split(',').mapNotNull { entry ->
+    val parts = entry.split(':')
+    if (parts.size != 2) null else {
+        val id = parts[0].toLongOrNull()
+        val amount = parts[1].toLongOrNull()
+        if (id != null && id > 0 && amount != null && amount > 0) id to amount else null
+    }
+}.toMap()
+
+internal fun encodeCategoryBudgets(value: Map<Long, Long>): String = value.entries
+    .filter { it.key > 0 && it.value > 0 }.sortedBy { it.key }.joinToString(",") { "${it.key}:${it.value}" }
+
+val DEFAULT_HOME_SHORTCUTS = listOf("manual", "manual/transfer", "checks", "review")
+internal val HOME_SHORTCUT_OPTIONS = listOf("manual", "manual/transfer", "checks", "review", "financialCalendar", "globalSearch", "financialHealth", "reports", "recurringTransactions")
+internal fun parseHomeShortcuts(value: String): List<String> = value.split(',').filter { it in HOME_SHORTCUT_OPTIONS }.distinct()

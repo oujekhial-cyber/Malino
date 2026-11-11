@@ -81,6 +81,8 @@ fun BackupScreen(viewModel: AppViewModel) {
     var restorePassword by remember { mutableStateOf("") }
     var restoreError by remember { mutableStateOf<String?>(null) }
     var pendingRestore by remember { mutableStateOf<BackupPayload?>(null) }
+    var verifyOnly by remember { mutableStateOf(false) }
+    var verifiedBackup by remember { mutableStateOf<BackupPayload?>(null) }
     /** بازیابی جایگزینی که منتظر ذخیره بکاپ ایمنی از اطلاعات فعلی است. */
     var safetyBackupPayload by remember { mutableStateOf<BackupPayload?>(null) }
 
@@ -105,8 +107,10 @@ fun BackupScreen(viewModel: AppViewModel) {
                     val pwd = if (encrypt) password.toCharArray() else null
                     val bytes = withContext(Dispatchers.Default) { manager.createBackup(pwd) }
                     withContext(Dispatchers.IO) {
-                        context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                        requireNotNull(context.contentResolver.openOutputStream(uri)).use { it.write(bytes) }
                     }
+                    context.getSharedPreferences("backup_reminder", android.content.Context.MODE_PRIVATE).edit()
+                        .putLong("last_backup", System.currentTimeMillis()).apply()
                     message = if (encrypt) "بکاپ رمزدار ذخیره شد." else "بکاپ بدون رمز ذخیره شد."
                     isError = false
                     password = ""; passwordRepeat = ""
@@ -166,7 +170,7 @@ fun BackupScreen(viewModel: AppViewModel) {
                         message = null
                     } else {
                         val payload = withContext(Dispatchers.Default) { manager.validate(bytes, null) }
-                        pendingRestore = payload
+                        if (verifyOnly) verifiedBackup = payload else pendingRestore = payload
                         message = null
                     }
                 } catch (e: BackupCrypto.BackupFormatException) {
@@ -193,6 +197,13 @@ fun BackupScreen(viewModel: AppViewModel) {
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = skin.onBackdrop.copy(alpha = 0.9f)
+            )
+        }
+
+        SkinCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "راهنمای انتقال به گوشی دیگر: ۱. یک بکاپ رمزدار بسازید و فایل را در محلی خارج از گوشی نگه دارید. ۲. در گوشی جدید برنامه را نصب و فایل را منتقل کنید. ۳. در همین بخش «بازیابی»، فایل و رمز را انتخاب کنید و پس از بررسی، بازیابی را تأیید کنید. ۴. مجوزها را دوباره فعال و داده‌ها و تصاویر را بررسی کنید. تا تأیید کامل، فایل و گوشی قبلی را نگه دارید. بکاپ آنلاین هنوز فعال نیست.",
+                modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium, color = skin.onBackdrop
             )
         }
 
@@ -308,9 +319,13 @@ fun BackupScreen(viewModel: AppViewModel) {
                 )
                 OutlinedButton(
                     enabled = !busy,
-                    onClick = { openBackup.launch(arrayOf("*/*")) },
+                    onClick = { verifyOnly = false; openBackup.launch(arrayOf("*/*")) },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("انتخاب فایل بکاپ") }
+                ) { Text("انتخاب فایل بکاپ برای بازیابی") }
+                OutlinedButton(enabled = !busy, onClick = { verifyOnly = true; openBackup.launch(arrayOf("*/*")) }, modifier = Modifier.fillMaxWidth()) {
+                    Text("آزمایش فایل بکاپ بدون بازیابی")
+                }
+                Text("این آزمایش رمز و ساختار فایل را بررسی می‌کند؛ جایگزین آزمایش بازیابی روی گوشی دیگر نیست.", style = MaterialTheme.typography.bodySmall)
             }
         }
 
@@ -353,7 +368,7 @@ fun BackupScreen(viewModel: AppViewModel) {
                                 val payload = withContext(Dispatchers.Default) {
                                     manager.validate(bytes, restorePassword.toCharArray())
                                 }
-                                pendingRestore = payload
+                                if (verifyOnly) verifiedBackup = payload else pendingRestore = payload
                                 pendingBytes = null
                                 restorePassword = ""
                             } catch (e: BackupCrypto.WrongPasswordOrCorruptException) {
@@ -368,6 +383,15 @@ fun BackupScreen(viewModel: AppViewModel) {
             dismissButton = {
                 TextButton(onClick = { pendingBytes = null; restorePassword = "" }) { Text("انصراف") }
             }
+        )
+    }
+
+    verifiedBackup?.let { payload ->
+        AlertDialog(
+            onDismissRequest = { verifiedBackup = null },
+            title = { Text("نتیجه آزمایش بکاپ") },
+            text = { Text("فایل باز و ساختار آن خوانده شد. حساب‌ها: ${Digits.toPersian(payload.accounts.size.toString())}، تراکنش‌ها: ${Digits.toPersian(payload.transactions.size.toString())}. هیچ داده‌ای بازیابی یا تغییر داده نشد. برای اطمینان کامل، بازیابی را نیز روی دستگاه آزمایشی بررسی کنید.") },
+            confirmButton = { TextButton(onClick = { verifiedBackup = null }) { Text("متوجه شدم") } }
         )
     }
 

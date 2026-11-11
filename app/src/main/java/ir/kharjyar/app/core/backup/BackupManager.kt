@@ -24,15 +24,17 @@ class BackupManager(
         else BackupCrypto.encrypt(json, password)
     }
 
-    private suspend fun snapshot(): BackupPayload =
+    private suspend fun snapshot(): BackupPayload = repo.db.withTransaction {
         BackupPayload(
             createdAt = System.currentTimeMillis(),
+            recurringTransactions = repo.db.recurringTransactionDao().allOnce(),
+            recurringOccurrences = repo.db.recurringTransactionDao().allOccurrencesOnce(),
             accounts = repo.accountDao.allOnce().map { BAccount.of(it) },
             senders = repo.accountDao.allSenders().map { BSender.of(it) },
             categories = repo.categoryDao.allOnce().map { BCategory.of(it) },
             rules = repo.categoryDao.allRulesOnce().map { BRule.of(it) },
             templates = repo.templateDao.allOnce().map { BTemplate.of(it) },
-            transactions = repo.txDao.allOnce().map { BTransaction.of(it) },
+            transactions = repo.txDao.allIncludingTrashOnce().map { BTransaction.of(it) },
             transferGroups = repo.transferDao.allOnce().map { BTransferGroup.of(it) },
             smsQueue = repo.smsDao.allOnce().map { BSms.of(it) },
             blockedSenders = repo.blockedSenderDao.allOnce().map { BBlockedSender.of(it) }, spamMessages = repo.spamSmsDao.allOnce().map { BSpamSms.of(it) },
@@ -46,6 +48,7 @@ class BackupManager(
             localFinancialState = exportLocalFinancialState(),
             settings = settings.exportForBackup()
         )
+    }
 
     private fun exportLocalFinancialState():Map<String,String>{
         val p=appContext.getSharedPreferences("ration_card_local",android.content.Context.MODE_PRIVATE)
@@ -99,10 +102,28 @@ class BackupManager(
     /** ادغام بکاپ با داده فعلی؛ موارد هم‌شناسه فعلی حفظ و SMS با fingerprint یکتا می‌شود. */
     suspend fun merge(payload: BackupPayload): RestoreReport {
         val current = snapshot()
+        // IDs are local to a device. Never silently attach a recurring occurrence to a different schedule or transaction.
+        val currentSchedules = current.recurringTransactions.associateBy { it.id }
+        require(payload.recurringTransactions.none { old -> currentSchedules[old.id]?.let { it.accountId != old.accountId || it.direction != old.direction || it.nature != old.nature || it.amountRial != old.amountRial || it.categoryId != old.categoryId || it.anchorDay != old.anchorDay || it.description != old.description } == true }) { "تداخل شناسه برنامه‌های دوره‌ای؛ بازیابی جایگزین را بررسی کنید" }
+        val currentOccurrences = current.recurringOccurrences.associateBy { it.id }
+        val currentByDue = current.recurringOccurrences.associateBy { it.recurringId to it.dueAt }
+        require(payload.recurringOccurrences.none { old ->
+            currentOccurrences[old.id]?.let { it.recurringId != old.recurringId || it.dueAt != old.dueAt || it.transactionId != old.transactionId } == true ||
+                currentByDue[old.recurringId to old.dueAt]?.let { it.id != old.id || it.transactionId != old.transactionId } == true
+        }) { "تداخل نوبت‌های دوره‌ای؛ ادغام متوقف شد" }
+        val currentTx = current.transactions.associateBy { it.id }
+        val backupTx = payload.transactions.associateBy { it.id }
+        require(payload.recurringOccurrences.none { old ->
+            val a = backupTx[old.transactionId]
+            val b = currentTx[old.transactionId]
+            a != null && b != null && (a.accountId != b.accountId || a.occurredAt != b.occurredAt || a.direction != b.direction)
+        }) { "تداخل تراکنش‌های دوره‌ای؛ ادغام متوقف شد" }
         fun <T, K> merged(backup: List<T>, now: List<T>, key: (T) -> K): List<T> =
             (backup + now).associateBy(key).values.toList()
         val combined = payload.copy(
             createdAt = System.currentTimeMillis(),
+            recurringTransactions = merged(payload.recurringTransactions,current.recurringTransactions){it.id},
+            recurringOccurrences = merged(payload.recurringOccurrences,current.recurringOccurrences){it.id},
             accounts = merged(payload.accounts,current.accounts){it.id}, senders = merged(payload.senders,current.senders){it.id},
             categories = merged(payload.categories,current.categories){it.id}, rules = merged(payload.rules,current.rules){it.id}, templates = merged(payload.templates,current.templates){it.id},
             transactions = merged(payload.transactions,current.transactions){it.id}, transferGroups = merged(payload.transferGroups,current.transferGroups){it.id},
@@ -142,7 +163,16 @@ class BackupManager(
 
             db.clearAllTablesInTransaction(clearTemplates = payload.templates.isNotEmpty())
             if (payload.templates.isNotEmpty()) payload.templates.forEach { repo.templateDao.insert(it.toEntity()) }
-            payload.accounts.forEach { repo.accountDao.insert(it.toEntity()) }
+            val restoredTransactions = payload.transactions.map { it.toEntity() }
+            payload.recurringTransactions.forEach { repo.db.recurringTransactionDao().insert(it) }
+            payload.recurringOccurrences.forEach { repo.db.recurringTransactionDao().insertOccurrence(it) }
+            payload.accounts.forEach { saved ->
+                val account = saved.toEntity()
+                val restored = if (saved.hasProgramBalanceOffset) account else account.copy(
+                    programBalanceOffsetRial = ir.kharjyar.app.core.balance.AccountBalance.legacyOffset(account, restoredTransactions)
+                )
+                repo.accountDao.insert(restored)
+            }
             payload.senders.forEach { repo.accountDao.insertSender(it.toEntity()) }
             payload.categories.forEach { repo.categoryDao.insert(it.toEntity()) }
             payload.rules.forEach { repo.categoryDao.insertRule(it.toEntity()) }
@@ -171,6 +201,8 @@ class BackupManager(
 /** پاک‌سازی جدول‌ها داخل تراکنش (clearAllTables خودش تراکنش می‌سازد و اینجا قابل استفاده نیست). */
 private suspend fun ir.kharjyar.app.data.db.KharjYarDatabase.clearAllTablesInTransaction(clearTemplates: Boolean) {
     openHelper.writableDatabase.apply {
+        execSQL("DELETE FROM recurring_occurrences")
+        execSQL("DELETE FROM recurring_transactions")
         if (clearTemplates) execSQL("DELETE FROM sms_templates")
         execSQL("DELETE FROM vehicle_oil_services")
         execSQL("DELETE FROM civic_messages")

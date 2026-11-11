@@ -52,6 +52,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
     val settings by viewModel.settings.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val allTransactions by viewModel.allTransactions.collectAsState()
     val scope = rememberCoroutineScope()
 
     var tx by remember { mutableStateOf<TransactionEntity?>(null) }
@@ -134,7 +135,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
         if (isPending) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
                 Text(
-                    "این پیش‌نویس از پیامک بانکی ساخته شده و هنوز قطعی نیست. مقادیر را بررسی و تأیید کنید.",
+                    if (t.source == ir.kharjyar.app.data.db.TxSource.SMS) "این پیش‌نویس از پیامک بانکی ساخته شده و هنوز قطعی نیست. مقادیر را بررسی و تأیید کنید." else "این تراکنش هنوز قطعی نیست. مقادیر را بررسی و تأیید کنید.",
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -163,7 +164,7 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
 
         NaturePicker(nature, direction, onNature = { nature = it }, onDirection = { direction = it })
         CategoryPicker(
-            categories = categories,
+            categories = ir.kharjyar.app.core.category.categoriesByUsage(categories, allTransactions),
             selectedId = categoryId,
             nature = nature,
             onCreate = { name ->
@@ -248,20 +249,12 @@ fun TransactionEditScreen(viewModel: AppViewModel, nav: NavHostController, txId:
     }
 
     if (showDelete) {
-        AlertDialog(
-            onDismissRequest = { showDelete = false },
-            title = { Text("حذف تراکنش") },
-            text = { Text("این تراکنش برای همیشه حذف می‌شود. ادامه می‌دهید؟") },
-            confirmButton = {
-                TextButton(onClick = {
-                    scope.launch {
-                        viewModel.repo.txDao.delete(t.id)
-                        showDelete = false
-                        nav.popBackStack()
-                    }
-                }) { Text("حذف", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(onClick = { showDelete = false }) { Text("انصراف") } }
-        )
+        TransferDeletionDialog(selected = listOf(t), all = allTransactions, onDismiss = { showDelete = false }) { items ->
+            scope.launch {
+                viewModel.repo.txDao.deleteAll(items.map { it.id })
+                showDelete = false
+                nav.popBackStack()
+            }
+        }
     }
 }

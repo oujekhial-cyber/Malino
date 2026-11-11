@@ -78,7 +78,7 @@ fun ProfileScreen(vm: AppViewModel, nav: NavHostController) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        HeroCard(Modifier.fillMaxWidth().height(205.dp), neon = settings.cardShine) {
+        HeroCard(Modifier.fillMaxWidth().height(205.dp), neon = true) {
             Box(Modifier.fillMaxSize().padding(18.dp)) {
                 Box(Modifier.size(150.dp).align(Alignment.TopStart).offset(x=(-55).dp,y=(-70).dp)
                     .background(skin.onHero.copy(.06f),CircleShape))

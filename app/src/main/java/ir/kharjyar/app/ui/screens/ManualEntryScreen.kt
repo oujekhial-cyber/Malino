@@ -38,6 +38,17 @@ fun ManualEntryScreen(viewModel:AppViewModel,nav:NavHostController,presetDirecti
  val tint=when{presetTransfer->skin.accent;direction==TxDirection.DEPOSIT->skin.incomeColor;else->skin.expenseColor}
  Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal=16.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
   Column(verticalArrangement=Arrangement.spacedBy(3.dp)){Text(if(presetTransfer)"انتقال وجه" else "ثبت تراکنش",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Black);Text("فقط مبلغ و حساب را وارد کنید؛ بقیه موارد اختیاری‌اند.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+  OutlinedButton(
+   onClick = { nav.navigate("quickAdd") },
+   modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+   shape = RoundedCornerShape(16.dp),
+   border = androidx.compose.foundation.BorderStroke(1.dp, skin.accent.copy(alpha = .55f)),
+   colors = ButtonDefaults.outlinedButtonColors(contentColor = skin.accent)
+  ) {
+   Icon(Icons.Filled.Mic, contentDescription = null, modifier = Modifier.size(20.dp))
+   Spacer(Modifier.width(8.dp))
+   Text("ثبت هوشمند کلامی", fontWeight = FontWeight.Bold)
+  }
   if(!presetTransfer) NaturePicker(nature,direction,onNature={nature=it;categoryId=null;targetAccountId=null},onDirection={direction=it;categoryId=null;targetAccountId=null},showDirection=presetDirection==null)
   else SimpleTypeBanner(direction,presetTransfer,tint)
   Surface(shape=RoundedCornerShape(22.dp),color=MaterialTheme.colorScheme.surface.copy(alpha=.94f),border=androidx.compose.foundation.BorderStroke(1.dp,tint.copy(.22f)),tonalElevation=2.dp){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(13.dp)){
@@ -50,7 +61,7 @@ fun ManualEntryScreen(viewModel:AppViewModel,nav:NavHostController,presetDirecti
      val incoming=direction==TxDirection.DEPOSIT
      ComboBox(label=if(incoming)"انتقال از" else "انتقال به",options=listOf(true,false),selected=transferToOwn,labelOf={if(it)"یکی از حساب‌های خودم" else "حساب شخص دیگر"},onSelect={transferToOwn=it;targetAccountId=null})
      if(transferToOwn){val targets=active.filter{it.id!=accountId};ComboBox(label=if(incoming)"حساب مبدأ" else "حساب مقصد",options=targets.map{it.id},selected=targetAccountId,labelOf={id->targets.firstOrNull{it.id==id}?.title?:"انتخاب حساب"},placeholder="انتخاب حساب",onSelect={targetAccountId=it})}
-    }else CategoryPicker(categories,categoryId,nature,onCreate={name->scope.launch{categoryId=viewModel.repo.categoryDao.insert(CategoryEntity(name=name,colorArgb=0xFF6C8AE4))}}){categoryId=it}
+    }else CategoryPicker(ir.kharjyar.app.core.category.categoriesByUsage(categories,allTx),categoryId,nature,onCreate={name->scope.launch{categoryId=viewModel.repo.categoryDao.insert(CategoryEntity(name=name,colorArgb=0xFF6C8AE4))}}){categoryId=it}
     OutlinedTextField(value=description,onValueChange={description=it},label={Text(if(direction==TxDirection.DEPOSIT)"بابت چه بود؟ (اختیاری)" else "برای چه بود؟ (اختیاری)")},singleLine=true,modifier=Modifier.fillMaxWidth().keepAboveKeyboard())
    }
   }}
@@ -67,7 +78,7 @@ fun ManualEntryScreen(viewModel:AppViewModel,nav:NavHostController,presetDirecti
     when{acc==null->error="حساب را انتخاب کنید";amount==null||amount<=0->error="مبلغ معتبر وارد کنید";internalTransfer&&targetAccountId==null->error="حساب مقصد را انتخاب کنید";internalTransfer&&targetAccountId==acc->error="حساب مبدأ و مقصد نمی‌تواند یکی باشد";sourceAccountId!=null&&available!=null&&amount!=null&&amount>available->error="مانده حساب «${sourceAccount?.title.orEmpty()}» کمتر از مبلغ برداشت است؛ مانده فعلی ${Money.format(available,settings.moneyUnit)} است";else->{error=null;scope.launch{val at=PersianDate.toMillis(date,hour,minute);val transfer=presetTransfer||nature==TxNature.TRANSFER;val savedId=if(transfer&&transferToOwn){if(direction==TxDirection.DEPOSIT)viewModel.repo.addInternalTransfer(requireNotNull(targetAccountId),acc,amount,description.trim(),at).second else viewModel.repo.addInternalTransfer(acc,requireNotNull(targetAccountId),amount,description.trim(),at).first}else viewModel.repo.addManualTransaction(accountId=acc,amountRial=amount,direction=if(presetTransfer)TxDirection.WITHDRAW else direction,nature=if(presetTransfer)TxNature.TRANSFER else nature,categoryId=if(transfer)null else categoryId,description=description.trim(),occurredAt=at,counterparty=if(transfer)"حساب شخص دیگر" else "");if(receiptPath.isNotBlank())viewModel.repo.db.transactionAttachmentDao().insert(TransactionAttachmentEntity(transactionId=savedId,imagePath=receiptPath,createdAt=System.currentTimeMillis()));ir.kharjyar.app.widget.WidgetUpdater.requestUpdate(context);showSavedMessage(context,"تراکنش");nav.popBackStack()}}
     }
    },modifier=Modifier.fillMaxWidth().height(52.dp),shape=RoundedCornerShape(16.dp),colors=ButtonDefaults.buttonColors(containerColor=tint)){Icon(Icons.Filled.Check,null);Spacer(Modifier.width(7.dp));Text(if(presetTransfer)"ثبت انتقال" else "ثبت تراکنش",fontWeight=FontWeight.Bold)}
-   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.Center){TextButton({nav.navigate("quickAdd")}){Icon(Icons.Filled.Mic,null,Modifier.size(17.dp));Spacer(Modifier.width(5.dp));Text("فرمان هوشمند")};TextButton({nav.navigate("smsPaste")}){Icon(Icons.Filled.Sms,null,Modifier.size(17.dp));Spacer(Modifier.width(5.dp));Text("از پیامک")}}
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.Center){TextButton({nav.navigate("smsPaste")}){Icon(Icons.Filled.Sms,null,Modifier.size(17.dp));Spacer(Modifier.width(5.dp));Text("از پیامک")}}
   }
  }
 }

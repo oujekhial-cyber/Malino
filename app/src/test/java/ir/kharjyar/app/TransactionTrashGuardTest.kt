@@ -8,7 +8,7 @@ class TransactionTrashGuardTest {
     private val entity=File("src/main/java/ir/kharjyar/app/data/db/Entities.kt").readText()
     private val dao=File("src/main/java/ir/kharjyar/app/data/db/Daos.kt").readText()
     private val database=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
-    private val screen=File("src/main/java/ir/kharjyar/app/ui/screens/TransactionTrashScreen.kt").readText()
+    private val screen=File("src/main/java/ir/kharjyar/app/ui/screens/TrashScreen.kt").readText()
 
     @Test fun `ordinary deletion is soft and active queries hide trash`() {
         assertTrue(entity.contains("val deletedAt: Long? = null"))
@@ -28,7 +28,7 @@ class TransactionTrashGuardTest {
     }
 
     @Test fun `database migration preserves existing transactions`() {
-        assertTrue(database.contains("version = 24"))
+        assertTrue(database.contains("version = 29"))
         assertTrue(database.contains("ALTER TABLE transactions ADD COLUMN deletedAt INTEGER"))
         assertTrue(database.contains("MIGRATION_22_23"))
     }

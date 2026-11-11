@@ -48,6 +48,45 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
     val blockedSenderDao = db.blockedSenderDao()
     val spamSmsDao = db.spamSmsDao()
 
+    /** Called inside a Room transaction after a confidently matched balance SMS. */
+    private suspend fun recordBalanceSms(accountId: Long, balance: Long, at: Long, receivedAt: Long, pendingSmsId: Long?, pendingTxId: Long? = null) {
+        val account = accountDao.byId(accountId) ?: return
+        if (account.accountType != ir.kharjyar.app.data.db.AccountType.BANK || receivedAt < account.createdAt) return
+        val snapshotDao = db.bankBalanceSnapshotDao()
+        val previous = snapshotDao.byAccount(accountId)
+        if (previous == null || at >= previous.messageAt) {
+            snapshotDao.upsert(BankBalanceSnapshotEntity(accountId, balance, at, -(pendingSmsId ?: 0L)))
+        }
+        if (account.firstBalanceSmsId == 0L) {
+            val offset = ir.kharjyar.app.core.balance.AccountBalance.offsetAtSms(accountId, balance, at, txDao.allOnce())
+            accountDao.update(account.copy(programBalanceOffsetRial = offset, firstBalanceSmsId = pendingTxId?.let { ir.kharjyar.app.core.balance.AccountBalance.pendingTransactionAnchor(it) } ?: pendingSmsId ?: -1L,
+                anchorReviewBalanceRial = balance, anchorReviewAt = at))
+        }
+    }
+
+    /** Confirm or correct the original SMS basis without wiping subsequent transaction changes. */
+    suspend fun reviewSmsBalanceAnchor(accountId: Long, revisedBalance: Long): Boolean {
+        if (revisedBalance < 0) return false
+        return db.withTransaction {
+            val account = accountDao.byId(accountId) ?: return@withTransaction false
+            val original = account.anchorReviewBalanceRial ?: return@withTransaction false
+            val offset = account.programBalanceOffsetRial ?: return@withTransaction false
+            val corrected = ir.kharjyar.app.core.balance.AccountBalance.correctedAnchorOffset(offset, original, revisedBalance)
+                ?: return@withTransaction false
+            accountDao.update(account.copy(programBalanceOffsetRial = corrected, anchorReviewBalanceRial = null, anchorReviewAt = null))
+            true
+        }
+    }
+
+    /** Remove the anchor transaction's original effect once, just before it becomes confirmed. */
+    private suspend fun releasePendingBalanceAnchor(tx: TransactionEntity) {
+        if (tx.status != TxStatus.PENDING) return
+        val account = accountDao.byId(tx.accountId) ?: return
+        if (!ir.kharjyar.app.core.balance.AccountBalance.anchorMatchesPending(account.firstBalanceSmsId, tx)) return
+        val offset = ir.kharjyar.app.core.balance.AccountBalance.releaseAnchorOffset(account.programBalanceOffsetRial ?: 0L, tx)
+        accountDao.update(account.copy(programBalanceOffsetRial = offset, firstBalanceSmsId = -1L))
+    }
+
     /** نتیجه ثبت اولیه پیامک (از Receiver). */
     data class IngestResult(val smsId: Long?, val duplicate: Boolean, val kind: SmsKind)
 
@@ -89,6 +128,19 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
         if(!protectedFinancial&&!knownFinancialSender&&spam.confident){
             spamSmsDao.insert(ir.kharjyar.app.data.db.SpamSmsEntity(sender=sender,body=body,receivedAt=receivedAt,reason=spam.reason,fingerprint=fp))
             return IngestResult(null,false,SmsKind.NON_FINANCIAL)
+        }
+        if (decision.type == ir.kharjyar.app.core.sms.BankSmsSemanticType.BALANCE_ONLY && knownFinancialSender) {
+            val accounts = accountDao.allOnce().filter { !it.archived && it.accountType == ir.kharjyar.app.data.db.AccountType.BANK }
+            val match = ir.kharjyar.app.core.sms.AccountNumberMatcher.match(body, accounts.map {
+                ir.kharjyar.app.core.sms.MatchableAccount(it.id, it.maskedNumber, it.accountNumber, it.iban, it.cardNumber)
+            }) as? AccountMatch.Single
+            val account = accounts.firstOrNull { it.id == match?.accountId }
+            val senderMatches = account != null && (mappings.any { it.accountId == account.id && AccountMatcher.normalizeSender(it.sender) == normalizedSender } ||
+                decision.bankName?.let { ir.kharjyar.app.core.sms.BankSenderResolver.sameBank(account.bankName, it) } == true)
+            val balance = decision.extraction?.balanceRial
+            if (senderMatches && balance != null) db.withTransaction {
+                recordBalanceSms(account!!.id, balance, receivedAt, receivedAt, null)
+            }
         }
         if (kind == SmsKind.NON_FINANCIAL) return IngestResult(null, false, kind)
         val row = SmsCandidateEntity(
@@ -265,6 +317,8 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
             ?: suggestCategory(sms.body, chosen.counterparty ?: "") else suggestCategory(sms.body, chosen.counterparty ?: "")
         val occurredAt = chosen.occurredAtMillis ?: sms.receivedAt
         txDao.findDuplicate(accountId,chosen.amountRial,direction,occurredAt)?.let { duplicate ->
+            chosen.balanceRial?.let { balance -> db.withTransaction { recordBalanceSms(accountId, balance, occurredAt, sms.receivedAt, null,
+                pendingTxId = duplicate.id.takeIf { duplicate.status == TxStatus.PENDING }) } }
             smsDao.update(sms.copy(status=SmsStatus.DONE,matchedAccountId=accountId,extractionJson=chosen.toJson(),updatedAt=now()))
             val reason=duplicate.description.ifBlank{duplicate.categoryId?.let{categoryDao.byId(it)?.name}.orEmpty()}
             return ProcessOutcome.DuplicateFound(sms.id,duplicate.id,reason)
@@ -292,6 +346,7 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
                     refNumber = chosen.refNumber ?: ""
                 )
             )
+            chosen.balanceRial?.let { balance -> recordBalanceSms(accountId, balance, occurredAt, sms.receivedAt, sms.id) }
             smsDao.update(
                 sms.copy(
                     status = SmsStatus.DRAFT_READY,
@@ -356,6 +411,7 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
             val duplicate=txDao.findConfirmedDuplicateExcluding(
                 pending.id,pending.accountId,pending.amountRial,pending.direction,pending.occurredAt
             )?:return@withTransaction
+            releasePendingBalanceAnchor(pending)
             pending.smsId?.let { sid ->
                 smsDao.byId(sid)?.let { smsDao.update(it.copy(status=SmsStatus.DONE,updatedAt=now())) }
             }
@@ -381,6 +437,7 @@ class Repository(val db: KharjYarDatabase, private val context: Context? = null)
         var groupId: Long? = null
         db.withTransaction {
             val tx = txDao.byId(txId) ?: return@withTransaction
+            releasePendingBalanceAnchor(tx)
             var updated = tx.copy(
                 accountId = accountId,
                 amountRial = amountRial,

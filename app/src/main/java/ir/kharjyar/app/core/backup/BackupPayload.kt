@@ -20,6 +20,8 @@ import kotlinx.serialization.json.Json
 data class BackupPayload(
     val formatVersion: Int = 1,
     val createdAt: Long,
+    val recurringTransactions: List<RecurringTransactionEntity> = emptyList(),
+    val recurringOccurrences: List<RecurringOccurrenceEntity> = emptyList(),
     val accounts: List<BAccount> = emptyList(),
     val senders: List<BSender> = emptyList(),
     val categories: List<BCategory> = emptyList(),
@@ -59,7 +61,9 @@ data class BAccount(
     val accountType: String = "BANK", val ownerName: String = "",
     val cashLocation: String = "", val note: String = "",
     val bankAccountKind: String = "OTHER", val monthlyInterestBearing: Boolean = false,
-    val monthlyInterestRatePercent: Double? = null, val interestDestinationAccountId: Long? = null
+    val monthlyInterestRatePercent: Double? = null, val interestDestinationAccountId: Long? = null,
+    val programBalanceOffsetRial: Long? = null, val hasProgramBalanceOffset: Boolean = false,
+    val firstBalanceSmsId: Long = -1, val anchorReviewBalanceRial: Long? = null, val anchorReviewAt: Long? = null
 ) {
     fun toEntity() = AccountEntity(
         id = id, title = title, bankName = bankName, colorArgb = colorArgb, icon = icon,
@@ -69,7 +73,7 @@ data class BAccount(
         bankAccountKind = bankAccountKind, monthlyInterestBearing = monthlyInterestBearing,
         monthlyInterestRatePercent = monthlyInterestRatePercent, interestDestinationAccountId = interestDestinationAccountId,
         initialBalanceRial = initialBalanceRial, initialBalanceAt = initialBalanceAt,
-        archived = archived, createdAt = createdAt
+        archived = archived, createdAt = createdAt, programBalanceOffsetRial = programBalanceOffsetRial, firstBalanceSmsId = firstBalanceSmsId, anchorReviewBalanceRial = anchorReviewBalanceRial, anchorReviewAt = anchorReviewAt
     )
     companion object {
         fun of(e: AccountEntity) = BAccount(
@@ -82,7 +86,8 @@ data class BAccount(
             accountType = e.accountType, ownerName = e.ownerName,
             cashLocation = e.cashLocation, note = e.note,
             bankAccountKind = e.bankAccountKind, monthlyInterestBearing = e.monthlyInterestBearing,
-            monthlyInterestRatePercent = e.monthlyInterestRatePercent, interestDestinationAccountId = e.interestDestinationAccountId
+            monthlyInterestRatePercent = e.monthlyInterestRatePercent, interestDestinationAccountId = e.interestDestinationAccountId,
+            programBalanceOffsetRial = e.programBalanceOffsetRial, hasProgramBalanceOffset = true, firstBalanceSmsId = e.firstBalanceSmsId, anchorReviewBalanceRial = e.anchorReviewBalanceRial, anchorReviewAt = e.anchorReviewAt
         )
     }
 }
@@ -120,11 +125,11 @@ data class BTransaction(
     val categoryId: Long?, val description: String, val occurredAt: Long, val recordedAt: Long,
     val timeIsApproximate: Boolean, val source: Int, val smsId: Long?, val status: Int,
     val transferGroupId: Long?, val balanceAfterRial: Long?, val counterparty: String,
-    val refNumber: String, val userEdited: Boolean
+    val refNumber: String, val userEdited: Boolean, val deletedAt: Long? = null
 ) {
-    fun toEntity() = TransactionEntity(id, accountId, amountRial, direction, nature, categoryId, description, occurredAt, recordedAt, timeIsApproximate, source, smsId, status, transferGroupId, balanceAfterRial, counterparty, refNumber, userEdited)
+    fun toEntity() = TransactionEntity(id, accountId, amountRial, direction, nature, categoryId, description, occurredAt, recordedAt, timeIsApproximate, source, smsId, status, transferGroupId, balanceAfterRial, counterparty, refNumber, userEdited, deletedAt)
     companion object {
-        fun of(e: TransactionEntity) = BTransaction(e.id, e.accountId, e.amountRial, e.direction, e.nature, e.categoryId, e.description, e.occurredAt, e.recordedAt, e.timeIsApproximate, e.source, e.smsId, e.status, e.transferGroupId, e.balanceAfterRial, e.counterparty, e.refNumber, e.userEdited)
+        fun of(e: TransactionEntity) = BTransaction(e.id, e.accountId, e.amountRial, e.direction, e.nature, e.categoryId, e.description, e.occurredAt, e.recordedAt, e.timeIsApproximate, e.source, e.smsId, e.status, e.transferGroupId, e.balanceAfterRial, e.counterparty, e.refNumber, e.userEdited, e.deletedAt)
     }
 }
 

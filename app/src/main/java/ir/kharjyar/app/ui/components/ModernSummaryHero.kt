@@ -25,7 +25,7 @@ data class SummaryMetric(val label:String,val value:String,val color:Color,val i
 fun ModernSummaryHero(title:String,subtitle:String,accent:Color,metrics:List<SummaryMetric>,icon:ImageVector=Icons.Filled.AutoGraph) {
     Surface(
         modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp),
-        color=MaterialTheme.colorScheme.surface.copy(alpha=.96f),
+        color=MaterialTheme.colorScheme.surface.copy(alpha=1f),
         border=BorderStroke(1.dp,accent.copy(.32f)),shadowElevation=5.dp
     ) {
         Box(Modifier.background(Brush.linearGradient(listOf(accent.copy(.15f),Color.Transparent,accent.copy(.06f)))).padding(15.dp)) {

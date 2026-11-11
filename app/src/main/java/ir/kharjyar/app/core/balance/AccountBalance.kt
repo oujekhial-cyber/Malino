@@ -35,7 +35,7 @@ data class EstimatedBalance(
 ) {
     /** برچسب فارسی منبع، برای نمایش شفاف روی کارت داشبورد. */
     fun sourceLabel(): String = when (source) {
-        BalanceSource.INITIAL_PLUS_TX -> "موجودی اولیه + تراکنش‌های تأییدشده"
+        BalanceSource.INITIAL_PLUS_TX -> "مبنای ثبت‌شده + تراکنش‌های تأییدشده"
         BalanceSource.SMS_BALANCE -> "آخرین مانده پیامک بانک + تراکنش‌های بعد"
         BalanceSource.TRANSACTIONS_ONLY -> "خالص تراکنش‌های تأییدشده برنامه"
         BalanceSource.NONE -> "مبنای محاسبه ثبت نشده"
@@ -51,10 +51,57 @@ object AccountBalance {
     /**
      * مانده برآوردی حساب:
      * موجودی اولیه + جمع تراکنش‌های تأییدشدهٔ بعد از زمان آن؛
-     * اما اگر آخرین ماندهٔ اعلام‌شده در پیامک از موجودی اولیه جدیدتر باشد،
-     * مبنا همان مانده پیامکی می‌شود و فقط تراکنش‌های تأییدشدهٔ بعد از آن اضافه می‌شوند.
+     * مبنای ثابت مستقل از ماندهٔ پیامکی است تا افزودن، حذف و ویرایش
+     * هر تراکنش قطعی، حتی تراکنش قدیمی، در مانده برنامه منعکس شود.
      */
     fun estimate(account: AccountEntity, transactions: List<TransactionEntity>): EstimatedBalance {
+        val mine = transactions.filter { it.accountId == account.id && it.deletedAt == null }
+        val confirmed = mine.filter { it.status == TxStatus.CONFIRMED }
+        val pendingCount = mine.count { it.status != TxStatus.CONFIRMED }
+        val offset = account.programBalanceOffsetRial
+        if (offset != null) return EstimatedBalance(
+            offset + confirmed.sumOf { signed(it) }, BalanceSource.INITIAL_PLUS_TX,
+            account.initialBalanceAt, pendingCount
+        )
+        if (account.initialBalanceRial != null) {
+            val from = account.initialBalanceAt ?: Long.MIN_VALUE
+            return EstimatedBalance(account.initialBalanceRial + confirmed.filter { it.occurredAt >= from }.sumOf { signed(it) }, BalanceSource.INITIAL_PLUS_TX, account.initialBalanceAt, pendingCount)
+        }
+        if (confirmed.isNotEmpty()) return EstimatedBalance(
+            confirmed.sumOf { signed(it) }, BalanceSource.TRANSACTIONS_ONLY,
+            confirmed.minOfOrNull { it.occurredAt }, pendingCount
+        )
+        return EstimatedBalance(null, BalanceSource.NONE, null, pendingCount)
+    }
+
+    /** Negative markers below -1 bind an anchor to a pre-existing pending transaction. */
+    fun pendingTransactionAnchor(txId: Long): Long = -txId - 1L
+
+    fun anchorMatchesPending(marker: Long, tx: TransactionEntity): Boolean =
+        tx.status == TxStatus.PENDING && ((tx.smsId != null && marker == tx.smsId) ||
+            (marker < -1L && marker == pendingTransactionAnchor(tx.id)))
+
+    fun releaseAnchorOffset(offset: Long, tx: TransactionEntity): Long = offset - signed(tx)
+
+    /** Adjust just the original basis; all subsequent changes remain reflected in the balance. */
+    fun correctedAnchorOffset(offset: Long, original: Long, revised: Long): Long? =
+        try { Math.addExact(offset, Math.subtractExact(revised, original)) } catch (_: ArithmeticException) { null }
+
+    /** Fix the bank balance at the message time while retaining later confirmed activity. */
+    fun offsetAtSms(accountId: Long, balance: Long, at: Long, transactions: List<TransactionEntity>): Long =
+        balance - transactions.asSequence().filter {
+            it.accountId == accountId && it.deletedAt == null && it.status == TxStatus.CONFIRMED && it.occurredAt <= at
+        }.sumOf { signed(it) }
+
+    /** Freeze the old displayed balance while preserving the effect of every active transaction. */
+    fun legacyOffset(account: AccountEntity, transactions: List<TransactionEntity>): Long? {
+        val active = transactions.filter { it.accountId == account.id && it.deletedAt == null }
+        val oldBalance = legacyEstimate(account, active).rial ?: return null
+        return oldBalance - active.filter { it.status == TxStatus.CONFIRMED }.sumOf { signed(it) }
+    }
+
+    /** Previous algorithm, used only for migrating existing accounts and old backups. */
+    private fun legacyEstimate(account: AccountEntity, transactions: List<TransactionEntity>): EstimatedBalance {
         val mine = transactions.filter { it.accountId == account.id }
         val confirmed = mine.filter { it.status == TxStatus.CONFIRMED }
         val pendingCount = mine.count { it.status != TxStatus.CONFIRMED }

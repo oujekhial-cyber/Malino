@@ -473,7 +473,7 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
             }
             if (p.nature != ir.kharjyar.app.data.db.TxNature.TRANSFER && p.categoryId == null) {
                 Text("این تراکنش مربوط به کدام دسته‌بندی است؟",style=MaterialTheme.typography.titleSmall,color=skin.accent)
-                ComboBox("دسته‌بندی",categories.filterNot{it.archived},null,{category->parsed=p.copy(categoryId=category.id,categoryName=category.name,warnings=p.warnings.filterNot{it.contains("دسته")})},labelOf={it.name})
+                ComboBox("دسته‌بندی",ir.kharjyar.app.core.category.categoriesByUsage(categories.filterNot{it.archived},transactions),null,{category->parsed=p.copy(categoryId=category.id,categoryName=category.name,warnings=p.warnings.filterNot{it.contains("دسته")})},labelOf={it.name})
             }
             if (!p.dateExplicit) {
                 Text("تراکنش در چه تاریخی انجام شد؟",style=MaterialTheme.typography.titleSmall,color=skin.accent)
@@ -518,8 +518,8 @@ fun QuickAddScreen(viewModel: AppViewModel, nav: NavHostController) {
                     when(target.type){
                         "transaction"->viewModel.repo.txDao.delete(target.id)
                         "asset"->{viewModel.repo.db.assetDao().deleteTrades(target.id);viewModel.repo.db.assetDao().delete(target.id)}
-                        "debt"->{viewModel.repo.db.debtDao().deletePaymentsOf(target.id);viewModel.debts.value.firstOrNull{it.id==target.id}?.let{viewModel.repo.db.debtDao().deleteDebt(it)}}
-                        "loan"->{viewModel.repo.db.loanDao().deleteInstallments(target.id);viewModel.repo.db.loanDao().deleteLoan(target.id)}
+                        "debt"->{viewModel.repo.db.debtDao().trashDebt(target.id,System.currentTimeMillis());ir.kharjyar.app.notify.Notifier.cancelDebtReminder(context,target.id)}
+                        "loan"->{viewModel.repo.db.loanDao().trash(target.id,System.currentTimeMillis());viewModel.repo.db.loanDao().allInstallmentsOnce().filter{it.loanId==target.id}.forEach{ir.kharjyar.app.notify.Notifier.cancelInstallmentReminder(context,it.id)}}
                     }
                     saved=true;input=""
                 } else {

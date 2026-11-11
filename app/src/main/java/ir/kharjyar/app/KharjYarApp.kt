@@ -37,6 +37,8 @@ class KharjYarApp : Application() {
         // پیامک‌های قبلی که به‌علت ناشناخته‌بودن سرشماره حساب نگرفته‌اند، پس از
         // به‌روزرسانی قواعد بانک دوباره پردازش می‌شوند.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try { ir.kharjyar.app.core.recurring.createDueRecurringDrafts(database) }
+            catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; android.util.Log.e("RecurringDrafts", "Unable to generate recurring drafts", e) }
             repository.reprocessPendingAccounts().filterIsInstance<Repository.ProcessOutcome.DraftReady>().forEach {
                 ir.kharjyar.app.notify.Notifier.notifyDraftReady(this@KharjYarApp, it.smsId, it.txId)
             }

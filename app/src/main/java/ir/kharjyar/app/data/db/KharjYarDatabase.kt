@@ -11,6 +11,7 @@ import net.sqlcipher.database.SupportFactory
 
 @Database(
     entities = [
+        RecurringTransactionEntity::class, RecurringOccurrenceEntity::class,
         AccountEntity::class,
         AccountSenderEntity::class,
         SmsCandidateEntity::class,
@@ -24,10 +25,11 @@ import net.sqlcipher.database.SupportFactory
         DebtPersonEntity::class, DebtEntity::class, DebtPaymentEntity::class, CheckEntity::class,
         BankBalanceSnapshotEntity::class, NoteEntity::class, LoanEntity::class, LoanInstallmentEntity::class, AssetEntity::class, AssetTradeEntity::class, StockSmsDraftEntity::class, TransactionAttachmentEntity::class, ReminderEntity::class, UserProfileEntity::class, CoveredPersonEntity::class, VehicleEntity::class, VehicleOilServiceEntity::class, UtilityBillProfileEntity::class, CivicMessageEntity::class
     ],
-    version = 24,
+    version = 29,
     exportSchema = true
 )
 abstract class KharjYarDatabase : RoomDatabase() {
+    abstract fun recurringTransactionDao(): RecurringTransactionDao
     abstract fun accountDao(): AccountDao
     abstract fun smsDao(): SmsDao
     abstract fun templateDao(): TemplateDao
@@ -60,7 +62,7 @@ abstract class KharjYarDatabase : RoomDatabase() {
                 )
                     // دیتابیس روی دیسک با AES-256 رمز می‌شود؛ کلید در Android Keystore است
                     .openHelperFactory(SupportFactory(DatabaseKey.getOrCreate(context)))
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29)
                     .addCallback(SeedCallback)
                     .build()
                     .also { instance = it }
@@ -254,6 +256,60 @@ abstract class KharjYarDatabase : RoomDatabase() {
             db.execSQL("ALTER TABLE transactions ADD COLUMN deletedAt INTEGER")
             db.execSQL("CREATE INDEX IF NOT EXISTS index_transactions_deletedAt ON transactions(deletedAt)")
         } }
+
+        val MIGRATION_28_29 = object : Migration(28, 29) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS recurring_transactions (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, accountId INTEGER NOT NULL, amountRial INTEGER NOT NULL, direction INTEGER NOT NULL, nature INTEGER NOT NULL, categoryId INTEGER, description TEXT NOT NULL, nextAt INTEGER NOT NULL, anchorDay INTEGER NOT NULL, enabled INTEGER NOT NULL)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS recurring_occurrences (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, recurringId INTEGER NOT NULL, dueAt INTEGER NOT NULL, transactionId INTEGER NOT NULL)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_recurring_occurrences_recurringId_dueAt ON recurring_occurrences (recurringId, dueAt)")
+            }
+        }
+
+        val MIGRATION_27_28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE accounts ADD COLUMN anchorReviewBalanceRial INTEGER")
+                db.execSQL("ALTER TABLE accounts ADD COLUMN anchorReviewAt INTEGER")
+            }
+        }
+
+        val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Existing accounts already have a preserved program balance; never re-anchor them.
+                db.execSQL("ALTER TABLE accounts ADD COLUMN firstBalanceSmsId INTEGER NOT NULL DEFAULT -1")
+            }
+        }
+
+        val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE accounts ADD COLUMN programBalanceOffsetRial INTEGER")
+                db.query("SELECT id, initialBalanceRial, initialBalanceAt, createdAt FROM accounts").use { accounts ->
+                    while (accounts.moveToNext()) {
+                        val id = accounts.getLong(0)
+                        val account = AccountEntity(id = id, title = "", bankName = "",
+                            initialBalanceRial = if (accounts.isNull(1)) null else accounts.getLong(1),
+                            initialBalanceAt = if (accounts.isNull(2)) null else accounts.getLong(2),
+                            createdAt = accounts.getLong(3))
+                        val transactions = mutableListOf<TransactionEntity>()
+                        db.query("SELECT id, amountRial, direction, occurredAt, status, balanceAfterRial FROM transactions WHERE deletedAt IS NULL AND accountId = ?", arrayOf(id)).use { rows ->
+                            while (rows.moveToNext()) transactions.add(TransactionEntity(
+                                id = rows.getLong(0), accountId = id, amountRial = rows.getLong(1),
+                                direction = rows.getInt(2), occurredAt = rows.getLong(3), recordedAt = rows.getLong(3),
+                                status = rows.getInt(4), balanceAfterRial = if (rows.isNull(5)) null else rows.getLong(5)))
+                        }
+                        val offset = ir.kharjyar.app.core.balance.AccountBalance.legacyOffset(account, transactions)
+                        if (offset != null) db.execSQL("UPDATE accounts SET programBalanceOffsetRial = ? WHERE id = ?", arrayOf(offset, id))
+                    }
+                }
+            }
+        }
+
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf("debt_people", "debts", "checks", "loans").forEach { table ->
+                    db.execSQL("ALTER TABLE `$table` ADD COLUMN `deletedAt` INTEGER")
+                }
+            }
+        }
 
         val MIGRATION_23_24 = object : Migration(23, 24) { override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE checks ADD COLUMN bankBranch TEXT NOT NULL DEFAULT ''")

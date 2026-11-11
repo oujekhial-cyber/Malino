@@ -11,7 +11,7 @@ class SmsPastePurposeCompletionGuardTest {
    "این تراکنش بابت چه بوده؟",
    "NaturePicker(nature=nature,direction=direction",
    "showDirection=false",
-   "CategoryPicker(categories=categories",
+   "CategoryPicker(categories=ir.kharjyar.app.core.category.categoriesByUsage(categories,allTransactions)",
    "توضیح واریز (اختیاری)",
    "توضیح برداشت (اختیاری)",
    "پیش از ثبت، حساب، نوع جریان مالی و بابت تراکنش را بررسی کنید.",

@@ -15,6 +15,9 @@ import ir.kharjyar.app.notify.Notifier
 class ObligationReminderWorker(context:Context,params:WorkerParameters):CoroutineWorker(context,params){
  override suspend fun doWork():Result{
   val app=applicationContext as KharjYarApp;val now=System.currentTimeMillis()
+  try { ir.kharjyar.app.core.recurring.createDueRecurringDrafts(app.database, now) }
+  catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; android.util.Log.e("RecurringDrafts", "Unable to generate recurring drafts", e) }
+  ObligationTrash.purgeExpired(applicationContext, app.database, now)
   // پاک‌سازی دفاعی برای داده‌های تسویه‌شده از نسخه‌های قبلی، بازیابی بکاپ یا race احتمالی UI/Worker.
   app.database.debtDao().allDebtsOnce().filter{it.settled}.forEach{Notifier.cancelDebtReminder(applicationContext,it.id)}
   app.database.checkDao().allOnce().filter{it.status!=CheckStatus.PENDING}.forEach{ObligationReminderCleanup.cancelCheck(applicationContext,app.database,it)}

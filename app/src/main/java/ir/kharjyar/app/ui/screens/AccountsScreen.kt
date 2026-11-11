@@ -113,6 +113,7 @@ fun AccountsScreen(viewModel: AppViewModel, nav: NavHostController) {
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
+                                    TextButton(onClick = { nav.navigate("balanceExplanation/${a.id}") }) { Text("توضیح محاسبه موجودی") }
                                     val est = AccountBalance.estimate(a, allTx)
                                     if (est.rial != null) {
                                         Text(

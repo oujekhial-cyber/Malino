@@ -11,6 +11,6 @@ class MarketPopupAndFreshDefaultsGuardTest {
  }
  @Test fun `fresh install defaults are day light and neon blossom split widget at fifty percent`() {
   val settings=File("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt").readText()
-  listOf("themeMode: ThemeMode = ThemeMode.SYSTEM","palette: Palette = Palette.MINIMAL_DAY","widgetLayout: WidgetLayout = WidgetLayout.SPLIT","widgetOpacity: Int = 50","widgetPalette: Palette = Palette.SAKURA","p[Keys.WIDGET_OPACITY] ?: 50").forEach{assertTrue(it,settings.contains(it))}
+  listOf("themeMode: ThemeMode = ThemeMode.LIGHT","palette: Palette = Palette.SAKURA","widgetLayout: WidgetLayout = WidgetLayout.SPLIT","widgetOpacity: Int = 50","widgetPalette: Palette = Palette.SAKURA","p[Keys.WIDGET_OPACITY] ?: 50").forEach{assertTrue(it,settings.contains(it))}
  }
 }

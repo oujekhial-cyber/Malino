@@ -10,7 +10,7 @@ class CheckBankBranchMigrationGuardTest {
   val db=File("src/main/java/ir/kharjyar/app/data/db/KharjYarDatabase.kt").readText()
   val screen=File("src/main/java/ir/kharjyar/app/ui/screens/ChecksScreen.kt").readText()
   assertTrue(entity.contains("val bankBranch: String = \"\""))
-  assertTrue(db.contains("version = 24"))
+  assertTrue(db.contains("version = 29"))
   assertTrue(db.contains("MIGRATION_23_24"))
   assertTrue(db.contains("ALTER TABLE checks ADD COLUMN bankBranch TEXT NOT NULL DEFAULT ''"))
   assertTrue(screen.contains("bankBranch=bankBranch.trim()"))

@@ -226,6 +226,10 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE deletedAt IS NULL")
     suspend fun allOnce(): List<TransactionEntity>
 
+    /** Includes trash so backup/restore retains its deletion timestamp. */
+    @Query("SELECT * FROM transactions")
+    suspend fun allIncludingTrashOnce(): List<TransactionEntity>
+
     @Query("SELECT * FROM transactions WHERE deletedAt IS NULL AND accountId = :accountId AND balanceAfterRial IS NOT NULL ORDER BY occurredAt DESC LIMIT 1")
     suspend fun latestWithBalance(accountId: Long): TransactionEntity?
 }

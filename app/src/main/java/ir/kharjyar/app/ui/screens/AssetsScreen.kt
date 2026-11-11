@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.dp
 import ir.kharjyar.app.assets.GoldPriceService
+import ir.kharjyar.app.assets.StockPurchaseCalculator
 import ir.kharjyar.app.assets.IranianGoldCalculator
 import ir.kharjyar.app.core.date.PersianDate
 import ir.kharjyar.app.core.money.Money
@@ -121,7 +122,7 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
  var currencyCurrentRate by remember{mutableStateOf("")}
  val stockParts=existing?.note?.split('|').orEmpty()
  var stockBroker by remember{mutableStateOf(stockParts.getOrNull(1).orEmpty())}
- var stockSymbol by remember{mutableStateOf(stockParts.getOrNull(2).orEmpty())}
+ var stockSymbol by remember(existing?.id, draft){mutableStateOf(stockParts.getOrNull(2)?.takeIf { it.isNotBlank() } ?: existing?.takeIf { it.kind == AssetKind.STOCK }?.title ?: draft?.title.orEmpty())}
  var stockUnitPrice by remember{mutableStateOf("")}
  var stockCurrentPrice by remember{mutableStateOf(if(existing?.kind==AssetKind.STOCK&&existing.quantity>0)((if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole((existing.currentValueRial/existing.quantity).toLong())else(existing.currentValueRial/existing.quantity).toLong()).toString())else "")}
  var gramPrice by remember{mutableStateOf("")}
@@ -150,8 +151,8 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(11.dp)){
   TextButton(onCancel){Icon(Icons.Filled.ArrowBack,null);Text("بازگشت به سبد دارایی")}
   ModernSummaryHero(if(existing==null)"افزودن دارایی" else "ویرایش دارایی","ثبت مشخصات، بهای خرید و ارزش روز",MaterialTheme.colorScheme.primary,listOf(SummaryMetric("بهای خرید",Money.inputToRial(purchase,settings.moneyUnit)?.let{Money.format(it,settings.moneyUnit)}?:"—",MaterialTheme.colorScheme.tertiary,Icons.Filled.Inventory2),SummaryMetric("ارزش روز",Money.inputToRial(current,settings.moneyUnit)?.let{Money.format(it,settings.moneyUnit)}?:"—",Color(0xFF20A565),Icons.Filled.ShowChart)),Icons.Filled.AutoAwesomeMosaic)
-  ComboBox("نوع دارایی",kinds,kind,{if(existing==null)kind=it},labelOf={when(it){AssetKind.GOLD->"فلزات گران‌بها";AssetKind.VEHICLE->"خودرو";AssetKind.PROPERTY->"ملک";AssetKind.CURRENCY->"دارایی ارزی";else->"دارایی شخصی"}})
-  OutlinedTextField(title,{title=it},label={Text("عنوان دارایی")},modifier=Modifier.fillMaxWidth())
+  ComboBox("نوع دارایی",kinds,kind,{if(existing==null)kind=it},labelOf={when(it){AssetKind.GOLD->"فلزات گران‌بها";AssetKind.VEHICLE->"خودرو";AssetKind.PROPERTY->"ملک";AssetKind.CURRENCY->"دارایی ارزی";AssetKind.STOCK->"دارایی سهام بورس";else->"دارایی شخصی"}})
+  if(kind!=AssetKind.STOCK) OutlinedTextField(title,{title=it},label={Text("عنوان دارایی")},modifier=Modifier.fillMaxWidth())
   if(kind==AssetKind.GOLD){
    ComboBox("نوع طلا یا سکه",goldTypes,goldType,{goldType=it},labelOf={it})
    val coin=goldType.contains("سکه")
@@ -161,8 +162,11 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
    OutlinedTextField(quantity,{quantity=it.copy(text=Digits.normalize(it.text))},label={Text("تعداد واحد ارز")},modifier=Modifier.fillMaxWidth())
   }else if(kind==AssetKind.STOCK){
    OutlinedTextField(stockBroker,{stockBroker=it},label={Text("نام کارگزاری")},modifier=Modifier.fillMaxWidth())
-   OutlinedTextField(stockSymbol,{stockSymbol=it.trim()},label={Text("نام یا نماد سهام")},modifier=Modifier.fillMaxWidth())
-   OutlinedTextField(quantity,{quantity=it.copy(text=Digits.normalize(it.text))},label={Text("تعداد سهم")},modifier=Modifier.fillMaxWidth())
+   OutlinedTextField(stockSymbol,{stockSymbol=it},label={Text("نام یا نماد سهام")},modifier=Modifier.fillMaxWidth())
+   OutlinedTextField(quantity,{ value ->
+    quantity=value.copy(text=Digits.normalize(value.text).replace('٫', '.'))
+    if(stockUnitPrice.isNotBlank()) purchase=StockPurchaseCalculator.totalInput(quantity.text,stockUnitPrice,settings.moneyUnit).orEmpty()
+   },label={Text("تعداد سهم")},modifier=Modifier.fillMaxWidth())
   }else OutlinedTextField(quantity,{quantity=it.copy(text=Digits.normalize(it.text))},label={Text("تعداد")},modifier=Modifier.fillMaxWidth().onFocusChanged{state->if(state.isFocused&&!quantityHadFocus){quantityHadFocus=true;quantity=quantity.copy(selection=TextRange(0,quantity.text.length))}else if(!state.isFocused)quantityHadFocus=false})
 
   HorizontalDivider()
@@ -180,8 +184,11 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
    AmountTextField(unitRate,{unitRate=it},"نرخ خرید هر واحد ارز",Modifier.fillMaxWidth(),unit=settings.moneyUnit)
    Button({val rate=Money.inputToRial(unitRate,settings.moneyUnit)?:0;val total=((quantity.text.toDoubleOrNull()?:0.0)*rate).toLong();purchase=(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(total)else total).toString()},enabled=(quantity.text.toDoubleOrNull()?:0.0)>0&&(Money.inputToRial(unitRate,settings.moneyUnit)?:0)>0,modifier=Modifier.fillMaxWidth()){Text("محاسبه مبلغ کل خرید ارز")}
   }else if(kind==AssetKind.STOCK){
-   AmountTextField(stockUnitPrice,{stockUnitPrice=it},"میانگین قیمت خرید هر سهم",Modifier.fillMaxWidth(),unit=settings.moneyUnit)
-   Button({val rate=Money.inputToRial(stockUnitPrice,settings.moneyUnit)?:0;val total=((quantity.text.toDoubleOrNull()?:0.0)*rate).toLong();purchase=(if(settings.moneyUnit==ir.kharjyar.app.core.money.MoneyUnit.TOMAN)Money.rialToTomanWhole(total)else total).toString()},enabled=(quantity.text.toDoubleOrNull()?:0.0)>0&&(Money.inputToRial(stockUnitPrice,settings.moneyUnit)?:0)>0,modifier=Modifier.fillMaxWidth()){Text("محاسبه ارزش خرید سهام")}
+   AmountTextField(stockUnitPrice,{ value ->
+    stockUnitPrice=value
+    purchase=StockPurchaseCalculator.totalInput(quantity.text,value,settings.moneyUnit).orEmpty()
+   },"میانگین قیمت خرید هر سهم",Modifier.fillMaxWidth(),unit=settings.moneyUnit)
+   Text("قیمت کل با تغییر تعداد یا میانگین خرید محاسبه می‌شود و در صورت نیاز قابل ویرایش است.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
   }
   AmountTextField(purchase,{purchase=it},"قیمت خرید کل در تاریخ خرید",Modifier.fillMaxWidth(),unit=settings.moneyUnit)
 
@@ -226,7 +233,7 @@ private fun AssetEditor(vm:AppViewModel,existing:AssetEntity?,initialKind:Int,dr
    }
   }
   Button({scope.launch{
-   val value=AssetEntity(id=existing?.id?:0,kind=kind,title=if(kind==AssetKind.STOCK)stockSymbol else title.trim(),quantity=quantity.text.toDoubleOrNull()?:1.0,purchasePriceRial=purchaseValue,currentValueRial=currentValue,purchasedAt=purchaseDate.startOfDayMillis(),note=when(kind){AssetKind.GOLD->goldType;AssetKind.CURRENCY->"CURRENCY:$currencyCode";AssetKind.STOCK->"STOCK|${stockBroker.trim()}|${stockSymbol.trim()}|${if((quantity.text.toDoubleOrNull()?:0.0)>0)purchaseValue/(quantity.text.toDoubleOrNull()?:1.0) else 0}";else->existing?.note.orEmpty()},active=existing?.active?:true)
+   val value=AssetEntity(id=existing?.id?:0,kind=kind,title=if(kind==AssetKind.STOCK)stockSymbol.trim() else title.trim(),quantity=quantity.text.toDoubleOrNull()?:1.0,purchasePriceRial=purchaseValue,currentValueRial=currentValue,purchasedAt=purchaseDate.startOfDayMillis(),note=when(kind){AssetKind.GOLD->goldType;AssetKind.CURRENCY->"CURRENCY:$currencyCode";AssetKind.STOCK->"STOCK|${stockBroker.trim()}|${stockSymbol.trim()}|${if((quantity.text.toDoubleOrNull()?:0.0)>0)purchaseValue/(quantity.text.toDoubleOrNull()?:1.0) else 0}";else->existing?.note.orEmpty()},active=existing?.active?:true)
    if(existing==null){val assetId=vm.repo.db.assetDao().insert(value);if(kind==AssetKind.GOLD)vm.repo.db.assetDao().insertTrade(AssetTradeEntity(assetId=assetId,isSale=false,quantity=value.quantity,amountRial=value.purchasePriceRial,tradedAt=value.purchasedAt))}else vm.repo.db.assetDao().update(value)
    showSavedMessage(context,"دارایی")
    onDone()

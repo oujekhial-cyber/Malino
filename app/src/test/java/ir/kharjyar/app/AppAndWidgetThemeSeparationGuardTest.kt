@@ -13,8 +13,8 @@ class AppAndWidgetThemeSeparationGuardTest {
   val widget=File("src/main/java/ir/kharjyar/app/widget/KharjYarWidget.kt").readText()
   assertTrue(widget.contains("skinOf(settings.widgetPalette)"));assertFalse(widget.contains("skinOf(settings.palette)"))
  }
- @Test fun `fresh startup defaults are system minimal day and sakura split`() {
+ @Test fun `fresh startup defaults are light sakura and sakura split`() {
   val prefs=File("src/main/java/ir/kharjyar/app/data/prefs/SettingsRepository.kt").readText()
-  listOf("themeMode: ThemeMode = ThemeMode.SYSTEM","palette: Palette = Palette.MINIMAL_DAY","widgetPalette: Palette = Palette.SAKURA","widgetLayout: WidgetLayout = WidgetLayout.SPLIT","ThemeMode.SYSTEM)","Palette.MINIMAL_DAY)","Palette.SAKURA)","WidgetLayout.SPLIT)").forEach{assertTrue(it,prefs.contains(it))}
+  listOf("themeMode: ThemeMode = ThemeMode.LIGHT","palette: Palette = Palette.SAKURA","widgetPalette: Palette = Palette.SAKURA","widgetLayout: WidgetLayout = WidgetLayout.SPLIT","ThemeMode.LIGHT)","Palette.SAKURA)","WidgetLayout.SPLIT)").forEach{assertTrue(it,prefs.contains(it))}
  }
 }

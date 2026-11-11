@@ -50,7 +50,13 @@ data class AccountEntity(
     /** زمان ثبت موجودی اولیه. */
     val initialBalanceAt: Long? = null,
     val archived: Boolean = false,
-    val createdAt: Long
+    val createdAt: Long,
+    /** مبنای ثابت مانده برنامه پیش از جمع تراکنش‌های قطعی. */
+    val programBalanceOffsetRial: Long? = null,
+    /** 0: منتظر؛ مثبت: شناسه پیامک پیش‌نویس؛ کمتر از -1: شناسه تراکنش تکراری؛ -1: تثبیت‌شده. */
+    @androidx.room.ColumnInfo(defaultValue = "-1") val firstBalanceSmsId: Long = -1,
+    val anchorReviewBalanceRial: Long? = null,
+    val anchorReviewAt: Long? = null
 )
 
 /** نگاشت فرستنده پیامک + شناسه داخل متن به حساب. */

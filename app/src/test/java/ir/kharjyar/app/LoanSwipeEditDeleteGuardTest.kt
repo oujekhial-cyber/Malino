@@ -12,8 +12,7 @@ class LoanSwipeEditDeleteGuardTest {
   assertTrue(screen.contains("onDelete={deletingLoan=loan}"))
   assertTrue(screen.contains("title={Text(\"ویرایش وام و برنامه اقساط\")}"))
   assertTrue(screen.contains("title={Text(\"حذف وام؟\")}"))
-  assertTrue(screen.contains("deleteInstallments(loan.id)"))
-  assertTrue(screen.contains("deleteLoan(loan.id)"))
+  assertTrue(screen.contains("loanDao().trash(loan.id"))
  }
 
  @Test fun `editing preserves paid history and rebuilds only unpaid schedule`() {

@@ -234,6 +234,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val recent by viewModel.scopedRecent.collectAsState()
     val reviewCount by viewModel.reviewCount.collectAsState()
     val allTx by viewModel.allTransactions.collectAsState()
+    val recurringOccurrences by viewModel.repo.db.recurringTransactionDao().observeOccurrences().collectAsState(initial = emptyList())
     val bankBalances by viewModel.bankBalances.collectAsState()
     val scopedTx by viewModel.scopedTransactions.collectAsState()
     val defaultAccount by viewModel.defaultAccount.collectAsState()
@@ -244,6 +245,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val backupPrefs = remember(context) { context.getSharedPreferences("backup_reminder", android.content.Context.MODE_PRIVATE) }
+    var showBackupReminder by remember {
+        val now = System.currentTimeMillis()
+        val firstSeen = backupPrefs.getLong("first_seen", 0L).takeIf { it > 0 } ?: now.also {
+            backupPrefs.edit().putLong("first_seen", it).apply()
+        }
+        val lastBackup = backupPrefs.getLong("last_backup", 0L).takeIf { it > 0 } ?: firstSeen
+        val postponedUntil = backupPrefs.getLong("postponed_until", 0L)
+        mutableStateOf(now - lastBackup >= 30L * 24 * 60 * 60 * 1000 && now >= postponedUntil)
+    }
     var pendingBalanceAccount by remember { mutableStateOf<ir.kharjyar.app.data.db.AccountEntity?>(null) }
     var greenBalanceAccounts by remember { mutableStateOf(setOf<Long>()) }
     fun timedMessage(message:String){
@@ -272,20 +283,23 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     var pendingDelete by remember { mutableStateOf<ir.kharjyar.app.data.db.TransactionEntity?>(null) }
 
     /** حذف تراکنش از فهرست «اخیر» با امکان بازگرداندن. */
-    fun deleteWithUndo(tx: ir.kharjyar.app.data.db.TransactionEntity) {
+    fun deleteWithUndo(items: List<ir.kharjyar.app.data.db.TransactionEntity>) {
         scope.launch {
-            viewModel.repo.txDao.delete(tx.id)
+            viewModel.repo.txDao.deleteAll(items.map { it.id })
             val res = snackbar.showSnackbar(
                 message = "تراکنش به سطل زباله منتقل شد",
                 actionLabel = "بازگرداندن",
                 duration = SnackbarDuration.Short
             )
-            if (res == SnackbarResult.ActionPerformed) viewModel.repo.txDao.restore(listOf(tx))
+            if (res == SnackbarResult.ActionPerformed) viewModel.repo.txDao.restore(items)
         }
     }
 
     pendingDelete?.let { tx ->
-        AlertDialog(onDismissRequest = { pendingDelete = null }, title = { Text("حذف تراکنش") }, text = { Text("آیا از حذف این تراکنش مطمئن هستید؟") }, confirmButton = { TextButton({ pendingDelete = null; deleteWithUndo(tx) }) { Text("حذف", color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton({ pendingDelete = null }) { Text("انصراف") } })
+        TransferDeletionDialog(selected = listOf(tx), all = allTx, onDismiss = { pendingDelete = null }) { items ->
+            pendingDelete = null
+            deleteWithUndo(items)
+        }
     }
 
     Scaffold(
@@ -320,6 +334,26 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            if (accounts.any { !it.archived && it.anchorReviewBalanceRial != null }) item {
+                SkinCard(Modifier.fillMaxWidth().clickable { nav.navigate("financialHealth") }) {
+                    Text("مبنای مانده پیامکی نیاز به بررسی دارد • مشاهده", modifier = Modifier.padding(12.dp), color = skin.onBackdrop, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            if (showBackupReminder) item {
+                SkinCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("یادآوری بکاپ", style = MaterialTheme.typography.titleSmall, color = skin.onBackdrop)
+                        Text("مدتی از آخرین بکاپ گذشته است. فایل رمزدار را خارج از این گوشی نگه دارید.", style = MaterialTheme.typography.bodySmall, color = skin.onBackdrop)
+                        Row {
+                            TextButton(onClick = { showBackupReminder = false; nav.navigate("backup") }) { Text("بکاپ و راهنما") }
+                            TextButton(onClick = {
+                                backupPrefs.edit().putLong("postponed_until", System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000).apply()
+                                showBackupReminder = false
+                            }) { Text("هفته بعد") }
+                        }
+                    }
+                }
+            }
             // ---------- کیف پول: خلاصه ماه و کارت‌های بانکی در یک نوار ----------
             // قبلاً «کارت خلاصه» و «ردیف حساب‌ها» دو بخش جدا و زیر هم بودند و صفحه
             // را شلوغ می‌کردند. حالا یک نوار افقی است: صفحه نخست خلاصه همه حساب‌ها،
@@ -400,7 +434,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     .width(pageWidth)
                                     .height(compactAccountCardHeight)
                                     .clickable { scope.launch { viewModel.settingsRepo.setDefaultAccount(null) } },
-                                neon = settings.cardShine
+                                neon = true
                             ) {
                                 // بدنه کارت اصلی دقیقاً تمام ابعاد همان قاب ۲۳۰dp کارت‌های حساب را
                                 // پر می‌کند؛ HeroCard در حالت wrap-content در بعضی تم‌ها کوتاه‌تر دیده می‌شد.
@@ -578,7 +612,7 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                 expiry = account.cardExpiry,
                                 cvv2 = account.cardCvv2,
                                 showSecrets = amountVisible,
-                                balanceColor = when { account.id in greenBalanceAccounts -> Color(0xFF43E08D); hasDiscrepancy -> skin.expenseColor; else -> null },
+                                balanceColor = when { hasDiscrepancy -> skin.expenseColor; account.id in greenBalanceAccounts -> Color(0xFF43E08D); else -> null },
                                 showDetailsWhenSelected = false,
                                 modifier = Modifier
                                     .width(pageWidth)
@@ -678,7 +712,9 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                                     expenseColor = skin.expenseColor,
                                     appBalance = if(amountVisible&&est.rial!=null) Money.format(est.rial,settings.moneyUnit) else if(amountVisible) "نامشخص" else "••••••",
                                     smsBalance = bankSnapshot?.let{if(amountVisible)Money.format(it.balanceRial,settings.moneyUnit)else "••••••"},
-                                    discrepancy = bankSnapshot?.takeIf{hasDiscrepancy&&est.rial!=null}?.let{Money.format(kotlin.math.abs(est.rial!!-it.balanceRial),settings.moneyUnit)},
+                                    smsDate = bankSnapshot?.let { PersianDate.formatDateTime(it.messageAt) },
+                                    appBalanceKnown = est.rial != null,
+                                    discrepancy = bankSnapshot?.takeIf{hasDiscrepancy&&est.rial!=null}?.let{if (amountVisible) Money.format(kotlin.math.abs(est.rial!!-it.balanceRial),settings.moneyUnit) else "••••••"},
                                     hasDiscrepancy = hasDiscrepancy,
                                     onDiscrepancy = { nav.navigate("reviewImport?accountId=${account.id}") },
                                     onRefresh = { requestBalanceRefresh(account) }
@@ -720,13 +756,16 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
 
             // ---------- میان‌بر «ثبت سریع» ----------
             item {
+                val sakuraLight = skin.id == ir.kharjyar.app.data.prefs.Palette.SAKURA && !skin.dark
+                val quickContent = if (sakuraLight) Color.White else skin.onBackdrop
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(30.dp))
                         .background(
                             Brush.horizontalGradient(
-                                listOf(skin.accent.copy(alpha = 0.22f), skin.accent.copy(alpha = 0.06f))
+                                if (sakuraLight) listOf(skin.accent, skin.accent) else
+                                    listOf(skin.accent.copy(alpha = 0.22f), skin.accent.copy(alpha = 0.06f))
                             )
                         )
                         .border(1.dp, skin.accent.copy(alpha = 0.38f), RoundedCornerShape(30.dp))
@@ -738,13 +777,13 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(skin.accent.copy(alpha = 0.22f)),
+                            .background(if (sakuraLight) Color.White.copy(alpha = 0.20f) else skin.accent.copy(alpha = 0.22f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.Mic,
                             contentDescription = null,
-                            tint = skin.accent,
+                            tint = if (sakuraLight) Color.White else skin.accent,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -753,15 +792,24 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
                         "فرمان هوشمند",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = skin.onBackdrop,
+                        color = quickContent,
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
                         Icons.Filled.AutoAwesome,
                         contentDescription = null,
-                        tint = skin.accent.copy(alpha = 0.9f),
+                        tint = if (sakuraLight) Color.White else skin.accent.copy(alpha = 0.9f),
                         modifier = Modifier.size(16.dp)
                     )
+                }
+            }
+
+            item { HomeShortcuts(viewModel, nav) }
+            val recurringDraftIds = recurringOccurrences.map { it.transactionId }.toSet()
+            val recurringDraftCount = allTx.count { it.id in recurringDraftIds && it.status == ir.kharjyar.app.data.db.TxStatus.PENDING }
+            if (recurringDraftCount > 0) item {
+                SkinCard(Modifier.fillMaxWidth().clickable { nav.navigate("recurringTransactions") }) {
+                    Text("${Digits.toPersian(recurringDraftCount.toString())} پیش‌نویس دوره‌ای آماده بررسی", Modifier.padding(12.dp), color = skin.onBackdrop)
                 }
             }
 
@@ -898,7 +946,7 @@ private fun heroChipBg(skin: ir.kharjyar.app.ui.theme.AppSkin): Color =
 @Composable
 private fun AccountBelowCardPanel(
     income:String, expense:String, incomeColor:Color, expenseColor:Color,
-    appBalance:String, smsBalance:String?, discrepancy:String?, hasDiscrepancy:Boolean,
+    appBalance:String, smsBalance:String?, smsDate:String?, appBalanceKnown:Boolean, discrepancy:String?, hasDiscrepancy:Boolean,
     onDiscrepancy:()->Unit, onRefresh:()->Unit
 ) {
     Column(Modifier.fillMaxWidth().padding(top=7.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
@@ -915,7 +963,8 @@ private fun AccountBelowCardPanel(
             Icon(if(hasDiscrepancy)Icons.Filled.WarningAmber else Icons.Filled.Verified,null,tint=if(hasDiscrepancy)Color(0xFFFFB1B8)else Color(0xFF82E6B1),modifier=Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
             Text(
-                when{hasDiscrepancy->"مغایرت: ${discrepancy?:"نیازمند بررسی"}";smsBalance==null->"برای استعلام مانده پیامکی، بروزرسانی کنید";else->"مانده‌ها بدون مغایرت هستند"},
+                (when{hasDiscrepancy->"مغایرت: ${discrepancy?:"نیازمند بررسی"}";smsBalance==null->"برای استعلام مانده پیامکی، بروزرسانی کنید";!appBalanceKnown->"مانده برنامه نامشخص است";else->"مانده‌ها بدون مغایرت هستند"}) +
+                    (smsDate?.let { "\nمنبع: پیامک بانک، $it" } ?: ""),
                 style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold,color=Color.White,
                 modifier=Modifier.weight(1f),maxLines=2
             )
@@ -1001,9 +1050,9 @@ private fun SummaryChip(
 /** سری روزانه درآمد/هزینه برای n روز اخیر (بر اساس روز شمسی/منطقه زمانی تهران). */
 internal fun buildDailySeries(
     txs: List<ir.kharjyar.app.data.db.TransactionEntity>,
-    days: Int
+    days: Int,
+    today: PersianDate = PersianDate.today()
 ): Pair<List<Long>, List<Long>> {
-    val today = PersianDate.today()
     val income = MutableList(days) { 0L }
     val expense = MutableList(days) { 0L }
     val dayStartList = (0 until days).map { today.plusDays(-(days - 1 - it)) }
