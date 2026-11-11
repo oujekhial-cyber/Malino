@@ -54,7 +54,7 @@ fun TrashScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 ObligationTrashItem(
                     if (it.kind == DebtKind.RECEIVABLE) "طلب" else "بدهی",
                     it.id,
-                    "${it.title.ifBlank { "بدون عنوان" }} — ${activePeople.firstOrNull { it.personId == it.id }?.name ?: "شخص نامشخص"}",
+                    "${it.title.ifBlank { "بدون عنوان" }} — ${activePeople.firstOrNull { p -> p.id == it.personId }?.name ?: "شخص نامشخص"}",
                     it.deletedAt!!,
                     debt = it
                 )
