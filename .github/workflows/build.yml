@@ -151,13 +151,26 @@ jobs:
           fi
           tail -n 60 lint.log > dist/lint-tail.log || true
           tail -n 5000 release.log > dist/release-tail.log || true
-          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            cp app/build/outputs/apk/debug/app-debug.apk dist/KharjYar-debug.apk
+          echo "فایل‌های APK موجود در app/build/outputs/apk:"
+          find app/build/outputs/apk -type f -name '*.apk' -ls 2>/dev/null || echo "(پوشه APK وجود ندارد)"
+          # جستجوی پویا: نام/مسیر فایل دیباگ بسته به نسخه AGP ممکن است فرق کند
+          DBG=$(find app/build/outputs/apk/debug -type f -name '*.apk' 2>/dev/null | head -n 1)
+          if [ -z "$DBG" ]; then
+            DBG=$(find app/build/outputs/apk -type f -name '*.apk' ! -path '*release*' 2>/dev/null | head -n 1)
+          fi
+          echo "خروجی دیباگ: ${DBG:-یافت نشد}"
+          if [ -n "$DBG" ] && [ -f "$DBG" ]; then
+            cp "$DBG" dist/KharjYar-debug.apk
             (cd dist && sha256sum KharjYar-debug.apk > KharjYar-debug.apk.sha256)
+          else
+            echo "::warning title=Debug APK not found::APK دیباگ در app/build/outputs/apk پیدا نشد"
           fi
           # نسخه انتشار: کوچک‌تر، سریع‌تر و امضاشده
           # نام فایل خروجی بسته به امضا فرق می‌کند (app-release یا app-release-unsigned)
-          REL=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
+          REL=$(find app/build/outputs/apk/release -type f -name '*.apk' 2>/dev/null | head -n 1)
+          if [ -z "$REL" ]; then
+            REL=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
+          fi
           echo "خروجی انتشار: ${REL:-یافت نشد}"
           ls -la app/build/outputs/apk/release/ 2>/dev/null || true
           if [ -n "$REL" ] && [ -f "$REL" ]; then
@@ -196,6 +209,7 @@ jobs:
           name: kharjyar-outputs
           path: |
             dist/
+            app/build/outputs/apk/
             app/build/reports/
           if-no-files-found: warn
 
