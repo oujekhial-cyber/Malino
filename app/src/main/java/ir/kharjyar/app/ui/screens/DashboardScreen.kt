@@ -234,7 +234,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
     val recent by viewModel.scopedRecent.collectAsState()
     val reviewCount by viewModel.reviewCount.collectAsState()
     val allTx by viewModel.allTransactions.collectAsState()
-    val recurringOccurrences by viewModel.repo.db.recurringTransactionDao().observeOccurrences().collectAsState(initial = emptyList())
     val bankBalances by viewModel.bankBalances.collectAsState()
     val scopedTx by viewModel.scopedTransactions.collectAsState()
     val defaultAccount by viewModel.defaultAccount.collectAsState()
@@ -805,13 +804,6 @@ fun DashboardScreen(viewModel: AppViewModel, nav: NavHostController) {
             }
 
             item { HomeShortcuts(viewModel, nav) }
-            val recurringDraftIds = recurringOccurrences.map { it.transactionId }.toSet()
-            val recurringDraftCount = allTx.count { it.id in recurringDraftIds && it.status == ir.kharjyar.app.data.db.TxStatus.PENDING }
-            if (recurringDraftCount > 0) item {
-                SkinCard(Modifier.fillMaxWidth().clickable { nav.navigate("recurringTransactions") }) {
-                    Text("${Digits.toPersian(recurringDraftCount.toString())} پیش‌نویس دوره‌ای آماده بررسی", Modifier.padding(12.dp), color = skin.onBackdrop)
-                }
-            }
 
             // ---------- نیازمند بررسی ----------
             if (reviewCount > 0) {

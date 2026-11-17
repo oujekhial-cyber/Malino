@@ -140,7 +140,6 @@ import ir.kharjyar.app.ui.screens.TemplateTrainScreen
 import ir.kharjyar.app.ui.screens.TransactionEditScreen
 import ir.kharjyar.app.ui.screens.TransactionsScreen
 import ir.kharjyar.app.ui.screens.TrashScreen
-import ir.kharjyar.app.ui.screens.RecurringTransactionsScreen
 import ir.kharjyar.app.ui.screens.GlobalSearchScreen
 import ir.kharjyar.app.ui.screens.SearchNoteScreen
 import ir.kharjyar.app.ui.screens.FinancialCalendarScreen
@@ -275,7 +274,6 @@ private val drawerEntries = listOf(
     DrawerEntry("financialHealth", "سلامت داده‌ها", Icons.Filled.BarChart),
     DrawerEntry("financialCalendar", "تقویم مالی", Icons.Filled.BarChart),
     DrawerEntry("globalSearch", "جست‌وجوی سراسری", Icons.Filled.Search),
-    DrawerEntry("recurringTransactions", "تراکنش‌های دوره‌ای", Icons.AutoMirrored.Filled.ReceiptLong),
     DrawerEntry("accounts", "مدیریت حساب‌ها", Icons.Filled.AccountBalance),
     DrawerEntry("categories", "دسته‌بندی‌ها", Icons.Filled.Category),
     DrawerEntry("review", "پیامک‌های بررسی‌نشده", Icons.Filled.RateReview, badge = true),
@@ -556,7 +554,6 @@ private fun MainScaffold(viewModel: AppViewModel, initialDestination: String?) {
                 composable("financialHealth") { FinancialHealthScreen(viewModel, navController) }
                 composable("financialCalendar") { FinancialCalendarScreen(viewModel, navController) }
                 composable("globalSearch") { GlobalSearchScreen(viewModel, navController) }
-                composable("recurringTransactions") { RecurringTransactionsScreen(viewModel, navController) }
                 composable("searchNote/{id}") { entry -> SearchNoteScreen(viewModel, navController, entry.arguments?.getString("id")?.toLongOrNull() ?: -1L) }
                 composable("settings") { SettingsScreen(viewModel, navController) }
                 composable("settings/{section}") { back -> SettingsScreen(viewModel, navController, back.arguments?.getString("section")) }

@@ -17,7 +17,6 @@ private data class CalendarItem(val time: Long, val title: String, val detail: S
 
 @Composable
 fun FinancialCalendarScreen(vm: AppViewModel, nav: NavHostController) {
-    val recurring by vm.repo.db.recurringTransactionDao().observeAll().collectAsState(initial = emptyList())
     val checks by vm.checks.collectAsState()
     val debts by vm.debts.collectAsState()
     val loans by vm.loans.collectAsState()
@@ -34,7 +33,6 @@ fun FinancialCalendarScreen(vm: AppViewModel, nav: NavHostController) {
             val loan = loans.firstOrNull { it.id == installment.loanId } ?: return@forEach
             add(CalendarItem(installment.dueAt, "قسط ${installment.number} • ${loan.title}", if (installment.paid) "پرداخت‌شده" else display(installment.amountRial), "loans/${loan.id}/${installment.id}"))
         }
-        recurring.filter { it.enabled }.forEach { add(CalendarItem(it.nextAt, "برنامه تراکنش • ${it.description.ifBlank { "ماهیانه" }}", "موعد بعدی • ${display(it.amountRial)}", "recurringTransactions")) }
         reminders.filter { it.enabled }.forEach { add(CalendarItem(it.nextAt, "یادآور • ${it.title}", it.category, "reminders/${it.id}")) }
     }
     val monthEvents = events.filter { PersianDate.fromMillis(it.time).let { p -> p.year == month.year && p.month == month.month } }
@@ -62,7 +60,7 @@ fun FinancialCalendarScreen(vm: AppViewModel, nav: NavHostController) {
             }
         }
         Text("${day.format()} • ${dayEvents.size} مورد", style = MaterialTheme.typography.titleMedium)
-        Text("برای یادآورها و تراکنش‌های دوره‌ای فقط نوبت بعدی نمایش داده می‌شود.", style = MaterialTheme.typography.bodySmall)
+        Text("برای یادآورها فقط نوبت بعدی نمایش داده می‌شود.", style = MaterialTheme.typography.bodySmall)
         if (dayEvents.isEmpty()) Text("برای این روز موردی ثبت نشده است.")
         dayEvents.forEach { event -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
             Text(event.title, style = MaterialTheme.typography.titleSmall); Text(event.detail)

@@ -20,8 +20,6 @@ import kotlinx.serialization.json.Json
 data class BackupPayload(
     val formatVersion: Int = 1,
     val createdAt: Long,
-    val recurringTransactions: List<RecurringTransactionEntity> = emptyList(),
-    val recurringOccurrences: List<RecurringOccurrenceEntity> = emptyList(),
     val accounts: List<BAccount> = emptyList(),
     val senders: List<BSender> = emptyList(),
     val categories: List<BCategory> = emptyList(),

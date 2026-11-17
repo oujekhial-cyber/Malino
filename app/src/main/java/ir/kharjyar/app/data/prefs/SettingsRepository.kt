@@ -391,5 +391,5 @@ internal fun encodeCategoryBudgets(value: Map<Long, Long>): String = value.entri
     .filter { it.key > 0 && it.value > 0 }.sortedBy { it.key }.joinToString(",") { "${it.key}:${it.value}" }
 
 val DEFAULT_HOME_SHORTCUTS = listOf("manual", "manual/transfer", "checks", "review")
-internal val HOME_SHORTCUT_OPTIONS = listOf("manual", "manual/transfer", "checks", "review", "financialCalendar", "globalSearch", "financialHealth", "reports", "recurringTransactions")
+internal val HOME_SHORTCUT_OPTIONS = listOf("manual", "manual/transfer", "checks", "review", "financialCalendar", "globalSearch", "financialHealth", "reports")
 internal fun parseHomeShortcuts(value: String): List<String> = value.split(',').filter { it in HOME_SHORTCUT_OPTIONS }.distinct()

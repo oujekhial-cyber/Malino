@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 private fun shortcutTitle(route: String): String = when (route) {
     "manual" -> "ثبت تراکنش"; "manual/transfer" -> "انتقال وجه"; "checks" -> "چک‌ها"; "review" -> "بررسی پیامک‌ها"
-    "recurringTransactions" -> "تراکنش دوره‌ای"; "financialCalendar" -> "تقویم مالی"; "globalSearch" -> "جست‌وجو"; "financialHealth" -> "سلامت داده‌ها"; "reports" -> "گزارش‌ها"; else -> route
+    "financialCalendar" -> "تقویم مالی"; "globalSearch" -> "جست‌وجو"; "financialHealth" -> "سلامت داده‌ها"; "reports" -> "گزارش‌ها"; else -> route
 }
 
 @Composable
